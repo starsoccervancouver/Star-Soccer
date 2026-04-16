@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Star Soccer Brand Concepts</title>
+    <style>
+      :root {
+        --bg: #07111f;
+        --panel: #0d1a2d;
+        --line: rgba(166, 192, 241, 0.18);
+        --text: #f5f1e8;
+        --muted: #afbdd4;
+        --blue: #8cc8ff;
+        --gold: #f4c77f;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top, rgba(120, 154, 227, 0.14), transparent 28%),
+          linear-gradient(180deg, #050b14 0%, #07111f 100%);
+      }
+
+      .wrap {
+        width: min(1100px, calc(100% - 32px));
+        margin: 32px auto 60px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(2.3rem, 6vw, 4.2rem);
+      }
+
+      .intro {
+        color: var(--muted);
+        max-width: 68ch;
+        line-height: 1.7;
+        margin-bottom: 28px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(13, 26, 45, 0.9), rgba(8, 17, 31, 1));
+      }
+
+      .card img {
+        width: 100%;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .eyebrow {
+        color: var(--blue);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.72rem;
+        margin: 0 0 12px;
+      }
+
+      h2 {
+        margin: 14px 0 10px;
+        font-size: 1.35rem;
+      }
+
+      p {
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .note {
+        margin-top: 28px;
+        padding: 20px;
+        border-left: 4px solid var(--gold);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--muted);
+      }
+
+      @media (max-width: 900px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <p class="eyebrow">Star Soccer identity directions</p>
+      <h1>Minimal concepts based on your current brand.</h1>
+      <p class="intro">
+        The current graphic has recognizable ingredients: a star, motion, soccer,
+        and dark contrast. To minimalize it, I kept those ingredients but stripped
+        out the clutter, extra effects, and dated shapes.
+      </p>
+
+      <section class="grid">
+        <article class="card">
+          <p class="eyebrow">Refined Original</p>
+          <img src="logo-star-soccer-minimalized.svg" alt="Minimalized version of the original Star Soccer logo" />
+          <h2>Minimalized Current Logo</h2>
+          <p>
+            This keeps the actual structure of your current mark: outlined star,
+            purple motion shape, ball overlap, and stacked red wordmark. It is
+            just cleaner, sharper, and easier to use on a website.
+          </p>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Concept 1</p>
+          <img src="logo-star-swoosh.svg" alt="Star Soccer swoosh logo concept" />
+          <h2>Star + Swoosh</h2>
+          <p>
+            Closest to your current identity. It keeps the movement arc from the
+            old logo, but removes the ball clip-art and makes the mark feel cleaner
+            and more athletic.
+          </p>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Concept 2</p>
+          <img src="logo-monoline-badge.svg" alt="Star Soccer badge logo concept" />
+          <h2>Monoline Badge</h2>
+          <p>
+            More premium and organized. This would work well if you want the site
+            to feel credible for parents while still looking modern on camp shirts
+            and social graphics.
+          </p>
+        </article>
+
+        <article class="card">
+          <p class="eyebrow">Concept 3</p>
+          <img src="logo-wordmark-minimal.svg" alt="Star Soccer wordmark logo concept" />
+          <h2>Minimal Wordmark</h2>
+          <p>
+            The simplest direction. Strong for a clean website header and easiest
+            to scale into a more modern brand system.
+          </p>
+        </article>
+      </section>
+
+      <div class="note">
+        If the goal is "same logo, just better," use the Refined Original first.
+        It preserves the identity you already have without bringing all of the old
+        visual clutter forward.
+      </div>
+    </main>
+  </body>
+</html>

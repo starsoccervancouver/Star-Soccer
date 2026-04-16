@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071223"/>
+      <stop offset=".58" stop-color="#14305F"/>
+      <stop offset="1" stop-color="#09121E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1208 174) rotate(90) scale(210 250)">
+      <stop stop-color="#FFDCA8" stop-opacity=".82"/>
+      <stop offset="1" stop-color="#FFDCA8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="1600" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A3B81"/>
+      <stop offset=".52" stop-color="#A51B32"/>
+      <stop offset="1" stop-color="#1A3B81"/>
+    </linearGradient>
+    <linearGradient id="pitch" x1="800" y1="560" x2="800" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#306F45"/>
+      <stop offset="1" stop-color="#10271A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <path d="M0 220C178 154 432 116 800 116C1168 116 1422 154 1600 220V372H0V220Z" fill="#0B1628"/>
+  <rect x="0" y="258" width="1600" height="34" fill="url(#band)"/>
+  <rect x="0" y="308" width="1600" height="22" fill="#EAF0F8"/>
+  <rect x="0" y="344" width="1600" height="26" fill="#A51B32"/>
+  <path d="M0 900L322 560H1278L1600 900H0Z" fill="url(#pitch)"/>
+  <path d="M800 560V900" stroke="#F4F7FC" stroke-opacity=".34" stroke-width="6"/>
+  <circle cx="800" cy="666" r="84" stroke="#F4F7FC" stroke-opacity=".3" stroke-width="6"/>
+  <g opacity=".24">
+    <path d="M144 782C160 742 198 712 230 712C264 712 296 744 306 782" fill="#FFFFFF"/>
+    <path d="M230 792C256 736 304 696 352 696C400 696 442 734 458 792" fill="#FFFFFF"/>
+    <path d="M386 804C408 744 458 704 512 704C566 704 612 744 628 804" fill="#FFFFFF"/>
+    <path d="M970 804C992 744 1042 704 1096 704C1150 704 1196 744 1212 804" fill="#FFFFFF"/>
+    <path d="M1128 792C1154 736 1202 696 1250 696C1298 696 1340 734 1356 792" fill="#FFFFFF"/>
+    <path d="M1290 782C1306 742 1344 712 1376 712C1410 712 1442 744 1452 782" fill="#FFFFFF"/>
+  </g>
+  <circle cx="1210" cy="184" r="76" fill="#FFF3D7" fill-opacity=".22"/>
+  <circle cx="1280" cy="224" r="30" fill="#FFF3D7" fill-opacity=".18"/>
+</svg>

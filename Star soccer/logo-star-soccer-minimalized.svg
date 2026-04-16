@@ -1,0 +1,36 @@
+<svg width="760" height="220" viewBox="0 0 760 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="760" height="220" rx="28" fill="#08111F"/>
+
+  <path
+    d="M170 46L182.63 84.8732H223.501L190.435 108.754L203.065 147.627L170 123.746L136.935 147.627L149.565 108.754L116.499 84.8732H157.37L170 46Z"
+    stroke="#D8DEE9"
+    stroke-width="5"
+    stroke-linejoin="round"
+  />
+
+  <path
+    d="M135 130C176.11 91.1722 242.587 71.5 327 71.5C364.628 71.5 397.547 76.4202 425.5 84.5C392.508 84.8762 358.932 95.5452 327.5 117C291.343 141.681 258.307 150.5 220 150.5C186.224 150.5 157.233 143.996 135 130Z"
+    fill="#39206E"
+  />
+
+  <path
+    d="M148 124C191.116 91.3856 255.592 77.3048 338 81"
+    stroke="#5740A8"
+    stroke-width="5"
+    stroke-linecap="round"
+  />
+
+  <g transform="translate(365 28)">
+    <circle cx="65" cy="56" r="39" fill="#F7F7F5"/>
+    <path d="M64.5 33L76.5 41.5L72 56H57L52.5 41.5L64.5 33Z" fill="#08111F"/>
+    <path d="M39 50L50 42.5L58 48L56 61H43L37.5 56L39 50Z" fill="#08111F"/>
+    <path d="M72 56L80 49L91 51L94 61L86 70H74L70.5 62.5L72 56Z" fill="#08111F"/>
+    <path d="M53.5 63H70L74 73L64.5 81L53 73L53.5 63Z" fill="#08111F"/>
+  </g>
+
+  <text x="305" y="113" fill="#F04A4A" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="800" letter-spacing="8">STAR</text>
+  <text x="305" y="148" fill="#F04A4A" font-family="Arial, Helvetica, sans-serif" font-size="31" font-weight="800" letter-spacing="8">SOCCER</text>
+  <text x="306" y="171" fill="#C7CFDC" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="3.8">SOCCER CENTRE VANCOUVER</text>
+
+  <line x1="304" y1="183.5" x2="533" y2="183.5" stroke="#3E4C63" stroke-width="1"/>
+</svg>

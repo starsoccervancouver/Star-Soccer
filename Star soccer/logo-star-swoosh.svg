@@ -1,0 +1,9 @@
+<svg width="640" height="180" viewBox="0 0 640 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="180" rx="28" fill="#08111F"/>
+  <path d="M83 47L91.3271 72.6305H118.282L96.4774 88.4695L104.804 114.1L83 98.2609L61.1958 114.1L69.5226 88.4695L47.7184 72.6305H74.6729L83 47Z" fill="#F4C77F"/>
+  <path d="M120 103C159.622 74.1804 214.796 62.1193 286 66.8161" stroke="#5E8BFF" stroke-width="13" stroke-linecap="round"/>
+  <path d="M120 116C169.376 89.8558 219.191 80.4427 275 84.2388" stroke="#8CC8FF" stroke-width="4" stroke-linecap="round" opacity="0.75"/>
+  <text x="305" y="86" fill="#F5F1E8" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700" letter-spacing="1">STAR</text>
+  <text x="305" y="126" fill="#F5F1E8" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700" letter-spacing="1">SOCCER</text>
+  <text x="307" y="149" fill="#8FA1BE" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="4">SUMMER CAMPS</text>
+</svg>

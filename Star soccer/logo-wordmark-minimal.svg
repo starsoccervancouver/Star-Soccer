@@ -1,0 +1,7 @@
+<svg width="640" height="180" viewBox="0 0 640 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="180" rx="28" fill="#0A1324"/>
+  <path d="M72 90H154" stroke="#8CC8FF" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+  <path d="M108 52L115.87 76.2188H141.333L120.732 91.0623L128.602 115.281L108 100.438L87.3978 115.281L95.268 91.0623L74.6668 76.2188H100.13L108 52Z" fill="#F4C77F"/>
+  <text x="178" y="92" fill="#F5F1E8" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="700" letter-spacing="1">STAR SOCCER</text>
+  <text x="180" y="122" fill="#8FA1BE" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="5">TRAIN WITH INTENT</text>
+</svg>

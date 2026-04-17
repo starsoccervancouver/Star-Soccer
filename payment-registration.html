@@ -49,10 +49,11 @@
 
         <section class="section psg-light-section">
           <div class="section-cta registration-layout">
-            <div class="copy-panel registration-card" data-reveal="left">
-              <p class="eyebrow">Selected session</p>
+            <div class="copy-panel registration-card registration-showcase" data-reveal="left">
+              <p class="eyebrow">Quick registration</p>
               <h2 id="registrationTitle">Star Soccer checkout</h2>
-              <p id="registrationCopy">The player information entered here will be emailed to the coaching team before checkout opens.</p>
+              <p id="registrationCopy">Complete this short questionnaire and secure Stripe checkout will open right after.</p>
+
               <div class="registration-summary-list">
                 <div>
                   <span>Program</span>
@@ -67,6 +68,28 @@
                   <strong id="registrationPrice">To be confirmed</strong>
                 </div>
               </div>
+
+              <div class="registration-progress-shell" aria-live="polite">
+                <div class="registration-progress-labels">
+                  <span>Questionnaire progress</span>
+                  <strong id="formProgressText">0% complete</strong>
+                </div>
+                <div class="registration-progress-track">
+                  <span id="formProgressBar"></span>
+                </div>
+              </div>
+
+              <div class="registration-photo-grid" aria-hidden="true">
+                <div class="registration-photo registration-photo-main"></div>
+                <div class="registration-photo registration-photo-top"></div>
+                <div class="registration-photo registration-photo-bottom"></div>
+              </div>
+
+              <div class="registration-steps">
+                <div class="registration-step"><strong>1</strong><span>Tell us about your player</span></div>
+                <div class="registration-step"><strong>2</strong><span>We receive the details instantly</span></div>
+                <div class="registration-step"><strong>3</strong><span>Stripe checkout opens automatically</span></div>
+              </div>
             </div>
 
             <form class="interest-form registration-form" id="paymentRegistrationForm" data-reveal="right">
@@ -74,49 +97,64 @@
               <input type="hidden" name="_template" value="table" />
               <input type="hidden" name="_captcha" value="false" />
               <input type="text" name="_honey" style="display: none;" tabindex="-1" autocomplete="off" />
+              <input type="hidden" id="programInput" name="Program" />
+              <input type="hidden" id="sessionInput" name="Session" />
+              <input type="hidden" id="priceInput" name="Price" />
+
+              <div class="registration-form-head">
+                <p class="eyebrow">Short questionnaire</p>
+                <h3>Register your player</h3>
+                <p>Please complete the details below. Checkout will only appear after the form is submitted.</p>
+              </div>
 
               <div class="registration-grid">
                 <label>
-                  Parent or guardian name
+                  Your name
                   <input type="text" name="Parent or guardian name" placeholder="Full name" required />
                 </label>
                 <label>
-                  Parent email
+                  Email
                   <input type="email" name="Parent email" placeholder="name@email.com" required />
                 </label>
                 <label>
-                  Phone number
-                  <input type="tel" name="Phone number" placeholder="Best contact number" required />
-                </label>
-                <label>
-                  Child age
-                  <input type="text" name="Child age" placeholder="Age" required />
-                </label>
-                <label class="full">
-                  Child name
+                  Child's name
                   <input type="text" name="Child name" placeholder="Player name" required />
                 </label>
-                <label class="full">
-                  Program
-                  <input type="text" id="programInput" name="Program" readonly />
-                </label>
-                <label class="full">
-                  Session
-                  <input type="text" id="sessionInput" name="Session" readonly />
-                </label>
                 <label>
-                  Price
-                  <input type="text" id="priceInput" name="Price" readonly />
+                  Child's age
+                  <input type="text" name="Child age" placeholder="Age" required />
                 </label>
+
+                <fieldset class="experience-fieldset full">
+                  <legend>Child's experience in the sport</legend>
+                  <div class="experience-options">
+                    <label class="experience-option">
+                      <input type="radio" name="Child experience level" value="Beginner" required />
+                      <span>New to soccer</span>
+                      <small>Just getting started</small>
+                    </label>
+                    <label class="experience-option">
+                      <input type="radio" name="Child experience level" value="Some experience" required />
+                      <span>Some experience</span>
+                      <small>Comfortable and learning</small>
+                    </label>
+                    <label class="experience-option">
+                      <input type="radio" name="Child experience level" value="Advanced" required />
+                      <span>Advanced</span>
+                      <small>Ready for a challenge</small>
+                    </label>
+                  </div>
+                </fieldset>
+
                 <label class="full">
-                  Notes for coach
-                  <textarea name="Coach notes" placeholder="Anything helpful for us to know: allergies, friend requests, experience, or other details."></textarea>
+                  Extra notes for the coaches
+                  <textarea name="Coach notes" placeholder="Optional notes: allergies, friend requests, confidence level, or anything else helpful."></textarea>
                 </label>
               </div>
 
               <div class="registration-actions">
-                <button type="submit" class="button" id="submitRegistrationButton">Send details and continue</button>
-                <a class="button button-ghost" id="directCheckoutLink" href="#" style="display: none;">Open checkout</a>
+                <button type="submit" class="button" id="submitRegistrationButton">Complete registration</button>
+                <a class="button button-ghost" id="directCheckoutLink" href="#" style="display: none;">Open checkout manually</a>
               </div>
               <p class="status-message" id="registrationStatus"></p>
             </form>
@@ -128,7 +166,7 @@
         <div class="home-contact-inner">
           <div class="home-contact-brand">
             <img src="logo-star-soccer-minimalized.svg" alt="Star Soccer logo" class="brand-logo" />
-            <p>Registration details are sent before checkout so the staff receives player information right away.</p>
+            <p>Every registration is sent to the coaching team first, then the player is taken to secure checkout.</p>
           </div>
           <div class="home-contact-column">
             <p class="footer-label">Contact</p>
@@ -156,22 +194,68 @@
         const status = document.getElementById("registrationStatus");
         const directCheckoutLink = document.getElementById("directCheckoutLink");
         const submitButton = document.getElementById("submitRegistrationButton");
+        const progressBar = document.getElementById("formProgressBar");
+        const progressText = document.getElementById("formProgressText");
+        const childNameInput = form.querySelector('input[name="Child name"]');
 
-        document.getElementById("registrationProgram").textContent = program;
-        document.getElementById("registrationSession").textContent = session;
-        document.getElementById("registrationPrice").textContent = price;
-        document.getElementById("programInput").value = program;
-        document.getElementById("sessionInput").value = session;
-        document.getElementById("priceInput").value = price;
+        const summaryProgram = document.getElementById("registrationProgram");
+        const summarySession = document.getElementById("registrationSession");
+        const summaryPrice = document.getElementById("registrationPrice");
+        const programInput = document.getElementById("programInput");
+        const sessionInput = document.getElementById("sessionInput");
+        const priceInput = document.getElementById("priceInput");
+
+        const experienceMessages = {
+          Beginner: "We will keep the session welcoming, positive, and confidence-building.",
+          "Some experience": "Great — we can place your player into a group that keeps them progressing.",
+          Advanced: "Perfect — we are ready to challenge your player with the right level of detail and tempo.",
+        };
+
+        summaryProgram.textContent = program;
+        summarySession.textContent = session;
+        summaryPrice.textContent = price;
+        programInput.value = program;
+        sessionInput.value = session;
+        priceInput.value = price;
         title.textContent = program;
-        copy.textContent = `You are registering for ${session}. Once your details are sent, secure checkout will open automatically.`;
+
+        const updatePreview = () => {
+          const requiredInputs = [
+            form.querySelector('input[name="Parent or guardian name"]'),
+            form.querySelector('input[name="Parent email"]'),
+            form.querySelector('input[name="Child name"]'),
+            form.querySelector('input[name="Child age"]'),
+          ];
+
+          const checkedExperience = form.querySelector('input[name="Child experience level"]:checked');
+          let completed = requiredInputs.filter((input) => input && input.value.trim()).length;
+          if (checkedExperience) {
+            completed += 1;
+          }
+
+          const percent = Math.round((completed / 5) * 100);
+          progressBar.style.width = `${percent}%`;
+          progressText.textContent = `${percent}% complete`;
+
+          const childName = childNameInput.value.trim();
+          const experienceNote = checkedExperience ? experienceMessages[checkedExperience.value] : "Once you finish the short questionnaire, secure checkout will open automatically.";
+
+          copy.textContent = childName
+            ? `${childName} is registering for ${session}. ${experienceNote}`
+            : `You are registering for ${session}. ${experienceNote}`;
+        };
 
         if (stripeUrl) {
           directCheckoutLink.href = stripeUrl;
         } else {
           submitButton.disabled = true;
-          status.textContent = "Please return to the program or camp page and choose a payment option first.";
+          status.classList.add("is-error");
+          status.textContent = "Please return to the program or camp page and choose a session first.";
         }
+
+        form.addEventListener("input", updatePreview);
+        form.addEventListener("change", updatePreview);
+        updatePreview();
 
         form.addEventListener("submit", async (event) => {
           event.preventDefault();
@@ -180,7 +264,8 @@
             return;
           }
 
-          status.textContent = "Sending details to Star Soccer...";
+          status.classList.remove("is-error", "is-success");
+          status.textContent = "Sending registration details to Star Soccer...";
           submitButton.disabled = true;
 
           const formData = new FormData(form);
@@ -199,12 +284,14 @@
               throw new Error("Unable to send registration details.");
             }
 
-            status.textContent = "Details sent. Opening secure checkout...";
+            status.classList.add("is-success");
+            status.textContent = "Registration complete. Opening secure checkout...";
             window.setTimeout(() => {
               window.location.href = stripeUrl;
-            }, 900);
+            }, 800);
           } catch (error) {
-            status.textContent = "We could not confirm the email step automatically. You can still open checkout below, or contact us directly at starsoccervancouver@gmail.com.";
+            status.classList.add("is-error");
+            status.textContent = "We could not confirm the email step automatically. You can still continue using the checkout button below or contact starsoccervancouver@gmail.com.";
             directCheckoutLink.style.display = "inline-flex";
             submitButton.disabled = false;
           }

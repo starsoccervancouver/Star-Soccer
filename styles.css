@@ -2504,6 +2504,182 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   color: var(--blue);
 }
 
+.status-message.is-success {
+  color: #9df0bc;
+}
+
+.status-message.is-error {
+  color: var(--red-soft);
+}
+
+.registration-showcase {
+  gap: 18px;
+}
+
+.registration-form {
+  gap: 18px;
+}
+
+.registration-form-head h3 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--text);
+}
+
+.registration-form-head p {
+  margin: 6px 0 0;
+}
+
+.registration-progress-shell {
+  display: grid;
+  gap: 10px;
+}
+
+.registration-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.registration-progress-track {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.registration-progress-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #89d6ff 0%, #2f7bf0 55%, #ff4d67 100%);
+  transition: width 180ms ease;
+}
+
+.registration-photo-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 10px;
+  min-height: 240px;
+}
+
+.registration-photo {
+  border-radius: 18px;
+  border: 1px solid rgba(216, 229, 255, 0.14);
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 12px 28px rgba(3, 10, 24, 0.28);
+}
+
+.registration-photo-main {
+  grid-row: 1 / span 2;
+  min-height: 240px;
+  background-image:
+    linear-gradient(180deg, rgba(7, 18, 39, 0.18), rgba(7, 18, 39, 0.5)),
+    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=900&q=80");
+}
+
+.registration-photo-top {
+  min-height: 114px;
+  background-image:
+    linear-gradient(180deg, rgba(7, 18, 39, 0.12), rgba(7, 18, 39, 0.42)),
+    url("https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=900&q=80");
+}
+
+.registration-photo-bottom {
+  min-height: 114px;
+  background-image:
+    linear-gradient(180deg, rgba(7, 18, 39, 0.12), rgba(7, 18, 39, 0.42)),
+    url("https://images.unsplash.com/photo-1508098682722-e99c643e7485?auto=format&fit=crop&w=900&q=80");
+}
+
+.registration-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.registration-step {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(216, 229, 255, 0.1);
+}
+
+.registration-step strong {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #8bdcff 0%, #438cf5 100%);
+  color: #08111f;
+  font-size: 0.9rem;
+}
+
+.experience-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.experience-fieldset legend {
+  margin-bottom: 10px;
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.experience-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.experience-option {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(216, 229, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.experience-option:hover {
+  transform: translateY(-1px);
+  border-color: rgba(137, 214, 255, 0.46);
+}
+
+.experience-option input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.experience-option span {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.experience-option small {
+  color: var(--muted);
+}
+
+.experience-option:has(input:checked) {
+  border-color: rgba(137, 214, 255, 0.8);
+  background: linear-gradient(180deg, rgba(24, 56, 104, 0.92), rgba(12, 29, 56, 0.96));
+  box-shadow: 0 14px 24px rgba(6, 16, 30, 0.24);
+}
+
 .placeholder-media {
   position: relative;
   overflow: hidden;
@@ -2752,7 +2928,9 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 
   .session-option-side-dual,
   .registration-grid,
-  .section-cta.registration-layout {
+  .section-cta.registration-layout,
+  .experience-options,
+  .registration-photo-grid {
     grid-template-columns: 1fr;
   }
 }

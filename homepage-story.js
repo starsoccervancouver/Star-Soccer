@@ -126,3 +126,35 @@ if (window.location.hash) {
     }, 80);
   });
 }
+
+const stripeButtons = document.querySelectorAll('a.button[href*="buy.stripe.com"]');
+
+if (stripeButtons.length && !document.body.classList.contains("payment-registration-page")) {
+  stripeButtons.forEach((link) => {
+    link.textContent = "Register & pay";
+
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+
+      const card = link.closest(".session-option-block, .session-price-choice");
+      const pageTitle = document.querySelector(".psg-page-title")?.textContent?.trim() || "Star Soccer";
+      const pageCity = document.querySelector(".psg-page-city")?.textContent?.trim() || "";
+      const heading = card?.querySelector("h3")?.textContent?.trim() || "Payment option";
+      const kicker =
+        card?.querySelector(".psg-row-kicker")?.textContent?.trim() ||
+        card?.querySelector(".session-option-note")?.textContent?.trim() ||
+        "";
+      const price = card?.querySelector(".session-option-price")?.textContent?.trim() || "";
+      const program = [pageTitle, pageCity].filter(Boolean).join(" | ");
+      const session = kicker ? `${heading} — ${kicker}` : heading;
+      const params = new URLSearchParams({
+        program,
+        session,
+        price,
+        stripe: link.href,
+      });
+
+      window.location.href = `payment-registration.html?${params.toString()}`;
+    });
+  });
+}

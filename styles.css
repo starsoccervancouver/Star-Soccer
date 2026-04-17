@@ -2430,10 +2430,11 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .interest-form textarea {
   width: 100%;
   padding: 14px 16px;
-  border: 1px solid rgba(216, 229, 255, 0.14);
+  border: 1px solid rgba(216, 229, 255, 0.2);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text);
+  -webkit-text-fill-color: var(--text);
   font: inherit;
 }
 
@@ -2454,8 +2455,9 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .registration-card {
   padding: 24px;
   border-radius: 24px;
-  border: 1px solid rgba(216, 229, 255, 0.12);
-  background: var(--panel-strong);
+  border: 1px solid rgba(216, 229, 255, 0.16);
+  background: linear-gradient(180deg, rgba(8, 22, 44, 0.96), rgba(7, 18, 39, 0.98));
+  color: var(--text);
 }
 
 .registration-grid {
@@ -2479,16 +2481,24 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   gap: 4px;
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(216, 229, 255, 0.1);
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(216, 229, 255, 0.16);
 }
 
 .registration-summary-list span {
-  color: var(--blue);
+  color: #9fdcff;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-size: 0.72rem;
   font-weight: 800;
+}
+
+.registration-summary-list strong,
+.registration-progress-labels strong,
+.registration-card h2,
+.registration-card p,
+.registration-step span {
+  color: var(--text);
 }
 
 .registration-actions {
@@ -2540,7 +2550,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   justify-content: space-between;
   gap: 10px;
   align-items: center;
-  color: var(--muted);
+  color: #d5e7ff;
   font-size: 0.88rem;
 }
 

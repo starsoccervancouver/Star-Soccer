@@ -1984,7 +1984,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .psg-light-section {
-  background: linear-gradient(180deg, #d8e2ee 0%, #c8d4e3 100%);
+  background: linear-gradient(180deg, #bccadb 0%, #aab9cc 100%);
   color: #0b1526;
   box-shadow: none;
 }
@@ -2032,8 +2032,8 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .psg-row,
 .psg-map-placeholder {
   border-radius: 20px;
-  background: #d5e0eb;
-  border: 1px solid rgba(83, 108, 145, 0.16);
+  background: #c1cfde;
+  border: 1px solid rgba(83, 108, 145, 0.2);
   color: #0b1526;
 }
 
@@ -2443,7 +2443,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .office-hours-card {
   padding: 24px;
   border-radius: 20px;
-  background: #d5e0eb;
+  background: #c1cfde;
   color: #0b1526;
 }
 
@@ -2506,9 +2506,9 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   margin: 0 auto;
   padding: 24px;
   border-radius: 28px;
-  border: 1px solid rgba(83, 108, 145, 0.2);
-  background: linear-gradient(180deg, rgba(191, 206, 223, 0.9), rgba(176, 192, 211, 0.9));
-  box-shadow: 0 20px 44px rgba(18, 36, 62, 0.12);
+  border: 1px solid rgba(83, 108, 145, 0.24);
+  background: linear-gradient(180deg, rgba(168, 186, 207, 0.94), rgba(151, 170, 193, 0.94));
+  box-shadow: 0 20px 44px rgba(18, 36, 62, 0.14);
 }
 
 .session-option-list {
@@ -2523,8 +2523,8 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   align-items: center;
   padding: 20px 22px;
   border-radius: 20px;
-  border: 1px solid rgba(83, 108, 145, 0.18);
-  background: linear-gradient(180deg, rgba(214, 224, 236, 0.98), rgba(201, 213, 227, 0.98));
+  border: 1px solid rgba(83, 108, 145, 0.22);
+  background: linear-gradient(180deg, rgba(190, 205, 223, 0.98), rgba(176, 191, 210, 0.98));
 }
 
 .session-option-copy h3 {
@@ -2593,8 +2593,8 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .comparison-table {
   overflow-x: auto;
   border-radius: 22px;
-  border: 1px solid rgba(103, 128, 166, 0.16);
-  background: #d5e0eb;
+  border: 1px solid rgba(103, 128, 166, 0.18);
+  background: #c1cfde;
 }
 
 .comparison-table table {

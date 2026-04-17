@@ -1984,7 +1984,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .psg-light-section {
-  background: linear-gradient(180deg, #bccadb 0%, #aab9cc 100%);
+  background: linear-gradient(180deg, #9fb2c9 0%, #8ea2bb 100%);
   color: #0b1526;
   box-shadow: none;
 }
@@ -2032,8 +2032,8 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .psg-row,
 .psg-map-placeholder {
   border-radius: 20px;
-  background: #c1cfde;
-  border: 1px solid rgba(83, 108, 145, 0.2);
+  background: #afc1d4;
+  border: 1px solid rgba(83, 108, 145, 0.22);
   color: #0b1526;
 }
 
@@ -2506,9 +2506,11 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   margin: 0 auto;
   padding: 24px;
   border-radius: 28px;
-  border: 1px solid rgba(83, 108, 145, 0.24);
-  background: linear-gradient(180deg, rgba(168, 186, 207, 0.94), rgba(151, 170, 193, 0.94));
-  box-shadow: 0 20px 44px rgba(18, 36, 62, 0.14);
+  border: 1px solid rgba(70, 94, 132, 0.3);
+  background:
+    radial-gradient(circle at top right, rgba(120, 220, 255, 0.22), transparent 22%),
+    linear-gradient(180deg, rgba(134, 155, 181, 0.96), rgba(118, 139, 165, 0.96));
+  box-shadow: 0 24px 56px rgba(12, 28, 52, 0.18);
 }
 
 .session-option-list {
@@ -2517,14 +2519,34 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .session-option-block {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(190px, 0.7fr);
   gap: 18px;
   align-items: center;
   padding: 20px 22px;
   border-radius: 20px;
-  border: 1px solid rgba(83, 108, 145, 0.22);
-  background: linear-gradient(180deg, rgba(190, 205, 223, 0.98), rgba(176, 191, 210, 0.98));
+  border: 1px solid rgba(70, 94, 132, 0.28);
+  background: linear-gradient(180deg, rgba(176, 192, 212, 0.98), rgba(156, 174, 197, 0.98));
+  box-shadow: 0 14px 30px rgba(16, 33, 58, 0.12);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.session-option-block::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, #2d7be8 0%, #78dcff 100%);
+}
+
+.session-option-block:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 36px rgba(16, 33, 58, 0.18);
+  border-color: rgba(45, 123, 232, 0.34);
 }
 
 .session-option-copy h3 {
@@ -2535,7 +2557,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 
 .session-option-copy p:last-child {
   margin: 0;
-  color: #42556f;
+  color: #30445f;
   line-height: 1.7;
 }
 
@@ -2550,7 +2572,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   margin: 0;
   color: #0b1526;
   font-family: "Bebas Neue", sans-serif;
-  font-size: 2rem;
+  font-size: 2.2rem;
   letter-spacing: 0.03em;
 }
 

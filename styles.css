@@ -1984,7 +1984,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .psg-light-section {
-  background: #f4f5f7;
+  background: linear-gradient(180deg, #d8e2ee 0%, #c8d4e3 100%);
   color: #0b1526;
   box-shadow: none;
 }
@@ -2032,7 +2032,8 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .psg-row,
 .psg-map-placeholder {
   border-radius: 20px;
-  background: #eef1f5;
+  background: #d5e0eb;
+  border: 1px solid rgba(83, 108, 145, 0.16);
   color: #0b1526;
 }
 
@@ -2397,8 +2398,8 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   border-radius: 22px;
   border: 1px dashed rgba(103, 128, 166, 0.48);
   background:
-    linear-gradient(180deg, rgba(231, 236, 243, 0.98), rgba(214, 222, 234, 0.98)),
-    linear-gradient(135deg, rgba(120, 220, 255, 0.18), rgba(45, 123, 232, 0.12));
+    linear-gradient(180deg, rgba(211, 223, 237, 0.98), rgba(193, 207, 224, 0.98)),
+    linear-gradient(135deg, rgba(120, 220, 255, 0.16), rgba(45, 123, 232, 0.1));
   color: #0b1526;
   display: grid;
   place-items: center;
@@ -2442,7 +2443,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .office-hours-card {
   padding: 24px;
   border-radius: 20px;
-  background: #eef1f5;
+  background: #d5e0eb;
   color: #0b1526;
 }
 
@@ -2496,6 +2497,57 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   display: block;
 }
 
+.psg-light-section .psg-tab-row {
+  margin-top: 0;
+}
+
+.program-option-panel {
+  margin-top: 16px;
+}
+
+.program-option-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+  gap: 18px;
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid rgba(83, 108, 145, 0.18);
+  background: linear-gradient(180deg, rgba(214, 224, 236, 0.96), rgba(196, 209, 224, 0.96));
+  color: #0b1526;
+}
+
+.program-option-card h3 {
+  margin: 0 0 10px;
+  font-size: 1.45rem;
+}
+
+.program-option-card p {
+  margin: 0;
+  color: #42556f;
+  line-height: 1.7;
+}
+
+.program-option-meta {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.program-option-price {
+  margin: 0;
+  color: #0b1526;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 2.2rem;
+  letter-spacing: 0.03em;
+}
+
+.program-option-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 .location-action {
   display: grid;
   justify-items: end;
@@ -2511,7 +2563,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   overflow-x: auto;
   border-radius: 22px;
   border: 1px solid rgba(103, 128, 166, 0.16);
-  background: #eef1f5;
+  background: #d5e0eb;
 }
 
 .comparison-table table {

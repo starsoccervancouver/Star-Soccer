@@ -2,7 +2,10 @@ const revealItems = document.querySelectorAll("[data-reveal]");
 const floatItems = document.querySelectorAll(
   ".pm-visual-frame, .pm-step-screen, .pm-video-section .video-card"
 );
+const heroSection = document.querySelector(".immersive-hero");
+const latestBand = document.querySelector(".home-latest-band");
 let syncRevealVisibility = () => {};
+let syncLatestBandVisibility = () => {};
 
 if (revealItems.length) {
   syncRevealVisibility = () => {
@@ -37,6 +40,20 @@ if (revealItems.length) {
   });
 }
 
+if (heroSection && latestBand) {
+  syncLatestBandVisibility = () => {
+    const viewportHeight = window.innerHeight || 1;
+    const rect = heroSection.getBoundingClientRect();
+    const heroIsFading = rect.bottom <= viewportHeight * 0.78;
+
+    latestBand.classList.toggle("is-active", heroIsFading);
+  };
+
+  syncLatestBandVisibility();
+  window.addEventListener("scroll", syncLatestBandVisibility, { passive: true });
+  window.addEventListener("resize", syncLatestBandVisibility);
+}
+
 if (floatItems.length) {
   let ticking = false;
 
@@ -66,6 +83,32 @@ if (floatItems.length) {
   window.addEventListener("scroll", requestUpdate, { passive: true });
   window.addEventListener("resize", requestUpdate);
   requestUpdate();
+}
+
+const tabButtons = document.querySelectorAll("[data-tab-target]");
+const tabPanels = document.querySelectorAll("[data-tab-panel]");
+
+if (tabButtons.length && tabPanels.length) {
+  const activateTab = (target) => {
+    tabButtons.forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.tabTarget === target);
+    });
+
+    tabPanels.forEach((panel) => {
+      const isActive = panel.dataset.tabPanel === target;
+      panel.classList.toggle("is-active", isActive);
+      panel.hidden = !isActive;
+    });
+  };
+
+  tabButtons.forEach((button) => {
+    button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
+  });
+
+  activateTab(
+    document.querySelector("[data-tab-target].is-active")?.dataset.tabTarget ||
+      tabButtons[0].dataset.tabTarget
+  );
 }
 
 if (window.location.hash) {

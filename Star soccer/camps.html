@@ -11,6 +11,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <script src="homepage-story.js" defer></script>
   </head>
   <body class="home-page">
     <div class="page-shell">
@@ -46,45 +47,101 @@
           <p>Our camps provide a structure, confidence-building experience, and the kind of summer repetition that helps players leave camp sharper than when they arrived.</p>
         </section>
 
-        <div class="psg-tab-row">
-          <span class="psg-tab">Spring</span>
-          <span class="psg-tab">Summer</span>
-          <span class="psg-tab">Highlights</span>
-          <span class="psg-tab">Program</span>
-          <span class="psg-tab">Schedule</span>
-          <span class="psg-tab">Uniform</span>
+        <div class="psg-tab-row" role="tablist" aria-label="Camp sections">
+          <button type="button" class="psg-tab is-active" data-tab-target="spring">Spring</button>
+          <button type="button" class="psg-tab" data-tab-target="summer">Summer</button>
+          <button type="button" class="psg-tab" data-tab-target="highlights">Highlights</button>
+          <button type="button" class="psg-tab" data-tab-target="program">Program</button>
+          <button type="button" class="psg-tab" data-tab-target="schedule">Schedule</button>
+          <button type="button" class="psg-tab" data-tab-target="uniform">Uniform</button>
         </div>
 
         <section class="section psg-light-section">
-          <div class="psg-center-heading">
-            <p class="eyebrow">Summer lineup</p>
-            <h2>Camp <span>Options</span></h2>
+          <div class="camp-tab-panel is-active" data-tab-panel="spring">
+            <div class="psg-center-heading">
+              <p class="eyebrow">Spring camps</p>
+              <h2>Spring <span>Preview</span></h2>
+            </div>
+            <div class="psg-soft-grid">
+              <article class="psg-soft-card"><div><h3>Spring placeholder</h3><p>Placeholder text — add the spring camp theme, dates, and goals here later.</p></div></article>
+              <article class="psg-soft-card"><div><h3>Age groups placeholder</h3><p>Placeholder text — list the intended age range and player level for this camp.</p></div></article>
+              <article class="psg-soft-card"><div><h3>Location placeholder</h3><p>Placeholder text — note the field, weather plan, and registration timing here.</p></div></article>
+            </div>
           </div>
-          <div class="psg-listing-table">
-            <article class="psg-row">
-              <div><p class="psg-row-kicker">Summer Camp</p><h3>Finishing Lab</h3><p>July 7-11, mornings</p></div>
-              <div><p>For boys & girls</p><p>Born between 2011 and 2016</p></div>
-              <div><p>Kitsilano Secondary Turf<br />Vancouver, BC</p></div>
-              <div><p class="psg-price">$210<span class="psg-price-note">Book your week</span></p></div>
-            </article>
-            <article class="psg-row">
-              <div><p class="psg-row-kicker">Summer Camp</p><h3>Scan + Move Intensive</h3><p>July 14-18, mornings</p></div>
-              <div><p>For boys & girls</p><p>Born between 2009 and 2014</p></div>
-              <div><p>Kitsilano Secondary Turf<br />Vancouver, BC</p></div>
-              <div><p class="psg-price">$210<span class="psg-price-note">Book your week</span></p></div>
-            </article>
-            <article class="psg-row">
-              <div><p class="psg-row-kicker">Summer Camp</p><h3>Speed + Movement</h3><p>July 21-25, mornings</p></div>
-              <div><p>For boys & girls</p><p>Born between 2009 and 2015</p></div>
-              <div><p>Kitsilano Secondary Turf<br />Vancouver, BC</p></div>
-              <div><p class="psg-price">$210<span class="psg-price-note">Book your week</span></p></div>
-            </article>
-            <article class="psg-row">
-              <div><p class="psg-row-kicker">Summer Camp</p><h3>August Development Week</h3><p>August 11-15, mornings</p></div>
-              <div><p>For boys & girls</p><p>Born between 2010 and 2016</p></div>
-              <div><p>Kitsilano Secondary Turf<br />Vancouver, BC</p></div>
-              <div><p class="psg-price">$210<span class="psg-price-note">Book your week</span></p></div>
-            </article>
+
+          <div class="camp-tab-panel" data-tab-panel="summer" hidden>
+            <div class="psg-center-heading">
+              <p class="eyebrow">Summer lineup</p>
+              <h2>Camp <span>Options</span></h2>
+            </div>
+            <div class="psg-listing-table">
+              <article class="psg-row">
+                <div><p class="psg-row-kicker">Summer camp placeholder</p><h3>Week 1 finishing clinic</h3><p>Sample dates: July 8 to July 12</p></div>
+                <div><p>Ages</p><p>U7 to U10 placeholder</p></div>
+                <div><p>Location</p><p>Field location placeholder, Vancouver</p></div>
+                <div class="location-action"><p class="psg-price">$295<span class="psg-price-note">Price placeholder</span></p><a class="button" href="contact.html">Register now</a></div>
+              </article>
+              <article class="psg-row">
+                <div><p class="psg-row-kicker">Summer camp placeholder</p><h3>Week 2 technical camp</h3><p>Sample dates: July 15 to July 19</p></div>
+                <div><p>Ages</p><p>U9 to U12 placeholder</p></div>
+                <div><p>Location</p><p>Field location placeholder, Vancouver</p></div>
+                <div class="location-action"><p class="psg-price">$325<span class="psg-price-note">Price placeholder</span></p><a class="button" href="contact.html">Register now</a></div>
+              </article>
+              <article class="psg-row">
+                <div><p class="psg-row-kicker">Summer camp placeholder</p><h3>Week 3 game-play week</h3><p>Sample dates: August 6 to August 10</p></div>
+                <div><p>Ages</p><p>U11 to U14 placeholder</p></div>
+                <div><p>Location</p><p>Field location placeholder, Vancouver</p></div>
+                <div class="location-action"><p class="psg-price">$340<span class="psg-price-note">Price placeholder</span></p><a class="button" href="contact.html">Register now</a></div>
+              </article>
+            </div>
+          </div>
+
+          <div class="camp-tab-panel" data-tab-panel="highlights" hidden>
+            <div class="psg-center-heading">
+              <p class="eyebrow">Highlights</p>
+              <h2>What to <span>Expect</span></h2>
+            </div>
+            <div class="psg-soft-grid">
+              <article class="psg-soft-card"><div><h3>Training focus placeholder</h3><p>Placeholder text for standout coaching themes, daily rhythm, and player experience.</p></div></article>
+              <article class="psg-soft-card"><div><h3>Photo or video placeholder</h3><p>Placeholder text for a future camp gallery, highlight reel, or testimonial clip.</p></div></article>
+              <article class="psg-soft-card"><div><h3>Family note placeholder</h3><p>Placeholder text for what parents should know before the week begins.</p></div></article>
+            </div>
+          </div>
+
+          <div class="camp-tab-panel" data-tab-panel="program" hidden>
+            <div class="psg-center-heading">
+              <p class="eyebrow">Program</p>
+              <h2>Daily <span>Flow</span></h2>
+            </div>
+            <div class="psg-soft-grid">
+              <article class="psg-soft-card"><div><h3>Arrival placeholder</h3><p>Placeholder text — explain check-in, warm-up, and opening activities here later.</p></div></article>
+              <article class="psg-soft-card"><div><h3>Training block placeholder</h3><p>Placeholder text — describe technical stations, games, and coaching themes.</p></div></article>
+              <article class="psg-soft-card"><div><h3>Wrap-up placeholder</h3><p>Placeholder text — note cooldown, collection time, and take-home points.</p></div></article>
+            </div>
+          </div>
+
+          <div class="camp-tab-panel" data-tab-panel="schedule" hidden>
+            <div class="psg-center-heading">
+              <p class="eyebrow">Schedule</p>
+              <h2>Weekly <span>Timing</span></h2>
+            </div>
+            <div class="psg-soft-grid">
+              <article class="psg-soft-card"><div><h3>Morning block placeholder</h3><p>Sample time: 9:00 AM to 12:00 PM. Replace with final schedule later.</p></div></article>
+              <article class="psg-soft-card"><div><h3>Afternoon block placeholder</h3><p>Sample time: 1:00 PM to 4:00 PM. Replace with final timing later.</p></div></article>
+              <article class="psg-soft-card"><div><h3>Extended care placeholder</h3><p>Placeholder note for early drop-off, late pick-up, or optional add-ons.</p></div></article>
+            </div>
+          </div>
+
+          <div class="camp-tab-panel" data-tab-panel="uniform" hidden>
+            <div class="psg-center-heading">
+              <p class="eyebrow">Uniform</p>
+              <h2>Kit <span>Notes</span></h2>
+            </div>
+            <div class="psg-soft-grid">
+              <article class="psg-soft-card"><div><h3>What to wear</h3><p>Placeholder text — add shirt, shorts, shin guards, and footwear guidance here.</p></div></article>
+              <article class="psg-soft-card"><div><h3>What to bring</h3><p>Placeholder text — include water bottle, sunscreen, snack, and weather gear notes.</p></div></article>
+              <article class="psg-soft-card"><div><h3>Kit purchase placeholder</h3><p>Placeholder text — explain whether camp gear is included or purchased separately.</p></div></article>
+            </div>
           </div>
         </section>
       </main>

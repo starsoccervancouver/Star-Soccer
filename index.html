@@ -2,17 +2,289 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content="0; url=Star%20soccer/index.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Star Soccer</title>
-    <script>
-      window.location.replace('Star%20soccer/index.html');
-    </script>
+    <title>Star Soccer Summer Camps</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="homepage-story.js" defer></script>
   </head>
-  <body>
-    <p>
-      Redirecting to the Star Soccer site.
-      <a href="Star%20soccer/index.html">Open the homepage</a>.
-    </p>
+  <body class="home-page home-landing">
+    <div class="page-shell">
+      <header class="site-header home-header">
+        <div class="home-header-grid">
+          <a href="index.html" class="home-utility-logo" aria-label="Star Soccer home">
+            <img
+              src="logo-star-soccer-minimalized.svg"
+              alt="Star Soccer logo"
+              class="brand-logo"
+            />
+          </a>
+          <div class="home-utility-cell home-utility-slogan">This Is Star Soccer</div>
+          <div class="home-utility-cell home-utility-email">contact@starsoccer.ca</div>
+          <nav class="site-nav home-site-nav" aria-label="Primary">
+            <a href="selectivo.html">Selectivo</a>
+            <a href="programs.html">Programs</a>
+            <a href="camps.html">Camps</a>
+            <a href="methodology.html">Methodology</a>
+            <a href="locations.html">Locations</a>
+            <a href="contact.html">Contact</a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="home-story-main">
+        <section class="immersive-hero" id="top">
+          <div class="immersive-hero-overlay">
+            <div class="immersive-hero-stage">
+              <div class="immersive-hero-copy">
+                <p class="mission-label">Our mission</p>
+                <h1>
+                  Fostering players' love for the game, improving technical skills,
+                  and building a lifelong passion for soccer.
+                </h1>
+                <p class="immersive-hero-lead">
+                  This homepage is now a placeholder story page: big visuals, simple
+                  about-us sections, and space for video content that shows how your
+                  coaches teach, how your players grow, and what makes the environment
+                  feel different.
+                </p>
+              </div>
+
+              <div class="hero-placeholder-cards" aria-label="Featured links">
+                <article class="hero-placeholder-card">
+                  <p class="hero-placeholder-kicker">Boys &amp; Girls</p>
+                  <h2>Tryouts Are Open</h2>
+                  <a href="contact.html">Register now -&gt;</a>
+                </article>
+                <article class="hero-placeholder-card">
+                  <p class="hero-placeholder-kicker">Boys and Girls</p>
+                  <h2>Spring &amp; Summer Camps</h2>
+                  <a href="camps.html">Register now -&gt;</a>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="home-latest-band">
+          <div class="home-latest-band-inner">
+            <div class="home-news-hero">
+              <div class="home-news-copy">
+                <h2>Just the latest from Star Soccer</h2>
+                <p>
+                  A bigger snapshot of what is current right now: club notes, football
+                  highlights, and the stories we want families to see first.
+                </p>
+              </div>
+
+              <div class="home-news-image-grid" aria-label="Star Soccer news placeholders">
+                <article class="home-news-image home-news-image-feature">
+                  <span>Featured news image</span>
+                </article>
+                <article class="home-news-image home-news-image-secondary">
+                  <span>Training image</span>
+                </article>
+              </div>
+            </div>
+
+            <div class="home-news-box-row">
+              <article class="home-news-box">
+                <p class="home-news-box-tag">Club note</p>
+                <h3>Headline space for the next Star Soccer update</h3>
+                <p>Use this box for a quick announcement, registration note, or short family-facing update.</p>
+              </article>
+
+              <article class="home-news-box">
+                <p class="home-news-box-tag">Coach note</p>
+                <h3>Headline space for a session or staff story</h3>
+                <p>Drop in a short piece of text here with a coach note, a weekly theme, or a video caption.</p>
+              </article>
+
+              <article class="home-news-box">
+                <p class="home-news-box-tag">Player note</p>
+                <h3>Headline space for a player or camp moment</h3>
+                <p>Use this area for a small recap, photo caption, or one current item you want on the homepage.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="scroll-panel scroll-panel-club home-dynamic-panel" id="latest">
+          <div class="scroll-panel-shell home-panel-shell">
+            <div class="home-ucl-stack">
+              <article class="scroll-panel-card home-panel-card home-ucl-panel" data-reveal="up">
+                <h2>Champions League scores, previews, and highlights.</h2>
+                <p>
+                  Updated for Thursday, April 16, 2026. The quarter-finals are over,
+                  the semi-finals are set, and the next round now has a real head-to-head
+                  preview.
+                </p>
+                <div class="home-score-row">
+                  <article class="home-score-item">
+                    <a class="home-score-thumb" href="https://youtu.be/X_SZreOL4xU?si=EcJIYh93JvsjqCXE">
+                      <img src="https://i.ytimg.com/vi/X_SZreOL4xU/hqdefault.jpg" alt="Sporting Arsenal highlight preview" />
+                    </a>
+                    <strong>Arsenal 0-0 Sporting CP</strong>
+                    <span>Aggregate: Arsenal 1-0 Sporting CP</span>
+                    <a href="https://youtu.be/X_SZreOL4xU?si=EcJIYh93JvsjqCXE">Video highlights</a>
+                  </article>
+                  <article class="home-score-item">
+                    <a class="home-score-thumb" href="https://youtu.be/DHxjtj7VxDM?si=1rCoQ7v2nr-ko3X_">
+                      <img src="https://i.ytimg.com/vi/DHxjtj7VxDM/hqdefault.jpg" alt="Bayern Madrid highlight preview" />
+                    </a>
+                    <strong>Bayern 4-3 Real Madrid</strong>
+                    <span>Aggregate: Bayern 6-4 Real Madrid</span>
+                    <a href="https://youtu.be/DHxjtj7VxDM?si=1rCoQ7v2nr-ko3X_">Video highlights</a>
+                  </article>
+                  <article class="home-score-item">
+                    <a class="home-score-thumb" href="https://youtu.be/CxFohv1vr3Q?si=vfpWTOtjYBsvRHhn">
+                      <img src="https://i.ytimg.com/vi/CxFohv1vr3Q/hqdefault.jpg" alt="Champions League highlight preview" />
+                    </a>
+                    <strong>Atleti 1-2 Barcelona</strong>
+                    <span>Aggregate: Atleti 3-2 Barcelona</span>
+                    <a href="https://youtu.be/CxFohv1vr3Q?si=vfpWTOtjYBsvRHhn">Video highlights</a>
+                  </article>
+                  <article class="home-score-item">
+                    <a class="home-score-thumb" href="https://youtu.be/sKR_Lt1O3UA?si=WEVO-OXDvFFio6iH">
+                      <img src="https://i.ytimg.com/vi/sKR_Lt1O3UA/hqdefault.jpg" alt="Champions League highlight preview" />
+                    </a>
+                    <strong>Liverpool 0-2 Paris</strong>
+                    <span>Aggregate: Liverpool 0-4 Paris</span>
+                    <a href="https://youtu.be/sKR_Lt1O3UA?si=WEVO-OXDvFFio6iH">Video highlights</a>
+                  </article>
+                </div>
+              </article>
+
+              <div class="home-preview-grid" data-reveal="up">
+                <div class="pm-step-screen home-panel-screen home-panel-screen-compact">
+                  <div class="pm-step-screen-topbar"></div>
+                  <div class="home-preview-board">
+                    <p class="pm-card-label">Semi-final head-to-head preview</p>
+                    <div class="home-preview-pair">
+                      <strong>Paris vs Bayern</strong>
+                      <span>First leg: Tuesday, April 28, 2026</span>
+                      <a href="https://www.uefa.com/uefachampionsleague/news/02a4-2065d596799c-98d04fa7d341-1000--champions-league-semi-finals-head-to-head-records-against-/">UEFA preview</a>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pm-step-screen home-panel-screen home-panel-screen-compact">
+                  <div class="pm-step-screen-topbar"></div>
+                  <div class="home-preview-board">
+                    <p class="pm-card-label">Semi-final head-to-head preview</p>
+                    <div class="home-preview-pair">
+                      <strong>Atletico de Madrid vs Arsenal</strong>
+                      <span>First leg: Wednesday, April 29, 2026</span>
+                      <a href="https://www.uefa.com/uefachampionsleague/news/02a4-2065d596799c-98d04fa7d341-1000--champions-league-semi-finals-head-to-head-records-against-/">UEFA preview</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="scroll-panel scroll-panel-training home-dynamic-panel">
+          <div class="scroll-panel-shell home-panel-shell">
+            <div class="home-panel-layout home-panel-layout-reverse">
+              <div class="pm-step-screen pm-step-screen-lime home-panel-screen" data-reveal="left">
+                <div class="pm-step-screen-topbar"></div>
+                <div class="home-placeholder-board">
+                  <p class="pm-card-label">Coaching idea placeholder 01</p>
+                  <strong>Theme: first touch under pressure</strong>
+                  <span>Drop in one coach clip, one still frame, and three short teaching cues.</span>
+                </div>
+              </div>
+
+              <article class="scroll-panel-card home-panel-card" data-reveal="right">
+                <p class="eyebrow">Coaching ideas</p>
+                <h2>Use one fullscreen page for a single coach-led idea.</h2>
+                <p>
+                  Keep this one simple and visual. One concept, one coach voice, one
+                  clear takeaway. That keeps the homepage moving without getting too dense.
+                </p>
+                <div class="story-pills">
+                  <span>First touch</span>
+                  <span>Body shape</span>
+                  <span>Scanning</span>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="scroll-panel scroll-panel-community home-dynamic-panel scroll-panel-right">
+          <div class="scroll-panel-shell home-panel-shell">
+            <div class="home-panel-layout">
+              <article class="scroll-panel-card home-panel-card" data-reveal="left">
+                <p class="eyebrow">Coaching ideas</p>
+                <h2>Use the third fullscreen page for another teaching placeholder.</h2>
+                <p>
+                  This can become a second coach idea, a session storyboard, or a
+                  video-led player learning page later on.
+                </p>
+                <div class="story-pills">
+                  <span>Coach clip</span>
+                  <span>Session notes</span>
+                  <span>Player cues</span>
+                </div>
+              </article>
+
+              <div class="pm-step-screen home-panel-screen" data-reveal="right">
+                <div class="pm-step-screen-topbar"></div>
+                <div class="home-placeholder-board">
+                  <p class="pm-card-label">Coaching idea placeholder 02</p>
+                  <strong>Theme: finishing rhythm and game speed</strong>
+                  <span>Keep this screen ready for another fullscreen coaching concept.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="home-contact-footer" id="contact">
+          <div class="home-contact-inner">
+            <div class="home-contact-brand">
+              <img
+                src="logo-star-soccer-minimalized.svg"
+                alt="Star Soccer logo"
+                class="brand-logo"
+              />
+              <p>
+                A simple homepage for current updates, short videos, and quick paths
+                to the pages families need most.
+              </p>
+            </div>
+
+            <div class="home-contact-column">
+              <p class="footer-label">Contact</p>
+              <a href="mailto:contact@starsoccer.ca">contact@starsoccer.ca</a>
+              <a href="contact.html">Contact page</a>
+              <p>Vancouver, BC</p>
+            </div>
+
+            <div class="home-contact-column">
+              <p class="footer-label">Menu</p>
+              <a href="selectivo.html">Selectivo</a>
+              <a href="programs.html">Programs</a>
+              <a href="camps.html">Camps</a>
+            </div>
+
+            <div class="home-contact-column">
+              <p class="footer-label">More</p>
+              <a href="methodology.html">Methodology</a>
+              <a href="locations.html">Locations</a>
+              <a href="#top">Back to top</a>
+              <p>Instagram placeholder</p>
+            </div>
+          </div>
+        </footer>
+      </main>
+    </div>
   </body>
 </html>

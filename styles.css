@@ -2449,13 +2449,14 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .interest-form textarea {
   width: 100%;
   padding: 14px 16px;
-  border: 1px solid rgba(216, 229, 255, 0.2);
+  border: 1px solid rgba(216, 229, 255, 0.18);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(12, 28, 54, 0.9);
   color: var(--text);
   -webkit-text-fill-color: var(--text);
   caret-color: var(--text);
   appearance: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   font: inherit;
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
@@ -2479,9 +2480,20 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .interest-form select:-webkit-autofill:hover,
 .interest-form select:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--text) !important;
-  caret-color: var(--text);
-  box-shadow: 0 0 0 1000px rgba(15, 33, 61, 0.92) inset !important;
+  caret-color: var(--text) !important;
+  border: 1px solid rgba(137, 214, 255, 0.28) !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(12, 28, 54, 0.96) inset !important;
+  box-shadow: 0 0 0 1000px rgba(12, 28, 54, 0.96) inset !important;
+  background-color: rgba(12, 28, 54, 0.96) !important;
   transition: background-color 9999s ease-in-out 0s;
+}
+
+.interest-form input:-moz-autofill,
+.interest-form textarea:-moz-autofill,
+.interest-form select:-moz-autofill {
+  box-shadow: 0 0 0 1000px rgba(12, 28, 54, 0.96) inset !important;
+  -moz-text-fill-color: var(--text) !important;
+  color: var(--text) !important;
 }
 
 .interest-form textarea {

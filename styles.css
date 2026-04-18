@@ -502,7 +502,7 @@ a {
   background:
     linear-gradient(180deg, rgba(8, 18, 33, 0.18), rgba(8, 18, 33, 0.78)),
     linear-gradient(90deg, rgba(8, 24, 58, 0.28), rgba(119, 16, 28, 0.14)),
-    url("hero-stadium-placeholder.svg");
+    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1600&q=80");
   background-size: cover;
   background-position: center;
 }
@@ -734,25 +734,25 @@ a {
 .scroll-panel-club {
   background-image:
     linear-gradient(120deg, rgba(9, 27, 65, 0.22), rgba(102, 15, 24, 0.08)),
-    url("panel-club-placeholder.svg");
+    url("https://images.unsplash.com/photo-1508098682722-e99c643e7485?auto=format&fit=crop&w=1600&q=80");
 }
 
 .scroll-panel-training {
   background-image:
     linear-gradient(120deg, rgba(12, 35, 76, 0.24), rgba(122, 16, 31, 0.12)),
-    url("panel-training-placeholder.svg");
+    url("https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1600&q=80");
 }
 
 .scroll-panel-performance {
   background-image:
     linear-gradient(120deg, rgba(11, 32, 70, 0.24), rgba(110, 18, 30, 0.08)),
-    url("panel-performance-placeholder.svg");
+    url("https://images.unsplash.com/photo-1552667466-07770ae110d0?auto=format&fit=crop&w=1600&q=80");
 }
 
 .scroll-panel-community {
   background-image:
     linear-gradient(120deg, rgba(10, 30, 66, 0.22), rgba(129, 17, 28, 0.12)),
-    url("panel-community-placeholder.svg");
+    url("https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&w=1600&q=80");
 }
 
 .scroll-panel-shell {
@@ -890,15 +890,15 @@ a {
 }
 
 .video-placeholder-coach {
-  background-image: url("panel-training-placeholder.svg");
+  background-image: url("https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1200&q=80");
 }
 
 .video-placeholder-player {
-  background-image: url("panel-community-placeholder.svg");
+  background-image: url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80");
 }
 
 .video-placeholder-trainer {
-  background-image: url("panel-performance-placeholder.svg");
+  background-image: url("https://images.unsplash.com/photo-1552667466-07770ae110d0?auto=format&fit=crop&w=1200&q=80");
 }
 
 .video-type {
@@ -1403,19 +1403,19 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .pm-video-section .video-placeholder-coach {
   background-image:
     linear-gradient(180deg, rgba(8, 17, 37, 0.12), rgba(8, 17, 37, 0.34)),
-    url("panel-training-placeholder.svg");
+    url("https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1200&q=80");
 }
 
 .pm-video-section .video-placeholder-player {
   background-image:
     linear-gradient(180deg, rgba(8, 17, 37, 0.12), rgba(8, 17, 37, 0.34)),
-    url("panel-community-placeholder.svg");
+    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80");
 }
 
 .pm-video-section .video-placeholder-trainer {
   background-image:
     linear-gradient(180deg, rgba(8, 17, 37, 0.12), rgba(8, 17, 37, 0.34)),
-    url("panel-performance-placeholder.svg");
+    url("https://images.unsplash.com/photo-1552667466-07770ae110d0?auto=format&fit=crop&w=1200&q=80");
 }
 
 .pm-video-section .video-placeholder {
@@ -1744,19 +1744,19 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .programs-photo-training::before {
   background-image:
     linear-gradient(180deg, rgba(7, 17, 37, 0.12), rgba(7, 17, 37, 0.24)),
-    url("panel-training-placeholder.svg");
+    url("https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1200&q=80");
 }
 
 .programs-photo-coach::before {
   background-image:
     linear-gradient(180deg, rgba(7, 17, 37, 0.12), rgba(7, 17, 37, 0.22)),
-    url("panel-performance-placeholder.svg");
+    url("https://images.unsplash.com/photo-1552667466-07770ae110d0?auto=format&fit=crop&w=1200&q=80");
 }
 
 .programs-photo-group::before {
   background-image:
     linear-gradient(180deg, rgba(7, 17, 37, 0.12), rgba(7, 17, 37, 0.22)),
-    url("panel-community-placeholder.svg");
+    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80");
 }
 
 .programs-photo-surface::after {
@@ -1798,10 +1798,12 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .subpage-hero {
-  padding: 72px 40px 40px;
+  position: relative;
+  padding: clamp(74px, 8vw, 110px) 24px 54px;
   background:
-    radial-gradient(circle at 82% 12%, rgba(255, 223, 161, 0.14), transparent 15%),
-    linear-gradient(180deg, rgba(13, 25, 44, 0.92) 0%, rgba(8, 16, 30, 0.98) 100%);
+    radial-gradient(circle at 82% 12%, rgba(255, 223, 161, 0.18), transparent 15%),
+    radial-gradient(circle at 14% 18%, rgba(110, 183, 255, 0.16), transparent 18%),
+    linear-gradient(180deg, rgba(13, 25, 44, 0.84) 0%, rgba(8, 16, 30, 0.94) 100%);
 }
 
 .subpage-hero-about,
@@ -1812,69 +1814,57 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .subpage-hero-locations,
 .subpage-hero-contact {
   overflow: hidden;
+  background-size: cover;
+  background-position: center;
 }
 
 .subpage-hero-about {
   background:
-    linear-gradient(180deg, rgba(7, 16, 30, 0.34), rgba(7, 16, 30, 0.84)),
-    linear-gradient(90deg, rgba(26, 32, 61, 0.3), rgba(74, 16, 24, 0.12)),
-    url("https://commons.wikimedia.org/wiki/Special:Redirect/file/Stadium_of_Football_Club_FC_Barcelona_-_Camp_Nou.jpg");
-  background-size: cover;
-  background-position: center;
+    linear-gradient(180deg, rgba(6, 16, 31, 0.36), rgba(6, 16, 31, 0.82)),
+    linear-gradient(90deg, rgba(22, 46, 90, 0.22), rgba(110, 18, 26, 0.14)),
+    url("https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&w=1600&q=80");
 }
 
 .subpage-hero-programs {
   background:
-    linear-gradient(180deg, rgba(8, 18, 33, 0.46), rgba(8, 18, 33, 0.88)),
-    linear-gradient(90deg, rgba(18, 48, 104, 0.24), rgba(125, 18, 24, 0.12)),
-    url("https://commons.wikimedia.org/wiki/Special:Redirect/file:Camp_Nou_Panorama_from_north_goal.jpg");
-  background-size: cover;
-  background-position: center;
+    linear-gradient(180deg, rgba(8, 18, 33, 0.34), rgba(8, 18, 33, 0.82)),
+    linear-gradient(90deg, rgba(18, 48, 104, 0.22), rgba(125, 18, 24, 0.12)),
+    url("https://images.unsplash.com/photo-1508098682722-e99c643e7485?auto=format&fit=crop&w=1600&q=80");
 }
 
 .subpage-hero-camps {
   background:
     linear-gradient(180deg, rgba(7, 16, 30, 0.34), rgba(7, 16, 30, 0.84)),
-    linear-gradient(90deg, rgba(24, 44, 98, 0.26), rgba(110, 18, 26, 0.14)),
-    url("https://commons.wikimedia.org/wiki/Special:Redirect/file:Camp_Nou_2014.jpg");
-  background-size: cover;
-  background-position: center;
+    linear-gradient(90deg, rgba(24, 44, 98, 0.22), rgba(110, 18, 26, 0.14)),
+    url("https://images.unsplash.com/photo-1552667466-07770ae110d0?auto=format&fit=crop&w=1600&q=80");
 }
 
 .subpage-hero-performance {
   background:
-    linear-gradient(180deg, rgba(7, 16, 30, 0.3), rgba(7, 16, 30, 0.86)),
-    linear-gradient(90deg, rgba(19, 43, 89, 0.28), rgba(117, 20, 30, 0.1)),
-    url("https://commons.wikimedia.org/wiki/Special:Redirect/file:Camp_Nou,_Barcelona_(cropped).jpg");
-  background-size: cover;
-  background-position: center;
+    linear-gradient(180deg, rgba(7, 16, 30, 0.32), rgba(7, 16, 30, 0.84)),
+    linear-gradient(90deg, rgba(19, 43, 89, 0.22), rgba(117, 20, 30, 0.12)),
+    url("https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1600&q=80");
 }
 
 .subpage-hero-methodology {
   background:
-    linear-gradient(180deg, rgba(7, 16, 30, 0.34), rgba(7, 16, 30, 0.86)),
-    linear-gradient(90deg, rgba(23, 39, 82, 0.24), rgba(103, 16, 26, 0.1)),
-    url("https://commons.wikimedia.org/wiki/Special:Redirect/file:FC_Barcelona_Training_Ground.jpg");
-  background-size: cover;
-  background-position: center;
+    linear-gradient(180deg, rgba(7, 16, 30, 0.34), rgba(7, 16, 30, 0.84)),
+    linear-gradient(90deg, rgba(23, 39, 82, 0.2), rgba(103, 16, 26, 0.12)),
+    url("https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1600&q=80");
 }
 
 .subpage-hero-locations {
   background:
-    linear-gradient(180deg, rgba(7, 16, 30, 0.34), rgba(7, 16, 30, 0.86)),
-    linear-gradient(90deg, rgba(22, 46, 90, 0.24), rgba(108, 18, 26, 0.1)),
-    url("https://commons.wikimedia.org/wiki/Special:Redirect/file:Camp_Nou_panorama.jpg");
-  background-size: cover;
-  background-position: center;
+    linear-gradient(180deg, rgba(7, 16, 30, 0.34), rgba(7, 16, 30, 0.84)),
+    linear-gradient(90deg, rgba(22, 46, 90, 0.22), rgba(108, 18, 26, 0.12)),
+    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1600&q=80");
 }
 
 .subpage-hero-contact {
   background:
-    linear-gradient(180deg, rgba(7, 16, 30, 0.34), rgba(7, 16, 30, 0.86)),
-    linear-gradient(90deg, rgba(20, 42, 89, 0.24), rgba(110, 18, 26, 0.12)),
-    url("https://commons.wikimedia.org/wiki/Special:Redirect/file:Camp_Nou_(Barcelona).jpg");
-  background-size: cover;
-  background-position: center;
+    linear-gradient(180deg, rgba(7, 16, 30, 0.34), rgba(7, 16, 30, 0.84)),
+    linear-gradient(90deg, rgba(20, 42, 89, 0.22), rgba(110, 18, 26, 0.12)),
+    url("https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&w=1600&q=80");
 }
 
 .subpage-title {
@@ -1954,18 +1944,29 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   border-right: 0;
   box-shadow: none;
   overflow: hidden;
-  min-height: 360px;
+  min-height: clamp(420px, 58vh, 560px);
+  display: flex;
+  align-items: center;
 }
 
 .psg-hero-inner {
-  min-height: 360px;
+  position: relative;
+  z-index: 1;
+  width: min(1040px, calc(100% - 40px));
+  min-height: clamp(300px, 42vh, 400px);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 72px 24px;
-  background: linear-gradient(180deg, rgba(5, 14, 30, 0.18), rgba(5, 14, 30, 0.72));
+  align-items: flex-start;
+  text-align: left;
+  padding: clamp(30px, 4vw, 42px);
+  border-radius: 28px;
+  border: 1px solid rgba(216, 229, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(5, 14, 30, 0.44), rgba(5, 14, 30, 0.72));
+  backdrop-filter: blur(10px);
+  box-shadow: 0 28px 60px rgba(3, 10, 24, 0.34);
 }
 
 .psg-hero-kicker,
@@ -1978,21 +1979,39 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .psg-hero-kicker {
-  color: #ff2f35;
+  color: #ff4d67;
+}
+
+.psg-hero-kicker::after {
+  content: "Scroll to explore ↓";
+  display: block;
+  margin-top: 14px;
+  color: #d8e9ff;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
 }
 
 .psg-page-city {
-  color: var(--blue);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(137, 214, 255, 0.22);
+  background: rgba(6, 18, 38, 0.5);
+  color: #9fdcff;
 }
 
 .psg-page-title {
-  margin: 12px 0 10px;
-  max-width: 12ch;
-  font-size: clamp(2.8rem, 5vw, 4.8rem);
+  margin: 14px 0 8px;
+  max-width: 10ch;
+  font-size: clamp(3rem, 5vw, 5.2rem);
   line-height: 0.92;
   text-transform: uppercase;
   font-weight: 800;
   color: var(--text);
+  text-shadow: 0 14px 32px rgba(4, 10, 20, 0.38);
 }
 
 .psg-intro-band {
@@ -2098,7 +2117,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   min-height: 260px;
   background:
     linear-gradient(180deg, rgba(8, 16, 30, 0.08), rgba(8, 16, 30, 0.36)),
-    url("https://commons.wikimedia.org/wiki/Special:Redirect/file:Camp_Nou_2014.jpg");
+    url("https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&w=1200&q=80");
   background-size: cover;
   background-position: center;
 }
@@ -2109,7 +2128,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   padding: 54px 24px;
   background:
     linear-gradient(180deg, rgba(8, 16, 30, 0.44), rgba(8, 16, 30, 0.82)),
-    url("https://commons.wikimedia.org/wiki/Special:Redirect/file:Camp_Nou_panorama.jpg");
+    url("https://images.unsplash.com/photo-1508098682722-e99c643e7485?auto=format&fit=crop&w=1600&q=80");
   background-size: cover;
   background-position: center;
 }
@@ -2435,7 +2454,34 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
   -webkit-text-fill-color: var(--text);
+  caret-color: var(--text);
+  appearance: none;
   font: inherit;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.interest-form input:focus,
+.interest-form select:focus,
+.interest-form textarea:focus {
+  outline: none;
+  border-color: rgba(137, 214, 255, 0.82);
+  background: rgba(15, 33, 61, 0.92);
+  box-shadow: 0 0 0 3px rgba(137, 214, 255, 0.18);
+}
+
+.interest-form input:-webkit-autofill,
+.interest-form input:-webkit-autofill:hover,
+.interest-form input:-webkit-autofill:focus,
+.interest-form textarea:-webkit-autofill,
+.interest-form textarea:-webkit-autofill:hover,
+.interest-form textarea:-webkit-autofill:focus,
+.interest-form select:-webkit-autofill,
+.interest-form select:-webkit-autofill:hover,
+.interest-form select:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text) !important;
+  caret-color: var(--text);
+  box-shadow: 0 0 0 1000px rgba(15, 33, 61, 0.92) inset !important;
+  transition: background-color 9999s ease-in-out 0s;
 }
 
 .interest-form textarea {
@@ -2696,12 +2742,14 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   min-height: 260px;
   padding: 28px;
   border-radius: 22px;
-  border: 1px dashed rgba(86, 129, 198, 0.42);
+  border: 1px solid rgba(110, 183, 255, 0.36);
   background:
-    radial-gradient(circle at 86% 12%, rgba(137, 214, 255, 0.34), transparent 24%),
-    radial-gradient(circle at 10% 86%, rgba(255, 77, 103, 0.14), transparent 24%),
-    linear-gradient(180deg, rgba(229, 240, 255, 0.98), rgba(210, 227, 249, 0.98));
-  color: #0b1526;
+    linear-gradient(180deg, rgba(6, 18, 38, 0.16), rgba(6, 18, 38, 0.72)),
+    linear-gradient(120deg, rgba(120, 176, 255, 0.18), rgba(58, 112, 224, 0.08)),
+    url("https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&w=1200&q=80");
+  background-size: cover;
+  background-position: center;
+  color: #f5fbff;
   display: grid;
   place-items: center;
   text-align: center;
@@ -2717,7 +2765,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .placeholder-media span {
-  color: var(--red-accent);
+  color: #9fdcff;
   text-transform: uppercase;
   letter-spacing: 0.14em;
   font-size: 0.75rem;
@@ -2730,12 +2778,13 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   line-height: 0.95;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  color: #ffffff;
 }
 
 .placeholder-media p {
   max-width: 38ch;
   margin: 0;
-  color: #4f5f77;
+  color: #dbe6f5;
   line-height: 1.6;
 }
 
@@ -3446,6 +3495,22 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 @media (max-width: 680px) {
+  .psg-hero-inner {
+    width: min(100% - 20px, 1040px);
+    align-items: center;
+    text-align: center;
+  }
+
+  .psg-hero-kicker::after {
+    margin-top: 10px;
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+  }
+
+  .psg-page-city {
+    justify-content: center;
+  }
+
   .page-shell {
     width: min(100% - 20px, 1180px);
   }
@@ -4079,7 +4144,7 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   background:
     linear-gradient(180deg, rgba(6, 18, 38, 0.14), rgba(6, 18, 38, 0.58)),
     linear-gradient(120deg, rgba(120, 176, 255, 0.18), rgba(58, 112, 224, 0.08)),
-    url("hero-stadium-placeholder.svg");
+    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80");
   background-size: cover;
   background-position: center;
 }
@@ -4096,7 +4161,7 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   background:
     linear-gradient(180deg, rgba(6, 18, 38, 0.14), rgba(6, 18, 38, 0.58)),
     linear-gradient(120deg, rgba(120, 176, 255, 0.18), rgba(58, 112, 224, 0.08)),
-    url("panel-training-placeholder.svg");
+    url("https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1200&q=80");
   background-size: cover;
   background-position: center;
 }

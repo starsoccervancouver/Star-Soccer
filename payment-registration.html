@@ -96,6 +96,7 @@
               <input type="hidden" name="_subject" value="New Star Soccer registration" />
               <input type="hidden" name="_template" value="table" />
               <input type="hidden" name="_captcha" value="false" />
+              <input type="hidden" id="autoresponseInput" name="_autoresponse" value="Thanks for registering with Star Soccer. We have received your details and will be in touch if anything else is needed." />
               <input type="text" name="_honey" style="display: none;" tabindex="-1" autocomplete="off" />
               <input type="hidden" id="programInput" name="Program" />
               <input type="hidden" id="sessionInput" name="Session" />
@@ -104,7 +105,7 @@
               <div class="registration-form-head">
                 <p class="eyebrow">Short questionnaire</p>
                 <h3>Register your player</h3>
-                <p>Please complete the details below. Checkout will only appear after the form is submitted.</p>
+                <p>Please complete the details below. A confirmation email will be sent to the address you enter, then checkout will open.</p>
               </div>
 
               <div class="registration-grid">
@@ -183,7 +184,18 @@
     <script>
       (() => {
         const params = new URLSearchParams(window.location.search);
-        const stripeUrl = params.get("stripe") || "";
+        const rawStripeUrl = params.get("stripe") || "";
+        let stripeUrl = rawStripeUrl;
+
+        try {
+          if (rawStripeUrl.includes("payment-registration.html")) {
+            const nestedUrl = new URL(rawStripeUrl, window.location.href);
+            stripeUrl = new URLSearchParams(nestedUrl.search).get("stripe") || "";
+          }
+        } catch {
+          stripeUrl = rawStripeUrl;
+        }
+
         const program = params.get("program") || "Star Soccer";
         const session = params.get("session") || "Selected session";
         const price = params.get("price") || "Price shown at checkout";
@@ -196,7 +208,15 @@
         const submitButton = document.getElementById("submitRegistrationButton");
         const progressBar = document.getElementById("formProgressBar");
         const progressText = document.getElementById("formProgressText");
+        const autoresponseInput = document.getElementById("autoresponseInput");
         const childNameInput = form.querySelector('input[name="Child name"]');
+        let isSubmitting = false;
+
+        document.querySelectorAll("#paymentRegistrationForm").forEach((duplicateForm, index) => {
+          if (index > 0) {
+            duplicateForm.remove();
+          }
+        });
 
         const summaryProgram = document.getElementById("registrationProgram");
         const summarySession = document.getElementById("registrationSession");
@@ -243,6 +263,12 @@
           copy.textContent = childName
             ? `${childName} is registering for ${session}. ${experienceNote}`
             : `You are registering for ${session}. ${experienceNote}`;
+
+          if (autoresponseInput) {
+            autoresponseInput.value = childName
+              ? `Thanks for registering ${childName} for ${program} — ${session}. We have received the details and your secure checkout page is opening now. If you need anything, reply to this email or contact starsoccervancouver@gmail.com.`
+              : `Thanks for registering with Star Soccer for ${program} — ${session}. We have received the details and your secure checkout page is opening now. If you need anything, reply to this email or contact starsoccervancouver@gmail.com.`;
+          }
         };
 
         if (stripeUrl) {
@@ -260,17 +286,30 @@
         form.addEventListener("submit", async (event) => {
           event.preventDefault();
 
-          if (!stripeUrl) {
+          if (!stripeUrl || isSubmitting) {
             return;
           }
 
+          isSubmitting = true;
           status.classList.remove("is-error", "is-success");
           status.textContent = "Sending registration details to Star Soccer...";
           submitButton.disabled = true;
 
           const formData = new FormData(form);
+          const parentEmail = String(formData.get("Parent email") || "").trim();
+          const childName = String(formData.get("Child name") || "").trim();
+
           formData.set("_subject", `New Star Soccer registration | ${program} | ${session}`);
-          formData.set("_replyto", formData.get("Parent email") || "starsoccervancouver@gmail.com");
+          formData.set("_replyto", parentEmail || "starsoccervancouver@gmail.com");
+          if (parentEmail) {
+            formData.set("_cc", parentEmail);
+          }
+          formData.set(
+            "_autoresponse",
+            childName
+              ? `Thanks for registering ${childName} for ${program} — ${session}. We have received the details and secure checkout is opening now.`
+              : `Thanks for registering with Star Soccer for ${program} — ${session}. We have received the details and secure checkout is opening now.`
+          );
 
           try {
             const response = await fetch("https://formsubmit.co/ajax/starsoccervancouver@gmail.com", {
@@ -286,11 +325,12 @@
             }
 
             status.classList.add("is-success");
-            status.textContent = "Registration complete. Opening secure checkout...";
+            status.textContent = "Registration complete. Confirmation sent by email. Opening secure checkout...";
             window.setTimeout(() => {
               window.location.href = stripeUrl;
             }, 800);
           } catch (error) {
+            isSubmitting = false;
             status.classList.add("is-error");
             status.textContent = "We could not confirm the email step automatically. You can still continue using the checkout button below or contact starsoccervancouver@gmail.com.";
             directCheckoutLink.style.display = "inline-flex";

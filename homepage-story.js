@@ -127,7 +127,10 @@ if (window.location.hash) {
   });
 }
 
-const stripeButtons = document.querySelectorAll('a.button[href*="buy.stripe.com"]');
+const stripeButtons = Array.from(document.querySelectorAll('a.button[href]')).filter((link) => {
+  const rawHref = link.getAttribute("href") || "";
+  return rawHref.includes("buy.stripe.com") && !rawHref.includes("payment-registration.html");
+});
 
 if (stripeButtons.length && !document.body.classList.contains("payment-registration-page")) {
   stripeButtons.forEach((link) => {

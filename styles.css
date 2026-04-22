@@ -1908,13 +1908,14 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .contact-channel-card {
   padding: 28px 22px 24px;
   border-radius: 20px;
-  border: 1px solid rgba(216, 229, 255, 0.1);
-  background: linear-gradient(180deg, rgba(18, 30, 52, 0.7), rgba(8, 18, 31, 0.9));
+  border: 1px solid rgba(10, 30, 65, 0.16);
+  background: #0d2040;
+  color: #f5f9ff;
   transition: border-color 180ms ease, transform 180ms ease;
 }
 
 .contact-channel-card:hover {
-  border-color: rgba(110, 183, 255, 0.3);
+  border-color: rgba(110, 183, 255, 0.42);
   transform: translateY(-3px);
 }
 
@@ -1927,12 +1928,12 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .contact-channel-card h3 {
   margin: 0 0 10px;
   font-size: 1.1rem;
-  color: var(--text);
+  color: #f5f9ff;
 }
 
 .contact-channel-card p {
   margin: 0;
-  color: var(--muted);
+  color: #bfd1ea;
   font-size: 0.93rem;
   line-height: 1.65;
 }
@@ -1952,10 +1953,11 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .contact-info-panel h2 {
   margin: 8px 0 16px;
   font-size: clamp(2rem, 3.5vw, 2.8rem);
+  color: #0b1526;
 }
 
 .contact-info-lead {
-  color: var(--muted);
+  color: #3a4d66;
   line-height: 1.75;
   font-size: 1rem;
   margin: 0 0 28px;
@@ -1977,7 +1979,6 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   font-size: 1.3rem;
   flex-shrink: 0;
   margin-top: 2px;
-  opacity: 0.85;
 }
 
 .contact-detail-item div {
@@ -1991,19 +1992,18 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text);
-  opacity: 0.65;
+  color: #5a7099;
 }
 
 .contact-detail-item a,
 .contact-detail-item span {
-  color: var(--text);
+  color: #1a2d4a;
   font-size: 0.95rem;
   line-height: 1.5;
 }
 
 .contact-detail-item a {
-  color: var(--blue);
+  color: #1551c0;
   text-decoration: none;
 }
 
@@ -2012,16 +2012,16 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .contact-response-band {
-  padding: 18px 20px;
-  border-left: 3px solid rgba(137, 214, 255, 0.38);
-  background: rgba(18, 38, 72, 0.4);
+  padding: 16px 20px;
+  border-left: 3px solid #1551c0;
+  background: rgba(21, 81, 192, 0.08);
   border-radius: 0 12px 12px 0;
 }
 
 .contact-response-band p {
   margin: 0;
   font-size: 0.92rem;
-  color: var(--muted);
+  color: #3a4d66;
   line-height: 1.65;
 }
 
@@ -2035,16 +2035,15 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   gap: 14px;
 }
 
-.contact-form-upgraded .interest-form label {
-  font-size: 0.88rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-
 .contact-submit-btn {
   width: 100%;
   justify-content: center;
   text-align: center;
+}
+
+.psg-light-section .eyebrow,
+.psg-light-section .psg-center-heading p {
+  color: #1551c0;
 }
 
 @media (max-width: 1100px) {

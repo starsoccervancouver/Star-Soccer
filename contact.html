@@ -122,7 +122,17 @@
 
             <!-- Right: form -->
             <div class="contact-form-panel">
-              <form class="interest-form contact-form-upgraded">
+              <form
+                class="interest-form contact-form-upgraded"
+                action="https://formsubmit.co/starsoccervancouver@gmail.com"
+                method="POST"
+              >
+                <!-- FormSubmit config -->
+                <input type="hidden" name="_subject" value="New Star Soccer inquiry" />
+                <input type="hidden" name="_captcha" value="false" />
+                <input type="hidden" name="_template" value="table" />
+                <input type="hidden" name="_next" value="https://starsoccer.ca/contact.html?sent=1" />
+
                 <div class="contact-form-row">
                   <label>
                     Parent / guardian name
@@ -165,7 +175,7 @@
                   Your message
                   <textarea name="message" rows="5" placeholder="Tell us a bit about your child and what you are looking for&hellip;"></textarea>
                 </label>
-                <a class="button contact-submit-btn" href="mailto:starsoccervancouver@gmail.com?subject=Star%20Soccer%20Inquiry">Send inquiry &rarr;</a>
+                <button type="submit" class="button contact-submit-btn">Send inquiry &rarr;</button>
               </form>
             </div>
 
@@ -205,5 +215,19 @@
 
       </main>
     </div>
+
+    <script>
+      // Show success banner when redirected back after submission
+      if (new URLSearchParams(window.location.search).get("sent") === "1") {
+        document.addEventListener("DOMContentLoaded", function () {
+          var banner = document.createElement("div");
+          banner.textContent = "\u2713 Message sent! We will reply within one business day.";
+          banner.style.cssText = "background:rgba(0,160,80,0.12);color:#007a3d;border:1px solid rgba(0,160,80,0.3);border-radius:6px;padding:0.85rem 1.1rem;font-size:0.9rem;font-weight:600;margin-bottom:1.25rem;";
+          var formEl = document.querySelector(".contact-form-upgraded");
+          if (formEl) formEl.insertAdjacentElement("beforebegin", banner);
+          history.replaceState(null, "", window.location.pathname);
+        });
+      }
+    </script>
   </body>
 </html>

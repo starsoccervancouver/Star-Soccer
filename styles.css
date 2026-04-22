@@ -1955,13 +1955,13 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   color: #f5f9ff;
 }
 
-.contact-info-panel h2 {
+.contact-section-split .contact-info-panel h2 {
   margin: 8px 0 16px;
   font-size: clamp(2rem, 3.5vw, 2.8rem);
   color: #f5f9ff;
 }
 
-.contact-info-lead {
+.contact-section-split .contact-info-lead {
   color: #bfd1ea;
   line-height: 1.75;
   font-size: 1rem;
@@ -1992,7 +1992,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   gap: 3px;
 }
 
-.contact-detail-item strong {
+.contact-section-split .contact-detail-item strong {
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -2000,32 +2000,32 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   color: #89d6ff;
 }
 
-.contact-detail-item a,
-.contact-detail-item span {
+.contact-section-split .contact-detail-item a,
+.contact-section-split .contact-detail-item span {
   color: #e8f2ff;
   font-size: 0.95rem;
   line-height: 1.5;
   font-weight: 500;
 }
 
-.contact-detail-item a {
+.contact-section-split .contact-detail-item a {
   color: #89d6ff;
   text-decoration: none;
   font-weight: 700;
 }
 
-.contact-detail-item a:hover {
+.contact-section-split .contact-detail-item a:hover {
   text-decoration: underline;
 }
 
-.contact-response-band {
+.contact-section-split .contact-response-band {
   padding: 16px 20px;
   border-left: 3px solid rgba(137, 214, 255, 0.6);
   background: rgba(137, 214, 255, 0.07);
   border-radius: 0 12px 12px 0;
 }
 
-.contact-response-band p {
+.contact-section-split .contact-response-band p {
   margin: 0;
   font-size: 0.92rem;
   color: #bfd1ea;

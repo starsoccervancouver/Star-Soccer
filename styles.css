@@ -1945,14 +1945,14 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   align-items: start;
 }
 
+.contact-section-split {
+  background: linear-gradient(180deg, #081528 0%, #061120 100%);
+  color: #f5f9ff;
+}
+
 .contact-info-panel {
   position: sticky;
   top: 100px;
-}
-
-.contact-section-split.psg-light-section {
-  background: linear-gradient(180deg, #0a1a35 0%, #071326 100%);
-  color: #f5f9ff;
 }
 
 .contact-section-split .contact-info-panel h2 {

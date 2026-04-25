@@ -1962,6 +1962,33 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   color: var(--text);
 }
 
+.compact-hero-page .subpage-main {
+  padding-top: 0;
+}
+
+.compact-hero-page .psg-subpage-hero {
+  min-height: clamp(150px, 22vh, 210px);
+}
+
+.compact-hero-page .psg-hero-inner {
+  min-height: clamp(110px, 16vh, 150px);
+  padding: clamp(12px, 1.8vw, 18px) 24px;
+}
+
+.compact-hero-page .psg-page-title {
+  margin: 6px 0 4px;
+  font-size: clamp(1.85rem, 3.1vw, 2.7rem);
+}
+
+.compact-hero-page .psg-page-city {
+  margin-top: 0;
+  font-size: 0.7rem;
+}
+
+.compact-hero-page .psg-intro-band {
+  padding: 18px 24px;
+}
+
 .psg-intro-band {
   width: 100vw;
   margin-left: calc(50% - 50vw);

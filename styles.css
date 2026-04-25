@@ -2240,6 +2240,7 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .psg-intro-band {
+  display: none;
   width: 100vw;
   margin-left: calc(50% - 50vw);
   padding: 42px 24px;

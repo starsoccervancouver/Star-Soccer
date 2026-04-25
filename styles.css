@@ -5053,3 +5053,19 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
     height: 280px;
   }
 }
+
+/* Final enforce: keep subpage hero headers centered on all breakpoints */
+.psg-subpage-hero .psg-hero-inner {
+  align-items: center !important;
+  text-align: center !important;
+}
+
+.psg-subpage-hero .psg-hero-kicker,
+.psg-subpage-hero .psg-page-title {
+  width: 100%;
+  text-align: center !important;
+}
+
+.psg-subpage-hero .psg-page-city {
+  display: none !important;
+}

@@ -3661,6 +3661,22 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
     linear-gradient(120deg, rgba(92, 166, 255, 0.12), rgba(33, 101, 201, 0.08));
 }
 
+/* Final enforce: keep subpage hero headers centered on all breakpoints */
+.psg-subpage-hero .psg-hero-inner {
+  align-items: center !important;
+  text-align: center !important;
+}
+
+.psg-subpage-hero .psg-hero-kicker,
+.psg-subpage-hero .psg-page-title {
+  width: 100%;
+  text-align: center !important;
+}
+
+.psg-subpage-hero .psg-page-city {
+  display: none !important;
+}
+
 .home-preview-board {
   min-height: 0;
 }

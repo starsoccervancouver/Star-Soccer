@@ -2146,8 +2146,8 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
-  text-align: left;
+  align-items: center;
+  text-align: center;
   padding: clamp(30px, 4vw, 42px);
   border-radius: 28px;
   border: 1px solid rgba(216, 229, 255, 0.14);
@@ -2171,31 +2171,19 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .psg-hero-kicker::after {
-  content: "Scroll to explore ↓";
-  display: block;
-  margin-top: 14px;
-  color: #d8e9ff;
-  font-size: 0.72rem;
-  letter-spacing: 0.16em;
+  display: none;
 }
 
 .psg-page-city {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 6px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(137, 214, 255, 0.22);
-  background: rgba(6, 18, 38, 0.5);
-  color: #9fdcff;
+  display: none;
 }
 
 .psg-page-title {
   margin: 14px 0 8px;
-  max-width: 10ch;
+  max-width: none;
   font-size: clamp(3rem, 5vw, 5.2rem);
   line-height: 0.92;
+  text-align: center;
   text-transform: uppercase;
   font-weight: 800;
   color: var(--text);

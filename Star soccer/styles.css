@@ -1949,14 +1949,16 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 }
 
 .psg-page-city {
+  display: none;
   color: var(--blue);
 }
 
 .psg-page-title {
   margin: 12px 0 10px;
-  max-width: 12ch;
+  max-width: none;
   font-size: clamp(2.8rem, 5vw, 4.8rem);
   line-height: 0.92;
+  text-align: center;
   text-transform: uppercase;
   font-weight: 800;
   color: var(--text);

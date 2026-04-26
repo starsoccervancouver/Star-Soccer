@@ -5067,5 +5067,22 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 }
 
 .psg-subpage-hero .psg-page-city {
-  display: none !important;
+  display: block !important;
+  color: var(--blue-strong) !important;
+  margin-top: 6px;
+}
+
+.psg-subpage-hero .psg-hero-kicker {
+  color: var(--red-accent) !important;
+}
+
+/* Restore contact hero label hierarchy: red above title, blue below title */
+.subpage-hero-contact .psg-hero-kicker {
+  color: var(--red-accent);
+}
+
+.subpage-hero-contact .psg-page-city {
+  display: block !important;
+  color: var(--blue-strong);
+  margin-top: 6px;
 }

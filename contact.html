@@ -11,7 +11,7 @@
       rel="stylesheet"
     />
     <link rel="icon" type="image/svg+xml" href="logo-star-soccer-minimalized.svg" />
-    <link rel="stylesheet" href="styles.css?v=20260425-headerfix2" />
+    <link rel="stylesheet" href="styles.css?v=20260427-contactcards" />
     <script src="homepage-story.js?v=20260418-live1" defer></script>
   </head>
   <body class="home-page compact-hero-page">
@@ -49,36 +49,6 @@
         <section class="psg-intro-band">
           <p>Whether you have questions about the right program for your child, camp availability, registration, or Selectivo evaluation &mdash; we are here to help you find the right fit.</p>
           <p>Email is the fastest way to reach us. Fill out the form below and we will be in touch.</p>
-        </section>
-
-        <!-- ─── HOW WE HELP ────────────────────────────────────── -->
-        <section class="section psg-light-section">
-          <div class="psg-center-heading" data-reveal="up">
-            <p class="eyebrow">How we can help</p>
-            <h2>Common <span>inquiries</span></h2>
-          </div>
-          <div class="contact-channel-grid">
-            <article class="contact-channel-card" data-reveal="left">
-              <div class="contact-channel-icon">&#9917;</div>
-              <h3>Program fit</h3>
-              <p>Not sure which program matches your child&rsquo;s age and level? We will ask a few questions and point you in the right direction.</p>
-            </article>
-            <article class="contact-channel-card" data-reveal="up">
-              <div class="contact-channel-icon">&#128197;</div>
-              <h3>Camp registration</h3>
-              <p>Questions about summer camp weeks, session times, locations, pricing, or availability. We can help you secure the right spot.</p>
-            </article>
-            <article class="contact-channel-card" data-reveal="up">
-              <div class="contact-channel-icon">&#11088;</div>
-              <h3>Selectivo evaluation</h3>
-              <p>If your child is ready to be considered for our elite team environment, reach out here and we will walk you through the process.</p>
-            </article>
-            <article class="contact-channel-card" data-reveal="right">
-              <div class="contact-channel-icon">&#128204;</div>
-              <h3>General questions</h3>
-              <p>Anything else &mdash; coaching staff, locations, what to bring, payment options, or how the programs work. No question is too small.</p>
-            </article>
-          </div>
         </section>
 
         <!-- ─── CONTACT FORM + INFO SPLIT ─────────────────────── -->
@@ -120,13 +90,26 @@
               </div>
             </div>
 
-            <!-- Right: form -->
-            <div class="contact-form-panel">
-              <form
-                class="interest-form contact-form-upgraded"
-                action="https://formsubmit.co/starsoccervancouver@gmail.com"
-                method="POST"
-              >
+            <!-- Right: form + inquiry chips -->
+            <div class="contact-form-zone">
+              <article class="contact-float-card contact-float-card-fit" data-reveal="left">
+                <span class="contact-float-icon">&#9917;</span>
+                <h3>Program fit</h3>
+                <p>We help you choose the right age and level.</p>
+              </article>
+
+              <article class="contact-float-card contact-float-card-camp" data-reveal="up">
+                <span class="contact-float-icon">&#128197;</span>
+                <h3>Camp registration</h3>
+                <p>Questions on weeks, times, pricing, and spots.</p>
+              </article>
+
+              <div class="contact-form-panel">
+                <form
+                  class="interest-form contact-form-upgraded"
+                  action="https://formsubmit.co/starsoccervancouver@gmail.com"
+                  method="POST"
+                >
                 <!-- FormSubmit config -->
                 <input type="hidden" name="_subject" value="New Star Soccer inquiry" />
                 <input type="hidden" name="_captcha" value="false" />
@@ -175,8 +158,21 @@
                   Your message
                   <textarea name="message" rows="5" placeholder="Tell us a bit about your child and what you are looking for&hellip;"></textarea>
                 </label>
-                <button type="submit" class="button contact-submit-btn">Send inquiry &rarr;</button>
-              </form>
+                  <button type="submit" class="button contact-submit-btn">Send inquiry &rarr;</button>
+                </form>
+              </div>
+
+              <article class="contact-float-card contact-float-card-selectivo" data-reveal="up">
+                <span class="contact-float-icon">&#11088;</span>
+                <h3>Selectivo evaluation</h3>
+                <p>Reach out to discuss elite team consideration.</p>
+              </article>
+
+              <article class="contact-float-card contact-float-card-general" data-reveal="right">
+                <span class="contact-float-icon">&#128204;</span>
+                <h3>General questions</h3>
+                <p>Ask about locations, staff, gear, and payments.</p>
+              </article>
             </div>
 
           </div>

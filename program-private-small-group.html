@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Private / Small Group Request | Star Soccer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/svg+xml" href="logo-star-soccer-minimalized.svg" />
+    <link rel="stylesheet" href="styles.css?v=20260425-headerfix2" />
+    <script src="homepage-story.js?v=20260418-live1" defer></script>
+  </head>
+  <body class="home-page programs-page compact-hero-page">
+    <div class="page-shell">
+      <header class="site-header home-header">
+        <div class="home-header-grid">
+          <a href="index.html" class="home-utility-logo" aria-label="Star Soccer home">
+            <img src="logo-star-soccer-minimalized.svg" alt="Star Soccer logo" class="brand-logo" />
+          </a>
+          <div class="home-utility-cell home-utility-slogan">This Is Star Soccer</div>
+          <div class="home-utility-cell home-utility-email">starsoccervancouver@gmail.com</div>
+          <nav class="site-nav home-site-nav" aria-label="Primary">
+            <a href="selectivo.html">Selectivo</a>
+            <a href="programs.html" class="active">Programs</a>
+            <a href="camps.html">Camps</a>
+            <a href="methodology.html">Methodology</a>
+            <a href="locations.html">Locations</a>
+            <a href="contact.html">Contact</a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="subpage-main">
+        <section class="section psg-subpage-hero subpage-hero-programs">
+          <div class="psg-hero-inner">
+            <p class="psg-hero-kicker">By request training</p>
+            <h1 class="psg-page-title">Private / Small Group</h1>
+            <p class="psg-page-city">Star Soccer Vancouver</p>
+          </div>
+        </section>
+
+        <section class="psg-intro-band">
+          <p>Select your training preferences and send a private/small group request. This page uses only options, with no required typed fields.</p>
+          <p>We will review your selections and follow up through our contact process.</p>
+        </section>
+
+        <section class="section psg-light-section">
+          <div class="section-cta registration-layout">
+            <article class="registration-card">
+              <p class="eyebrow">Request form</p>
+              <h2>Training request details</h2>
+              <p>Choose the options below to submit your request.</p>
+              <form class="interest-form" action="https://formsubmit.co/starsoccervancouver@gmail.com" method="POST">
+                <input type="hidden" name="_subject" value="New Private/Small Group Training Request" />
+                <input type="hidden" name="_captcha" value="false" />
+                <input type="hidden" name="_template" value="table" />
+                <input type="hidden" name="_next" value="https://starsoccer.ca/program-private-small-group.html?sent=1" />
+
+                <label>
+                  Number of players
+                  <select name="Number of players" required>
+                    <option value="" disabled selected>Select</option>
+                    <option>1 player (private)</option>
+                    <option>2 players</option>
+                    <option>3 players</option>
+                    <option>4 players</option>
+                    <option>5 players</option>
+                    <option>6 players</option>
+                  </select>
+                </label>
+
+                <label>
+                  Training focus
+                  <select name="Training focus" required>
+                    <option value="" disabled selected>Select</option>
+                    <option>Technical</option>
+                    <option>Tactical</option>
+                    <option>Physical</option>
+                    <option>Mixed (technical + tactical + physical)</option>
+                  </select>
+                </label>
+
+                <label>
+                  Age group
+                  <select name="Age group" required>
+                    <option value="" disabled selected>Select</option>
+                    <option>U4-U6</option>
+                    <option>U7-U10</option>
+                    <option>U11-U14</option>
+                    <option>Mixed ages (close range)</option>
+                  </select>
+                </label>
+
+                <label>
+                  Preferred format
+                  <select name="Preferred format" required>
+                    <option value="" disabled selected>Select</option>
+                    <option>Private 1-on-1</option>
+                    <option>Small group</option>
+                    <option>Either</option>
+                  </select>
+                </label>
+
+                <label>
+                  Preferred location
+                  <select name="Preferred location" required>
+                    <option value="" disabled selected>Select</option>
+                    <option>Kitsilano High School Turf</option>
+                    <option>Trimble Park</option>
+                    <option>Either location</option>
+                  </select>
+                </label>
+
+                <label>
+                  Preferred schedule
+                  <select name="Preferred schedule" required>
+                    <option value="" disabled selected>Select</option>
+                    <option>Weekday mornings</option>
+                    <option>Weekday afternoons</option>
+                    <option>Either morning or afternoon</option>
+                  </select>
+                </label>
+
+                <button type="submit" class="button" style="width: 100%;">Submit request</button>
+              </form>
+            </article>
+
+            <article class="registration-card">
+              <p class="eyebrow">How it works</p>
+              <h2>After you submit</h2>
+              <div class="registration-summary-list">
+                <div>
+                  <span>Step 1</span>
+                  <strong>We review your selected training setup.</strong>
+                </div>
+                <div>
+                  <span>Step 2</span>
+                  <strong>We match coach planning by focus and age group.</strong>
+                </div>
+                <div>
+                  <span>Step 3</span>
+                  <strong>We follow up with next-step booking details.</strong>
+                </div>
+              </div>
+              <div class="registration-actions" style="margin-top: 16px;">
+                <a class="button button-ghost" href="programs.html">Back to programs</a>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      if (new URLSearchParams(window.location.search).get("sent") === "1") {
+        document.addEventListener("DOMContentLoaded", function () {
+          var banner = document.createElement("div");
+          banner.textContent = "\u2713 Request submitted. We will follow up shortly.";
+          banner.style.cssText = "background:rgba(0,160,80,0.12);color:#007a3d;border:1px solid rgba(0,160,80,0.3);border-radius:6px;padding:0.85rem 1.1rem;font-size:0.9rem;font-weight:600;margin:0 0 1.1rem 0;";
+          var formEl = document.querySelector(".interest-form");
+          if (formEl) formEl.insertAdjacentElement("beforebegin", banner);
+          history.replaceState(null, "", window.location.pathname);
+        });
+      }
+    </script>
+  </body>
+</html>

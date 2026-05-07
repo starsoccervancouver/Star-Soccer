@@ -22,6 +22,27 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Skip link — accessibility */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 10000;
+  padding: 10px 18px;
+  background: #2d7be8;
+  color: #fff;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 0 0 10px 0;
+  transition: top 150ms ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
 body {
   margin: 0;
   font-family: "Manrope", sans-serif;
@@ -5192,6 +5213,165 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 
   .home-camps-secondary-button {
     min-height: 44px;
+  }
+}
+
+/* ── FAQ section ──────────────────────────────────── */
+.psg-faq-section {
+  padding: 48px 0 56px;
+}
+
+.psg-faq-grid {
+  width: min(860px, calc(100% - 48px));
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+}
+
+.psg-faq-item {
+  border: 1px solid rgba(110, 183, 255, 0.25);
+  border-radius: 16px;
+  background: rgba(10, 22, 45, 0.55);
+  overflow: hidden;
+  transition: border-color 200ms ease;
+}
+
+.psg-faq-item:hover,
+.psg-faq-item[open] {
+  border-color: rgba(110, 183, 255, 0.5);
+}
+
+.psg-faq-item summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.45;
+  user-select: none;
+}
+
+.psg-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.psg-faq-item summary::after {
+  content: "+";
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid rgba(110, 183, 255, 0.4);
+  color: #6eb7ff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: transform 200ms ease, background 200ms ease;
+}
+
+.psg-faq-item[open] summary::after {
+  content: "\2212";
+  transform: rotate(180deg);
+  background: rgba(110, 183, 255, 0.12);
+}
+
+.psg-faq-item summary:focus-visible {
+  outline: 2px solid #6eb7ff;
+  outline-offset: -2px;
+  border-radius: 14px;
+}
+
+.psg-faq-item p {
+  margin: 0;
+  padding: 0 20px 18px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.psg-faq-item p a {
+  color: #6eb7ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── Pricing note ─────────────────────────────────── */
+.psg-pricing-note {
+  width: min(860px, calc(100% - 48px));
+  margin: 20px auto 0;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(110, 183, 255, 0.22);
+  background: rgba(10, 22, 45, 0.4);
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.psg-pricing-note a {
+  color: #6eb7ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── Bottom CTA band ──────────────────────────────── */
+.psg-bottom-cta {
+  padding: 56px 0 64px;
+  background: linear-gradient(180deg, transparent 0%, rgba(10, 22, 45, 0.6) 100%);
+}
+
+.psg-bottom-cta-inner {
+  width: min(820px, calc(100% - 48px));
+  margin: 0 auto;
+  text-align: center;
+}
+
+.psg-bottom-cta-inner h2 {
+  margin: 0 0 14px;
+  color: var(--text);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.psg-bottom-cta-inner > p {
+  max-width: 62ch;
+  margin: 0 auto 28px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.psg-bottom-cta-inner > p a {
+  color: #6eb7ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.psg-bottom-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.psg-bottom-cta-actions .home-camps-cta-button {
+  width: auto;
+  min-width: 200px;
+  flex: 1 1 200px;
+  max-width: 260px;
+}
+
+@media (max-width: 600px) {
+  .psg-bottom-cta-actions .home-camps-cta-button {
+    max-width: 100%;
   }
 }
 

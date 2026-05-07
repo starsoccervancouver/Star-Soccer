@@ -4704,121 +4704,270 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   pointer-events: auto;
 }
 
-.home-news-hero {
+.home-trust-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.55fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.7fr);
   gap: 24px;
-  align-items: stretch;
+  align-items: start;
 }
 
-.home-news-copy h2 {
-  margin: 10px 0 12px;
-  max-width: 8ch;
-  color: var(--text);
-  font-family: "Bebas Neue", sans-serif;
-  font-size: clamp(3.2rem, 6vw, 5.6rem);
-  line-height: 0.9;
-  letter-spacing: 0.02em;
+.home-coaching-column {
+  display: grid;
+  gap: 18px;
+}
+
+.home-news-box-tag {
+  margin: 0 0 6px;
+  color: #6eb7ff;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
+.home-news-copy h2 {
+  margin: 10px 0 10px;
+  max-width: none;
+  color: var(--text);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(1.95rem, 3.4vw, 3.1rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .home-news-copy p {
-  max-width: 52ch;
+  max-width: 68ch;
   margin: 0;
   color: var(--muted);
   font-size: 1.04rem;
   line-height: 1.75;
 }
 
-.home-news-image-grid {
+.home-coach-stack {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
-.home-news-image {
-  position: relative;
-  overflow: hidden;
-  min-height: 120px;
-  border: 1px solid rgba(110, 183, 255, 0.42);
-  border-radius: 22px;
-  background:
-    linear-gradient(180deg, rgba(6, 18, 38, 0.14), rgba(6, 18, 38, 0.58)),
-    linear-gradient(120deg, rgba(120, 176, 255, 0.18), rgba(58, 112, 224, 0.08)),
-    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80");
-  background-size: cover;
-  background-position: center;
-}
-
-.home-news-image-feature {
-  min-height: 132px;
-}
-
-.home-news-image-secondary {
-  min-height: 104px;
-}
-
-.home-news-image-secondary {
-  background:
-    linear-gradient(180deg, rgba(6, 18, 38, 0.14), rgba(6, 18, 38, 0.58)),
-    linear-gradient(120deg, rgba(120, 176, 255, 0.18), rgba(58, 112, 224, 0.08)),
-    url("https://images.unsplash.com/photo-1575361204480-aadea25e6e68?auto=format&fit=crop&w=1200&q=80");
-  background-size: cover;
-  background-position: center;
-}
-
-.home-news-image span {
-  position: absolute;
-  left: 16px;
-  bottom: 16px;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(110, 183, 255, 0.35);
-  background: rgba(8, 17, 31, 0.74);
-  color: #e8f4ff;
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.home-news-box-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 18px;
-}
-
-.home-news-box {
+.home-coach-card {
   padding: 18px 18px 20px;
   border: 1px solid rgba(110, 183, 255, 0.28);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.03);
 }
 
-.home-news-box-tag {
-  margin: 0 0 10px;
-  color: var(--blue);
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.home-news-box h3 {
+.home-coach-card h3 {
   margin: 0 0 10px;
   color: var(--text);
   font-family: "Bebas Neue", sans-serif;
-  font-size: 1.7rem;
+  font-size: 1.95rem;
   line-height: 0.96;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
-.home-news-box p:last-child {
+.home-coach-photo {
+  width: 100%;
+  height: 152px;
+  margin: 4px 0 12px;
+  border: 1px solid rgba(110, 183, 255, 0.3);
+  border-radius: 14px;
+  background-color: rgba(8, 17, 31, 0.7);
+  background-size: cover;
+  background-position: center;
+}
+
+.home-coach-card ul {
   margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
   color: var(--muted);
-  line-height: 1.7;
+}
+
+.home-coach-card li {
+  line-height: 1.55;
+}
+
+.home-coach-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.home-coach-card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-coach-card-title h3 {
+  margin: 2px 0 0;
+  font-size: 1.55rem;
+}
+
+.home-coach-avatar {
+  flex-shrink: 0;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(110, 183, 255, 0.45);
+  background:
+    radial-gradient(circle at 38% 28%, rgba(110, 183, 255, 0.18) 0%, transparent 60%),
+    rgba(10, 22, 42, 0.85);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.home-camps-cta-card {
+  position: sticky;
+  top: 110px;
+  align-self: start;
+  padding: 22px 20px;
+  border: 1px solid rgba(110, 183, 255, 0.38);
+  border-radius: 22px;
+  background:
+    linear-gradient(170deg, rgba(21, 46, 90, 0.44), rgba(9, 21, 41, 0.9)),
+    radial-gradient(circle at 24% 12%, rgba(110, 183, 255, 0.22), transparent 52%);
+  box-shadow: 0 18px 34px rgba(4, 12, 24, 0.35);
+}
+
+.home-camps-cta-card h3 {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(2rem, 3.5vw, 2.65rem);
+  line-height: 0.94;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.home-camps-cta-card p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.65;
+}
+
+.home-camps-cta-list {
+  margin: 14px 0 18px;
+  padding-left: 18px;
+  display: grid;
+  gap: 7px;
+  color: #e7f0ff;
+}
+
+.home-camps-cta-list li {
+  line-height: 1.5;
+}
+
+.home-camps-cta-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.home-camps-cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 60px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(163, 217, 255, 0.75);
+  background: linear-gradient(135deg, #4aa5ff, #2d7be8);
+  color: #f7fbff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.home-camps-cta-button:hover,
+.home-camps-cta-button:focus-visible {
+  transform: translateY(-1px);
+  filter: saturate(1.08);
+  box-shadow: 0 12px 22px rgba(10, 88, 188, 0.42);
+}
+
+.home-camps-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(110, 183, 255, 0.45);
+  background: rgba(14, 32, 62, 0.7);
+  color: #d9ecff;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.home-camps-secondary-button:hover,
+.home-camps-secondary-button:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(163, 217, 255, 0.72);
+  background: rgba(20, 47, 90, 0.82);
+}
+
+/* ── Two-card CTA column ───────────────────────── */
+.home-cta-stack {
+  position: sticky;
+  top: 110px;
+  align-self: start;
+  display: grid;
+  gap: 16px;
+}
+
+.home-cta-card {
+  padding: 22px 20px;
+  border: 1px solid rgba(110, 183, 255, 0.38);
+  border-radius: 22px;
+  background:
+    linear-gradient(170deg, rgba(21, 46, 90, 0.44), rgba(9, 21, 41, 0.9)),
+    radial-gradient(circle at 24% 12%, rgba(110, 183, 255, 0.22), transparent 52%);
+  box-shadow: 0 18px 34px rgba(4, 12, 24, 0.35);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.home-cta-card:hover {
+  border-color: rgba(110, 183, 255, 0.6);
+  box-shadow: 0 14px 36px rgba(10, 60, 130, 0.3), 0 0 0 1px rgba(110, 183, 255, 0.12);
+}
+
+.home-cta-card h3 {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(1.7rem, 2.8vw, 2.2rem);
+  line-height: 0.94;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.home-cta-card > p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.65;
+}
+
+.home-cta-card .home-camps-cta-list {
+  margin: 14px 0 18px;
+}
+
+.home-cta-card .home-camps-cta-button {
+  display: flex;
+  width: 100%;
 }
 
 .home-panel-shell {
@@ -4977,10 +5126,20 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
     grid-template-columns: 1fr 1fr;
   }
 
-  .home-news-hero,
-  .home-news-box-row,
-  .home-news-image-grid {
+  .home-trust-grid {
     grid-template-columns: 1fr;
+  }
+
+  .home-camps-cta-card {
+    position: static;
+  }
+
+  .home-cta-stack {
+    position: static;
+  }
+
+  .home-news-copy h2 {
+    white-space: normal;
   }
 
   .home-panel-shell {
@@ -5025,6 +5184,14 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 
   .home-news-copy h2 {
     font-size: clamp(2.7rem, 12vw, 4rem);
+  }
+
+  .home-camps-cta-button {
+    min-height: 46px;
+  }
+
+  .home-camps-secondary-button {
+    min-height: 44px;
   }
 }
 

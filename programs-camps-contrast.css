@@ -1,0 +1,6 @@
+/* Programs/Camps wrapper tuning: softer off-white with clearer contrast */
+.programs-listing-shell {
+  background: linear-gradient(180deg, rgba(254, 252, 247, 0.96), rgba(248, 244, 236, 0.98));
+  border: 1px solid rgba(176, 160, 130, 0.24);
+  box-shadow: 0 26px 52px rgba(20, 28, 44, 0.11);
+}

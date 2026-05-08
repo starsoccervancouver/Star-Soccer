@@ -5141,8 +5141,13 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 }
 
 .home-final-preview-card {
-  width: min(620px, 100%);
-  justify-self: center;
+  width: 100%;
+  justify-self: stretch;
+}
+
+.home-final-preview-card .home-preview-pair {
+  text-align: center;
+  justify-items: center;
 }
 
 .home-placeholder-board .pm-card-label,

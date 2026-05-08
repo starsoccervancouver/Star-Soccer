@@ -1682,9 +1682,9 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   padding: 26px 92px 18px;
   border-radius: 34px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 250, 253, 0.98));
-  border: 1px solid rgba(117, 140, 178, 0.08);
-  box-shadow: 0 26px 52px rgba(12, 24, 48, 0.08);
+    linear-gradient(180deg, rgba(252, 249, 243, 0.95), rgba(246, 241, 232, 0.98));
+  border: 1px solid rgba(171, 153, 121, 0.18);
+  box-shadow: 0 24px 46px rgba(28, 32, 45, 0.08);
 }
 
 .programs-listing-shell .psg-center-heading,

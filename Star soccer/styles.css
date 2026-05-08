@@ -4844,6 +4844,11 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   gap: 18px;
 }
 
+.home-final-preview-card {
+  width: min(620px, 100%);
+  justify-self: center;
+}
+
 .home-placeholder-board .pm-card-label,
 .home-preview-board .pm-card-label {
   margin: 0;

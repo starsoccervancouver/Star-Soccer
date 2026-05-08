@@ -4729,11 +4729,12 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.7fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .home-coaching-column {
   display: grid;
+  grid-template-rows: auto 1fr;
   gap: 12px;
 }
 
@@ -4769,7 +4770,9 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .home-coach-stack {
   display: grid;
   grid-template-columns: 1fr;
+  grid-auto-rows: 1fr;
   gap: 10px;
+  height: 100%;
 }
 
 .home-coach-card {
@@ -4781,6 +4784,7 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   border: 1px solid rgba(110, 183, 255, 0.28);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.03);
+  height: 100%;
 }
 
 .home-coach-card h3 {
@@ -5175,6 +5179,8 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 
   .home-coach-stack {
     grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+    height: auto;
   }
 
   .home-coach-card {

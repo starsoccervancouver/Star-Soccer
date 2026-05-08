@@ -4744,6 +4744,12 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   max-width: 100%;
 }
 
+.home-ucl-panel h2 {
+  margin: 8px 0 10px;
+  font-size: clamp(1.85rem, 2.8vw, 2.55rem);
+  line-height: 0.95;
+}
+
 .home-score-list,
 .home-score-row {
   display: grid;
@@ -4834,7 +4840,7 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 
 .home-preview-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 18px;
 }
 
@@ -4863,6 +4869,10 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   .home-score-row,
   .home-preview-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .home-preview-grid {
+    grid-template-columns: 1fr;
   }
 
   .home-news-hero,

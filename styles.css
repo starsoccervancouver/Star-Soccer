@@ -4734,24 +4734,24 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 
 .home-coaching-column {
   display: grid;
-  gap: 18px;
+  gap: 12px;
 }
 
 .home-news-box-tag {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   color: #6eb7ff;
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 .home-news-copy h2 {
-  margin: 10px 0 10px;
+  margin: 4px 0 8px;
   max-width: none;
   color: var(--text);
   font-family: "Bebas Neue", sans-serif;
-  font-size: clamp(1.95rem, 3.4vw, 3.1rem);
+  font-size: clamp(1.65rem, 2.6vw, 2.35rem);
   line-height: 1;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -4762,20 +4762,20 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   max-width: 68ch;
   margin: 0;
   color: var(--muted);
-  font-size: 1.04rem;
-  line-height: 1.75;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .home-coach-stack {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .home-coach-card {
-  padding: 18px 18px 20px;
+  padding: 12px;
   border: 1px solid rgba(110, 183, 255, 0.28);
-  border-radius: 20px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -4802,21 +4802,22 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 
 .home-coach-card ul {
   margin: 0;
-  padding-left: 18px;
+  padding-left: 15px;
   display: grid;
-  gap: 8px;
+  gap: 4px;
+  font-size: 0.88rem;
   color: var(--muted);
 }
 
 .home-coach-card li {
-  line-height: 1.55;
+  line-height: 1.35;
 }
 
 .home-coach-card-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 14px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 .home-coach-card-title {
@@ -4826,13 +4827,13 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 
 .home-coach-card-title h3 {
   margin: 2px 0 0;
-  font-size: 1.55rem;
+  font-size: 1.16rem;
 }
 
 .home-coach-avatar {
   flex-shrink: 0;
-  width: 54px;
-  height: 54px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   border: 1.5px solid rgba(110, 183, 255, 0.45);
   background:
@@ -5163,6 +5164,10 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
     white-space: normal;
   }
 
+  .home-coach-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .home-panel-shell {
     width: min(1240px, calc(100% - 48px));
   }
@@ -5205,6 +5210,10 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 
   .home-news-copy h2 {
     font-size: clamp(2.7rem, 12vw, 4rem);
+  }
+
+  .home-coach-stack {
+    grid-template-columns: 1fr;
   }
 
   .home-camps-cta-button {

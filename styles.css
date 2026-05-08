@@ -5041,16 +5041,29 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 }
 
 .home-ucl-panel h2 {
-  margin: 8px 0 10px;
-  font-size: clamp(1.85rem, 2.8vw, 2.55rem);
-  line-height: 0.95;
+  margin: 4px 0 8px;
+  font-size: clamp(1.25rem, 2.05vw, 1.9rem);
+  line-height: 1;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.home-ucl-panel h2::-webkit-scrollbar {
+  display: none;
+}
+
+.home-ucl-panel p {
+  margin: 0;
+  line-height: 1.45;
 }
 
 .home-score-list,
 .home-score-row {
   display: grid;
-  gap: 14px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .home-score-row {
@@ -5061,9 +5074,9 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .home-score-item,
 .home-preview-pair {
   display: grid;
-  gap: 6px;
-  padding: 14px;
-  border-radius: 18px;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 14px;
   border: 1px solid rgba(216, 229, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
 }
@@ -5075,7 +5088,7 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .home-score-thumb {
   display: block;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 10px;
   border: 1px solid rgba(216, 229, 255, 0.12);
   background: rgba(10, 22, 44, 0.9);
 }
@@ -5083,7 +5096,7 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .home-score-thumb img {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2 / 1;
   object-fit: cover;
 }
 
@@ -5091,20 +5104,22 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .home-preview-pair strong,
 .home-placeholder-board strong {
   color: var(--text);
-  font-size: 1.05rem;
+  font-size: 0.97rem;
 }
 
 .home-score-item span,
 .home-preview-pair span,
 .home-placeholder-board span {
   color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.38;
+  font-size: 0.9rem;
 }
 
 .home-score-item a,
 .home-preview-pair a {
   color: var(--blue);
   font-weight: 800;
+  font-size: 0.86rem;
 }
 
 .home-panel-screen {
@@ -5179,6 +5194,11 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 
   .home-preview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .home-ucl-panel h2 {
+    white-space: normal;
+    overflow: visible;
   }
 
   .home-trust-grid {

@@ -3828,6 +3828,27 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   max-width: 54ch;
 }
 
+.tpd-support-copy {
+  margin-bottom: 22px;
+}
+
+.tpd-support-copy p {
+  text-align: center;
+  max-width: 88ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.tpd-quote-block blockquote {
+  max-width: 34ch;
+}
+
+.tpd-quote-note {
+  max-width: 68ch;
+  margin: 16px auto 0;
+  color: #dbe7ff;
+  line-height: 1.7;
+}
 
 @media (max-width: 900px) {
   .storybook-hero,
@@ -3850,6 +3871,9 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
     grid-template-columns: 1fr;
   }
 
+  .tpd-quote-block blockquote {
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 860px) {

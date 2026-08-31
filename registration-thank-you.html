@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thank You for Registering | Star Soccer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/svg+xml" href="logo-star-soccer-minimalized.svg" />
+    <link rel="stylesheet" href="styles.css?v=20260425-headerfix2" />
+    <script src="homepage-story.js?v=20260418-live1" defer></script>
+  </head>
+  <body class="home-page registration-page compact-hero-page">
+    <div class="page-shell">
+      <header class="site-header home-header">
+        <div class="home-header-grid">
+          <a href="index.html" class="home-utility-logo" aria-label="Star Soccer home">
+            <img src="logo-star-soccer-minimalized.svg" alt="Star Soccer logo" class="brand-logo" />
+          </a>
+          <div class="home-utility-cell home-utility-slogan">This Is Star Soccer</div>
+          <div class="home-utility-cell home-utility-email">starsoccervancouver@gmail.com</div>
+          <nav class="site-nav home-site-nav" aria-label="Primary">
+            <a href="selectivo.html">Selectivo</a>
+            <a href="programs.html">Programs</a>
+            <a href="camps.html">Camps</a>
+            <a href="methodology.html">Methodology</a>
+            <a href="locations.html">Locations</a>
+            <a href="contact.html">Contact</a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="subpage-main">
+        <section class="section psg-subpage-hero subpage-hero-programs">
+          <div class="psg-hero-inner">
+            <p class="psg-hero-kicker">Player Development Academy</p>
+            <h1 class="psg-page-title">Thank you for registering!</h1>
+            <p class="psg-page-city">Star Soccer Vancouver</p>
+          </div>
+        </section>
+
+        <section class="psg-intro-band">
+          <p>We have received your registration details by email and will be in touch if anything else is needed.</p>
+          <p>To confirm your spot, please complete payment using one of the options below.</p>
+        </section>
+
+        <section class="section psg-light-section">
+          <div class="copy-panel registration-card" data-reveal="up" style="max-width: 640px; margin: 0 auto;">
+            <p class="eyebrow">Registration summary</p>
+            <h2 id="thankYouTitle">Star Soccer</h2>
+
+            <div class="registration-summary-list">
+              <div>
+                <span>Program</span>
+                <strong id="summaryProgram">Star Soccer</strong>
+              </div>
+              <div>
+                <span>Session</span>
+                <strong id="summarySession">Selected session</strong>
+              </div>
+              <div>
+                <span>Price</span>
+                <strong id="summaryPrice">To be confirmed</strong>
+              </div>
+            </div>
+
+            <div class="registration-steps" style="margin-top: 24px;">
+              <div class="registration-step">
+                <strong>E</strong>
+                <span>E-transfer to <a href="mailto:starsoccervancouver@gmail.com">starsoccervancouver@gmail.com</a>. Include the player's name and session in the message.</span>
+              </div>
+              <div class="registration-step">
+                <strong>$</strong>
+                <span>Or bring exact cash to the first session and hand it to the coach.</span>
+              </div>
+            </div>
+
+            <p style="margin-top: 24px;">Questions about payment? Email <a href="mailto:starsoccervancouver@gmail.com">starsoccervancouver@gmail.com</a> and we will help right away.</p>
+
+            <div class="registration-actions" style="margin-top: 24px;">
+              <a class="button" href="camps.html">Back to Camps</a>
+              <a class="button button-ghost" href="programs.html">Back to Programs</a>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="home-contact-footer">
+        <div class="home-contact-inner">
+          <div class="home-contact-brand">
+            <img src="logo-star-soccer-minimalized.svg" alt="Star Soccer logo" class="brand-logo" />
+            <p>Thanks for registering with Star Soccer. Pay by e-transfer or cash to confirm your spot.</p>
+          </div>
+          <div class="home-contact-column">
+            <p class="footer-label">Contact</p>
+            <a href="mailto:starsoccervancouver@gmail.com">starsoccervancouver@gmail.com</a>
+          </div>
+          <div class="home-contact-column">
+            <p class="footer-label">Instagram</p>
+            <a href="https://www.instagram.com/604starsoccer/" target="_blank" rel="noreferrer" aria-label="Star Soccer on Instagram (opens in new tab)">604starsoccer</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        const program = params.get("program") || "Star Soccer";
+        const session = params.get("session") || "Selected session";
+        const price = params.get("price") || "To be confirmed";
+
+        document.getElementById("thankYouTitle").textContent = program;
+        document.getElementById("summaryProgram").textContent = program;
+        document.getElementById("summarySession").textContent = session;
+        document.getElementById("summaryPrice").textContent = price;
+      })();
+    </script>
+  </body>
+</html>

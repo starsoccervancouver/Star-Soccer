@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Registration Before Checkout | Star Soccer</title>
+    <title>Player Registration | Star Soccer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="styles.css?v=20260425-headerfix2" />
     <script src="homepage-story.js?v=20260418-live1" defer></script>
   </head>
-  <body class="home-page payment-registration-page compact-hero-page">
+  <body class="home-page registration-page compact-hero-page">
     <div class="page-shell">
       <header class="site-header home-header">
         <div class="home-header-grid">
@@ -44,16 +44,16 @@
         </section>
 
         <section class="psg-intro-band">
-          <p>Complete this quick form before payment so Star Soccer receives the parent and player details by email.</p>
-          <p>As soon as the form is sent, secure Stripe checkout will open automatically.</p>
+          <p>Complete this quick form so Star Soccer receives the parent and player details by email.</p>
+          <p>Once the form is sent, you'll be taken to a confirmation page with e-transfer and cash payment instructions.</p>
         </section>
 
         <section class="section psg-light-section">
           <div class="section-cta registration-layout">
             <div class="copy-panel registration-card registration-showcase" data-reveal="left">
               <p class="eyebrow">Quick registration</p>
-              <h2 id="registrationTitle">Star Soccer checkout</h2>
-              <p id="registrationCopy">Complete this short questionnaire and secure Stripe checkout will open right after.</p>
+              <h2 id="registrationTitle">Star Soccer registration</h2>
+              <p id="registrationCopy">Complete this short questionnaire and we will confirm your spot with payment instructions right after.</p>
 
               <div class="registration-summary-list">
                 <div>
@@ -89,7 +89,7 @@
               <div class="registration-steps">
                 <div class="registration-step"><strong>1</strong><span>Tell us about your player</span></div>
                 <div class="registration-step"><strong>2</strong><span>We receive the details instantly</span></div>
-                <div class="registration-step"><strong>3</strong><span>Stripe checkout opens automatically</span></div>
+                <div class="registration-step"><strong>3</strong><span>Pay by e-transfer or cash to confirm</span></div>
               </div>
             </div>
 
@@ -156,7 +156,6 @@
 
               <div class="registration-actions">
                 <button type="submit" class="button" id="submitRegistrationButton">Complete registration</button>
-                <a class="button button-ghost" id="directCheckoutLink" href="#" style="display: none;">Open checkout manually</a>
               </div>
               <p class="status-message" id="registrationStatus"></p>
             </form>
@@ -168,7 +167,7 @@
         <div class="home-contact-inner">
           <div class="home-contact-brand">
             <img src="logo-star-soccer-minimalized.svg" alt="Star Soccer logo" class="brand-logo" />
-            <p>Every registration is sent to the coaching team first, then the player is taken to secure checkout.</p>
+            <p>Every registration is sent to the coaching team first, then you'll get e-transfer and cash payment instructions.</p>
           </div>
           <div class="home-contact-column">
             <p class="footer-label">Contact</p>
@@ -185,27 +184,14 @@
     <script>
       (() => {
         const params = new URLSearchParams(window.location.search);
-        const rawStripeUrl = params.get("stripe") || "";
-        let stripeUrl = rawStripeUrl;
-
-        try {
-          if (rawStripeUrl.includes("payment-registration.html")) {
-            const nestedUrl = new URL(rawStripeUrl, window.location.href);
-            stripeUrl = new URLSearchParams(nestedUrl.search).get("stripe") || "";
-          }
-        } catch {
-          stripeUrl = rawStripeUrl;
-        }
-
         const program = params.get("program") || "Star Soccer";
         const session = params.get("session") || "Selected session";
-        const price = params.get("price") || "Price shown at checkout";
+        const price = params.get("price") || "Price shown at registration";
 
         const title = document.getElementById("registrationTitle");
         const copy = document.getElementById("registrationCopy");
         const form = document.getElementById("paymentRegistrationForm");
         const status = document.getElementById("registrationStatus");
-        const directCheckoutLink = document.getElementById("directCheckoutLink");
         const submitButton = document.getElementById("submitRegistrationButton");
         const progressBar = document.getElementById("formProgressBar");
         const progressText = document.getElementById("formProgressText");
@@ -259,7 +245,7 @@
           progressText.textContent = `${percent}% complete`;
 
           const childName = childNameInput.value.trim();
-          const experienceNote = checkedExperience ? experienceMessages[checkedExperience.value] : "Once you finish the short questionnaire, secure checkout will open automatically.";
+          const experienceNote = checkedExperience ? experienceMessages[checkedExperience.value] : "Once you finish the short questionnaire, we will confirm your spot and send payment instructions.";
 
           copy.textContent = childName
             ? `${childName} is registering for ${session}. ${experienceNote}`
@@ -267,18 +253,10 @@
 
           if (autoresponseInput) {
             autoresponseInput.value = childName
-              ? `Thanks for registering ${childName} for ${program} — ${session}. We have received the details and your secure checkout page is opening now. If you need anything, reply to this email or contact starsoccervancouver@gmail.com.`
-              : `Thanks for registering with Star Soccer for ${program} — ${session}. We have received the details and your secure checkout page is opening now. If you need anything, reply to this email or contact starsoccervancouver@gmail.com.`;
+              ? `Thanks for registering ${childName} for ${program} — ${session}. We have received the details. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session to confirm your spot. If you need anything, reply to this email or contact starsoccervancouver@gmail.com.`
+              : `Thanks for registering with Star Soccer for ${program} — ${session}. We have received the details. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session to confirm your spot. If you need anything, reply to this email or contact starsoccervancouver@gmail.com.`;
           }
         };
-
-        if (stripeUrl) {
-          directCheckoutLink.href = stripeUrl;
-        } else {
-          submitButton.disabled = true;
-          status.classList.add("is-error");
-          status.textContent = "Please return to the program or camp page and choose a session first.";
-        }
 
         form.addEventListener("input", updatePreview);
         form.addEventListener("change", updatePreview);
@@ -287,7 +265,7 @@
         form.addEventListener("submit", async (event) => {
           event.preventDefault();
 
-          if (!stripeUrl || isSubmitting) {
+          if (isSubmitting) {
             return;
           }
 
@@ -308,8 +286,8 @@
           formData.set(
             "_autoresponse",
             childName
-              ? `Thanks for registering ${childName} for ${program} — ${session}. We have received the details and secure checkout is opening now.`
-              : `Thanks for registering with Star Soccer for ${program} — ${session}. We have received the details and secure checkout is opening now.`
+              ? `Thanks for registering ${childName} for ${program} — ${session}. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session to confirm your spot.`
+              : `Thanks for registering with Star Soccer for ${program} — ${session}. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session to confirm your spot.`
           );
 
           try {
@@ -326,15 +304,15 @@
             }
 
             status.classList.add("is-success");
-            status.textContent = "Registration complete. Confirmation sent by email. Opening secure checkout...";
+            status.textContent = "Registration complete. Confirmation sent by email. Redirecting...";
+            const thankYouParams = new URLSearchParams({ program, session, price });
             window.setTimeout(() => {
-              window.location.href = stripeUrl;
+              window.location.href = `registration-thank-you.html?${thankYouParams.toString()}`;
             }, 800);
           } catch (error) {
             isSubmitting = false;
             status.classList.add("is-error");
-            status.textContent = "We could not confirm the email step automatically. You can still continue using the checkout button below or contact starsoccervancouver@gmail.com.";
-            directCheckoutLink.style.display = "inline-flex";
+            status.textContent = "We could not confirm the email step automatically. Please contact starsoccervancouver@gmail.com to complete your registration.";
             submitButton.disabled = false;
           }
         });

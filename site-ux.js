@@ -33,8 +33,17 @@
       document.addEventListener('keydown', event => { if (event.key === 'Escape') { nav.classList.remove('mobile-nav-open'); toggle.setAttribute('aria-expanded','false'); } });
     }
   }
-  const footer = document.querySelector('footer.home-contact-footer');
-  if (footer && !footer.querySelector('.footer-quick-links')) {
+  let footer = document.querySelector('footer.home-contact-footer');
+  if (!footer) {
+    const shell = document.querySelector('.page-shell');
+    if (shell) {
+      footer = document.createElement('footer');
+      footer.className = 'home-contact-footer';
+      footer.innerHTML = '<div class="home-contact-inner"><div class="home-contact-brand"><img src="logo-star-soccer-minimalized.svg" alt="Star Soccer" class="brand-logo"><p>Player development in Vancouver since 2000.</p></div><div class="home-contact-column"><p class="footer-label">Contact</p><a href="mailto:starsoccervancouver@gmail.com">starsoccervancouver@gmail.com</a></div><div class="home-contact-column"><p class="footer-label">Instagram</p><a href="https://www.instagram.com/604starsoccer/">604starsoccer</a></div></div>';
+      shell.appendChild(footer);
+    }
+  }
+  if (footer && !footer.querySelector('.footer-quick-links') && !footer.querySelector('.home-contact-column a[href="programs.html"]')) {
     const links = document.createElement('nav');
     links.className = 'footer-quick-links';
     links.setAttribute('aria-label', 'Footer quick links');

@@ -4,14 +4,14 @@
   --panel: rgba(10, 24, 47, 0.78);
   --panel-strong: rgba(7, 18, 39, 0.92);
   --line: rgba(145, 198, 255, 0.22);
-  --text: #dce4ed;
-  --muted: #aab9cc;
+  --text: #cdd6e0;
+  --muted: #9eacbe;
   --blue: #89d6ff;
   --blue-strong: #2f7bf0;
   --red-accent: #ff4d67;
   --red-soft: #ff8a99;
   --gold: #ffd58c;
-  --surface-light: #e1e4e8;
+  --surface-light: #bfc6cf;
   --shadow: 0 30px 60px rgba(2, 10, 24, 0.38);
 }
 
@@ -5744,3 +5744,6 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .contact-form-upgraded textarea { min-height:125px; }
 @media(max-width:1000px) { .psg-listing-table { grid-template-columns:1fr; } }
 @media(prefers-reduced-motion:reduce) { .home-coach-card,.home-cta-card,.psg-row { transform:none !important; } }
+
+/* Softer low-glare surfaces and typography */
+:root { --surface-light: #bfc6cf; --text: #cdd6e0; --muted: #9eacbe; }

@@ -21,12 +21,28 @@ test('whole-number age and correct session ranges',()=>{
  assert.equal(T.booking('wednesday','dropin','2026-10-21','9',now).price,30);
  assert.equal(T.booking('friday','pass4','2026-10-16','12',now).dates.length,4);
 });
-test('private base, extension discount and per-player rounding',()=>{
- assert.deepEqual([1,2,3,4,5,6,7].map(n=>T.privateQuote(n,60).perPlayer),[60,45,40,35,30,25,25]);
- assert.equal(T.privateQuote(1,90).perPlayer,85);assert.equal(T.privateQuote(1,120).perPlayer,115);
- assert.equal(T.privateQuote(2,90).total,130);assert.equal(T.privateQuote(6,120).total,300);
- for(const count of [0,1.5,NaN])assert.equal(T.privateQuote(count,60),null);
- assert.equal(T.privateQuote(2,'other'),null);
+test('private first-hour rates stay unchanged',()=>{
+ const counts=[1,2,3,4,5,6,7,10],expected=[60,45,40,35,30,25,25,25];
+ counts.forEach((n,i)=>{const q=T.privateQuote(n,60);assert.equal(q.perPlayer,expected[i]);assert.equal(q.total,expected[i]*n);});
+});
+test('90-minute rates keep the existing extra-half-hour discount',()=>{
+ const counts=[1,2,3,4,5,6,7,10],expected=[85,65,60,50,45,35,35,35];
+ counts.forEach((n,i)=>{const q=T.privateQuote(n,90);assert.equal(q.perPlayer,expected[i]);assert.equal(q.total,expected[i]*n);});
+});
+test('two hours discount only the second hour by 20 percent then round per player',()=>{
+ const counts=[1,2,3,4,5,6,7,10],expected=[110,80,70,65,55,45,45,45];
+ counts.forEach((n,i)=>{
+  const q=T.privateQuote(n,120);
+  assert.equal(q.perPlayer,expected[i]);
+  assert.equal(q.perPlayer,Math.round((q.base+q.base*0.8)/5)*5);
+  assert.equal(q.total,expected[i]*n);
+  assert.equal(q.duration,120);assert.equal(q.count,n);
+ });
+ assert.equal(T.privateQuote('2','120').total,160);
+});
+test('invalid private requests and custom durations still require a quote',()=>{
+ for(const count of [0,-1,1.5,NaN,Infinity,'',null,'bad'])assert.equal(T.privateQuote(count,60),null);
+ for(const duration of ['other',0,30,75,150,180,NaN,Infinity])assert.equal(T.privateQuote(2,duration),null);
 });
 test('transport success alone never confirms acceptance',()=>{
  for(const body of [null,{}, {success:false},{success:'false'},{success:1},{success:'yes'}])assert.equal(T.accepted({ok:true},body),false);

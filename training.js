@@ -5,7 +5,7 @@
 (function (root) {
   'use strict';
   const catalog = {
-    version: '20261016-correction', zone: 'America/Vancouver', currency: 'CAD',
+    version: '20261016-private-2h', zone: 'America/Vancouver', currency: 'CAD',
     email: 'starsoccervancouver@gmail.com',
     coaches: {valentinos: 'Valentinos Dinglis', evan: 'Evan Lycos', romeo: 'Romeo Dinglis'},
     locations: {
@@ -64,7 +64,11 @@
     count=Number(count);duration=Number(duration);
     if (!Number.isSafeInteger(count) || count<1 || ![60,90,120].includes(duration)) return null;
     const base=({1:60,2:45,3:40,4:35,5:30})[count] || 25;
-    const unrounded=base+(duration-60)/30*(base/2)*0.9;
+    // Keep the first hour at full price. For 90 minutes, discount only the
+    // extra half-hour by 10%; for 120 minutes, discount the whole second
+    // hour by 20% instead. These discounts do not stack.
+    const extensionRate=duration===120 ? 0.8 : 0.9;
+    const unrounded=base+(duration-60)/30*(base/2)*extensionRate;
     const perPlayer=Math.round(unrounded/5)*5;
     return {perPlayer,total:perPlayer*count,base,duration,count};
   }

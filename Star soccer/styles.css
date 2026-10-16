@@ -5658,3 +5658,27 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .home-methodology-link:hover, .home-methodology-link:focus-visible {
   color: #ffffff;
 }
+
+/* 2026 UX improvements: program discovery, mobile navigation, and form feedback */
+.program-age-filter { display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:20px auto 28px; }
+.age-filter-btn { border:1px solid #4381c5;border-radius:999px;background:#0d203a;color:#e8f2ff;padding:11px 18px;font:inherit;font-weight:700;cursor:pointer; }
+.age-filter-btn.is-selected,.age-filter-btn:hover,.age-filter-btn:focus-visible { background:#287be5;color:white; }
+.psg-row[hidden] { display:none !important; }
+.coach-selection-notice,.contact-success-notice { padding:12px 16px;border-radius:10px;border:1px solid #5096dc;background:#102c4c;color:#e8f2ff;margin:12px 0; }
+.coach-selection-notice[hidden],.contact-success-notice[hidden] { display:none; }
+.header-program-cta { display:inline-flex !important;align-items:center;justify-content:center;padding:9px 15px !important;border-radius:9px;background:#3389ef;color:#fff !important;font-weight:800;white-space:nowrap; }
+.header-program-cta:hover,.header-program-cta:focus-visible { background:#176aca; }
+.mobile-nav-toggle { display:none;border:1px solid #4b83bb;border-radius:8px;padding:10px 16px;background:#0c2039;color:#fff;font:inherit;font-weight:700;cursor:pointer; }
+.immersive-hero { min-height:min(78vh,700px); }
+@media (max-width: 760px) {
+  .mobile-nav-toggle { display:block;margin:10px 16px 10px auto;position:relative;z-index:1002; }
+  header .site-nav { display:none !important; }
+  header .site-nav.mobile-nav-open { display:flex !important;flex-direction:column;align-items:stretch;gap:0;position:absolute;top:100%;left:0;right:0;z-index:1001;padding:12px 20px 20px;background:#071428;border-bottom:1px solid #427db5;box-shadow:0 12px 22px #0008; }
+  header { position:relative; }
+  header .site-nav.mobile-nav-open a { display:block;padding:12px 10px; }
+  .immersive-hero { min-height:auto;padding-block:48px; }
+  .home-trust-grid { grid-template-columns:1fr !important; }
+  .home-coach-card { max-width:100%; }
+  .contact-form-row { display:grid;grid-template-columns:1fr; }
+}
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior:auto !important;animation-duration:.01ms !important;transition-duration:.01ms !important; } }

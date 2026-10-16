@@ -11,7 +11,7 @@
       rel="stylesheet"
     />
     <link rel="icon" type="image/svg+xml" href="logo-star-soccer-minimalized.svg" />
-    <link rel="stylesheet" href="styles.css?v=20261012-surface" />
+    <link rel="stylesheet" href="styles.css?v=20261016-softwhite" />
     <script src="homepage-story.js?v=20260418-live1" defer></script>
   </head>
   <body class="home-page registration-page compact-hero-page">
@@ -53,7 +53,7 @@
             <div class="copy-panel registration-card registration-showcase" data-reveal="left">
               <p class="eyebrow">Quick registration</p>
               <h2 id="registrationTitle">Star Soccer registration</h2>
-              <p id="registrationCopy">Complete this short questionnaire and we will confirm your spot with payment instructions right after.</p>
+              <p id="registrationCopy">Complete this short questionnaire and your registration is confirmed once your details are successfully submitted; payment instructions follow.</p>
 
               <div class="registration-summary-list">
                 <div>
@@ -89,7 +89,7 @@
               <div class="registration-steps">
                 <div class="registration-step"><strong>1</strong><span>Tell us about your player</span></div>
                 <div class="registration-step"><strong>2</strong><span>We receive the details instantly</span></div>
-                <div class="registration-step"><strong>3</strong><span>Pay by e-transfer or cash to confirm</span></div>
+                <div class="registration-step"><strong>3</strong><span>Pay by e-transfer or cash after registering</span></div>
               </div>
             </div>
 
@@ -167,7 +167,7 @@
         <div class="home-contact-inner">
           <div class="home-contact-brand">
             <img src="logo-star-soccer-minimalized.svg" alt="Star Soccer logo" class="brand-logo" />
-            <p>Every registration is sent to the coaching team first, then you'll get e-transfer and cash payment instructions.</p>
+            <p>Successful form submission confirms registration for the selected session. Pay afterward by e-transfer or cash.</p>
           </div>
           <div class="home-contact-column">
             <p class="footer-label">Contact</p>
@@ -245,7 +245,7 @@
           progressText.textContent = `${percent}% complete`;
 
           const childName = childNameInput.value.trim();
-          const experienceNote = checkedExperience ? experienceMessages[checkedExperience.value] : "Once you finish the short questionnaire, we will confirm your spot and send payment instructions.";
+          const experienceNote = checkedExperience ? experienceMessages[checkedExperience.value] : "Once you finish the short questionnaire, your registration is confirmed upon successful submission and payment instructions follow.";
 
           copy.textContent = childName
             ? `${childName} is registering for ${session}. ${experienceNote}`
@@ -253,8 +253,8 @@
 
           if (autoresponseInput) {
             autoresponseInput.value = childName
-              ? `Thanks for registering ${childName} for ${program} — ${session}. We have received the details. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session to confirm your spot. If you need anything, reply to this email or contact starsoccervancouver@gmail.com.`
-              : `Thanks for registering with Star Soccer for ${program} — ${session}. We have received the details. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session to confirm your spot. If you need anything, reply to this email or contact starsoccervancouver@gmail.com.`;
+              ? `Thanks for registering ${childName} for ${program} — ${session}. We have received the details. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session after registering. If you need anything, reply to this email or contact starsoccervancouver@gmail.com.`
+              : `Thanks for registering with Star Soccer for ${program} — ${session}. We have received the details. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session after registering. If you need anything, reply to this email or contact starsoccervancouver@gmail.com.`;
           }
         };
 
@@ -286,8 +286,8 @@
           formData.set(
             "_autoresponse",
             childName
-              ? `Thanks for registering ${childName} for ${program} — ${session}. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session to confirm your spot.`
-              : `Thanks for registering with Star Soccer for ${program} — ${session}. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session to confirm your spot.`
+              ? `Thanks for registering ${childName} for ${program} — ${session}. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session after registering.`
+              : `Thanks for registering with Star Soccer for ${program} — ${session}. Please pay by e-transfer to starsoccervancouver@gmail.com or bring cash to the session after registering.`
           );
 
           try {

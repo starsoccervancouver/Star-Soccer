@@ -5623,3 +5623,23 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 }
 
 
+
+/* Coach-specific private training actions */
+.home-coach-book-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 14px;
+  padding: 10px 15px;
+  border: 1px solid rgba(110,183,255,.55);
+  border-radius: 10px;
+  color: #e9f4ff;
+  background: rgba(39,112,203,.18);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .2s ease, border-color .2s ease;
+}
+.home-coach-book-link:hover, .home-coach-book-link:focus-visible {
+  background: rgba(39,112,203,.38);
+  border-color: #8ac7ff;
+}

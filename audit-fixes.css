@@ -1,0 +1,119 @@
+/* Correction release: component-scoped pairs, not another global whitening override. */
+:root { --flow-bg:#152b42; --flow-raised:#203b56; --flow-text:#c5cfdb; --flow-muted:#b2c3d2; --flow-border:#577693; }
+[hidden] { display:none !important; }
+.sr-only,.honeypot { position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important; }
+body .home-contact-inner { width:min(1180px,calc(100% - 40px));margin:auto;gap:24px;grid-template-columns:1.2fr 1fr 1.25fr .9fr; }
+body .home-contact-column {min-width:0;overflow-wrap:anywhere;}
+body .home-contact-column a {line-height:1.6;}
+body .brand-logo {height:auto;}
+body .home-latest-band {opacity:1;transform:none;visibility:visible;}
+body .hero-placeholder-card {clip-path:none;border-radius:16px;}
+body .hero-placeholder-card::before {clip-path:none;}
+body .programs-hero-accent::before,body .programs-hero-accent::after {clip-path:none;}
+body .home-page .home-site-nav,body .home-site-nav {gap:clamp(12px,2vw,24px);}
+body .home-site-nav a {letter-spacing:.035em;}
+body .home-site-nav a[aria-current="page"] {text-decoration:underline;text-underline-offset:6px;}
+body .header-program-cta {background:#356da6!important;color:#e1e8ef!important;min-height:44px;padding:10px 14px!important;}
+body .flow-hero {padding:40px 0 24px;max-width:1040px;margin:auto;}
+body .flow-hero h1 {font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,5vw,4.2rem);font-weight:400;line-height:1.08;margin:8px 0;color:var(--flow-text);}
+body .flow-intro {max-width:1040px;margin:0 auto 28px;color:var(--flow-muted);}
+body .flow-surface {padding:clamp(20px,3vw,36px);margin:0 auto 24px;max-width:1040px;border:1px solid var(--flow-border);border-radius:16px;background:var(--flow-bg);color:var(--flow-text);overflow:visible;}
+body .flow-surface :is(h2,h3,h4,p,li,dt,dd,strong,label,small) {color:var(--flow-text);}
+body .flow-surface h2 {font-family:'Bebas Neue',sans-serif;font-size:2rem;line-height:1.15;margin:0 0 16px;}
+body .flow-surface h3 {font-size:1.1rem;line-height:1.4;}
+body .flow-surface p {line-height:1.65;margin:0 0 16px;max-width:75ch;}
+body .flow-surface .eyebrow,body .flow-surface .form-privacy {color:var(--flow-muted);}
+body .flow-actions {display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:16px 0;}
+body .flow-text-link {color:#bad4ed;text-decoration:underline;text-underline-offset:4px;overflow-wrap:anywhere;}
+body .flow-surface :is(a:not(.button)) {color:#bad4ed;text-decoration:underline;text-underline-offset:4px;}
+body .flow-surface .button {background:#356da6;color:#e1e8ef;border:1px solid #7196b8;border-radius:12px;line-height:1.4;padding:12px 18px;white-space:normal;max-width:100%;box-shadow:none;}
+body .flow-surface .button-ghost {background:#203b56;color:#d3dce5;}
+body .flow-surface .button:hover {background:#2c5984;transform:none;}
+body .flow-surface button:disabled {opacity:.65;cursor:wait;}
+body .flow-layout {max-width:1120px;margin:auto;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);gap:24px;align-items:start;}
+body .flow-layout .flow-surface {width:100%;min-width:0;margin:0;}
+body .flow-layout {margin-bottom:28px;}
+body .flow-surface form {display:grid;gap:18px;}
+body .flow-surface label {display:grid;gap:7px;font-size:.94rem;min-width:0;font-weight:700;line-height:1.45;}
+body .flow-surface :is(input,select,textarea) {box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:46px;padding:10px 12px;background:#0d2137;color:#d1d9e2;border:1px solid #7894ad;border-radius:9px;font:inherit;color-scheme:dark;}
+body .flow-surface input::placeholder,body .flow-surface textarea::placeholder {color:#a9b8c8;opacity:1;}
+body .flow-surface input:focus-visible,body .flow-surface select:focus-visible,body .flow-surface textarea:focus-visible {outline:3px solid #82c8ff;outline-offset:3px;}
+body .flow-surface .flow-form-row {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+body .flow-surface .form-privacy,body .flow-surface small {font-size:.84rem;font-weight:400;line-height:1.6;}
+body .flow-surface .flow-notice {background:#203b56;border:1px solid #7493af;border-radius:10px;padding:14px;color:#d1dce7;line-height:1.65;}
+body .flow-surface .flow-notice.is-error {background:#432d38;border-color:#bd8b9a;color:#f0dce3;}
+body .flow-summary {margin:16px 0 24px;}
+body .flow-summary > div {border-bottom:1px solid #45617b;padding:10px 0;display:grid;gap:3px;}
+body .flow-summary dt {color:#b2c3d2;font-size:.84rem;}
+body .flow-summary dd {margin:0;font-weight:700;line-height:1.5;}
+body .flow-surface :is(.date-list,.venue-sessions) {padding-left:20px;line-height:1.75;}
+body .flow-surface .private-rate-grid {margin:20px 0;max-width:none;}
+body .flow-surface .private-rate-item {border-color:#577693;background:#203b56;}
+body .flow-surface .private-rate-item :is(strong,span) {color:#c5cfdb;}
+body .schedule-controls {max-width:none;margin:0 0 12px;}
+body .schedule-controls label {max-width:none;}
+body .schedule-controls :is(label,select) {color:var(--flow-text);}
+body .schedule-results {max-width:none;margin:12px 0;color:var(--flow-text);}
+body .schedule-list {max-width:none;}
+body details.schedule-entry {display:block;background:#203b56;border:1px solid #577693;border-radius:12px;min-width:0;overflow:visible;}
+body summary.schedule-entry-main {list-style:none;cursor:pointer;grid-template-columns:minmax(125px,.9fr) minmax(210px,1.6fr) minmax(125px,.9fr) auto;padding:18px;gap:14px;}
+body summary.schedule-entry-main::-webkit-details-marker {display:none;}
+body summary.schedule-entry-main :is(strong,span) {color:#c5cfdb;line-height:1.5;}
+body summary.schedule-entry-main > span {display:grid;gap:4px;}
+body .schedule-expand {padding:8px 12px;border:1px solid #7894ad;border-radius:8px;font-weight:700;display:flex!important;gap:8px!important;}
+body .schedule-expand span {display:inline-block;}
+body details[open].schedule-entry .schedule-expand span {transform:rotate(45deg);}
+body .schedule-booking-options {position:static;width:auto;max-width:none;padding:16px 18px;margin:0;border:0;border-top:1px solid #577693;border-radius:0 0 12px 12px;background:#162c43;box-shadow:none;display:block;}
+body .schedule-booking-options .button {width:auto;font-size:.9rem;}
+body .schedule-booking-options p {margin:0;}
+body .pass-note {margin:24px 0 18px;padding-top:24px;border-top:1px solid #577693;}
+body .pass-note h2 {font-size:1.7rem;}
+body .programs-listing-shell {background:#152b42;color:#c5cfdb;}
+body .method-chapter-nav {position:static;}
+body .section,.section-cta {scroll-margin-top:110px;}
+body .flow-surface,[id="private-form"],[id="sessions"] {scroll-margin-top:110px;}
+/* Existing booking-page menu regression: reveal navigation unless enhancement is ready. */
+@media (max-width:900px) {
+ body .home-header-grid {grid-template-columns:minmax(140px,1fr) auto;grid-template-rows:auto;align-items:center;}
+ body .home-utility-logo {grid-column:1;grid-row:1;padding:12px 16px;border:0;}
+ body .home-utility-logo .brand-logo {width:150px;}
+ body .home-utility-cell {display:none;}
+ body header .site-nav {display:flex!important;grid-column:1/-1;flex-wrap:wrap;gap:10px;padding:12px 16px;}
+ body header[data-nav-ready] .site-nav:not(.mobile-nav-open) {display:none!important;}
+ body header[data-nav-ready] .mobile-nav-toggle {display:block;grid-column:2;grid-row:1;margin:10px 16px;}
+ body header[data-nav-ready] .site-nav.mobile-nav-open {display:flex!important;position:static;grid-column:1/-1;flex-direction:column;align-items:stretch;max-height:70vh;overflow:auto;}
+ body .home-contact-inner {grid-template-columns:1fr 1fr;}
+ body .flow-layout {grid-template-columns:1fr;}
+ body summary.schedule-entry-main {grid-template-columns:1fr 1fr;}
+ body .home-page .site-header,body .site-header {width:100%;margin-left:0;}
+}
+@media (max-width:540px) {
+ body .flow-surface {padding:20px 16px;}
+ body .flow-surface .flow-form-row {grid-template-columns:1fr;}
+ body summary.schedule-entry-main {grid-template-columns:1fr;gap:10px;padding:16px;}
+ body .schedule-booking-options .flow-actions {display:grid;}
+ body .schedule-expand {justify-content:space-between;}
+ body .flow-actions {align-items:stretch;}
+ body .flow-actions .button {width:100%;}
+ body .home-contact-inner {grid-template-columns:1fr;}
+}
+@media (prefers-reduced-motion:reduce) {html {scroll-behavior:auto;} body * {animation:none!important;transition:none!important;}}
+@media print {
+ body :is(header,footer,.flow-hero,#training-registration,#booking-summary,.skip-link,.flow-actions,.flow-text-link) {display:none!important;}
+ body .flow-layout {display:block;}
+ body,body .flow-surface,body .receipt {background:white!important;color:black!important;border:0;box-shadow:none;}
+ body .receipt * {color:black!important;}
+ body::before {display:none;}
+}
+/* Existing hero cards used pale gradients under dark text; pair them explicitly. */
+body.home-landing .hero-placeholder-card {background:#203b56;color:#c5cfdb;border:1px solid #577693;}
+body.home-landing .hero-placeholder-card h2 {color:#c5cfdb;}
+body.home-landing .hero-placeholder-card :is(.hero-placeholder-kicker,a) {color:#bad4ed;}
+body.home-landing .hero-placeholder-card::before {opacity:.18;}
+@media (min-width:901px) {body .home-site-nav a {white-space:nowrap;font-size:clamp(.76rem,1vw,.92rem);} }
+@media (max-width:900px) {body.home-page .home-utility-cell {display:none;} body.home-page .home-utility-logo {grid-column:1;grid-row:1;}}
+@media (min-width:901px) {
+ body.home-page .home-site-nav {padding-inline:20px;gap:clamp(10px,1.4vw,20px);justify-content:space-evenly;min-width:0;}
+ body.home-page .home-site-nav a {font-size:1rem;white-space:nowrap;letter-spacing:.035em;flex:0 1 auto;padding:12px 5px;}
+ body.home-page .home-header-grid {grid-template-columns:240px minmax(0,1fr) minmax(0,1fr);}
+}

@@ -175,7 +175,7 @@
                 <input type="hidden" name="requested_coach" id="requested-coach" value="" />
                   <p id="selected-coach-notice" class="coach-selection-notice" hidden></p>
                   <p id="contact-success" class="contact-success-notice" role="status" hidden>Thank you! Your message has been submitted. We will be in touch.</p>
-                  <button type="submit" class="button contact-submit-btn">Send inquiry &rarr;</button>
+                  <input type="hidden" name="requested_coach" id="requested-coach" value="" /><p id="selected-coach-notice" class="coach-selection-notice" hidden></p><p id="contact-success" class="contact-success-notice" role="status" hidden>Thank you! Your message has been submitted. We will be in touch.</p><button type="submit" class="button contact-submit-btn">Send inquiry &rarr;</button>
               </form>
             </div>
 
@@ -254,5 +254,5 @@
 })();
 </script>
 <script defer src="site-ux.js?v=20261016"></script>
-</body>
+<script>(function(){const p=new URLSearchParams(location.search),c=p.get('coach'),a=['Valentino Dinglis','Evan Lycos','Romeo Dinglis'],f=document.querySelector('.contact-form-upgraded');if(!f)return;const select=f.querySelector('select[name="program"]');if(c&&a.includes(c)){f.querySelector('#requested-coach').value=c;const n=f.querySelector('#selected-coach-notice');n.textContent='Private training inquiry for '+c;n.hidden=false;select.value='private-training';}else if(p.get('program')){const v=p.get('program');if([...select.options].some(o=>o.value===v))select.value=v;}if(p.get('sent')==='1')document.querySelector('#contact-success').hidden=false;})();</script><script defer src="site-ux.js?v=20261016"></script></body>
 </html>

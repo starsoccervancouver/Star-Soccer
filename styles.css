@@ -5643,3 +5643,18 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   background: rgba(39,112,203,.38);
   border-color: #8ac7ff;
 }
+
+/* Secondary coaching philosophy link beneath programs CTA */
+.home-methodology-link {
+  display: block;
+  margin-top: 16px;
+  color: #b9ddff;
+  font-size: .94rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.home-methodology-link:hover, .home-methodology-link:focus-visible {
+  color: #ffffff;
+}

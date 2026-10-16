@@ -5682,3 +5682,25 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   .contact-form-row { display:grid;grid-template-columns:1fr; }
 }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior:auto !important;animation-duration:.01ms !important;transition-duration:.01ms !important; } }
+
+/* Consistent interactive components and accessible keyboard focus */
+:where(a,button,input,select,textarea,summary):focus-visible { outline:3px solid #82c8ff !important; outline-offset:3px; }
+:where(.button,.home-camps-cta-button,.home-coach-book-link,.header-program-cta) { min-height:44px; box-sizing:border-box; }
+:where(.psg-soft-card,.home-cta-card,.home-coach-card) { border-radius:16px; }
+:where(.psg-row,.home-coach-card,.home-cta-card) { overflow-wrap:anywhere; }
+.footer-quick-links { display:flex;flex-wrap:wrap;justify-content:center;gap:14px 24px;padding:18px 24px 28px;border-top:1px solid #2c4f75; }
+.footer-quick-links a { color:#c8e4ff;text-decoration:underline;text-underline-offset:3px; }
+.program-filter-help { text-align:center;margin:0 auto 12px;max-width:50rem; }
+.program-detail { margin:10px 0 14px; }
+.program-detail summary { cursor:pointer;font-weight:700;color:#2379d4; }
+.method-chapter-nav { position:sticky;top:0;z-index:25;display:flex;flex-wrap:wrap;justify-content:center;gap:10px 22px;padding:12px 18px;background:#07152beF;border-bottom:1px solid #356ba1; }
+.method-chapter-nav a { color:#e4f2ff;font-weight:700;text-decoration:none; }
+.method-chapter-nav a:hover,.method-chapter-nav a:focus-visible { text-decoration:underline; }
+[id^="method-chapter-"] { scroll-margin-top:110px; }
+.location-comparison { max-width:1100px;margin:30px auto;padding:28px 24px; }
+.location-compare-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin:20px 0; }
+.location-compare-grid > div { padding:20px;border:1px solid #4178af;border-radius:14px; }
+.location-compare-grid a,.venue-quick-link a { color:#75bcff;text-decoration:underline; }
+.selectivo-status { display:inline-block;border:1px solid #bca65a;border-radius:20px;padding:8px 14px;color:#f2dc9a; }
+@media(max-width:700px) { .location-compare-grid { grid-template-columns:1fr; } .method-chapter-nav { gap:8px 14px;font-size:.84rem; } }
+@media(prefers-reduced-motion:reduce) { [data-reveal] { transform:none !important;transition:none !important;opacity:1 !important; } }

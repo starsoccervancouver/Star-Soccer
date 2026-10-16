@@ -5747,3 +5747,13 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 
 /* Softer low-glare surfaces and typography */
 :root { --surface-light: #bfc6cf; --text: #cdd6e0; --muted: #9eacbe; }
+
+/* Current weekly training and private-rate layouts */
+.psg-listing-table.weekly-session-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.weekly-session-card { justify-content:space-between; }
+.weekly-card-actions { display:grid;gap:10px;margin-top:auto; }
+.psg-listing-table .psg-row[hidden] { display:none !important; }
+.private-rate-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:900px;margin:20px auto; }
+.private-rate-item { padding:18px;border:1px solid var(--ss-border,rgba(145,198,255,.22));border-radius:12px;background:#122c4b;display:flex;flex-direction:column;gap:6px;color:var(--text); }
+.private-rate-item span { color:var(--muted); }
+@media(max-width:900px){.psg-listing-table.weekly-session-grid{grid-template-columns:1fr}.private-rate-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

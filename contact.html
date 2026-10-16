@@ -18,7 +18,7 @@
       rel="stylesheet"
     />
     <link rel="icon" type="image/svg+xml" href="logo-star-soccer-minimalized.svg" />
-    <link rel="stylesheet" href="styles.css?v=20261012-surface" />
+    <link rel="stylesheet" href="styles.css?v=20261016-ux" />
     <script src="homepage-story.js?v=20260418-live1" defer></script>
   </head>
   <body class="home-page compact-hero-page">
@@ -131,7 +131,7 @@
                   </label>
                   <label>
                     Player age
-                    <input type="text" name="age" placeholder="e.g. 10" required />
+                    <input type="number" name="age" min="3" max="18" inputmode="numeric" placeholder="e.g. 10" required />
                   </label>
                 </div>
                 <label>
@@ -145,12 +145,9 @@
                 <label>
                   Program interest
                   <select name="program">
-                    <option value="" disabled selected>Select a program&hellip;</option>
-                    <optgroup label="Summer Camps">
-                      <option value="camp-u4-u6">Mini Stars Camp (U4&ndash;U6)</option>
-                      <option value="camp-u7-u10">Soccer Stars Camp (U7&ndash;U10)</option>
-                      <option value="camp-u11-u14">Soccer Stars Advanced Camp (U11&ndash;U14)</option>
-                    </optgroup>
+                    <option value="" selected>Select an inquiry type&hellip;</option>
+                    <option value="private-training">Private training</option>
+                    
                     <optgroup label="Programs">
                       <option value="program-u4-u6">Mini Stars Program (U4&ndash;U6)</option>
                       <option value="program-u7-u10">Soccer Stars Program (U7&ndash;U10)</option>
@@ -164,8 +161,11 @@
                 </label>
                 <label>
                   Your message
-                  <textarea name="message" rows="5" placeholder="Tell us a bit about your child and what you are looking for&hellip;"></textarea>
+                  <textarea name="message" rows="4" placeholder="Tell us a bit about your child and what you are looking for&hellip;"></textarea>
                 </label>
+                  <input type="hidden" name="requested_coach" id="requested-coach" value="" />
+                  <p id="selected-coach-notice" class="coach-selection-notice" hidden></p>
+                  <p id="contact-success" class="contact-success-notice" role="status" hidden>Thank you! Your message has been submitted. We will be in touch.</p>
                   <button type="submit" class="button contact-submit-btn">Send inquiry &rarr;</button>
                 </form>
               </div>
@@ -233,5 +233,30 @@
         });
       }
     </script>
-  </body>
+  <script>
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const coach = params.get('coach');
+  const allowed = ['Valentino Dinglis', 'Evan Lycos', 'Romeo Dinglis'];
+  const form = document.querySelector('.contact-form-upgraded');
+  if (!form) return;
+  const program = form.querySelector('select[name="program"]');
+  if (coach && allowed.includes(coach)) {
+    form.querySelector('#requested-coach').value = coach;
+    const notice = form.querySelector('#selected-coach-notice');
+    notice.textContent = 'Private training inquiry for ' + coach;
+    notice.hidden = false;
+    if (program) program.value = 'private-training';
+  } else if (params.get('program') && program) {
+    const option = Array.from(program.options).find(o => o.value === params.get('program'));
+    if (option) program.value = option.value;
+  }
+  if (params.get('sent') === '1') {
+    const success = document.querySelector('#contact-success');
+    if (success) success.hidden = false;
+  }
+})();
+</script>
+<script defer src="site-ux.js?v=20261016"></script>
+</body>
 </html>

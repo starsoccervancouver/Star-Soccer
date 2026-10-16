@@ -50,6 +50,34 @@
     links.innerHTML = '<a href="programs.html">Programs</a><a href="methodology.html">Methodology</a><a href="locations.html">Training locations</a><a href="contact.html">Contact</a>';
     footer.appendChild(links);
   }
+  const ageSelect = document.getElementById('schedule-age');
+  const daySelect = document.getElementById('schedule-day');
+  if (ageSelect && daySelect) {
+    const entries = [...document.querySelectorAll('.schedule-entry')];
+    const count = document.getElementById('schedule-results');
+    const empty = document.getElementById('schedule-empty');
+    const updateSchedule = () => {
+      const age = ageSelect.value === 'all' ? null : Number(ageSelect.value);
+      const day = daySelect.value;
+      let visible = 0;
+      entries.forEach(entry => {
+        const matchAge = age === null || (age >= Number(entry.dataset.minAge) && age <= Number(entry.dataset.maxAge));
+        const matchDay = day === 'all' || day === entry.dataset.sessionDay;
+        entry.hidden = !(matchAge && matchDay);
+        if (!entry.hidden) visible++;
+      });
+      count.textContent = visible === entries.length ? 'Showing all ' + visible + ' sessions' : 'Showing ' + visible + ' of ' + entries.length + ' sessions';
+      empty.hidden = visible !== 0;
+    };
+    ageSelect.addEventListener('change', updateSchedule);
+    daySelect.addEventListener('change', updateSchedule);
+    document.getElementById('schedule-reset')?.addEventListener('click', () => {
+      ageSelect.value = 'all';
+      daySelect.value = 'all';
+      updateSchedule();
+    });
+    updateSchedule();
+  }
   const filters = document.querySelectorAll('[data-age-filter]');
   if (filters.length) {
     const rows = document.querySelectorAll('.psg-row[data-age-group]');

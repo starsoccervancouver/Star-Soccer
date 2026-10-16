@@ -5711,3 +5711,36 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .home-panel-screen { min-height:280px; }
 .home-panel-shell { padding-block:clamp(30px,5vw,70px); }
 :where(.home-coach-book-link,.home-camps-cta-button,.button) { transition:background-color .16s ease,border-color .16s ease,color .16s ease; }
+
+/* Cohesive academy visual system — desktop/tablet refinements */
+:root { --ss-ink:#091a30; --ss-panel:#102b4c; --ss-blue:#347fda; --ss-border:rgba(120,173,225,.3); --ss-radius:16px; --ss-space:clamp(24px,4vw,52px); }
+.home-latest-band-inner,.programs-listing-shell,.contact-split { max-width:1200px;margin-inline:auto; }
+.home-trust-grid { align-items:start;gap:clamp(24px,3vw,42px); }
+.home-coach-stack,.home-cta-stack { display:grid;gap:16px;align-content:start; }
+.home-coach-card,.home-cta-card { border-radius:var(--ss-radius);padding:clamp(20px,2.3vw,30px);border:1px solid var(--ss-border); }
+.home-cta-card { display:flex;flex-direction:column;align-items:flex-start; }
+.home-cta-card .home-camps-cta-button { margin-top:auto; }
+.home-coach-book-link { display:inline-flex;min-height:44px;align-items:center; }
+.home-closing-cta,.programs-next-step { padding:clamp(52px,7vw,100px) 24px;background:linear-gradient(135deg,#08172d,#153960);color:#f2f8ff;text-align:center; }
+.home-closing-inner,.programs-next-step>div { max-width:780px;margin:auto; }
+.home-closing-cta h2,.programs-next-step h2 { font-size:clamp(2rem,4vw,3.5rem);line-height:1.1;max-width:18ch;margin:12px auto 20px; }
+.home-closing-cta p,.programs-next-step p { max-width:62ch;margin-inline:auto; }
+.home-closing-actions { display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:26px; }
+.button-outline { background:transparent !important;border:1px solid #8dc6ff !important;color:#f3f8ff !important; }
+.programs-listing-shell { padding-inline:clamp(12px,3vw,32px); }
+.programs-inline-visual { display:none !important; }
+.psg-listing-table { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px; }
+.psg-listing-table .psg-row { display:flex;flex-direction:column;align-items:stretch;gap:14px;border-radius:var(--ss-radius);border:1px solid var(--ss-border);padding:24px;background:#102b4c;min-width:0; }
+.psg-listing-table .psg-row > div { min-width:0; }
+.psg-listing-table .psg-row > div:nth-child(3) { margin-top:auto; }
+.psg-listing-table .psg-row .button { display:inline-flex;align-items:center;justify-content:center;text-align:center;width:100%; }
+.psg-listing-table .psg-row h3 { font-size:clamp(1.3rem,2vw,1.8rem);line-height:1.2; }
+.program-card-label { font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;opacity:.75;margin-top:10px;margin-bottom:3px; }
+.program-detail { padding-top:8px; }
+.program-detail summary { color:#9acfff; }
+.contact-form-zone { display:block; }
+.contact-form-panel { max-width:720px; }
+.contact-form-upgraded :is(input,select,textarea) { min-height:44px; }
+.contact-form-upgraded textarea { min-height:125px; }
+@media(max-width:1000px) { .psg-listing-table { grid-template-columns:1fr; } }
+@media(prefers-reduced-motion:reduce) { .home-coach-card,.home-cta-card,.psg-row { transform:none !important; } }

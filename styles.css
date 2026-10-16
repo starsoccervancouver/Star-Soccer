@@ -5841,3 +5841,34 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   .private-rate-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   :where(.button,.home-coach-book-link,.home-camps-cta-button) { padding-inline:14px; }
 }
+
+/* Compact, scalable weekly schedule */
+.schedule-controls{display:flex;align-items:end;gap:12px;flex-wrap:wrap;max-width:1040px;margin:20px auto 10px}
+.schedule-controls label{display:grid;gap:6px;flex:1 1 170px;max-width:270px;font-size:.84rem;font-weight:700;color:#b5c7d9}
+.schedule-controls select{width:100%;min-height:46px;padding:10px 13px;border-radius:11px;border:1px solid #577693;background:#172f49;color:#cdd7e1;font:inherit}
+.schedule-reset{min-height:46px;padding:10px 17px;border:1px solid #577693;border-radius:11px;background:#25435f;color:#d0dce7;font:inherit;font-weight:700;cursor:pointer}
+.schedule-results{max-width:1040px;margin:12px auto;color:#a9bfd3;font-size:.88rem}
+.schedule-list{display:grid;gap:9px;max-width:1040px;margin:0 auto 20px}
+.schedule-entry{border:1px solid rgba(141,177,209,.28);border-radius:13px;background:#1b3651;box-shadow:0 6px 18px rgba(3,12,25,.11)}
+.schedule-entry[hidden],.schedule-empty[hidden]{display:none!important}
+.schedule-entry-main{display:grid;grid-template-columns:minmax(140px,1fr) minmax(190px,1.45fr) minmax(150px,1fr) minmax(120px,.7fr);align-items:center;gap:16px;padding:17px 20px}
+.schedule-day,.schedule-detail,.schedule-price{display:grid;gap:4px;min-width:0}
+.schedule-day strong{font-size:1.07rem;color:#d3dce5}
+.schedule-detail strong,.schedule-price strong{font-size:.98rem;color:#c7d5e3}
+.schedule-entry span,.schedule-entry p{font-size:.84rem;color:#a9bdcf;line-height:1.45}
+.schedule-booking{position:relative;min-width:0}
+.schedule-booking summary{display:flex;align-items:center;justify-content:space-between;gap:9px;cursor:pointer;list-style:none;padding:11px 13px;border-radius:10px;border:1px solid #7196b8;color:#d4e2ef;background:#254b70;font-weight:700;font-size:.88rem}
+.schedule-booking summary::-webkit-details-marker{display:none}
+.schedule-booking[open] summary span{transform:rotate(45deg)}
+.schedule-booking-options{display:grid;gap:9px;position:absolute;right:0;top:calc(100% + 7px);z-index:5;width:max(235px,100%);max-width:min(320px,80vw);padding:12px;border:1px solid #577693;border-radius:12px;background:#132b44;box-shadow:0 14px 35px rgba(0,0,0,.28)}
+.schedule-booking-options .button{display:flex;width:100%;font-size:.83rem;padding:11px 12px;white-space:normal}
+.schedule-empty{max-width:1040px;margin:12px auto 20px;color:#c4d1dd}
+.schedule-private-link{text-align:center;margin:16px auto 0}
+@media(max-width:850px){.schedule-entry-main{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.schedule-booking-options{right:0}}
+@media(max-width:520px){.schedule-entry-main{grid-template-columns:minmax(0,1fr);padding:16px}.schedule-booking-options{position:static;width:100%;max-width:none;margin-top:8px}.schedule-controls label{max-width:none}.schedule-reset{width:100%}}
+/* Camps: deliberately quiet, low-glare status page */
+.camps-page .psg-light-section{background:linear-gradient(155deg,#142a43,#1d3751)!important}
+.camps-page .camp-status-panel{max-width:760px;margin:0 auto;padding:clamp(24px,4vw,48px);border:1px solid rgba(147,183,214,.26);border-radius:18px;background:#203b56;box-shadow:0 12px 28px rgba(0,10,23,.13);text-align:center}
+.camps-page .camp-status-panel h2{color:#ccd7e2}
+.camps-page .camp-status-panel p{color:#b2c3d2;line-height:1.75}
+.camps-page .camp-status-panel a{color:#bad4ed;text-decoration:underline;text-underline-offset:4px}

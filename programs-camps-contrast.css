@@ -1,6 +1,2 @@
-/* Programs/Camps wrapper tuning: softer off-white with clearer contrast */
-.programs-listing-shell {
-  background: var(--surface-light);
-  border: 1px solid rgba(176, 160, 130, 0.24);
-  box-shadow: 0 26px 52px rgba(20, 28, 44, 0.11);
-}
+/* Legacy compatibility: never restore a pale surface behind light text. */
+.programs-listing-shell { background:#152b42; color:#c5cfdb; border:1px solid #577693; box-shadow:none; }

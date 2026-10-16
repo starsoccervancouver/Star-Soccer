@@ -1,0 +1,149 @@
+/* Shared form handling. Form-service acceptance is distinct from email delivery.
+ * No real capacity ledger or server-side catalog enforcement exists on GitHub Pages.
+ */
+(() => {
+  'use strict';
+  const T=window.StarTraining;
+  if(!T) return;
+  const params=new URLSearchParams(window.location.search);
+  const receiptKey='star-soccer-receipt-v1';
+  const text=(selector,value)=>{const el=document.querySelector(selector);if(el)el.textContent=value;};
+  function status(el,message,error=false) {el.hidden=false;el.textContent=message;el.classList.toggle('is-error',error);el.setAttribute('role',error?'alert':'status');}
+  function validForm(form) {
+    form.querySelectorAll('input[type="text"][required],textarea[required]').forEach(el=>el.setCustomValidity(el.value.trim()?'':'Please enter a value.'));
+    return form.reportValidity();
+  }
+  document.querySelectorAll('form[data-inquiry],#training-registration').forEach(form=>form.addEventListener('input',e=>{if(e.target.setCustomValidity)e.target.setCustomValidity('');}));
+  async function send(formData) {
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
+    try {
+      const response=await fetch('https://formsubmit.co/ajax/'+T.catalog.email,{method:'POST',body:formData,headers:{Accept:'application/json'},signal:controller.signal});
+      let body;
+      try {body=await response.json();} catch {throw new Error('The submission service returned an unexpected response. Your submission is not confirmed.');}
+      if(!T.accepted(response,body)) throw new Error('The submission service did not accept this request. Your submission is not confirmed.');
+    } catch(error) {
+      if(error.name==='AbortError') throw new Error('The request timed out. We cannot tell whether it arrived; email us before trying again.');
+      if(error instanceof TypeError) throw new Error('We could not verify the submission. Check your connection or contact us before trying again.');
+      throw error;
+    } finally {clearTimeout(timer);}
+  }
+  function configuredData(form,subject) {
+    const data=new FormData(form);
+    data.set('_subject',subject);data.set('_template','table');data.set('_captcha','false');
+    data.set('_replyto',String(data.get('email')||''));
+    data.delete('_autoresponse');data.delete('_cc');
+    return data;
+  }
+  function showReceipt(container,receipt) {
+    container.hidden=false; container.replaceChildren();
+    const heading=document.createElement('h2');heading.textContent='Registration confirmed';container.append(heading);
+    const lead=document.createElement('p');lead.textContent='Your submission was accepted for the sessions below. Payment is still due; use e-transfer or cash.';container.append(lead);
+    const dl=document.createElement('dl');dl.className='flow-summary';
+    const values=[['Your reference',receipt.reference],['Training',receipt.sessionName],['Dates',receipt.dates.map(T.prettyDate).join('; ')],['Location',receipt.location],['Coaches',receipt.coaches],['Booking',receipt.label],['Amount due',T.money(receipt.price)+' CAD']];
+    values.forEach(([label,value])=>{const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;row.append(dt,dd);dl.append(row);});container.append(dl);
+    const payment=document.createElement('p');payment.textContent='E-transfer '+T.catalog.email+', or bring cash to the first session. Include the player name, date and your reference with payment.';container.append(payment);
+    const help=document.createElement('p');help.textContent='Save or print these details. Email delivery is not verified by this page. Contact the coaching team about attendance or weather changes.';container.append(help);
+    const actions=document.createElement('div');actions.className='flow-actions';
+    const print=document.createElement('button');print.type='button';print.className='button';print.textContent='Print / save confirmation';print.addEventListener('click',()=>window.print());
+    const back=document.createElement('a');back.href='programs.html';back.className='button button-ghost';back.textContent='Back to weekly training';actions.append(print,back);container.append(actions);
+    container.tabIndex=-1;container.focus();
+  }
+  function readReceipt() {
+    try {const r=JSON.parse(sessionStorage.getItem(receiptKey)||'null');return r && r.accepted===true && typeof r.reference==='string' && typeof r.sessionName==='string' && Array.isArray(r.dates) && r.dates.every(d=>T.isoDate(d)) && Number.isFinite(r.price) && Date.now()-r.acceptedAt>=0 && Date.now()-r.acceptedAt<86400000 ? r:null;} catch {return null;}
+  }
+  const receiptPanel=document.querySelector('#receipt');
+  if(document.body.dataset.page==='confirmation' && receiptPanel) {
+    const receipt=readReceipt();
+    if(receipt) {document.querySelector('#no-receipt').hidden=true;showReceipt(receiptPanel,receipt);}
+  }
+  const form=document.querySelector('#training-registration');
+  if(form) {
+    const button=form.querySelector('[type="submit"]'),feedback=document.querySelector('#registration-status');
+    const age=form.elements.namedItem('Player age'),date=form.elements.namedItem('Start date');
+    let selected,busy=false;
+    try {selected=T.choice(params.get('sessionId'),params.get('type'));}
+    catch(error) {form.hidden=true;document.querySelector('#booking-summary').hidden=true;status(feedback,error.message,true);return;}
+    const {session:s,type,label,price}=selected;
+    age.min=s.minAge;age.max=s.maxAge;age.step='1';date.min=T.nextDate(s);
+    text('#booking-title',s.day+' training');text('#booking-session',s.day+' · '+s.time);
+    text('#booking-ages','Ages '+s.minAge+'–'+s.maxAge);text('#age-help','This session accepts ages '+s.minAge+'–'+s.maxAge+'.');
+    text('#booking-location',T.catalog.locations[s.location].name);
+    text('#booking-coaches',s.coaches.map(c=>T.catalog.coaches[c]).join(' & '));
+    text('#booking-type',label);text('#booking-price',T.money(price)+' CAD');
+    text('#date-label',type==='pass4'?'First session date':'Session date');
+    text('#date-help','Choose an upcoming '+s.day+'. All times are Vancouver time.');
+    const datePreview=document.querySelector('#booking-dates');
+    function updateDate() {
+      date.setCustomValidity('');datePreview.replaceChildren();
+      if(!date.value) {const li=document.createElement('li');li.textContent='Select a date to review '+(type==='pass4'?'all four sessions.':'your session.');datePreview.append(li);return;}
+      try {T.booking(s.id,type,date.value,s.minAge).dates.forEach(d=>{const li=document.createElement('li');li.textContent=T.prettyDate(d)+' · '+s.time;datePreview.append(li);});}
+      catch(error) {date.setCustomValidity(error.message);const li=document.createElement('li');li.textContent=error.message;datePreview.append(li);}
+    }
+    date.addEventListener('change',updateDate);updateDate();button.disabled=false;
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();if(busy) return;
+      updateDate();if(!validForm(form)) return;
+      let booking;
+      try {booking=T.booking(s.id,type,date.value,age.value);}
+      catch(error) {status(feedback,error.message,true);return;}
+      if(form.elements.namedItem('_honey').value) {status(feedback,'Unable to send this registration. Please email the coaching team.',true);return;}
+      busy=true;button.disabled=true;form.setAttribute('aria-busy','true');status(feedback,'Submitting registration…');
+      const reference='SS-'+(window.crypto?.randomUUID ? window.crypto.randomUUID().slice(0,8).toUpperCase():Date.now().toString(36).toUpperCase());
+      const data=configuredData(form,`Star Soccer registration | ${s.day} | ${date.value}`);
+      const fields={'Session ID':s.id,'Training':s.day+' '+s.time,'Booking type':label,'Covered dates':booking.dates.join(', '),'Location':booking.location,'Coaches':booking.coaches,'Price CAD':String(price),'Catalog version':T.catalog.version,'Client reference':reference};
+      Object.entries(fields).forEach(([key,value])=>data.set(key,value));
+      try {
+        await send(data);
+        const receipt={accepted:true,acceptedAt:Date.now(),reference,sessionName:s.day+' · '+s.time,dates:booking.dates,location:booking.location,coaches:booking.coaches,label,price};
+        let saved=false;try {sessionStorage.setItem(receiptKey,JSON.stringify(receipt));saved=true;}catch { /* Keep the on-page receipt if storage is unavailable. */ }
+        form.hidden=true;feedback.hidden=true;showReceipt(receiptPanel,receipt);
+        if(saved) {const a=document.createElement('a');a.href='registration-thank-you.html';a.textContent='Open confirmation page';a.className='flow-text-link';receiptPanel.append(a);}
+      } catch(error) {busy=false;button.disabled=false;status(feedback,error.message+' Your entries are still here. Contact '+T.catalog.email+' for help.',true);}
+      finally {form.removeAttribute('aria-busy');}
+    });
+  }
+  const privateForm=document.querySelector('#private-inquiry');
+  if(privateForm) {
+    const coach=privateForm.elements.namedItem('Preferred coach');coach.value=T.coachId(params.get('coach'));
+    const players=privateForm.elements.namedItem('Players'),duration=privateForm.elements.namedItem('Minutes');
+    const estimate=document.querySelector('#private-estimate');
+    const updateQuote=()=>{
+      const q=T.privateQuote(players.value,duration.value);
+      estimate.textContent=q?`${T.money(q.perPlayer)} per player · ${T.money(q.total)} total for ${q.count} ${q.count===1?'player':'players'} / ${q.duration} minutes (CAD).`:'We will confirm a quote for your requested duration.';
+    };
+    [players,duration].forEach(el=>el.addEventListener('change',updateQuote));players.addEventListener('input',updateQuote);updateQuote();
+  }
+  document.querySelectorAll('form[data-inquiry]').forEach(inquiry=>{
+    let busy=false;
+    const submit=inquiry.querySelector('[type="submit"]'),feedback=inquiry.querySelector('[data-feedback]');submit.disabled=false;
+    inquiry.addEventListener('submit',async event=>{
+      event.preventDefault();if(busy || !validForm(inquiry))return;
+      const isPrivate=inquiry===privateForm;
+      if(isPrivate) {
+        const ages=inquiry.elements.namedItem('Player ages');
+        const parsed=ages.value.split(',').map(x=>x.trim());
+        if(parsed.some(a=>!/^\d{1,2}$/.test(a)||Number(a)<1||Number(a)>99)) {ages.setCustomValidity('Enter ages as whole numbers separated by commas, for example 8, 9.');ages.reportValidity();return;}
+      }
+      if(inquiry.elements.namedItem('_honey').value) {status(feedback,'Unable to send this request. Please email the coaching team.',true);return;}
+      const data=configuredData(inquiry,isPrivate?'Star Soccer private coaching inquiry':'Star Soccer inquiry');
+      if(isPrivate) {
+        const n=inquiry.elements.namedItem('Players').value,minutes=inquiry.elements.namedItem('Minutes').value;
+        const quote=T.privateQuote(n,minutes),coach=inquiry.elements.namedItem('Preferred coach').value;
+        data.set('Format',Number(n)===1?'One-on-one':'Small group');data.set('Preferred coach',T.catalog.coaches[coach]||'No preference');
+        data.set('Estimate CAD',quote?`${quote.perPlayer} per player; ${quote.total} group total`:'Quote to be arranged');
+      }
+      busy=true;submit.disabled=true;inquiry.setAttribute('aria-busy','true');status(feedback,'Sending inquiry…');
+      try {await send(data);status(feedback,isPrivate?'Request received. This is an inquiry, not a confirmed private appointment; the coaching team will arrange a time with you.':'Your inquiry was accepted. Keep a note of it; this message does not reserve a training session.');submit.textContent='Inquiry submitted';}
+      catch(error) {busy=false;submit.disabled=false;status(feedback,error.message+' Your entries have been kept. Email '+T.catalog.email+' for help.',true);}
+      finally {inquiry.removeAttribute('aria-busy');}
+    });
+  });
+  if(document.body.dataset.page==='contact') {
+    const coach=T.coachId(params.get('coach'));
+    if(coach || params.get('program')==='private-training') {
+      window.location.replace('program-private-small-group.html'+(coach?'?coach='+encodeURIComponent(coach):'')+'#private-form');
+    }
+    const topic=document.querySelector('[name="Topic"]');
+    if(topic && params.get('program')==='selectivo') topic.value='Selectivo updates';
+  }
+})();

@@ -1,5 +1,6 @@
 (() => {
   const nav = document.querySelector('.site-nav');
+  const currentPage = location.pathname.split('/').pop() || 'index.html';
   if (nav) {
     const header = nav.closest('header');
     if (header) {
@@ -18,6 +19,7 @@
         toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
         nav.classList.toggle('mobile-nav-open', open);
       });
+      nav.querySelectorAll('a').forEach(link => { if (link.getAttribute('href') === currentPage) link.setAttribute('aria-current','page'); });
       nav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
         nav.classList.remove('mobile-nav-open');
         toggle.setAttribute('aria-expanded', 'false');
@@ -28,7 +30,16 @@
       register.textContent = 'Find a Program';
       register.setAttribute('aria-label', 'Find a Star Soccer training program');
       nav.appendChild(register);
+      document.addEventListener('keydown', event => { if (event.key === 'Escape') { nav.classList.remove('mobile-nav-open'); toggle.setAttribute('aria-expanded','false'); } });
     }
+  }
+  const footer = document.querySelector('footer.home-contact-footer');
+  if (footer && !footer.querySelector('.footer-quick-links')) {
+    const links = document.createElement('nav');
+    links.className = 'footer-quick-links';
+    links.setAttribute('aria-label', 'Footer quick links');
+    links.innerHTML = '<a href="programs.html">Programs</a><a href="methodology.html">Methodology</a><a href="locations.html">Training locations</a><a href="contact.html">Contact</a>';
+    footer.appendChild(links);
   }
   const filters = document.querySelectorAll('[data-age-filter]');
   if (filters.length) {

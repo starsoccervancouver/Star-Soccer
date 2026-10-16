@@ -5764,3 +5764,80 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .programs-page .weekly-session-card .button { color:#f0f3f7 !important; }
 .programs-page .weekly-session-card .button-ghost { background:#183a60 !important; border:1px solid #7393b6 !important; }
 .programs-page .psg-listing-table.weekly-session-grid .psg-row { background:#102b4c !important; border:1px solid #4d7196; }
+
+/* 2026 visual polish: low-glare navy system, unclipped actions, readable hierarchy */
+:root {
+  --text:#c3ceda;
+  --muted:#a6b4c4;
+  --surface-light:#aab5c2;
+  --line:rgba(136,171,207,.26);
+}
+:where(.button,.button-ghost,.button-outline,.header-program-cta,.home-coach-book-link,.home-camps-cta-button,button[type="submit"],.registration-actions button) {
+  box-sizing:border-box;
+  max-width:100%;
+  min-width:0;
+  min-height:46px;
+  padding:12px 19px;
+  border-radius:12px;
+  line-height:1.35;
+  white-space:normal;
+  overflow-wrap:normal;
+  word-break:normal;
+  text-align:center;
+  vertical-align:middle;
+  background-clip:padding-box;
+  flex-shrink:0;
+  transform:none;
+  box-shadow:0 5px 16px rgba(0,10,24,.16);
+}
+:where(.button,.button-ghost,.button-outline,.header-program-cta,.home-coach-book-link,.home-camps-cta-button):hover {
+  transform:none;
+  filter:brightness(1.08);
+}
+:where(.weekly-card-actions,.home-closing-actions,.registration-actions,.session-option-side,.session-price-choice,.psg-row > div) {
+  min-width:0;
+  overflow:visible;
+}
+.weekly-card-actions { width:100%; grid-template-columns:minmax(0,1fr); }
+.weekly-card-actions .button { width:100%; min-width:0; margin:0; }
+.psg-listing-table .psg-row { overflow:visible; }
+.programs-page .psg-row::before { border-radius:16px 0 0 16px; }
+:where(.psg-light-section,.programs-page .psg-light-section,.registration-page .psg-light-section) {
+  background:linear-gradient(160deg,#172b43 0%,#1b334d 100%) !important;
+  color:#c5cfdb;
+}
+.psg-light-section :is(h1,h2,h3,h4,p,li,label,legend,summary,span,strong) { color:#c5cfdb; }
+.psg-light-section :is(.eyebrow,.psg-row-kicker,.footer-label) { color:#9bb9d5; }
+.psg-light-section :is(.psg-center-heading h2 span,.psg-center-heading h2 em) { color:#a4c3e0; }
+.psg-light-section :is(.psg-soft-card,.registration-card,.copy-panel,.session-option-block,.location-compare-grid > div,.psg-row) {
+  background:#213c57 !important;
+  color:#c5cfdb !important;
+  border:1px solid rgba(154,186,216,.26);
+  box-shadow:0 12px 28px rgba(2,12,27,.15);
+}
+.psg-light-section :is(.psg-soft-card,.registration-card,.copy-panel,.session-option-block,.location-compare-grid > div,.psg-row) :is(h2,h3,h4,p,li,label,span,strong) { color:#c5cfdb; }
+.psg-light-section :is(input,select,textarea) {
+  background:#152c45;
+  border:1px solid #607d9b;
+  color:#d1d9e2;
+  border-radius:10px;
+}
+.psg-light-section :is(input,textarea)::placeholder { color:#9fb0c1; }
+.psg-light-section .button:not(.button-ghost):not(.button-outline) {
+  background:#356da6 !important;
+  border:1px solid #6395c5 !important;
+  color:#e1e8ef !important;
+}
+.psg-light-section .button-ghost, .psg-light-section .button-outline {
+  background:#233f5b !important;
+  color:#d3dce5 !important;
+  border:1px solid #7394b2 !important;
+}
+:where(.programs-next-step,.home-closing-cta,.psg-intro-band) { background:linear-gradient(135deg,#10243b,#1b3651); }
+:where(.programs-next-step,.home-closing-cta,.psg-intro-band) :is(h2,p) { color:#c5cfdb; }
+:where(.section,.psg-light-section,.section-cta) { overflow:clip; }
+@media(max-width:760px) {
+  .weekly-card-actions { width:100%; }
+  .private-rate-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  :where(.button,.home-coach-book-link,.home-camps-cta-button) { padding-inline:14px; }
+}

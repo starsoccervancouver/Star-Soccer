@@ -5704,3 +5704,10 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .selectivo-status { display:inline-block;border:1px solid #bca65a;border-radius:20px;padding:8px 14px;color:#f2dc9a; }
 @media(max-width:700px) { .location-compare-grid { grid-template-columns:1fr; } .method-chapter-nav { gap:8px 14px;font-size:.84rem; } }
 @media(prefers-reduced-motion:reduce) { [data-reveal] { transform:none !important;transition:none !important;opacity:1 !important; } }
+
+/* Compact homepage visuals without requiring photography */
+@media(min-width:761px) { .immersive-hero { min-height:min(68vh,620px); } }
+.home-placeholder-board { min-height:220px; }
+.home-panel-screen { min-height:280px; }
+.home-panel-shell { padding-block:clamp(30px,5vw,70px); }
+:where(.home-coach-book-link,.home-camps-cta-button,.button) { transition:background-color .16s ease,border-color .16s ease,color .16s ease; }

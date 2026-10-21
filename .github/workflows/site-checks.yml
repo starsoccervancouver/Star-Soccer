@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:
@@ -14,7 +15,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.25.0'
+      - run: pnpm install --frozen-lockfile
+      - name: Build optimized stylesheet and check generated output
+        run: |
+          pnpm build
+          git diff --exit-code -- site.min.css
       - name: Check session, date, price and acceptance rules
-        run: node --test tests/training.test.cjs
+        run: pnpm test
       - name: Check local links, catalog parity and closed camp routes
         run: python3 tests/check_site.py
+      - name: Install browser for responsive and form checks
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Check responsive pages, navigation, filters and mocked submissions
+        run: node tests/browser.cjs

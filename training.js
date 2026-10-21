@@ -78,7 +78,21 @@
     return Object.hasOwn(alias,value) ? alias[value] : '';
   }
   function accepted(response, body) { return Boolean(response.ok && body && (body.success===true || body.success==='true')); }
-  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,prettyDate,money,privateQuote,coachId,accepted});
+  function receiptText(receipt) {
+    return ['Star Soccer booking and payment details',
+      'Booking reference: '+receipt.reference,
+      'Training: '+receipt.sessionName,
+      'Dates: '+receipt.dates.map(prettyDate).join('; '),
+      'Location: '+receipt.location,
+      'Booking: '+receipt.label,
+      'Booking total: '+money(receipt.price)+' CAD',
+      '', 'Pay by e-transfer to '+catalog.email+' or bring cash.',
+      'Include the player name, session date and booking reference with payment.',
+      'If you have already paid, contact the coaching team to reconcile it. This file does not verify payment.',
+      'Keep these details before and after training. Contact '+catalog.email+' about payment or session changes.'
+    ].join('\n');
+  }
+  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,prettyDate,money,privateQuote,coachId,accepted,receiptText});
   root.StarTraining=api;
   if(typeof module!=='undefined' && module.exports) module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

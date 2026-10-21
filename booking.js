@@ -37,15 +37,21 @@
   function showReceipt(container,receipt) {
     container.hidden=false; container.replaceChildren();
     const heading=document.createElement('h2');heading.textContent='Registration confirmed';container.append(heading);
-    const lead=document.createElement('p');lead.textContent='Your submission was accepted for the sessions below. Payment is still due; use e-transfer or cash.';container.append(lead);
+    const lead=document.createElement('p');lead.textContent='Your registration was accepted for the sessions below. Pay by e-transfer or cash. If you have already paid, the coaching team will reconcile it.';container.append(lead);
     const dl=document.createElement('dl');dl.className='flow-summary';
-    const values=[['Your reference',receipt.reference],['Training',receipt.sessionName],['Dates',receipt.dates.map(T.prettyDate).join('; ')],['Location',receipt.location],['Coaches',receipt.coaches],['Booking',receipt.label],['Amount due',T.money(receipt.price)+' CAD']];
+    const values=[['Your reference',receipt.reference],['Training',receipt.sessionName],['Dates',receipt.dates.map(T.prettyDate).join('; ')],['Location',receipt.location],['Coaches',receipt.coaches],['Booking',receipt.label],['Booking total',T.money(receipt.price)+' CAD']];
     values.forEach(([label,value])=>{const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;row.append(dt,dd);dl.append(row);});container.append(dl);
     const payment=document.createElement('p');payment.textContent='E-transfer '+T.catalog.email+', or bring cash to the first session. Include the player name, date and your reference with payment.';container.append(payment);
     const help=document.createElement('p');help.textContent='Save or print these details. Email delivery is not verified by this page. Contact the coaching team about attendance or weather changes.';container.append(help);
     const actions=document.createElement('div');actions.className='flow-actions';
     const print=document.createElement('button');print.type='button';print.className='button';print.textContent='Print / save confirmation';print.addEventListener('click',()=>window.print());
-    const back=document.createElement('a');back.href='programs.html';back.className='button button-ghost';back.textContent='Back to weekly training';actions.append(print,back);container.append(actions);
+    const download=document.createElement('button');download.type='button';download.className='button button-ghost';download.textContent='Download booking & payment details';
+    download.addEventListener('click',()=>{
+      const url=URL.createObjectURL(new Blob([T.receiptText(receipt)],{type:'text/plain;charset=utf-8'}));
+      const a=document.createElement('a');a.href=url;a.download='star-soccer-'+(receipt.reference.replace(/[^a-z0-9-]/gi,'')||'booking')+'.txt';
+      document.body.append(a);a.click();a.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+    });
+    const back=document.createElement('a');back.href='programs.html';back.className='button button-ghost';back.textContent='Back to weekly training';actions.append(print,download,back);container.append(actions);
     container.tabIndex=-1;container.focus();
   }
   function readReceipt() {

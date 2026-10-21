@@ -25,3 +25,5 @@ Mobile refinements put the main session button on the homepage's first screen, r
 After editing HTML, JS or source CSS, run `pnpm build` and commit `site.min.css` with the source change. Update the stylesheet query version in maintained pages when releasing a new stylesheet so returning visitors receive it. CI rejects stale generated output and CSS exceeding 60 KB raw / 14 KB gzip. To prepare a public artifact locally, run `node scripts/stage-site.cjs` from a clean checkout. Add new public asset types to its allowlist when needed.
 
 See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for booking rules and the boundaries of static registration.
+
+Payment communication: the booking summary shows the destination and cash option before submission. After acceptance, the receipt offers a text download with the booking reference, dates, location, total and payment instructions. It contains no child name, guardian name or contact email. A receipt confirms form-service acceptance and does not verify payment; staff must reconcile actual payments in the private operating ledger.

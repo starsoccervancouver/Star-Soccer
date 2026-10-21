@@ -1,69 +1,16 @@
-name: One authorized contact delivery test
+# Archived diagnostic only. No form submission code remains.
+# One synthetic contact POST was attempted on 2026-10-21.
+# Run 39659410808 loaded the page (HTTP 200), then timed out awaiting
+# the submission response. Inbox delivery was not confirmed.
+# Do not rerun a live submission without resolving the prior attempt.
+name: Archived contact verification (no submissions)
 on:
-  push:
-    branches: [ops/verify-contact-once-20261021]
-    paths: [.github/workflows/ops-contact-test.yml]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  verify:
-    if: github.run_attempt == 1
+  archived:
+    if: ${{ false }}
     runs-on: ubuntu-latest
-    timeout-minutes: 6
     steps:
-      - name: Install browser for the single test
-        run: |
-          python -m pip install --quiet playwright
-          python -m playwright install --with-deps chromium
-      - name: Send exactly one labelled contact inquiry
-        env:
-          TEST_TOKEN: SS-OPS-20261021-LIVE-01
-        run: |
-          python - <<'PY'
-          import json, os, sys
-          from urllib.parse import urlparse
-          from playwright.sync_api import sync_playwright
-          token = os.environ['TEST_TOKEN']
-          endpoint = 'https://formsubmit.co/ajax/starsoccervancouver@gmail.com'
-          result = {'token': token, 'type': 'contact inquiry only; not a registration', 'posts_attempted': 0, 'service_accepted': False, 'inbox_delivery': 'must be verified separately in Gmail'}
-          try:
-              with sync_playwright() as p:
-                  browser = p.chromium.launch()
-                  context = browser.new_context(timezone_id='America/Vancouver')
-                  def guard(route):
-                      request = route.request
-                      if request.method not in ('GET', 'HEAD', 'OPTIONS'):
-                          if request.method == 'POST' and request.url == endpoint and result['posts_attempted'] == 0:
-                              result['posts_attempted'] += 1
-                              return route.continue_()
-                          return route.abort()
-                      route.continue_()
-                  context.route('**/*', guard)
-                  page = context.new_page()
-                  response = page.goto('https://starsoccer.ca/contact.html', wait_until='domcontentloaded', timeout=45000)
-                  result['page_status'] = response.status if response else None
-                  form = page.locator('form[data-inquiry="contact"]')
-                  assert form.count() == 1, 'Expected one contact form'
-                  assert form.get_attribute('action') == 'https://formsubmit.co/starsoccervancouver@gmail.com', 'Unexpected form destination'
-                  form.locator('[name="Name"]').fill('Star Soccer operations test - not a customer')
-                  form.locator('[name="email"]').fill('starsoccervancouver@gmail.com')
-                  form.locator('[name="Topic"]').select_option(label='General question')
-                  form.locator('[name="Message"]').fill(token + ' | Owner-authorized delivery verification. TEST ONLY: no player, no booking, no payment, and no action needed from coaches. Do not add this message to a roster or send a payment reminder. This single inquiry checks the live website-to-inbox route.')
-                  with page.expect_response(lambda r: r.url == endpoint and r.request.method == 'POST', timeout=30000) as pending:
-                      form.locator('button[type="submit"]').click(timeout=15000)
-                  reply = pending.value
-                  payload = reply.json()
-                  result['http_status'] = reply.status
-                  result['service_success_value'] = payload.get('success')
-                  result['service_message'] = payload.get('message', '')
-                  result['service_accepted'] = reply.ok and (payload.get('success') is True or payload.get('success') == 'true')
-                  page.wait_for_timeout(1000)
-                  result['page_feedback'] = form.locator('[data-feedback]').inner_text()
-                  browser.close()
-          except Exception as exc:
-              result['error'] = type(exc).__name__ + ': ' + str(exc)[:700]
-          print('STAR_CONTACT_TEST_RESULT=' + json.dumps(result))
-          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-              f.write('## Authorized single contact test\n\n```json\n' + json.dumps(result, indent=2) + '\n```\n')
-          sys.exit(0 if result['service_accepted'] else 1)
-          PY
+      - run: echo 'Archived verification. No requests are sent.'

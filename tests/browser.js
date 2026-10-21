@@ -18,6 +18,7 @@
     const doc=frame.contentDocument;
     await doc.fonts.ready;
     await new Promise(resolve=>frame.contentWindow.requestAnimationFrame(()=>frame.contentWindow.requestAnimationFrame(resolve)));
+    for(let i=0;i<200 && doc.querySelector('.count-refresh')?.disabled;i++)await new Promise(resolve=>setTimeout(resolve,10));
     return doc;
   }
   const change=(doc,id,value)=>{const el=doc.getElementById(id);el.value=value;el.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));};
@@ -40,7 +41,22 @@
         }
       }
     }
-    let doc=await load('programs.html?age=14&day=sunday&source=test#sessions');
+    let doc=await load('programs.html',320);
+    check(doc.querySelector('[data-session-day="friday"] .session-capacity').textContent==='3/20 players · 17 places remaining','Schedule shows the dated ledger count');
+    check(doc.querySelector('[data-session-day="thursday"] .session-capacity').textContent==='0/20 players · 20 places remaining','Recorded zero is shown as zero');
+    frame.contentWindow.fetch=async()=>{throw new TypeError('Offline');};
+    doc.querySelector('.count-refresh').click();
+    for(let i=0;i<100 && doc.querySelector('.count-refresh').disabled;i++)await new Promise(resolve=>setTimeout(resolve,10));
+    check([...doc.querySelectorAll('.session-capacity')].every(el=>el.textContent==='Capacity 20 · Count unavailable'),'Failed refresh removes old counts and never substitutes zero');
+    doc=await load('registration.html?sessionId=friday&type=pass4',320);
+    const countDate=frame.contentWindow.StarTraining.nextDate(frame.contentWindow.StarTraining.getSession('friday'));
+    change(doc,'booking-date',countDate);
+    await new Promise(resolve=>frame.contentWindow.requestAnimationFrame(resolve));
+    check(doc.querySelectorAll('#booking-dates .session-capacity').length===4 && [...doc.querySelectorAll('#booking-dates .session-capacity')].every(el=>el.textContent.startsWith('3/20 players')),'Four-session pass shows a separate count for each covered date');
+    change(doc,'booking-date',frame.contentWindow.StarTraining.addDays(countDate,70));
+    await new Promise(resolve=>frame.contentWindow.requestAnimationFrame(resolve));
+    check([...doc.querySelectorAll('#booking-dates .session-capacity')].every(el=>el.textContent==='Capacity 20 · Count unavailable'),'Dates outside the ledger window show unavailable counts');
+    doc=await load('programs.html?age=14&day=sunday&source=test#sessions');
     check(!doc.querySelector('#schedule-empty').hidden,'Incompatible age/day shows empty state');
     doc.querySelector('#schedule-reset').click();
     check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===4,'Clear filters restores every session');

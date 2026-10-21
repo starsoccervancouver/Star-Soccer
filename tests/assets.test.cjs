@@ -7,7 +7,7 @@ test('shared stylesheet stays within the transfer budget and preserves runtime s
   const css=fs.readFileSync('site.min.css');
   assert(css.length<60000,'CSS must stay under 60 KB');
   assert(gzipSync(css).length<14000,'Gzip CSS must stay under 14 KB');
-  for(const token of ['mobile-nav-open','data-nav-ready','is-error','[hidden]',':focus-visible','schedule-next','@media print'])assert(css.includes(token),'Missing runtime style: '+token);
+  for(const token of ['mobile-nav-open','data-nav-ready','is-error','[hidden]',':focus-visible','schedule-next','session-capacity','count-feed-note','@media print'])assert(css.includes(token),'Missing runtime style: '+token);
 });
 test('public artifact includes all routes and excludes development files',()=>{
   execFileSync(process.execPath,['scripts/stage-site.cjs']);
@@ -17,4 +17,6 @@ test('public artifact includes all routes and excludes development files',()=>{
   for(const name of fs.readdirSync('.').filter(name=>name.endsWith('.html')))assert(names.includes(name),'Missing route: '+name);
   assert(fs.existsSync('_site/Star soccer/index.html'));
   assert(fs.existsSync('_site/site.min.css'));
+  assert(fs.existsSync('_site/session-counts.js'));
+  assert(!fs.existsSync('_site/SESSION_COUNTS.md'));
 });

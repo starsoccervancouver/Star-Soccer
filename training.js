@@ -5,7 +5,7 @@
 (function (root) {
   'use strict';
   const catalog = {
-    version: '20261016-private-2h', zone: 'America/Vancouver', currency: 'CAD',
+    version: '20261021-capacity', zone: 'America/Vancouver', currency: 'CAD', groupCapacity:20,
     email: 'starsoccervancouver@gmail.com',
     coaches: {valentinos: 'Valentinos Dinglis', evan: 'Evan Lycos', romeo: 'Romeo Dinglis'},
     locations: {

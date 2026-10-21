@@ -49,3 +49,10 @@ test('transport success alone never confirms acceptance',()=>{
  assert.equal(T.accepted({ok:false},{success:true}),false);assert(T.accepted({ok:true},{success:true}));assert(T.accepted({ok:true},{success:'true'}));
 });
 test('coach aliases preserve old links without trusting arbitrary names',()=>{assert.equal(T.coachId('Valentino Dinglis'),'valentinos');assert.equal(T.coachId('Evan Lycos'),'evan');assert.equal(T.coachId('<script>'),'');assert.equal(T.coachId('__proto__'),'');});
+
+test('saved booking details keep dates, total and payment destination together without personal form data',()=>{
+ const receipt={reference:'SS-TEST',sessionName:'Wednesday · 3:45–5:15 PM',dates:['2026-10-21','2026-10-28','2026-11-04','2026-11-11'],location:'Connaught Park',label:'Four-session pass',price:95,email:'private@example.invalid',playerName:'Private Test Name'};
+ const text=T.receiptText(receipt);
+ for(const expected of ['SS-TEST','Oct 21','Oct 28','Nov 4','Nov 11','$95 CAD','starsoccervancouver@gmail.com','or bring cash','does not verify payment'])assert(text.includes(expected),expected);
+ assert(!text.includes(receipt.email));assert(!text.includes(receipt.playerName));
+});

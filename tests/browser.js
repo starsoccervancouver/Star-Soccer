@@ -62,6 +62,7 @@
     doc=await load('registration.html?sessionId=camp-u4-u6&type=dropin');
     check(doc.querySelector('#training-registration').hidden && doc.querySelector('#registration-status').textContent.includes('no longer available'),'Retired camp registration is rejected');
     doc=await load('registration.html?sessionId=wednesday&type=pass4');
+    check(doc.querySelector('#booking-summary').textContent.includes('Payment instructions') && doc.querySelector('#booking-summary').textContent.includes('starsoccervancouver@gmail.com'),'Payment destination and instructions are visible before registration');
     doc.querySelector('.booking-form-jump').click();
     check(doc.activeElement===doc.querySelector('#training-registration'),'Mobile booking shortcut moves focus to player details');
     const win=frame.contentWindow,form=doc.querySelector('form'),T=win.StarTraining;
@@ -75,6 +76,7 @@
     form.requestSubmit();form.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(calls===2 && form.hidden && !doc.querySelector('#receipt').hidden,'Accepted registration shows receipt and blocks duplicate submission');
     check(doc.querySelector('#receipt').textContent.includes('$95') && doc.querySelector('#booking-dates').children.length===4,'Four-session receipt keeps the approved price and dates');
+    check([...doc.querySelectorAll('#receipt button')].some(button=>button.textContent==='Download booking & payment details') && doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1,'Mobile receipt offers saved payment details without overflow');
     doc=await load('program-private-small-group.html?coach=romeo');
     check(doc.querySelector('[name="Preferred coach"]').value==='romeo','Coach preference survives the inquiry link');
     doc.querySelector('[name="Players"]').value='2';

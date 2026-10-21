@@ -27,3 +27,13 @@ After editing HTML, JS or source CSS, run `pnpm build` and commit `site.min.css`
 See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for booking rules and the boundaries of static registration.
 
 Payment communication: the booking summary shows the destination and cash option before submission. After acceptance, the receipt offers a text download with the booking reference, dates, location, total and payment instructions. It contains no child name, guardian name or contact email. A receipt confirms form-service acceptance and does not verify payment; staff must reconcile actual payments in the private operating ledger.
+
+## Weekly-group growth workflow — 21 October 2026
+
+Each session now has a Copy session link action. Links contain only an approved weekday; inbound age filters and other query values are never copied. A day-specific link opens the matching booking options. Clipboard denial exposes a selectable URL instead.
+
+Registration, contact and private-inquiry forms include an optional parent-reported referral source. The submitted value is restricted to the displayed choices; no analytics provider, tracking cookie or extra browser storage was added. Record this source alongside the booking in the private operating ledger after receiving the submission; no automatic website-to-ledger sync is implied. Source capture in a mocked payload does not prove live inbox delivery.
+
+Unconfirmed registrations offer an email recovery draft containing only the booking reference and public session details. Personal form entries stay on the form and are not inserted into that URL. A retry uses the same reference so staff can check for duplicate attempts. Existing acceptance and payment-verification boundaries remain in force.
+
+Measure the next two weeks by received inquiries with a source, first attendance, and subsequent paid/repeat attendance. Establish an actual baseline before claiming improvement. Existing public rates and all household agreements are unchanged. Form regression tests are mocked; this workflow does not authorize another live FormSubmit test.

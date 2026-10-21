@@ -78,6 +78,26 @@
     return Object.hasOwn(alias,value) ? alias[value] : '';
   }
   function accepted(response, body) { return Boolean(response.ok && body && (body.success===true || body.success==='true')); }
+  const referralSources=Object.freeze({search:'Google Search / Maps',instagram:'Instagram',referral:'Family / friend',community:'School / community',returning:'Returning family',other:'Other'});
+  function referralSource(value) { return Object.hasOwn(referralSources,value) ? referralSources[value] : 'Not specified'; }
+  function sessionLink(id) {
+    if(!getSession(id)) throw new Error('Choose a current session to share.');
+    // A fresh canonical URL excludes personal age filters and arbitrary query data.
+    return 'https://starsoccer.ca/programs.html?day='+encodeURIComponent(id)+'#sessions';
+  }
+  function registrationHelp(booking,reference) {
+    const body=['Please check whether my registration arrived before I register or pay again.',
+      'Website reference: '+reference,
+      'Training: '+booking.session.day+' · '+booking.session.time,
+      'Dates: '+booking.dates.map(prettyDate).join('; '),
+      'Location: '+booking.location,
+      'Booking: '+booking.label,
+      'Quoted total: '+money(booking.price)+' CAD',
+      'The website attempt was not confirmed.', '',
+      'Parent / guardian name:', 'Player name:'
+    ].join('\r\n');
+    return 'mailto:'+catalog.email+'?subject='+encodeURIComponent('Please check registration | '+reference)+'&body='+encodeURIComponent(body);
+  }
   function receiptText(receipt) {
     return ['Star Soccer booking and payment details',
       'Booking reference: '+receipt.reference,
@@ -92,7 +112,7 @@
       'Keep these details before and after training. Contact '+catalog.email+' about payment or session changes.'
     ].join('\n');
   }
-  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,prettyDate,money,privateQuote,coachId,accepted,receiptText});
+  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,prettyDate,money,privateQuote,coachId,accepted,receiptText,referralSources,referralSource,sessionLink,registrationHelp});
   root.StarTraining=api;
   if(typeof module!=='undefined' && module.exports) module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

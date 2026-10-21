@@ -29,11 +29,21 @@
   }
   function configuredData(form,subject) {
     const data=new FormData(form);
+    data.set('Referral source',T.referralSource(form.elements.namedItem('Referral source')?.value));
     data.set('_subject',subject);data.set('_template','table');data.set('_captcha','false');
     data.set('_replyto',String(data.get('email')||''));
     data.delete('_autoresponse');data.delete('_cc');
     return data;
   }
+  // Optional, parent-reported attribution travels with the inquiry, not to a tracker.
+  document.querySelectorAll('form[data-inquiry],#training-registration').forEach(form=>{
+    const label=document.createElement('label');label.className='referral-source';label.textContent='How did you hear about us? (optional)';
+    const select=document.createElement('select');select.name='Referral source';
+    const blank=document.createElement('option');blank.value='';blank.textContent='Choose or leave blank';select.append(blank);
+    Object.entries(T.referralSources).forEach(([value,name])=>{const option=document.createElement('option');option.value=value;option.textContent=name;select.append(option);});
+    const help=document.createElement('small');help.textContent='Helps our team understand how families find training.';
+    label.append(select,help);form.querySelector('.form-privacy').before(label);
+  });
   function showReceipt(container,receipt) {
     container.hidden=false; container.replaceChildren();
     const heading=document.createElement('h2');heading.textContent='Registration confirmed';container.append(heading);
@@ -66,7 +76,8 @@
   if(form) {
     const button=form.querySelector('[type="submit"]'),feedback=document.querySelector('#registration-status');
     const age=form.elements.namedItem('Player age'),date=form.elements.namedItem('Start date');
-    let selected,busy=false;
+    let selected,busy=false,reference='';
+    const recovery=document.createElement('div');recovery.className='registration-recovery';recovery.hidden=true;feedback.after(recovery);
     try {selected=T.choice(params.get('sessionId'),params.get('type'));}
     catch(error) {form.hidden=true;document.querySelector('#booking-summary').hidden=true;status(feedback,error.message,true);return;}
     const {session:s,type,label,price}=selected;
@@ -94,7 +105,8 @@
       catch(error) {status(feedback,error.message,true);return;}
       if(form.elements.namedItem('_honey').value) {status(feedback,'Unable to send this registration. Please email the coaching team.',true);return;}
       busy=true;button.disabled=true;form.setAttribute('aria-busy','true');status(feedback,'Submitting registration…');
-      const reference='SS-'+(window.crypto?.randomUUID ? window.crypto.randomUUID().slice(0,8).toUpperCase():Date.now().toString(36).toUpperCase());
+      if(!reference)reference='SS-'+(window.crypto?.randomUUID ? window.crypto.randomUUID().slice(0,8).toUpperCase():Date.now().toString(36).toUpperCase());
+      recovery.hidden=true;
       const data=configuredData(form,`Star Soccer registration | ${s.day} | ${date.value}`);
       const fields={'Session ID':s.id,'Training':s.day+' '+s.time,'Booking type':label,'Covered dates':booking.dates.join(', '),'Location':booking.location,'Coaches':booking.coaches,'Price CAD':String(price),'Catalog version':T.catalog.version,'Client reference':reference};
       Object.entries(fields).forEach(([key,value])=>data.set(key,value));
@@ -104,7 +116,14 @@
         let saved=false;try {sessionStorage.setItem(receiptKey,JSON.stringify(receipt));saved=true;}catch { /* Keep the on-page receipt if storage is unavailable. */ }
         form.hidden=true;feedback.hidden=true;showReceipt(receiptPanel,receipt);
         if(saved) {const a=document.createElement('a');a.href='registration-thank-you.html';a.textContent='Open confirmation page';a.className='flow-text-link';receiptPanel.append(a);}
-      } catch(error) {busy=false;button.disabled=false;status(feedback,error.message+' Your entries are still here. Contact '+T.catalog.email+' for help.',true);}
+      } catch(error) {
+        busy=false;button.disabled=false;status(feedback,error.message+' Your entries are still here. Contact '+T.catalog.email+' for help.',true);
+        recovery.replaceChildren();
+        const lead=document.createElement('p');lead.textContent='Check with the team before registering or paying again. Your reference is '+reference+'.';
+        const email=document.createElement('a');email.className='button button-ghost';email.href=T.registrationHelp(booking,reference);email.textContent='Email to check this registration';
+        const note=document.createElement('p');note.textContent='The email draft includes your session details and reference. Add your name and player name before sending.';
+        recovery.append(lead,email,note);recovery.hidden=false;
+      }
       finally {form.removeAttribute('aria-busy');}
     });
   }

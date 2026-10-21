@@ -24,6 +24,11 @@ body .flow-surface h3 {font-size:1.1rem;line-height:1.4;}
 body .flow-surface p {line-height:1.65;margin:0 0 16px;max-width:75ch;}
 body .flow-surface .eyebrow,body .flow-surface .form-privacy {color:var(--flow-muted);}
 body .flow-actions {display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:16px 0;}
+body .share-feedback {padding:10px 0;line-height:1.6;}
+body .session-share-manual {display:grid;gap:8px;max-width:100%;margin:12px 0;}
+body .session-share-manual input {width:100%;min-width:0;box-sizing:border-box;font-size:16px;}
+body .registration-recovery {padding:16px 0;margin-bottom:20px;line-height:1.65;}
+body .registration-recovery .button {white-space:normal;max-width:100%;box-sizing:border-box;}
 body .flow-text-link {color:#bad4ed;text-decoration:underline;text-underline-offset:4px;overflow-wrap:anywhere;}
 body .flow-surface :is(a:not(.button)) {color:#bad4ed;text-decoration:underline;text-underline-offset:4px;}
 body .flow-surface .button {background:#356da6;color:#e1e8ef;border:1px solid #7196b8;border-radius:12px;line-height:1.4;padding:12px 18px;white-space:normal;max-width:100%;box-shadow:none;}

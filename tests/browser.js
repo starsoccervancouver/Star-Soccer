@@ -59,6 +59,21 @@
     check(toggle.getAttribute('aria-expanded')==='false' && doc.activeElement===toggle,'Escape closes menu and returns focus');
     toggle.click();doc.querySelector('.header-program-cta').click();
     check(doc.activeElement===doc.querySelector('#sessions') && toggle.getAttribute('aria-expanded')==='false','Same-page menu link moves focus to sessions');
+    for(const day of ['wednesday','thursday','friday','sunday']) {
+      doc=await load('programs.html?day='+day,320);
+      check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===1 && doc.querySelector('.schedule-entry:not([hidden])').open,'Shared '+day+' link opens its booking options');
+      check(doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1,'Expanded '+day+' session has no overflow at 320px');
+    }
+    doc=await load('programs.html?day=friday&age=8&email=private%40example.invalid#sessions',320);
+    let copied='';
+    Object.defineProperty(frame.contentWindow.navigator,'clipboard',{configurable:true,value:{writeText:async value=>{copied=value;}}});
+    doc.querySelector('[data-session-day="friday"] .session-share').click();await new Promise(resolve=>setTimeout(resolve,30));
+    check(copied==='https://starsoccer.ca/programs.html?day=friday#sessions' && doc.querySelector('[data-session-day="friday"] .share-feedback').textContent.includes('copied'),'Share copies the approved session without age or unrelated query values');
+    Object.defineProperty(frame.contentWindow.navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw new Error('Permission denied');}}});
+    doc.querySelector('[data-session-day="friday"] .session-share').click();await new Promise(resolve=>setTimeout(resolve,30));
+    const manual=doc.querySelector('[data-session-day="friday"] .session-share-manual');
+    check(!manual.hidden && doc.activeElement===manual.querySelector('input') && manual.querySelector('input').readOnly,'Clipboard denial offers a focused, selectable fallback link');
+    check(doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1 && doc.querySelector('[data-session-day="friday"] .session-share').getBoundingClientRect().height>=44,'Sharing fallback fits 320px and keeps a large touch target');
     doc=await load('registration.html?sessionId=camp-u4-u6&type=dropin');
     check(doc.querySelector('#training-registration').hidden && doc.querySelector('#registration-status').textContent.includes('no longer available'),'Retired camp registration is rejected');
     doc=await load('registration.html?sessionId=wednesday&type=pass4');
@@ -68,20 +83,34 @@
     const win=frame.contentWindow,form=doc.querySelector('form'),T=win.StarTraining;
     form.elements.namedItem('Start date').value=T.nextDate(T.getSession('wednesday'));
     for(const [name,value] of [['Parent name','Website Test'],['email','test@example.invalid'],['Player name','Test Player'],['Player age','10']])form.elements.namedItem(name).value=value;
-    let calls=0;
-    win.fetch=async()=>{calls++;return {ok:true,json:async()=>({success:false})};};
+    let calls=0,receivedData,firstReference;
+    const source=form.elements.namedItem('Referral source');
+    check(source && !source.required && source.value==='','Referral source is optional and has no assumed selection');
+    source.value='referral';
+    win.fetch=async(url,options)=>{calls++;receivedData=options.body;firstReference=receivedData.get('Client reference');return {ok:true,json:async()=>({success:false})};};
     form.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(calls===1 && doc.querySelector('#receipt').hidden && !form.hidden && form.elements.namedItem('Player name').value==='Test Player','Service rejection retains entries and cannot show a receipt');
-    win.fetch=async()=>{calls++;return {ok:true,json:async()=>({success:true})};};
+    check(receivedData.get('Referral source')==='Family / friend','Parent-reported referral source is included in the actual submission payload');
+    const recovery=doc.querySelector('.registration-recovery a'),help=new URL(recovery.href),helpBody=help.searchParams.get('body');
+    check(!recovery.closest('.registration-recovery').hidden && help.protocol==='mailto:' && helpBody.includes(firstReference) && helpBody.includes('not confirmed') && !helpBody.includes('Test Player') && !helpBody.includes('test@example.invalid'),'Failure exposes an email recovery draft with the reference and no personal form entries');
+    win.fetch=async(url,options)=>{calls++;receivedData=options.body;return {ok:true,json:async()=>({success:true})};};
     form.requestSubmit();form.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(calls===2 && form.hidden && !doc.querySelector('#receipt').hidden,'Accepted registration shows receipt and blocks duplicate submission');
+    check(receivedData.get('Client reference')===firstReference && doc.querySelector('.registration-recovery').hidden,'Retries keep the same reference and hide stale recovery on acceptance');
     check(doc.querySelector('#receipt').textContent.includes('$95') && doc.querySelector('#booking-dates').children.length===4,'Four-session receipt keeps the approved price and dates');
     check([...doc.querySelectorAll('#receipt button')].some(button=>button.textContent==='Download booking & payment details') && doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1,'Mobile receipt offers saved payment details without overflow');
     doc=await load('program-private-small-group.html?coach=romeo');
     check(doc.querySelector('[name="Preferred coach"]').value==='romeo','Coach preference survives the inquiry link');
+    check(doc.querySelector('[name="Referral source"]') && !doc.querySelector('[name="Referral source"]').required,'Private inquiry also offers optional referral source');
     doc.querySelector('[name="Players"]').value='2';
     const duration=doc.querySelector('[name="Minutes"]');duration.value='120';duration.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
     check(doc.querySelector('#private-estimate').textContent.includes('$80 per player') && doc.querySelector('#private-estimate').textContent.includes('$160 total'),'Private two-hour group quote keeps approved rounding');
+    doc=await load('contact.html');
+    const contact=doc.querySelector('form');
+    contact.elements.namedItem('Name').value='Website Test';contact.elements.namedItem('email').value='test@example.invalid';contact.elements.namedItem('Message').value='Mocked contact test';contact.elements.namedItem('Referral source').value='community';
+    let contactData;frame.contentWindow.fetch=async(url,options)=>{contactData=options.body;return {ok:true,json:async()=>({success:true})};};
+    contact.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
+    check(contactData.get('Referral source')==='School / community' && doc.querySelector('[data-feedback]').textContent.includes('accepted'),'Contact inquiry includes the selected source after mocked service acceptance');
   } catch(error) {
     check(false,error.message);
   } finally {

@@ -50,6 +50,28 @@ test('transport success alone never confirms acceptance',()=>{
 });
 test('coach aliases preserve old links without trusting arbitrary names',()=>{assert.equal(T.coachId('Valentino Dinglis'),'valentinos');assert.equal(T.coachId('Evan Lycos'),'evan');assert.equal(T.coachId('<script>'),'');assert.equal(T.coachId('__proto__'),'');});
 
+test('session sharing uses approved groups and a clean public destination',()=>{
+ for(const s of T.catalog.sessions)assert.equal(T.sessionLink(s.id),'https://starsoccer.ca/programs.html?day='+s.id+'#sessions');
+ for(const id of ['camp-u4-u6','__proto__','friday&email=private@example.invalid'])assert.throws(()=>T.sessionLink(id));
+});
+
+test('referral source accepts only optional parent-reported choices',()=>{
+ assert.equal(T.referralSource('referral'),'Family / friend');
+ assert.equal(T.referralSource('instagram'),'Instagram');
+ for(const value of ['',null,undefined,'__proto__','private@example.invalid','<script>'])assert.equal(T.referralSource(value),'Not specified');
+});
+
+test('registration recovery includes public booking context without personal form values or payment confirmation',()=>{
+ const b=T.booking('wednesday','pass4','2026-10-21',10,now);
+ b.playerName='Private Player';b.email='private@example.invalid';b.notes='Private notes';
+ const url=new URL(T.registrationHelp(b,'SS-TEST'));
+ assert.equal(url.protocol,'mailto:');assert.equal(url.pathname,T.catalog.email);
+ const body=url.searchParams.get('body');
+ for(const expected of ['SS-TEST','Oct 21','Oct 28','Nov 4','Nov 11','$95 CAD','not confirmed','before I register or pay again'])assert(body.includes(expected),expected);
+ for(const privateValue of [b.playerName,b.email,b.notes])assert(!body.includes(privateValue));
+ assert(!body.includes('Registration confirmed'));
+});
+
 test('saved booking details keep dates, total and payment destination together without personal form data',()=>{
  const receipt={reference:'SS-TEST',sessionName:'Wednesday · 3:45–5:15 PM',dates:['2026-10-21','2026-10-28','2026-11-04','2026-11-11'],location:'Connaught Park',label:'Four-session pass',price:95,email:'private@example.invalid',playerName:'Private Test Name'};
  const text=T.receiptText(receipt);

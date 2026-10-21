@@ -118,6 +118,7 @@ body.home-landing .hero-placeholder-card {min-width:0;padding:24px 20px;}
 body.home-landing .hero-placeholder-card h2 {max-width:none;line-height:1.1;}
 body.home-landing .hero-placeholder-card a {min-height:44px;display:inline-flex;align-items:center;}
 body .schedule-next {font-size:.85rem;color:#bad4ed!important;}
+.mobile-hero-actions,.booking-form-jump {display:none;}
 @media(max-width:900px) {
  body.home-landing .immersive-hero-stage {grid-template-columns:1fr;gap:24px;min-height:0;}
  body.home-landing .hero-placeholder-cards {max-width:520px;justify-self:start;}
@@ -126,6 +127,42 @@ body .schedule-next {font-size:.85rem;color:#bad4ed!important;}
  body .schedule-reset {min-height:44px;}
 }
 @media(max-width:380px) {body.home-landing .hero-placeholder-cards {grid-template-columns:1fr;}}
+/* Phone layout: readable controls, useful first screen and comfortable touch targets. */
+@media(max-width:900px) {
+ body .flow-surface :is(input,select,textarea),body .schedule-controls select {font-size:16px;}
+ body .booking-form-jump {display:inline-flex;min-height:44px;align-items:center;margin-bottom:12px;}
+ body #training-registration {scroll-margin-top:100px;}
+ body header[data-nav-ready] .site-nav.mobile-nav-open {max-height:min(70vh,calc(100dvh - 84px));}
+}
+@media(max-width:540px) {
+ body.home-landing .immersive-hero {padding-block:0;min-height:0;}
+ body.home-landing .immersive-hero-overlay {width:100%;padding:28px 20px 32px;}
+ body.home-landing .immersive-hero h1 {font-size:clamp(2.15rem,9.5vw,2.8rem);line-height:1.12;margin-block:12px 18px;}
+ body.home-landing .mission-label {font-size:.7rem;line-height:1.6;letter-spacing:.12em;}
+ body.home-landing .immersive-hero-lead {font-size:1rem;line-height:1.65;}
+ body.home-landing .hero-placeholder-cards {display:none;}
+ body .mobile-hero-actions {display:grid;gap:6px;margin-top:24px;}
+ body .mobile-hero-actions .button {display:flex;align-items:center;justify-content:center;min-height:48px;padding:12px 16px;text-align:center;white-space:normal;}
+ body .mobile-contact-link {display:flex;align-items:center;justify-content:center;min-height:44px;text-decoration:underline;text-underline-offset:4px;}
+ body .home-latest-band {padding-top:20px;}
+ body .home-latest-band-inner {width:calc(100% - 24px);padding:20px 14px;}
+ body .home-news-copy h2 {font-size:2rem;line-height:1.12;}
+ body :is(.home-coach-card,.home-cta-card) {padding:20px 16px;}
+ body .home-coach-book-link,body .home-camps-cta-button {width:100%;justify-content:center;text-align:center;white-space:normal;}
+ body .home-closing-actions {display:grid;}
+ body .home-closing-actions a {display:flex;align-items:center;justify-content:center;min-height:48px;white-space:normal;}
+ body .flow-hero {padding-block:24px 16px;}
+ body .flow-hero h1 {font-size:clamp(2rem,9vw,2.8rem);overflow-wrap:anywhere;}
+ body .schedule-controls {gap:12px;}
+ body .schedule-controls label {gap:6px;}
+ body .schedule-reset {font-size:1rem;}
+ body .home-contact-column {gap:2px;}
+ body .home-contact-column a {display:flex;align-items:center;min-height:44px;}
+}
+@media(min-width:360px) and (max-width:540px) {
+ body .schedule-controls {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;}
+ body .schedule-controls label:nth-child(3),body .schedule-reset {grid-column:1/-1;}
+}
 body.home-landing .hero-placeholder-card {background:#203b56;color:#c5cfdb;border:1px solid #577693;}
 body.home-landing .hero-placeholder-card h2 {color:#c5cfdb;}
 body.home-landing .hero-placeholder-card :is(.hero-placeholder-kicker,a) {color:#bad4ed;}

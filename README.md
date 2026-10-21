@@ -18,7 +18,9 @@ pnpm exec playwright install chromium
 node tests/browser.cjs
 ```
 
-For manual browser checks, serve the repository with `python3 -m http.server 8765` and open `http://localhost:8765/tests/browser.html`. It checks ten pages at 375, 900, 1024 and 1440px, filters, keyboard navigation and mocked form responses. No test sends a real registration. The CI runner blocks external network calls. Inbox delivery and live Core Web Vitals are not measured by these checks.
+For manual browser checks, serve the repository with `python3 -m http.server 8765` and open `http://localhost:8765/tests/browser.html`. It checks ten pages at 320, 375, 430, 900, 1024 and 1440px, readable mobile controls and touch targets, filters, keyboard navigation and mocked form responses. No test sends a real registration. The CI runner blocks external network calls. Inbox delivery and live Core Web Vitals are not measured by these checks.
+
+Mobile refinements put the main session button on the homepage's first screen, reduce nested coaching-card padding, make footer links easier to tap, use 16px form controls, and provide a direct jump from the booking summary to player details.
 
 After editing HTML, JS or source CSS, run `pnpm build` and commit `site.min.css` with the source change. Update the stylesheet query version in maintained pages when releasing a new stylesheet so returning visitors receive it. CI rejects stale generated output and CSS exceeding 60 KB raw / 14 KB gzip. To prepare a public artifact locally, run `node scripts/stage-site.cjs` from a clean checkout. Add new public asset types to its allowlist when needed.
 

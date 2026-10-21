@@ -23,12 +23,21 @@
   const change=(doc,id,value)=>{const el=doc.getElementById(id);el.value=value;el.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));};
   try {
     const pages=['index.html','programs.html','program-private-small-group.html','methodology.html','locations.html','contact.html','camps.html','selectivo.html','registration.html?sessionId=wednesday&type=pass4','registration-thank-you.html'];
-    for(const width of [375,900,1024,1440]) {
+    for(const width of [320,375,430,900,1024,1440]) {
       for(const page of pages) {
         const doc=await load(page,width);
         const overflow=doc.documentElement.scrollWidth-doc.documentElement.clientWidth;
         const oversized=[...doc.body.querySelectorAll('*')].filter(el=>el.getBoundingClientRect().right>doc.documentElement.clientWidth+1).slice(0,4).map(el=>el.className).join(', ');
         check(overflow<=1,`${page} at ${width}px has no horizontal overflow${overflow>1?' ('+overflow+'px; '+oversized+')':''}`);
+        if(width<=430) {
+          const controls=[...doc.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>el.getClientRects().length && !el.closest('[aria-hidden="true"]'));
+          if(controls.length)check(controls.every(el=>parseFloat(frame.contentWindow.getComputedStyle(el).fontSize)>=16),`${page} at ${width}px uses readable 16px form controls`);
+          if(page==='index.html') {
+            const action=doc.querySelector('.mobile-hero-actions .button');
+            check(action.getClientRects().length>0 && action.getBoundingClientRect().bottom<800 && action.getBoundingClientRect().height>=48,`Homepage at ${width}px puts a large session button on the first screen`);
+            check([...doc.querySelectorAll('.home-contact-column a')].every(el=>el.getBoundingClientRect().height>=44),`Footer links at ${width}px have 44px touch targets`);
+          }
+        }
       }
     }
     let doc=await load('programs.html?age=14&day=sunday&source=test#sessions');
@@ -45,6 +54,7 @@
     check(doc.querySelector('#schedule-age').value==='14' && doc.querySelectorAll('.schedule-entry:not([hidden])').length===1,'Reload restores the selected filter');
     const toggle=doc.querySelector('.mobile-nav-toggle');toggle.click();
     check(toggle.getAttribute('aria-expanded')==='true' && frame.contentWindow.getComputedStyle(doc.querySelector('nav')).display!=='none','Mobile menu opens');
+    check([...doc.querySelectorAll('nav a')].every(el=>el.getBoundingClientRect().height>=44),'Expanded mobile menu links have 44px touch targets');
     doc.dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
     check(toggle.getAttribute('aria-expanded')==='false' && doc.activeElement===toggle,'Escape closes menu and returns focus');
     toggle.click();doc.querySelector('.header-program-cta').click();
@@ -52,6 +62,8 @@
     doc=await load('registration.html?sessionId=camp-u4-u6&type=dropin');
     check(doc.querySelector('#training-registration').hidden && doc.querySelector('#registration-status').textContent.includes('no longer available'),'Retired camp registration is rejected');
     doc=await load('registration.html?sessionId=wednesday&type=pass4');
+    doc.querySelector('.booking-form-jump').click();
+    check(doc.activeElement===doc.querySelector('#training-registration'),'Mobile booking shortcut moves focus to player details');
     const win=frame.contentWindow,form=doc.querySelector('form'),T=win.StarTraining;
     form.elements.namedItem('Start date').value=T.nextDate(T.getSession('wednesday'));
     for(const [name,value] of [['Parent name','Website Test'],['email','test@example.invalid'],['Player name','Test Player'],['Player age','10']])form.elements.namedItem(name).value=value;

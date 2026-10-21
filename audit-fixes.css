@@ -61,6 +61,11 @@ body .schedule-controls :is(label,select) {color:var(--flow-text);}
 body .schedule-results {max-width:none;margin:12px 0;color:var(--flow-text);}
 body .schedule-list {max-width:none;}
 body details.schedule-entry {display:block;background:#203b56;border:1px solid #577693;border-radius:12px;min-width:0;overflow:visible;}
+body .session-capacity {display:block;font-size:.9rem;font-weight:700;line-height:1.6;overflow-wrap:anywhere;}
+body .count-feed-note {margin:14px 0 22px;padding:14px 16px;border:1px solid #71869b;border-radius:10px;}
+body .count-feed-note p {font-size:.9rem;line-height:1.65;margin:0 0 10px;}
+body .count-feed-note p:last-child {margin:10px 0 0;}
+body .count-refresh {min-height:44px;}
 body summary.schedule-entry-main {list-style:none;cursor:pointer;grid-template-columns:minmax(125px,.9fr) minmax(210px,1.6fr) minmax(125px,.9fr) auto;padding:18px;gap:14px;}
 body summary.schedule-entry-main::-webkit-details-marker {display:none;}
 body summary.schedule-entry-main :is(strong,span) {color:#c5cfdb;line-height:1.5;}

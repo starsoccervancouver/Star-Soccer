@@ -1,5 +1,5 @@
 /* Shared form handling. Form-service acceptance is distinct from email delivery.
- * No real capacity ledger or server-side catalog enforcement exists on GitHub Pages.
+ * Public ledger counts are informational, with no atomic capacity reservation on GitHub Pages.
  */
 (() => {
   'use strict';
@@ -46,8 +46,8 @@
   });
   function showReceipt(container,receipt) {
     container.hidden=false; container.replaceChildren();
-    const heading=document.createElement('h2');heading.textContent='Registration confirmed';container.append(heading);
-    const lead=document.createElement('p');lead.textContent='Your registration was accepted for the sessions below. Pay by e-transfer or cash. If you have already paid, the coaching team will reconcile it.';container.append(lead);
+    const heading=document.createElement('h2');heading.textContent='Registration received';container.append(heading);
+    const lead=document.createElement('p');lead.textContent='Your registration request was accepted by our form service. The coaching team will confirm a place for the sessions below before payment. If you have already paid, the team will reconcile it.';container.append(lead);
     const dl=document.createElement('dl');dl.className='flow-summary';
     const values=[['Your reference',receipt.reference],['Training',receipt.sessionName],['Dates',receipt.dates.map(T.prettyDate).join('; ')],['Location',receipt.location],['Coaches',receipt.coaches],['Booking',receipt.label],['Booking total',T.money(receipt.price)+' CAD']];
     values.forEach(([label,value])=>{const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;row.append(dt,dd);dl.append(row);});container.append(dl);
@@ -93,7 +93,7 @@
     function updateDate() {
       date.setCustomValidity('');datePreview.replaceChildren();
       if(!date.value) {const li=document.createElement('li');li.textContent='Select a date to review '+(type==='pass4'?'all four sessions.':'your session.');datePreview.append(li);return;}
-      try {T.booking(s.id,type,date.value,s.minAge).dates.forEach(d=>{const li=document.createElement('li');li.textContent=T.prettyDate(d)+' · '+s.time;datePreview.append(li);});}
+      try {T.booking(s.id,type,date.value,s.minAge).dates.forEach(d=>{const li=document.createElement('li');li.dataset.sessionDate=d;li.dataset.sessionId=s.id;li.textContent=T.prettyDate(d)+' · '+s.time;datePreview.append(li);});}
       catch(error) {date.setCustomValidity(error.message);const li=document.createElement('li');li.textContent=error.message;datePreview.append(li);}
     }
     date.addEventListener('change',updateDate);updateDate();button.disabled=false;

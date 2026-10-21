@@ -32,7 +32,7 @@ for name,p in PAGES.items():
         if any('registration.html' in link for _,link in p.links):errors.append(f'{name}: old camp still links to registration')
         if any(tag=='form' for tag,a in p.tags):errors.append(f'{name}: retired camp form still present')
     if 'data-redirect' not in p.path.read_text():
-        for asset in ['site-ux.js','audit-fixes.css']:
+        for asset in ['site-ux.js','site.min.css']:
             if not any(asset in link for _,link in p.links):errors.append(f'{name}: missing shared {asset}')
 catalog=json.loads(subprocess.check_output(['node','-e',"console.log(JSON.stringify(require('./training.js').catalog))"],cwd=ROOT,text=True))
 schedule=PAGES['programs.html'];links=[urlparse(link) for _,link in schedule.links if link.startswith('registration.html?')]

@@ -106,6 +106,26 @@ body .flow-surface,[id="private-form"],[id="sessions"] {scroll-margin-top:110px;
  body::before {display:none;}
 }
 /* Existing hero cards used pale gradients under dark text; pair them explicitly. */
+/* Full-width sections must use the available width, excluding the scrollbar. */
+body.home-landing .home-story-main > section:not(.local-story) {width:100%;margin-inline:0;}
+body .site-header {width:100%;margin-left:0;}
+body :is(.psg-subpage-hero,.sel-cta-section) {width:100%;margin-inline:0;}
+body.home-landing .immersive-hero-overlay {padding:clamp(32px,5vw,64px) clamp(20px,4vw,56px);}
+body.home-landing .immersive-hero-stage {width:100%;max-width:1240px;margin-inline:auto;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:32px;align-items:center;min-height:360px;}
+body.home-landing .immersive-hero h1 {font-size:clamp(2.5rem,4.5vw,4.5rem);max-width:20ch;line-height:1.08;}
+body.home-landing .hero-placeholder-cards {width:100%;align-self:center;}
+body.home-landing .hero-placeholder-card {min-width:0;padding:24px 20px;}
+body.home-landing .hero-placeholder-card h2 {max-width:none;line-height:1.1;}
+body.home-landing .hero-placeholder-card a {min-height:44px;display:inline-flex;align-items:center;}
+body .schedule-next {font-size:.85rem;color:#bad4ed!important;}
+@media(max-width:900px) {
+ body.home-landing .immersive-hero-stage {grid-template-columns:1fr;gap:24px;min-height:0;}
+ body.home-landing .hero-placeholder-cards {max-width:520px;justify-self:start;}
+ body.home-landing .immersive-hero {background-image:linear-gradient(180deg,rgba(8,18,33,.18),rgba(8,18,33,.78)),linear-gradient(90deg,rgba(8,24,58,.28),rgba(119,16,28,.14)),url('https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=800&q=80');}
+ body header .site-nav.mobile-nav-open a {min-height:44px;display:flex;align-items:center;}
+ body .schedule-reset {min-height:44px;}
+}
+@media(max-width:380px) {body.home-landing .hero-placeholder-cards {grid-template-columns:1fr;}}
 body.home-landing .hero-placeholder-card {background:#203b56;color:#c5cfdb;border:1px solid #577693;}
 body.home-landing .hero-placeholder-card h2 {color:#c5cfdb;}
 body.home-landing .hero-placeholder-card :is(.hero-placeholder-kicker,a) {color:#bad4ed;}

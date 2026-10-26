@@ -63,9 +63,8 @@
   });
   const note=document.createElement('div');note.className='count-feed-note';
   const status=document.createElement('p');status.setAttribute('role','status');
-  const refresh=document.createElement('button');refresh.type='button';refresh.className='button button-ghost count-refresh';refresh.textContent='Refresh counts';
   const help=document.createElement('p');help.textContent='20 players maximum per session. Counts include accepted registrations and coach-reported expected players whose contact details may still be pending. Availability is confirmed by the coaching team.';
-  note.append(status,refresh,help);
+  note.append(status,help);
   if(rows.length)rows[rows.length-1].parentElement.after(note);
   else preview.after(note);
   function render() {
@@ -84,7 +83,7 @@
   if(preview)new MutationObserver(render).observe(preview,{childList:true});
   async function update() {
     if(busy)return;
-    busy=true;refresh.disabled=true;
+    busy=true;document.documentElement.dataset.countsState='loading';
     if(!records)status.textContent='Checking ledger counts…';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
     try {
@@ -99,9 +98,8 @@
       records=null;
       status.textContent='Live counts are temporarily unavailable. Capacity is 20 players per session; contact us to check a place.';
       document.documentElement.dataset.countsState='unavailable';
-    } finally {clearTimeout(timer);busy=false;refresh.disabled=false;render();}
+    } finally {clearTimeout(timer);busy=false;render();}
   }
-  refresh.addEventListener('click',update);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)update();});
   setInterval(()=>{if(!document.hidden)update();},60000);
   update();

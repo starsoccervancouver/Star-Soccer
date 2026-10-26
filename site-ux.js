@@ -3,9 +3,9 @@
   'use strict';
   const nav=document.querySelector('#primary-navigation');
   if(nav && !document.querySelector('.mobile-nav-toggle')) {
-    const toggle=document.createElement('button');toggle.type='button';toggle.className='mobile-nav-toggle';toggle.textContent='Menu';toggle.setAttribute('aria-controls',nav.id);toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','Open navigation');
+    const toggle=document.createElement('button');toggle.type='button';toggle.className='mobile-nav-toggle';toggle.textContent='Menu';toggle.setAttribute('aria-controls',nav.id);toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','Open navigation menu');
     nav.before(toggle);nav.closest('header').setAttribute('data-nav-ready','true');
-    const setOpen=(open,focus=false)=>{nav.classList.toggle('mobile-nav-open',open);toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'Close navigation':'Open navigation');toggle.textContent=open?'Close':'Menu';if(focus)toggle.focus();};
+    const setOpen=(open,focus=false)=>{nav.classList.toggle('mobile-nav-open',open);toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'Close navigation menu':'Open navigation menu');toggle.textContent=open?'Close':'Menu';if(focus)toggle.focus();};
     toggle.addEventListener('click',()=>setOpen(toggle.getAttribute('aria-expanded')!=='true'));
     nav.addEventListener('click',event=>{
       const link=event.target.closest('a');
@@ -22,6 +22,10 @@
     document.addEventListener('click',event=>{if(!nav.contains(event.target) && !toggle.contains(event.target))setOpen(false);});
     const media=window.matchMedia('(max-width: 900px)');media.addEventListener('change',()=>setOpen(false));
   }
+  // Header setup runs before the next content is parsed, preventing the
+  // expanded fallback menu from painting and then collapsing on phones.
+  // Session controls still wait until the document is available.
+  function setupSessions() {
   const age=document.querySelector('#schedule-age'),day=document.querySelector('#schedule-day'),locationSelect=document.querySelector('#schedule-location');
   if(age && day && locationSelect) {
     const rows=[...document.querySelectorAll('.schedule-entry')];
@@ -78,4 +82,7 @@
     // A session-specific invitation opens the matching booking choices directly.
     if(day.value!=='all')rows.forEach(row=>{if(row.dataset.sessionDay===day.value&&!row.hidden)row.open=true;});
   }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setupSessions,{once:true});
+  else setupSessions();
 })();

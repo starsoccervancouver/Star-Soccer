@@ -127,7 +127,11 @@
     doc.querySelector('[name="Players"]').value='2';
     const duration=doc.querySelector('[name="Minutes"]');duration.value='120';duration.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
     check(doc.querySelector('#private-estimate').textContent.includes('$80 per player') && doc.querySelector('#private-estimate').textContent.includes('$160 total'),'Private two-hour group quote keeps approved rounding');
-    doc=await load('contact.html');
+    doc=await load('camps.html',320);
+    const campActions=[...doc.querySelectorAll('.camp-status-panel .button')];
+    check(campActions.length===2 && campActions.every(a=>a.getBoundingClientRect().height>=44) && doc.querySelector('.camp-status-panel').textContent.includes('Registration closed'),'Closed camps page gives parents two large actions without opening bookings');
+    doc=await load('contact.html?program=camps#contact-inquiry');
+    check(doc.querySelector('[name="Topic"]').value==='Future camps' && !doc.querySelector('[name="Message"]').value,'Camp inquiry link selects the right topic without writing a message for the parent');
     const contact=doc.querySelector('form');
     contact.elements.namedItem('Name').value='Website Test';contact.elements.namedItem('email').value='test@example.invalid';contact.elements.namedItem('Message').value='Mocked contact test';contact.elements.namedItem('Referral source').value='community';
     let contactData;frame.contentWindow.fetch=async(url,options)=>{contactData=options.body;return {ok:true,json:async()=>({success:true})};};

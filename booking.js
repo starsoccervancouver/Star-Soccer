@@ -177,5 +177,6 @@
     }
     const topic=document.querySelector('[name="Topic"]');
     if(topic && params.get('program')==='selectivo') topic.value='Selectivo updates';
+    if(topic && params.get('program')==='camps') topic.value='Future camps';
   }
 })();

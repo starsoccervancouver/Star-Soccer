@@ -97,6 +97,13 @@
       catch(error) {date.setCustomValidity(error.message);const li=document.createElement('li');li.textContent=error.message;datePreview.append(li);}
     }
     date.addEventListener('change',updateDate);updateDate();button.disabled=false;
+    // An explicit shortcut avoids navigating a date picker on small screens.
+    // Calculate on click so an overnight-open tab never selects yesterday.
+    const nextDate=document.createElement('button');nextDate.type='button';
+    nextDate.className='button button-ghost booking-next-date';
+    nextDate.textContent='Use next '+s.day+' · '+T.prettyDate(T.nextDate(s));
+    nextDate.addEventListener('click',()=>{date.min=T.nextDate(s);date.value=date.min;updateDate();});
+    date.closest('label').after(nextDate);
     form.addEventListener('submit',async event=>{
       event.preventDefault();if(busy) return;
       updateDate();if(!validForm(form)) return;

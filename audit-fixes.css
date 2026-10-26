@@ -65,7 +65,7 @@ body .session-capacity {display:block;font-size:.9rem;font-weight:700;line-heigh
 body .count-feed-note {margin:14px 0 22px;padding:14px 16px;border:1px solid #71869b;border-radius:10px;}
 body .count-feed-note p {font-size:.9rem;line-height:1.65;margin:0 0 10px;}
 body .count-feed-note p:last-child {margin:10px 0 0;}
-body .count-refresh {min-height:44px;}
+body .booking-next-date {min-height:48px;max-width:100%;margin:0 0 18px;white-space:normal;}
 body summary.schedule-entry-main {list-style:none;cursor:pointer;grid-template-columns:minmax(125px,.9fr) minmax(210px,1.6fr) minmax(125px,.9fr) auto;padding:18px;gap:14px;}
 body summary.schedule-entry-main::-webkit-details-marker {display:none;}
 body summary.schedule-entry-main :is(strong,span) {color:#c5cfdb;line-height:1.5;}

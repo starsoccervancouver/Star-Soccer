@@ -98,8 +98,14 @@ body.private-registration .private-price-table thead th { color: #b6cbd9; font-s
 body.private-registration .registration-info-note { margin-top: 8px; padding-top: 16px; }
 body.private-registration .private-info-links { display: grid; gap: 4px; margin: 12px 0 0; }
 body.private-registration .private-info-links a { display: flex; align-items: center; min-height: 44px; font-size: .8rem; }
+body.private-registration .private-training-guide { grid-column: 1 / -1; min-width: 0; }
+body.private-registration .private-training-guide h2 { font: 700 clamp(1.45rem, 2.7vw, 1.9rem)/1.25 Manrope, system-ui, sans-serif; }
+body.private-registration .private-goals-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 24px 0; }
+body.private-registration .private-goals-grid h3 { font: 700 1rem/1.4 Manrope, system-ui, sans-serif; }
+body.private-registration .private-goals-grid p { font-size: .9rem; }
 @media (max-width: 700px) {
   body.private-registration { --seasonal-art: url('autumn-field-800.webp'); }
+  body.private-registration .private-goals-grid { grid-template-columns: 1fr; gap: 8px; }
 }
 @media (max-width: 540px) {
   body.private-registration .quick-panel h1 { font-size: 1.55rem; }

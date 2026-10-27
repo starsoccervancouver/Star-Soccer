@@ -19,6 +19,8 @@
     await doc.fonts.ready;
     await new Promise(resolve=>frame.contentWindow.requestAnimationFrame(()=>frame.contentWindow.requestAnimationFrame(resolve)));
     for(let i=0;i<200 && doc.documentElement.dataset.countsState==='loading';i++)await new Promise(resolve=>setTimeout(resolve,10));
+    const numeric=[...doc.querySelectorAll('input[type="number"]:not([data-native-number])')].filter(el=>el.step!=='any' && !el.closest('.honeypot,[aria-hidden="true"]'));
+    for(let i=0;i<100 && numeric.some(el=>!el.closest('.ss-number-stepper'));i++)await new Promise(resolve=>setTimeout(resolve,10));
     return doc;
   }
   const change=(doc,id,value)=>{const el=doc.getElementById(id);el.value=value;el.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));};
@@ -32,6 +34,20 @@
         check(overflow<=1,`${page} at ${width}px has no horizontal overflow${overflow>1?' ('+overflow+'px; '+oversized+')':''}`);
         const header=doc.querySelector('.site-header').getBoundingClientRect();
         check(Math.abs(header.left)<=1 && Math.abs(header.right-doc.documentElement.clientWidth)<=1,`${page} at ${width}px has navigation across the full screen width`);
+        const numeric=[...doc.querySelectorAll('input[type="number"]:not([data-native-number])')].filter(el=>el.step!=='any' && !el.closest('.honeypot,[aria-hidden="true"]'));
+        if(numeric.length){
+          check(numeric.every(el=>el.closest('.ss-number-stepper') && el.labels.length && !el.closest('label')),`${page} at ${width}px enhances number fields while preserving an associated label`);
+          check(numeric.every(el=>[...el.closest('.ss-number-stepper').querySelectorAll('button')].length===2 && [...el.closest('.ss-number-stepper').querySelectorAll('button')].every(button=>button.type==='button' && button.getAttribute('aria-controls')===el.id && button.getAttribute('aria-label') && button.getBoundingClientRect().width>=44 && button.getBoundingClientRect().height>=44)),`${page} at ${width}px has labelled 44px minus and plus controls that cannot submit the form`);
+        }
+        if(page==='index.html') {
+          const programs=doc.querySelector('.hero-action-programs'),camps=doc.querySelector('.hero-action-camps');
+          check(programs && camps && programs.getAttribute('href')==='programs.html#sessions' && camps.getAttribute('href')==='camps.html',`Homepage at ${width}px keeps the two approved program and camp destinations`);
+          check(programs && camps && [programs,camps].every(el=>el.getClientRects().length && el.getBoundingClientRect().height>=48),`Homepage at ${width}px shows large program and camp actions`);
+          check(camps && ['$200','save $50','$185','save $65','$250','per player'].every(text=>camps.textContent.includes(text)),`Homepage at ${width}px states both winter discounts and the per-player basis`);
+          check(doc.querySelector('h1').textContent.includes('the beautiful game'),`Homepage at ${width}px uses the approved headline`);
+          const copy=doc.querySelector('.immersive-hero-copy').getBoundingClientRect(),actions=doc.querySelector('.hero-action-panel').getBoundingClientRect();
+          check(width>900?actions.left>=copy.right:actions.top>=copy.bottom,`Homepage at ${width}px places choices to the right on desktop and below on mobile`);
+        }
         if(page==='camps.html') {
           const links=[...doc.querySelectorAll('.camp-week-card .winter-camp-cta')];
           check(links.length===2 && links.every(el=>el.getBoundingClientRect().bottom<=740 && el.getBoundingClientRect().height>=48),`Camps at ${width}px shows both registration buttons within the first 740px (${Math.round(links.at(-1).getBoundingClientRect().bottom)}px)`);
@@ -46,12 +62,14 @@
         }
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
-          check(submit.getBoundingClientRect().bottom<=740,`${page} at ${width}px shows the submit button within a 740px phone screen`);
+          // The approved private form and 44px stepper rows stack on narrow phones.
+          const limit=doc.body.classList.contains('private-registration')?950:(width<=420 && numeric.length?850:740);
+          check(submit.getBoundingClientRect().bottom<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
           check([...form.querySelectorAll('[required]')].filter(el=>el.getClientRects().length).length<=4,`${page} starts with at most four essential inputs`);
         }
         if(doc.body.classList.contains('seasonal-registration')){
           const more=doc.querySelector('[data-optional-fields]');
-          check(doc.querySelectorAll('details').length===1 && !more.open && more.querySelector('summary').textContent==='Tell us more (optional)' && more.nextElementSibling.matches('[type="submit"]') && !more.querySelector('[required]'),`${page} at ${width}px has one optional Tell us more directly before registration`);
+          check(doc.querySelectorAll('form details').length===1 && !more.open && more.querySelector('summary').textContent==='Tell us more (optional)' && more.nextElementSibling.matches('[type="submit"]') && !more.querySelector('[required]'),`${page} at ${width}px has one optional Tell us more directly before registration`);
           const panel=doc.querySelector('.quick-panel').getBoundingClientRect(),info=doc.querySelector('.registration-info').getBoundingClientRect();
           check(info.width>0,`${page} at ${width}px shows its information card`);
           if(width>=900)check(panel.width>info.width*1.5 && info.left>=panel.right,`${page} at ${width}px gives the registration form more space beside the info card`);
@@ -80,10 +98,7 @@
           const controls=[...doc.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>el.getClientRects().length && !el.closest('[aria-hidden="true"]'));
           if(controls.length)check(controls.every(el=>parseFloat(frame.contentWindow.getComputedStyle(el).fontSize)>=16),`${page} at ${width}px uses readable 16px form controls`);
           if(page==='index.html') {
-            const action=doc.querySelector('.mobile-hero-actions .button');
-            check(action.getClientRects().length>0 && action.getBoundingClientRect().bottom<800 && action.getBoundingClientRect().height>=48,`Homepage at ${width}px puts a large session button on the first screen`);
             check([...doc.querySelectorAll('.home-contact-column a')].every(el=>el.getBoundingClientRect().height>=44),`Footer links at ${width}px have 44px touch targets`);
-            check([...doc.querySelectorAll('.home-camp-shortcuts a')].length===2 && [...doc.querySelectorAll('.home-camp-shortcuts a')].every(el=>el.getBoundingClientRect().bottom<=740 && el.getBoundingClientRect().height>=48),`Homepage at ${width}px offers direct registration for both camp weeks on the first screen`);
           }
         }
       }
@@ -181,7 +196,15 @@
     doc=await load('program-private-small-group.html?coach=romeo');
     check(doc.querySelector('[name="Preferred coach"]').value==='romeo','Coach preference survives the inquiry link');
     check(doc.querySelector('[name="Referral source"]') && !doc.querySelector('[name="Referral source"]').required,'Private inquiry also offers optional referral source');
-    doc.querySelector('[name="Players"]').value='2';
+    const players=doc.querySelector('[name="Players"]'),stepper=players.closest('.ss-number-stepper');
+    const minus=stepper.querySelector('[data-direction="-1"]'),plus=stepper.querySelector('[data-direction="1"]');
+    let stepperSubmits=0;doc.querySelector('#private-inquiry').addEventListener('submit',()=>stepperSubmits++);
+    check(players.value==='1' && minus.disabled,'Private player control starts at one with decrement disabled');
+    plus.click();
+    check(players.value==='2' && doc.querySelector('#private-estimate').textContent.includes('$45 per player') && doc.querySelector('#private-info-price').textContent==='$45 CAD' && doc.querySelector('#private-info-total').textContent.includes('$90'),'Increasing players updates the actual form calculator and sidebar');
+    minus.click();
+    check(players.value==='1' && minus.disabled && doc.querySelector('#private-info-price').textContent==='$60 CAD' && stepperSubmits===0,'Decreasing players respects the minimum, refreshes the quote and never submits');
+    players.value='2';players.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));
     const duration=doc.querySelector('[name="Minutes"]');duration.value='120';duration.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
     check(doc.querySelector('#private-estimate').textContent.includes('$80 per player') && doc.querySelector('#private-estimate').textContent.includes('$160 total'),'Private two-hour group quote keeps approved rounding');
     const privateForm=doc.querySelector('#private-inquiry');privateForm.elements.namedItem('email').value='test@example.invalid';privateForm.elements.namedItem('Player ages').value='8, 9';
@@ -195,6 +218,15 @@
     check(doc.querySelector('.camp-card-highlight').textContent==='Christmas gift: Christmas Day is free!','Week 1 clearly advertises the free Christmas Day gift');
     doc=await load('christmas-camp-registration.html',320);
     const camp=doc.querySelector('#camp-registration'),campWin=frame.contentWindow;
+    const age=camp.elements.namedItem('Player age'),ageStepper=age.closest('.ss-number-stepper');
+    check(age.value==='' && !age.checkValidity(),'Camp age stays blank and required until the family chooses it');
+    ageStepper.querySelector('[data-direction="1"]').click();
+    check(age.value==='5' && ageStepper.querySelector('[data-direction="-1"]').disabled,'An explicit age increase starts at the approved minimum');
+    age.value='14';age.dispatchEvent(new campWin.Event('input',{bubbles:true}));
+    check(ageStepper.querySelector('[data-direction="1"]').disabled,'Camp age increase disables at the maximum');
+    age.value='15';age.dispatchEvent(new campWin.Event('input',{bubbles:true}));
+    check(!age.checkValidity(),'Direct age entry still enforces the native maximum');
+    age.value='';age.dispatchEvent(new campWin.Event('input',{bubbles:true}));
     check(doc.querySelector('[data-camp-price]').textContent==='$200 CAD' && doc.querySelectorAll('#camp-dates li').length===5,'Christmas package is $200 and includes all five dates');
     check(doc.querySelector('#camp-booking-title').textContent==='Winter Camp — Week 1' && doc.querySelector('[data-camp-standard]').textContent==='$250' && doc.querySelector('[data-camp-saving]').textContent==='$50','Week 1 registration has the numbered camp name and $50 savings');
     const setCamp=(name,value)=>{const el=camp.elements.namedItem(name);el.value=value;el.dispatchEvent(new campWin.Event('change',{bubbles:true}));};

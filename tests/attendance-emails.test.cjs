@@ -68,3 +68,20 @@ test('camp confirmation uses the winter brand and keeps the package details',()=
   assert.match(m.html,/WINTER CAMPS/);assert.match(m.body,/Winter Camp — Week 2|\$185 CAD/);assert.doesNotMatch(m.html,/subject=Re|body=YES/);
   assert.match(m.html,/email-winter-field\.jpg/);assert.match(m.body,/Before camp starts/);
 });
+test('confirmations address the known guardian and child without inventing a missing parent name',()=>{
+ const now=new Date('2026-10-26T19:00:00Z'),C=require('../winter-camps.js');
+ const drop=E.registrationConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Example Player','Example Parent');
+ const pass=E.passConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Example Player',now,false,'Example Parent');
+ const camp=E.campConfirmation(C.quote({week:'boxing',kind:'week',slot:'pm',age:8},now),'SS-CAMP-EXAMPLE123','Example Player','Example Parent');
+ for(const m of [drop,pass,camp]){assert.match(m.body,/^Hi Example Parent,/);assert.match(m.body,/Thank you for registering Example Player/);}
+ assert.match(E.registrationConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Example Player').body,/^Hi Example Player’s family,/);
+ assert.throws(()=>E.registrationConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Example Player','Parent\nBcc: x'));
+});
+test('payment thank-you requires verified receipt, preserves cents and personalizes every listed player',()=>{
+ const args={parentName:'Example Parent',players:['Player One','Player Two'],amountCents:9750,reference:'SS-PAY-EXAMPLE123',confirmedReceived:true};
+ const m=E.paymentThankYou(args);
+ assert.match(m.body,/^Hi Example Parent,/);assert.match(m.body,/Player One and Player Two/);assert.match(m.body,/\$97\.50 CAD/);assert.match(m.html,/email-star-soccer-logo/);
+ assert.doesNotMatch(m.body,/fully paid|balance|^Received:|attendance invitation/im);
+ for(const bad of [{confirmedReceived:false},{amountCents:97.5},{amountCents:0},{reference:'bad'},{receivedDate:'2026-02-30'},{players:['Player','player']}])assert.throws(()=>E.paymentThankYou({...args,...bad}));
+ const escaped=E.paymentThankYou({...args,parentName:'<Parent & Co>'});assert.match(escaped.html,/&lt;Parent &amp; Co&gt;/);assert.ok(!escaped.html.includes('<Parent'));
+});

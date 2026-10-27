@@ -31,9 +31,11 @@
     const rows=[...document.querySelectorAll('.schedule-entry')];
     const restore=(el,value)=>{if([...el.options].some(o=>o.value===value))el.value=value;};
     const controls=[['age',age],['day',day],['location',locationSelect]];
+    const panel=document.querySelector('[data-filter-panel]');
     const restoreFilters=()=>{
       const params=new URLSearchParams(window.location.search);
       controls.forEach(([key,el])=>{el.value='all';restore(el,params.get(key));});
+      if(panel)panel.open=controls.some(([,el])=>el.value!=='all');
     };
     restoreFilters();
     const update=(save=false)=>{
@@ -78,7 +80,9 @@
       });
       actions.append(copy);row.querySelector('.schedule-booking-options').append(feedback,manual);
     });
-    document.querySelector('[data-filter-controls]').hidden=false;update();
+    document.querySelector('[data-filter-controls]').hidden=false;
+    if(panel)panel.hidden=false;
+    update();
     // A session-specific invitation opens the matching booking choices directly.
     if(day.value!=='all')rows.forEach(row=>{if(row.dataset.sessionDay===day.value&&!row.hidden)row.open=true;});
   }

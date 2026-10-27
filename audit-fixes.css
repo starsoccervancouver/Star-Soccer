@@ -79,13 +79,13 @@ body.winter-camps-page {--seasonal-art:url('winter-training-1600.webp');}
 body:is(.fall-programs-page,.winter-camps-page) .subpage-main {position:relative;isolation:isolate;background:#061326;}
 /* Carry the same field photography through the content, with dark reading surfaces. */
 body:is(.fall-programs-page,.winter-camps-page) .subpage-main::before {content:"";position:absolute;inset:300px 0 0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#061326 10%,rgba(6,19,38,.68) 25%,rgba(6,19,38,.8) 75%,#061326),var(--seasonal-art) center/cover no-repeat;}
-body .fall-program-hero {position:relative;isolation:isolate;min-height:440px;display:flex;align-items:center;background:#061326;overflow:hidden;}
+body .fall-program-hero {position:relative;isolation:isolate;min-height:240px;display:flex;align-items:center;background:#061326;overflow:hidden;}
 body .fall-hero-art {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-2;}
 body .fall-program-hero::after {content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,#061326,rgba(6,19,38,.8) 12%,transparent 48%),linear-gradient(90deg,rgba(4,14,22,.88),rgba(4,14,22,.42) 48%,rgba(4,14,22,.05));}
-body .fall-hero-copy {width:min(1040px,calc(100% - 48px));margin:0 auto;padding:46px 0 64px;}
+body .fall-hero-copy {width:min(1040px,calc(100% - 48px));margin:0 auto;padding:24px 0 32px;}
 body .fall-hero-copy .eyebrow {color:#f1c29e;font-weight:700;letter-spacing:.12em;margin:0 0 14px;}
-body .fall-hero-copy h1 {font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,7vw,6rem);font-weight:400;line-height:.92;max-width:8ch;margin:0 0 14px;color:#fff2df;}
-body .fall-hero-copy h1 span {display:block;color:#efa977;}
+body .fall-hero-copy h1 {font-family:'Bebas Neue',sans-serif;font-size:clamp(2.8rem,5vw,4rem);font-weight:400;line-height:.92;max-width:none;margin:0 0 14px;color:#fff2df;}
+body .fall-hero-copy h1 span {display:inline;color:#efa977;}
 body .fall-hero-tagline {font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:clamp(1.7rem,3vw,2.3rem);line-height:1.15;color:#fff2df;margin:0 0 10px;}
 body .fall-hero-lead {color:#f4e9df;font-size:1rem;line-height:1.6;margin:0 0 22px;}
 body.fall-programs-page .flow-surface {width:min(1040px,calc(100% - 32px));}
@@ -95,27 +95,22 @@ body.fall-programs-page .schedule-entry {border-color:#6e777d;}
 body.fall-programs-page .schedule-entry[open] {border-color:#c49370;}
 /* Winter camps share the approved site navigation and accessible booking surfaces. */
 body.winter-camps-page .page-shell {width:100%;}
-body .winter-camp-hero {position:relative;isolation:isolate;min-height:400px;display:flex;align-items:center;background:#061326;overflow:hidden;}
+body .winter-camp-hero {position:relative;isolation:isolate;min-height:150px;display:flex;align-items:center;background:#061326;overflow:hidden;}
 body .winter-hero-art {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;}
 body .winter-camp-hero::after {content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,#061326,rgba(6,19,38,.8) 12%,transparent 48%),linear-gradient(90deg,#04131ef0,#04131e66 55%,#04131e11);}
-body .winter-hero-copy {width:min(1040px,calc(100% - 48px));margin:auto;padding:46px 0 64px;}
-body .winter-hero-copy .eyebrow {color:#b2e3f6;font-weight:700;}
-body .winter-hero-copy h1 {font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:clamp(3.6rem,6vw,5.5rem);line-height:.98;margin:12px 0 20px;color:#edf7ff;}
+body .winter-hero-copy {width:min(1040px,calc(100% - 48px));margin:auto;padding:24px 0 32px;}
+body .winter-hero-copy .eyebrow {color:#b2e3f6;font-weight:700;margin:0;}
+body .winter-hero-copy h1 {font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:clamp(2.2rem,4vw,3.5rem);line-height:1;margin:8px 0 0;color:#edf7ff;}
 body .winter-hero-copy h1 span {color:#b2e3f6;}
 body .winter-hero-copy>p:not(.eyebrow) {max-width:40ch;font-size:1.05rem;line-height:1.6;color:#edf7ff;}
 body .winter-camp-cta,body .flow-surface .winter-camp-cta {min-height:48px;background:#f0cb80;color:#102031;border-color:#f0cb80;box-shadow:none;gap:12px;}
 body .winter-camp-cta:hover,body .flow-surface .winter-camp-cta:hover {background:#f6d99f;color:#102031;}
 body.winter-camps-page .flow-surface {width:min(1040px,calc(100% - 32px));}
 body.camp-registration-page .flow-hero {width:min(1040px,calc(100% - 32px));}
-body .camp-overview {position:relative;z-index:1;margin-top:-12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;border-color:#415b70;background:linear-gradient(180deg,#102438,#152b42 180px);}
-body .camp-overview div {display:grid;gap:6px;}
-body .camp-overview strong {font-size:1.1rem;}
-body .camp-overview span {font-size:.85rem;line-height:1.6;}
-body .camp-overview>p {grid-column:1/-1;margin:0;}
 body .camp-week-grid {width:min(1040px,calc(100% - 32px));margin:0 auto 24px;display:grid;grid-template-columns:1fr 1fr;gap:22px;scroll-margin-top:110px;}
 body.winter-camps-page .camp-week-grid .flow-surface {width:100%;margin:0;display:flex;flex-direction:column;}
-body .camp-week-card .flow-actions {margin-top:auto;}
-body .camp-week-card {position:relative;isolation:isolate;overflow:hidden;border-color:#486878;background:linear-gradient(135deg,#102438f2,#102438d6);}
+body .camp-week-card .flow-actions {margin:12px 0 4px;}
+body .camp-week-card {padding:20px;position:relative;isolation:isolate;overflow:hidden;border-color:#486878;background:linear-gradient(135deg,#102438f2,#102438d6);}
 body .camp-week-card::before {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#10243833,#102438dd),var(--seasonal-art) var(--camp-crop,25%) center/cover no-repeat;opacity:.36;}
 body .camp-week-sale {--camp-crop:85%;border-color:#c49d59;background:linear-gradient(135deg,#132c3cf2,#132438d6);}
 body .camp-sale-label {display:inline-flex;align-self:flex-start;padding:7px 12px;margin:0 0 18px!important;border:1px solid #d5b16c;border-radius:6px;background:#f0cb80;color:#102031!important;font-size:.76rem;font-weight:800;letter-spacing:.09em;line-height:1.4;text-transform:uppercase;}
@@ -124,9 +119,9 @@ body .seasonal-feature {position:relative;isolation:isolate;overflow:hidden;back
 body .seasonal-feature::before {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--seasonal-art) 80% 60%/cover no-repeat;opacity:.36;}
 body.fall-programs-page .seasonal-feature {border-color:#8f7765;background:linear-gradient(90deg,#14283af7,#14283ad9 62%,#14283aad);}
 body .camp-week-card h2,body .hero-placeholder-card h2 {font:700 1.5rem/1.3 'Manrope',sans-serif;}
-body .camp-package-price {font-size:2.3rem;font-weight:800;line-height:1.3;}
+body .camp-package-price {font-size:2rem;font-weight:800;line-height:1.1;text-align:right;white-space:nowrap;}
 body .camp-package-price span {display:block;font-size:.84rem;font-weight:500;}
-body .camp-week-card ul {padding-left:20px;line-height:1.75;margin:0 0 22px;}
+body .camp-week-card ul {padding-left:20px;line-height:1.6;margin:12px 0;}
 body .camp-practical-grid,body .camp-booking-grid {display:grid;grid-template-columns:1fr 1fr;gap:28px;}
 body .camp-booking-grid {grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);align-items:start;}
 body .camp-quote {border:1px solid #7894ad;border-radius:12px;padding:22px;background:#10243a;min-width:0;}
@@ -140,10 +135,9 @@ body .camp-receipt-details {white-space:pre-wrap;overflow-wrap:anywhere;font:inh
  body.fall-programs-page {--seasonal-art:url('autumn-training-800.webp');}
  body.winter-camps-page {--seasonal-art:url('winter-training-800.webp');}
  body .camp-week-grid,body .camp-practical-grid,body .camp-booking-grid {grid-template-columns:1fr;}
- body .camp-overview {grid-template-columns:1fr;gap:16px;}
- body .winter-camp-hero {min-height:340px;}
- body .winter-hero-copy {width:calc(100% - 40px);padding:28px 0 52px;}
- body .winter-hero-copy h1 {font-size:3.4rem;}
+ body .winter-camp-hero {min-height:112px;}
+ body .winter-hero-copy {width:calc(100% - 32px);padding:20px 0 24px;}
+ body .winter-hero-copy h1 {font-size:2.2rem;}
  body .winter-hero-art {object-position:75% center;}
  body .winter-camp-hero::after {background:linear-gradient(0deg,#061326,rgba(6,19,38,.8) 12%,transparent 48%),linear-gradient(90deg,#04131eed,#04131e99 65%,#04131e55);}
  body .winter-hero-copy .eyebrow {font-size:.65rem;}
@@ -152,14 +146,14 @@ body .camp-receipt-details {white-space:pre-wrap;overflow-wrap:anywhere;font:inh
 }
 @media print {body.winter-camps-page [data-camp-marketing],body.winter-camps-page form,body.winter-camps-page .camp-booking-intro,body.winter-camps-page #camp-quote {display:none!important;}}
 @media(max-width:600px) {
- body .fall-program-hero {min-height:350px;}
+ body .fall-program-hero {min-height:120px;}
  body .fall-hero-art {object-position:72% center;}
  body .fall-program-hero::after {background:linear-gradient(0deg,#061326,rgba(6,19,38,.8) 12%,transparent 48%),linear-gradient(90deg,rgba(4,14,22,.9),rgba(4,14,22,.64) 62%,rgba(4,14,22,.28));}
- body .fall-hero-copy {width:calc(100% - 40px);padding:28px 0 52px;}
+ body .fall-hero-copy {width:calc(100% - 40px);padding:20px 0 24px;}
  body .fall-hero-copy .eyebrow {font-size:.65rem;letter-spacing:.09em;margin-bottom:12px;}
- body .fall-hero-copy h1 {font-size:3.25rem;margin-bottom:12px;}
- body .fall-hero-tagline {font-size:1.65rem;}
- body .fall-hero-lead {font-size:.9rem;margin-bottom:18px;}
+ body .fall-hero-copy h1 {font-size:2rem;margin:0;}
+ body .fall-hero-tagline,body .fall-hero-lead {display:none;}
+ body.fall-programs-page #session-finder-title {font-size:1.7rem;}
 }
 body summary.schedule-entry-main {list-style:none;cursor:pointer;grid-template-columns:minmax(125px,.9fr) minmax(210px,1.6fr) minmax(125px,.9fr) auto;padding:18px;gap:14px;}
 body summary.schedule-entry-main::-webkit-details-marker {display:none;}
@@ -278,4 +272,33 @@ body.home-landing .hero-placeholder-card::before {opacity:.18;}
  body.home-page .home-site-nav {padding-inline:20px;gap:clamp(10px,1.4vw,20px);justify-content:space-evenly;min-width:0;}
  body.home-page .home-site-nav a {font-size:1rem;white-space:nowrap;letter-spacing:.035em;flex:0 1 auto;padding:12px 5px;}
  body.home-page .home-header-grid {grid-template-columns:240px minmax(0,1fr) minmax(0,1fr);}
+}
+
+/* Put the decision and registration together; expand secondary details on demand. */
+body .camp-card-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;}
+body .camp-card-heading h2 {margin:0;max-width:12ch;}
+body .camp-card-heading .camp-package-price {margin:0;line-height:1.1;}
+body .camp-card-heading .camp-package-price span {font-size:.72rem;margin-top:4px;}
+body .camp-week-card .camp-card-dates {margin:10px 0 6px;font-size:.88rem;}
+body .camp-week-card .camp-card-times {margin:0;font-size:.88rem;font-weight:700;}
+body .camp-card-times span {font-weight:400;color:#c1d3df;}
+body .camp-week-card .camp-card-highlight {margin:6px 0 0;font-size:.84rem;color:#f3d699;}
+body .camp-card-details {border-top:1px solid #61788a;margin-top:8px;font-size:.9rem;}
+body .camp-card-details summary,body .schedule-filter-panel summary {cursor:pointer;min-height:44px;align-content:center;font-weight:700;}
+body .camp-card-details p {font-size:.9rem;line-height:1.6;}
+body .schedule-filter-panel {margin:12px 0;border-block:1px solid #61788a;}
+body .schedule-filter-panel .schedule-controls {margin:8px 0 16px;}
+body .home-camp-shortcuts {display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+body .home-camp-shortcuts a {display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px;border:1px solid #f0cb80;border-radius:6px;color:#f3d699;font:700 .85rem/1.4 'Manrope',sans-serif;text-align:center;}
+@media(max-width:700px) {
+ body .camp-week-grid {gap:12px;}
+ body .camp-week-card {padding:14px;}
+ body .camp-card-heading h2 {font-size:1.2rem;}
+ body .camp-package-price {font-size:1.7rem;}
+ body .camp-week-card .flow-actions .button {padding:10px 8px;font-size:.9rem;}
+}
+@media(max-width:600px) {
+ body summary.schedule-entry-main {grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+ body summary.schedule-entry-main>span {min-width:0;}
+ body summary.schedule-entry-main .schedule-expand {justify-self:end;}
 }

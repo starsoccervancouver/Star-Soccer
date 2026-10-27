@@ -32,6 +32,11 @@
         check(overflow<=1,`${page} at ${width}px has no horizontal overflow${overflow>1?' ('+overflow+'px; '+oversized+')':''}`);
         const header=doc.querySelector('.site-header').getBoundingClientRect();
         check(Math.abs(header.left)<=1 && Math.abs(header.right-doc.documentElement.clientWidth)<=1,`${page} at ${width}px has navigation across the full screen width`);
+        if(page==='camps.html') {
+          const links=[...doc.querySelectorAll('.camp-week-card .winter-camp-cta')];
+          check(links.length===2 && links.every(el=>el.getBoundingClientRect().bottom<=740 && el.getBoundingClientRect().height>=48),`Camps at ${width}px shows both registration buttons within the first 740px`);
+          check(!doc.querySelector('.camp-overview') && [...doc.querySelectorAll('.camp-card-details')].every(el=>el.textContent.includes('20 players') && el.textContent.includes('noon–12:30')),`Camp cards at ${width}px include capacity and supervised lunch details`);
+        }
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
           check(submit.getBoundingClientRect().bottom<=740,`${page} at ${width}px shows the submit button within a 740px phone screen`);
@@ -44,11 +49,18 @@
             const action=doc.querySelector('.mobile-hero-actions .button');
             check(action.getClientRects().length>0 && action.getBoundingClientRect().bottom<800 && action.getBoundingClientRect().height>=48,`Homepage at ${width}px puts a large session button on the first screen`);
             check([...doc.querySelectorAll('.home-contact-column a')].every(el=>el.getBoundingClientRect().height>=44),`Footer links at ${width}px have 44px touch targets`);
+            check([...doc.querySelectorAll('.home-camp-shortcuts a')].length===2 && [...doc.querySelectorAll('.home-camp-shortcuts a')].every(el=>el.getBoundingClientRect().bottom<=740 && el.getBoundingClientRect().height>=48),`Homepage at ${width}px offers direct registration for both camp weeks on the first screen`);
           }
         }
       }
     }
-    let doc=await load('programs.html',320);
+    let doc=await load('camps.html',320);
+    for(const details of doc.querySelectorAll('.camp-card-details'))details.querySelector('summary').click();
+    check([...doc.querySelectorAll('.camp-card-details')].every(el=>el.open && el.querySelector('ul').getClientRects().length) && doc.documentElement.scrollWidth<=321,'Both camp detail disclosures open without overflow at 320px');
+    doc=await load('programs.html',320);
+    check(!doc.querySelector('[data-filter-panel]').open && doc.querySelector('.schedule-entry-main').getBoundingClientRect().bottom<=740,'Training starts with visible sessions and expandable optional filters ('+Math.round(doc.querySelector('.schedule-entry-main').getBoundingClientRect().bottom)+'px)');
+    doc.querySelector('[data-filter-panel] summary').click();
+    check(doc.querySelector('#schedule-age').getClientRects().length>0,'Training filter disclosure exposes working controls');
     check(doc.querySelector('[data-session-day="friday"] .session-capacity').textContent==='3/20 players · 17 places remaining','Schedule shows the dated ledger count');
     check(doc.querySelector('[data-session-day="thursday"] .session-capacity').textContent==='0/20 players · 20 places remaining','Recorded zero is shown as zero');
     check(!doc.querySelector('.count-refresh') && doc.documentElement.dataset.countsState==='ready','Counts load automatically without a refresh button');
@@ -69,6 +81,7 @@
     await new Promise(resolve=>frame.contentWindow.requestAnimationFrame(resolve));
     check([...doc.querySelectorAll('#booking-dates .session-capacity')].every(el=>el.textContent==='Capacity 20 · Count unavailable'),'Dates outside the ledger window show unavailable counts');
     doc=await load('programs.html?age=14&day=sunday&source=test#sessions');
+    check(doc.querySelector('[data-filter-panel]').open,'Shared filtered links open the filter controls automatically');
     check(!doc.querySelector('#schedule-empty').hidden,'Incompatible age/day shows empty state');
     doc.querySelector('#schedule-reset').click();
     check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===4,'Clear filters restores every session');

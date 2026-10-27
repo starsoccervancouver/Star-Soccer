@@ -14,6 +14,7 @@ body .home-page .home-site-nav,body .home-site-nav {gap:clamp(12px,2vw,24px);}
 body .home-site-nav a {letter-spacing:.035em;}
 body .home-site-nav a[aria-current="page"] {text-decoration:underline;text-underline-offset:6px;}
 body .header-program-cta {background:#356da6!important;color:#e1e8ef!important;min-height:44px;padding:10px 14px!important;}
+body :is(.button,button,select,option,.hero-placeholder-card a,.home-coach-book-link,.home-camps-cta-button) {font-family:'Manrope',system-ui,sans-serif;font-size:1rem;font-weight:700;line-height:1.5;letter-spacing:0;text-transform:none;}
 body .flow-hero {padding:40px 0 24px;max-width:1040px;margin:auto;}
 body .flow-hero h1 {font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,5vw,4.2rem);font-weight:400;line-height:1.08;margin:8px 0;color:var(--flow-text);}
 body .flow-intro {max-width:1040px;margin:0 auto 28px;color:var(--flow-muted);}
@@ -73,7 +74,11 @@ body #contact-inquiry {scroll-margin-top:116px;}
 /* Approved autumn programs design; session data remains in the shared catalog. */
 body.fall-programs-page .page-shell {width:100%;}
 body.fall-programs-page .subpage-main {padding-top:0;}
-body:is(.fall-programs-page,.winter-camps-page) .subpage-main {background:#061326;}
+body.fall-programs-page {--seasonal-art:url('autumn-training-1600.webp');}
+body.winter-camps-page {--seasonal-art:url('winter-training-1600.webp');}
+body:is(.fall-programs-page,.winter-camps-page) .subpage-main {position:relative;isolation:isolate;background:#061326;}
+/* Carry the same field photography through the content, with dark reading surfaces. */
+body:is(.fall-programs-page,.winter-camps-page) .subpage-main::before {content:"";position:absolute;inset:300px 0 0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#061326 10%,rgba(6,19,38,.68) 25%,rgba(6,19,38,.8) 75%,#061326),var(--seasonal-art) center/cover no-repeat;}
 body .fall-program-hero {position:relative;isolation:isolate;min-height:440px;display:flex;align-items:center;background:#061326;overflow:hidden;}
 body .fall-hero-art {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-2;}
 body .fall-program-hero::after {content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,#061326,rgba(6,19,38,.8) 12%,transparent 48%),linear-gradient(90deg,rgba(4,14,22,.88),rgba(4,14,22,.42) 48%,rgba(4,14,22,.05));}
@@ -84,7 +89,7 @@ body .fall-hero-copy h1 span {display:block;color:#efa977;}
 body .fall-hero-tagline {font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:clamp(1.7rem,3vw,2.3rem);line-height:1.15;color:#fff2df;margin:0 0 10px;}
 body .fall-hero-lead {color:#f4e9df;font-size:1rem;line-height:1.6;margin:0 0 22px;}
 body.fall-programs-page .flow-surface {width:min(1040px,calc(100% - 32px));}
-body.fall-programs-page #sessions {position:relative;z-index:1;margin-top:-12px;border-color:#415b70;background:linear-gradient(180deg,#102438,#152b42 180px);}
+body.fall-programs-page #sessions {position:relative;z-index:1;margin-top:-12px;border-color:#6f6259;background:linear-gradient(180deg,#102438f5,#152b42e8 180px);}
 body.fall-programs-page #session-finder-title {font-size:2rem;margin-bottom:12px;}
 body.fall-programs-page .schedule-entry {border-color:#6e777d;}
 body.fall-programs-page .schedule-entry[open] {border-color:#c49370;}
@@ -110,6 +115,15 @@ body .camp-overview>p {grid-column:1/-1;margin:0;}
 body .camp-week-grid {width:min(1040px,calc(100% - 32px));margin:0 auto 24px;display:grid;grid-template-columns:1fr 1fr;gap:22px;scroll-margin-top:110px;}
 body.winter-camps-page .camp-week-grid .flow-surface {width:100%;margin:0;display:flex;flex-direction:column;}
 body .camp-week-card .flow-actions {margin-top:auto;}
+body .camp-week-card {position:relative;isolation:isolate;overflow:hidden;border-color:#486878;background:linear-gradient(135deg,#102438f2,#102438d6);}
+body .camp-week-card::before {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,#10243833,#102438dd),var(--seasonal-art) var(--camp-crop,25%) center/cover no-repeat;opacity:.36;}
+body .camp-week-sale {--camp-crop:85%;border-color:#c49d59;background:linear-gradient(135deg,#132c3cf2,#132438d6);}
+body .camp-sale-label {display:inline-flex;align-self:flex-start;padding:7px 12px;margin:0 0 18px!important;border:1px solid #d5b16c;border-radius:6px;background:#f0cb80;color:#102031!important;font-size:.76rem;font-weight:800;letter-spacing:.09em;line-height:1.4;text-transform:uppercase;}
+body .camp-week-sale .camp-package-price {color:#f3d699;}
+body .seasonal-feature {position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(90deg,#102438f7,#102438d9 62%,#102438ad);border-color:#597687;}
+body .seasonal-feature::before {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--seasonal-art) 80% 60%/cover no-repeat;opacity:.36;}
+body.fall-programs-page .seasonal-feature {border-color:#8f7765;background:linear-gradient(90deg,#14283af7,#14283ad9 62%,#14283aad);}
+body .camp-week-card h2 {font:700 1.5rem/1.3 'Manrope',sans-serif;}
 body .camp-package-price {font-size:2.3rem;font-weight:800;line-height:1.3;}
 body .camp-package-price span {display:block;font-size:.84rem;font-weight:500;}
 body .camp-week-card ul {padding-left:20px;line-height:1.75;margin:0 0 22px;}
@@ -123,6 +137,8 @@ body #camp-booking {scroll-margin-top:110px;}
 body .camp-receipt-details {white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.75;}
 @media(min-width:901px) {body.home-page .home-site-nav {gap:clamp(4px,.8vw,16px);padding-inline:clamp(12px,2vw,32px);}}
 @media(max-width:700px) {
+ body.fall-programs-page {--seasonal-art:url('autumn-training-800.webp');}
+ body.winter-camps-page {--seasonal-art:url('winter-training-800.webp');}
  body .camp-week-grid,body .camp-practical-grid,body .camp-booking-grid {grid-template-columns:1fr;}
  body .camp-overview {grid-template-columns:1fr;gap:16px;}
  body .winter-camp-hero {min-height:340px;}

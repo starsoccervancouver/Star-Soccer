@@ -29,3 +29,11 @@ body.quick-flow .quick-back a{display:inline-flex;align-items:center;min-height:
 body.quick-flow .quick-extras .date-list{margin:0}
 @media(max-width:540px){body.quick-flow .quick-shell{width:calc(100% - 24px);margin:12px auto 24px}body.quick-flow .quick-panel{padding:16px}body.quick-flow .quick-context{font-size:.82rem}body.quick-flow .quick-session-row{grid-template-columns:minmax(0,1fr) 95px}body.quick-flow .quick-total strong{font-size:1.05rem}body.quick-flow .quick-date-row{gap:8px}body.quick-flow .quick-date-row .booking-next-date{padding-inline:10px;font-size:.82rem}}
 @media(max-width:350px){body.quick-flow .quick-session-row{grid-template-columns:1fr}body.quick-flow .quick-session-row .quick-total small{display:inline;margin-left:6px}body.quick-flow .quick-session-row .quick-total{padding:0}body.quick-flow .quick-player-row{grid-template-columns:minmax(0,1fr) 76px;gap:8px}}
+
+body.quick-flow .quick-pass-summary{margin:0 0 12px;padding:10px 12px;border:1px solid #617d95;border-radius:8px;background:#0d2137;font-size:.85rem;line-height:1.5}
+body.quick-flow .quick-pass-summary>strong{color:#f0cb80}
+body.quick-flow .quick-pass-summary p{margin:4px 0 0;font-size:.8rem;line-height:1.5}
+
+body.quick-flow .pass-start-label{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 10px;margin-top:6px}
+body.quick-flow .pass-start-label small{font-size:.72rem}
+body.quick-flow .pass-start-label input{grid-column:1/-1;margin:0;min-height:44px;color-scheme:dark}

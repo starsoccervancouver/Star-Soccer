@@ -42,7 +42,7 @@
       let visible=0;
       rows.forEach(row=>{
         const matches=(age.value==='all'||(Number(age.value)>=Number(row.dataset.minAge)&&Number(age.value)<=Number(row.dataset.maxAge)))&&(day.value==='all'||day.value===row.dataset.sessionDay)&&(locationSelect.value==='all'||locationSelect.value===row.dataset.sessionLocation);
-        row.hidden=!matches;if(!matches)row.open=false;else visible++;
+        row.hidden=!matches;if(matches)visible++;
       });
       document.querySelector('#schedule-results').textContent=`Showing ${visible} of ${rows.length} ${rows.length===1?'session':'sessions'}`;
       document.querySelector('#schedule-empty').hidden=visible!==0;
@@ -63,28 +63,11 @@
       if(!date)return;
       const next=document.createElement('span');next.className='schedule-next';next.textContent='Next: '+T.prettyDate(date);
       row.querySelector('.schedule-day').append(next);
-      const actions=row.querySelector('.flow-actions');
-      const copy=document.createElement('button');copy.type='button';copy.className='button button-ghost session-share';copy.textContent='Copy session link';copy.setAttribute('aria-label','Copy '+session.day+' session link');
-      const feedback=document.createElement('p');feedback.className='share-feedback';feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');feedback.hidden=true;
-      const manual=document.createElement('label');manual.className='session-share-manual';manual.hidden=true;manual.textContent='Session link — select and copy';
-      const input=document.createElement('input');input.type='url';input.readOnly=true;input.value=T.sessionLink(session.id);manual.append(input);
-      copy.addEventListener('click',async()=>{
-        feedback.hidden=false;
-        try {
-          if(!navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');
-          await navigator.clipboard.writeText(input.value);
-          manual.hidden=true;feedback.textContent=session.day+' session link copied. Share it with a family looking for this age group.';
-        } catch {
-          manual.hidden=false;feedback.textContent='Select and copy the session link below.';input.focus();input.select();
-        }
-      });
-      actions.append(copy);row.querySelector('.schedule-booking-options').append(feedback,manual);
+
     });
     document.querySelector('[data-filter-controls]').hidden=false;
     if(panel)panel.hidden=false;
     update();
-    // A session-specific invitation opens the matching booking choices directly.
-    if(day.value!=='all')rows.forEach(row=>{if(row.dataset.sessionDay===day.value&&!row.hidden)row.open=true;});
   }
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setupSessions,{once:true});

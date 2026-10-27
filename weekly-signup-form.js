@@ -82,7 +82,7 @@
       if(!T.accepted(response,body))throw new Error('Your registration wasn’t accepted.');
       form.hidden=true;feedback.hidden=true;passSummary.hidden=true;receipt.hidden=false;receipt.replaceChildren();
       const heading=document.createElement('h2');heading.textContent='Thanks — registration received';
-      const message=document.createElement('p');message.textContent=pass?'Look out for your pass confirmation with all four dates, payment instructions and a way to change your start. If any session is full, we’ll email you about availability.':'Look out for your registration email and next-session attendance question. Romeo will follow up about payment. If the group is full, we’ll email you about the waitlist.';
+      const message=document.createElement('p');message.textContent=pass?'Look out for your pass confirmation with all four dates and payment instructions. If any session is full, we’ll follow up about availability.':'Look out for your registration confirmation and calendar invitation to RSVP for the next session. Romeo will follow up about payment. If the group is full, we’ll follow up about availability.';
       const ref=document.createElement('p');ref.textContent='Your reference: '+reference;
       const back=document.createElement('a');back.href='programs.html#sessions';back.className='flow-text-link';back.textContent='Back to weekly training';
       receipt.append(heading,message);

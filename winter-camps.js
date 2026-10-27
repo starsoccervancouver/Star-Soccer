@@ -28,8 +28,9 @@
     name=String(name||'').trim();
     if(q.kind!=='week'||!getWeek(q.week)||!/^SS-CAMP-[A-Z0-9-]{6,40}$/.test(reference)||!name||name.length>100||/[\r\n\x00-\x1f]/.test(name))throw new Error('Invalid camp confirmation.');
     return {subject:'Star Soccer camp registration confirmed | '+q.weekName+' | '+reference,body:[
-      'You’re registered! '+name+' is on the list for '+q.weekName+'.',
-      '',q.label,q.dates.map(T.prettyDate).join('; '),q.time+' · Kitsilano Turf · Vancouver time',
+      'Thank you, '+name+' — you’re registered!',
+      '', 'Your camp:\n'+q.weekName+'\n'+q.label+'\n'+q.time+'\nKitsilano Turf · Vancouver time',
+      '', 'Your dates:\n'+q.dates.map(T.prettyDate).join('\n'),
       q.lunch?'Supervised lunch is included from noon–12:30. Bring a packed lunch.':'',
       '', 'Package price: '+T.money(q.price)+' CAD per player. No payment is needed to register; Romeo will follow up about payment.',
       q.week==='christmas'?'Christmas Friday is free — our gift to you.':'Your package includes the Boxing Week Sale.',

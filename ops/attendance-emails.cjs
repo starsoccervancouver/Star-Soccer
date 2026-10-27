@@ -17,46 +17,52 @@ function reminderKey(familyId,sessionId,date){
   if(!/^rec[A-Za-z0-9]{14}$/.test(familyId)||!T.getSession(sessionId)||!T.isoDate(date))throw new Error('Invalid reminder identity.');
   return 'SS-RSVP-'+crypto.createHash('sha256').update([familyId,sessionId,date].join('|')).digest('hex').slice(0,20).toUpperCase();
 }
-function replyLinks(subject){
-  const link=answer=>'mailto:'+T.catalog.email+'?subject='+encodeURIComponent('Re: '+subject)+'&body='+answer;
-  return {yes:link('YES'),no:link('NO')};
+function approvedCalendarUrl(value){
+  if(value===null||value===undefined)return null;
+  const u=new URL(value);
+  if(u.protocol!=='https:'||!['calendar.google.com','www.google.com'].includes(u.hostname)||!u.pathname.startsWith('/calendar/')||u.username||u.password||!u.searchParams.get('eid'))throw new Error('Use the actual private Google Calendar event link returned by Calendar.');
+  return u.href;
 }
-function render(message,{title,inquiry=false}={}){
-  const links=replyLinks(message.subject);
-  let inserted=false;
-  const paragraphs=message.body.split('\n\n').map(part=>{
-    const lines=part.split('\n').filter(line=>line!=='Star Soccer'&&line!==T.catalog.email&&!line.startsWith('Reference: '));
+function render(message,{title,theme='autumn',calendarUrl=null,kicker='Registration confirmed'}={}){
+  calendarUrl=approvedCalendarUrl(calendarUrl);
+  const accent=theme==='winter'?'#b7e4f3':'#edbf91';
+  let body=message.body;
+  if(calendarUrl&&body.includes('Attendance:\n'))body=body.replace(/(Attendance:[\s\S]*?)(?=\n\n|$)/,'$1\nOpen your invitation: '+calendarUrl);
+  const blocks=body.split('\n\n').map(part=>{
+    const lines=part.split('\n').filter(line=>line!=='Star Soccer'&&line!==T.catalog.email&&!line.startsWith('Reference: ')&&!line.startsWith('Open your invitation: '));
     if(!lines.length)return '';
-    let html='<p style="margin:0 0 18px;font-size:16px;line-height:1.6;color:#223449">'+lines.map(escape).join('<br>')+'</p>';
-    if(inquiry&&!inserted&&part.includes('Reply YES')){
-      inserted=true;
-      html+='<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:4px 0 10px"><tr><td width="50%" style="padding:0 5px 0 0"><a href="'+escape(links.yes)+'" style="display:block;background:#235ecb;color:#fff;text-decoration:none;text-align:center;font:700 16px/48px Arial,sans-serif;border-radius:8px">YES, coming</a></td><td width="50%" style="padding:0 0 0 5px"><a href="'+escape(links.no)+'" style="display:block;background:#e7edf5;color:#19334d;text-decoration:none;text-align:center;font:700 16px/48px Arial,sans-serif;border-radius:8px">NO, can’t go</a></td></tr></table><p style="margin:0 0 22px;font-size:12px;line-height:1.5;color:#516579">Buttons open an email reply. Tap Send to return your answer, or simply reply YES or NO.</p>';
+    if(/^(Next session:|Your pass:|Your camp:)/.test(part))return '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 20px;background:#eef3f7;border-left:3px solid '+accent+'"><tr><td style="padding:16px 18px;font-size:16px;line-height:1.65;color:#18344e"><strong>'+lines.slice(1).map(escape).join('<br>')+'</strong></td></tr></table>';
+    if(part.startsWith('Attendance:')){
+      const button=calendarUrl?'<a href="'+escape(calendarUrl)+'" style="display:block;padding:14px 16px;background:#173d62;color:#fff;text-decoration:none;text-align:center;font-size:16px;font-weight:700;border-radius:8px">RSVP in Google Calendar</a>':'<span style="display:block;padding:14px 16px;background:#e8eef4;color:#284962;text-align:center;font-size:16px;font-weight:700;border-radius:8px">RSVP in your Calendar invitation</span>';
+      return '<h2 style="margin:0 0 8px;font-size:18px;color:#17344e">Coming to training?</h2><p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#344b61">'+lines.slice(1).map(escape).join('<br>')+'</p>'+button+'<p style="margin:8px 0 20px;font-size:12px;line-height:1.5;color:#607286">Choose Yes, No or Maybe in the Google Calendar invitation.</p>';
     }
-    return html;
+    return '<p style="margin:0 0 18px;font-size:15px;line-height:1.65;color:#344b61">'+lines.map(escape).join('<br>')+'</p>';
   }).join('');
-  return {...message,html:'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escape(message.subject)+'</title></head><body style="margin:0;background:#edf2f7;font-family:Arial,sans-serif"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:20px 12px"><table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#fff;border-radius:14px;overflow:hidden"><tr><td style="padding:24px;background:#0c2139;color:#fff"><p style="margin:0 0 8px;color:#edc980;font-size:12px;font-weight:700;letter-spacing:2px">STAR SOCCER · VANCOUVER</p><h1 style="margin:0;font-size:26px;line-height:1.25;color:#fff">'+escape(title||'See you on the field!')+'</h1></td></tr><tr><td style="padding:24px">'+paragraphs+'<p style="border-top:1px solid #d7e1eb;padding-top:18px;margin:6px 0 0;font-size:12px;line-height:1.6;color:#516579">Star Soccer<br><a href="mailto:'+T.catalog.email+'" style="color:#235ecb">'+T.catalog.email+'</a><br>Reference: '+escape(message.reference)+'</p></td></tr></table></td></tr></table></body></html>'};
+  return {...message,body,html:'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escape(message.subject)+'</title></head><body style="margin:0;background:#eaf0f5;font-family:Arial,sans-serif;overflow-wrap:anywhere;word-break:break-word"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 12px"><table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#fff;border-radius:14px;overflow:hidden"><tr><td style="padding:24px;background:#0b2138;border-top:5px solid '+accent+'"><p style="margin:0 0 5px;font-size:21px;letter-spacing:2px;font-weight:800;color:'+accent+'">STAR SOCCER</p><p style="margin:0 0 24px;font-size:11px;letter-spacing:1.5px;color:#adc2d3">VANCOUVER · '+(theme==='winter'?'WINTER CAMPS':'WEEKLY TRAINING')+'</p><p style="margin:0 0 7px;font-size:12px;font-weight:700;color:'+accent+'">'+escape(kicker)+'</p><h1 style="margin:0;font-size:27px;line-height:1.25;color:#fff">'+escape(title)+'</h1></td></tr><tr><td style="padding:24px">'+blocks+'<p style="border-top:1px solid #d7e2eb;padding-top:16px;margin:2px 0 0;font-size:12px;line-height:1.6;color:#607286">Star Soccer Vancouver<br><a href="mailto:'+T.catalog.email+'" style="color:#214f78">'+T.catalog.email+'</a><br>Reference: '+escape(message.reference)+'</p></td></tr></table></td></tr></table></body></html>'};
 }
-function attendanceInquiry(sessionId,date,players,ref){
+function attendanceInquiry(sessionId,date,players,ref,calendarUrl=null){
   const s=T.getSession(sessionId),d=T.isoDate(date),list=names(players);reference(ref);
   if(!s||!d||d.getUTCDay()!==s.weekday||s.excludedDates.includes(date))throw new Error('Choose an approved weekly session date.');
-  const family=list.length===1?list[0]:list.slice(0,-1).join(', ')+' and '+list.at(-1);
   const body=[
-    'Hi there!',`Can ${family} join us for training?`,
-    `${T.prettyDate(date)}\n${s.time} · ${T.catalog.locations[s.location].name}\nVancouver time`,
-    `Reply YES ${list.length>1?'if everyone is coming':'to confirm'}, or NO ${list.length>1?'if no one can make it':'if you can’t make it'}. We’re planning for ${list.length>1?'your players':list[0]} unless you let us know otherwise.`,
-    ...(list.length>1?[`Different plans for each child? Reply on separate lines:\n${list.map(p=>p+': YES or NO').join('\n')}`]:[]),
-    'Thanks for helping us plan a great session. Bring a ball, water and weather-ready layers.',
-    'See you on the field!\nStar Soccer\n'+T.catalog.email+'\nReference: '+ref
+    'Players: '+list.join(', '),
+    `Next session:\n${T.prettyDate(date)}\n${s.time}\n${T.catalog.locations[s.location].name} · Vancouver time`,
+    'Attendance:\nPlease RSVP Yes, No or Maybe in your Google Calendar invitation. We’re expecting your listed players unless you decline.',
+    ...(list.length>1?['Different plans for siblings? Choose Maybe and add a Calendar note naming who can attend.']:[]),
+    'Bring a ball, water and weather-ready layers. Thank you for helping us plan!',
+    'Star Soccer\n'+T.catalog.email+'\nReference: '+ref
   ].join('\n\n');
-  return render({subject:`Star Soccer attendance | ${T.prettyDate(date)} | ${ref}`,body,reference:ref},{title:'Coming to training?',inquiry:true});
+  return render({subject:`Star Soccer attendance | ${T.prettyDate(date)} | ${ref}`,body,reference:ref},{title:s.day+' training',kicker:'Attendance check',calendarUrl});
 }
-function registrationConfirmation(sessionId,date,ref,playerName){
-  const message=W.confirmation(sessionId,date,ref,playerName);
-  message.body=message.body.replace('You’re registered!','Thank you for registering — you’re on the list!');
-  return render({...message,reference:ref},{title:'You’re registered!',inquiry:true});
+function registrationConfirmation(sessionId,date,ref,playerName,calendarUrl=null){
+  return render({...W.confirmation(sessionId,date,ref,playerName),reference:ref},{title:T.getSession(sessionId).day+' training',calendarUrl});
 }
-function passConfirmation(sessionId,date,ref,playerName,now=new Date(),updated=false){
-  return render({...W.passConfirmation(sessionId,date,ref,playerName,now,updated),reference:ref},{title:updated?'Your pass dates are updated':'Your 4-week pass is confirmed',inquiry:W.passPlan(sessionId,date,now).upcoming});
+function passConfirmation(sessionId,date,ref,playerName,now=new Date(),updated=false,calendarUrl=null){
+  const message=W.passConfirmation(sessionId,date,ref,playerName,now,updated);
+  return render({...message,reference:ref},{title:T.getSession(sessionId).day+' 4-week pass',kicker:updated?'Pass dates updated':'Your pass is confirmed',calendarUrl:W.passPlan(sessionId,date,now).upcoming?calendarUrl:null});
+}
+function campConfirmation(q,ref,playerName){
+  const C=require('../winter-camps.js');
+  return render({...C.confirmation(q,ref,playerName),reference:ref},{title:q.weekName,theme:'winter'});
 }
 function reminderDue(sessionId,date,now=new Date()){
   const s=T.getSession(sessionId),d=T.isoDate(date),clock=T.localClock(now);
@@ -82,4 +88,4 @@ function parseReply(body,players){
   }
   return responses.length?responses:null;
 }
-module.exports={attendanceInquiry,registrationConfirmation,passConfirmation,reminderDue,parseReply,reminderKey};
+module.exports={attendanceInquiry,registrationConfirmation,passConfirmation,campConfirmation,reminderDue,parseReply,reminderKey,approvedCalendarUrl};

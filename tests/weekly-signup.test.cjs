@@ -17,12 +17,13 @@ test('pass defaults to upcoming training and ends on the fourth occurrence, acro
   assert.throws(()=>W.passPlan('friday','2026-12-17',now));
   assert.throws(()=>W.passPlan('friday','2026-10-23',now));
 });
-test('pass email confirms price, four dates, payment, thanks and a structured start-change reply',()=>{
+test('pass email confirms price, dates and payment with Calendar attendance and no start-change option',()=>{
   const now=new Date('2026-10-27T03:00:00Z');
   const mail=W.passConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Test Player',now);
-  for(const text of ['$95 CAD','Wed, Oct 28, 2026','Wed, Nov 18, 2026','4th session','Reply START YYYY-MM-DD','e-transfer','starsoccervancouver@gmail.com','Thank you','Reply YES','does not confirm that payment has been received'])assert.ok(mail.body.includes(text),text);
+  for(const text of ['$95 CAD','Wed, Oct 28, 2026','Wed, Nov 18, 2026','4th session','e-transfer','starsoccervancouver@gmail.com','Thank you','Google Calendar invitation','does not confirm that payment has been received'])assert.ok(mail.body.includes(text),text);
+  assert.doesNotMatch(mail.body,/START|different start|Reply YES|Reply NO/);
   const future=W.passConfirmation('wednesday','2026-11-04','SS-ABCDEF12','Test Player',now,true);
-  assert.match(future.subject,/start updated/);assert.doesNotMatch(future.body,/Reply YES|Will Test Player join/);
+  assert.match(future.subject,/start updated/);assert.doesNotMatch(future.body,/Attendance:|Google Calendar invitation|START/);
 });
 test('start changes accept only an explicit unambiguous first-line command and valid ISO date',()=>{
   assert.equal(W.startChange('START 2026-11-04\n\n> quoted message'),'2026-11-04');
@@ -34,7 +35,7 @@ test('invalid session, age, experience, blank name and header injection cannot b
 test('confirmation requests next-week attendance without charging or claiming actual attendance',()=>{
   const mail=W.confirmation('wednesday','2026-10-28','SS-ABCDEF12','Test Player');
   assert.match(mail.subject,/registration confirmed/);assert.match(mail.body,/Wed, Oct 28, 2026/);
-  assert.match(mail.body,/Reply YES/);assert.match(mail.body,/or NO/);assert.match(mail.body,/No payment is needed/);
+  assert.match(mail.body,/Google Calendar invitation/);assert.match(mail.body,/No payment is needed/);
   assert.match(mail.body,/next session only/);assert.doesNotMatch(mail.body,/paid|marked present|every Wednesday/);
   assert.throws(()=>W.confirmation('wednesday','2026-10-29','SS-ABCDEF12','Player'));
   assert.throws(()=>W.confirmation('wednesday','2026-10-28','SS-ABCDEF12','Player\nBCC:bad'));

@@ -50,6 +50,8 @@
           check([...form.querySelectorAll('[required]')].filter(el=>el.getClientRects().length).length<=4,`${page} starts with at most four essential inputs`);
         }
         if(doc.body.classList.contains('seasonal-registration')){
+          const more=doc.querySelector('[data-optional-fields]');
+          check(doc.querySelectorAll('details').length===1 && !more.open && more.querySelector('summary').textContent==='Tell us more (optional)' && more.nextElementSibling.matches('[type="submit"]') && !more.querySelector('[required]'),`${page} at ${width}px has one optional Tell us more directly before registration`);
           const panel=doc.querySelector('.quick-panel').getBoundingClientRect(),info=doc.querySelector('.registration-info').getBoundingClientRect();
           check(info.width>0,`${page} at ${width}px shows its information card`);
           if(width>=900)check(panel.width>info.width*1.5 && info.left>=panel.right,`${page} at ${width}px gives the registration form more space beside the info card`);
@@ -95,7 +97,7 @@
     for(let i=0;i<100 && doc.documentElement.dataset.countsState==='loading';i++)await new Promise(resolve=>setTimeout(resolve,10));
     check([...doc.querySelectorAll('.session-capacity')].every(el=>el.textContent==='Capacity 20 · Count unavailable'),'Failed refresh removes old counts and never substitutes zero');
     doc=await load('registration.html?sessionId=friday&type=dropin',320);
-    check(![...doc.querySelectorAll('input[type="date"]')].some(el=>el.getClientRects().length) && !doc.querySelector('.count-feed-note') && !doc.querySelector('[data-optional-fields]'),'Weekly registration has no date picker, count paragraph or optional questions');
+    check(![...doc.querySelectorAll('input[type="date"]')].some(el=>el.getClientRects().length) && !doc.querySelector('.count-feed-note') && !doc.querySelector('[data-optional-fields]').open,'Weekly registration keeps the date picker and optional questions out of the initial flow');
     check([...doc.querySelector('form').querySelectorAll('[required]')].map(el=>el.name).sort().join(',')==='Experience,Player age,Player name,email','Weekly registration requires exactly child, age, email and experience');
     check(doc.querySelector('[data-training-info-option]').textContent==='Friday · Drop-in' && doc.querySelector('[data-training-info-price]').textContent==='$25 CAD' && doc.querySelector('[data-training-info-venue]').textContent==='Connaught Park','Drop-in information card follows the selected session and approved price');
     doc=await load('programs.html?age=14&day=sunday&source=test#sessions');
@@ -133,7 +135,7 @@
     check(doc.querySelector('#training-registration').hidden && doc.querySelector('#registration-status').textContent.includes('no longer available'),'Retired camp registration is rejected');
     doc=await load('registration.html?sessionId=wednesday&type=pass4');
     const win=frame.contentWindow,form=doc.querySelector('form');
-    check(!form.elements.namedItem('Start date') && !form.elements.namedItem('Parent name') && !form.elements.namedItem('Referral source'),'Pass keeps four essential inputs and a prefilled optional start date');
+    check(!form.elements.namedItem('Start date') && !form.elements.namedItem('Parent name').required && !form.elements.namedItem('Referral source').required,'Pass keeps extra context optional and the chosen start date separate');
     const passPlan=frame.contentWindow.StarWeeklySignup.passPlan('wednesday');
     check(!doc.querySelector('#quick-pass-summary').hidden && doc.querySelector('#pass-price').textContent.includes('$95') && doc.querySelector('#pass-start').value===passPlan.start && doc.querySelector('#pass-end').textContent===frame.contentWindow.StarTraining.prettyDate(passPlan.end),'Pass preview shows the approved total, upcoming start and fourth-session end');
     const changedStart=frame.contentWindow.StarTraining.addDays(passPlan.start,7);
@@ -142,10 +144,13 @@
     check(doc.querySelector('#pass-end').textContent===frame.contentWindow.StarTraining.prettyDate(chosenPassPlan.end),'Changing the start on the form updates the fourth-session end immediately');
     check(doc.querySelector('[data-training-info-date]').textContent===frame.contentWindow.StarTraining.prettyDate(chosenPassPlan.start) && doc.querySelector('[data-training-info-end]').textContent===frame.contentWindow.StarTraining.prettyDate(chosenPassPlan.end),'Pass information card updates both dates when the parent changes the start');
     for(const [name,value] of [['email','test@example.invalid'],['Player name','Test Player'],['Player age','10'],['Experience','some']])form.elements.namedItem(name).value=value;
+    form.querySelector('[data-optional-fields] summary').click();
+    for(const [name,value] of [['Parent name','Example Parent'],['Notes','Working on confidence'],['Referral source','community']])form.elements.namedItem(name).value=value;
     let calls=0,receivedData,firstReference;
     win.fetch=async(url,options)=>{calls++;receivedData=options.body;firstReference=receivedData.get('Client reference');return {ok:true,json:async()=>({success:false})};};
     form.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(calls===1 && doc.querySelector('#receipt').hidden && !form.hidden && form.elements.namedItem('Player name').value==='Test Player','Service rejection retains entries and cannot show a receipt');
+    check(receivedData.get('Parent name')==='Example Parent' && receivedData.get('Notes')==='Working on confidence' && receivedData.get('Referral source')==='School / community','Weekly registration preserves optional parent, coach note and referral context');
     check(receivedData.get('Experience')==='Some experience' && receivedData.get('Registration version')==='SS-PASS-V1' && receivedData.get('Requested option')==='Four-session pass' && receivedData.get('Covered dates')===chosenPassPlan.dates.join(', ') && receivedData.get('Price CAD')==='95' && receivedData.get('Expected end date')===chosenPassPlan.end && receivedData.get('Pass start date')===changedStart && receivedData.get('Pass start choice')==='Selected date','Pass payload carries the quoted four dates and correct price for authoritative intake validation');
     const recovery=doc.querySelector('.registration-recovery a'),help=new URL(recovery.href),helpBody=help.searchParams.get('body');
     check(help.protocol==='mailto:' && helpBody.includes(firstReference) && helpBody.includes('not confirmed') && !helpBody.includes('Test Player') && !helpBody.includes('test@example.invalid'),'Failure recovery keeps the reference without personal form entries');

@@ -68,6 +68,7 @@ body.seasonal-registration .registration-facts>div{display:grid;gap:2px}
 body.seasonal-registration .registration-facts>div[hidden]{display:none}
 body.seasonal-registration .registration-facts dt{color:#9fb7ca;font-size:.72rem;font-weight:700}
 body.seasonal-registration .registration-facts dd{margin:0;color:#d2dfe9}
+body.seasonal-registration .registration-facts .date-list{margin:0;padding-left:16px;font-size:.8rem;line-height:1.65}
 body.seasonal-registration .registration-info-price{display:grid;gap:3px;margin:20px 0 4px}
 body.seasonal-registration .registration-info-price strong{font-size:1.4rem;color:var(--registration-accent)}
 body.seasonal-registration .registration-info-price span{color:#b4c8d8;font-size:.78rem}

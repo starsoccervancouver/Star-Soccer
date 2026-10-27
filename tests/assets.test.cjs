@@ -13,7 +13,7 @@ test('public artifact includes all routes and excludes development files',()=>{
   execFileSync(process.execPath,['scripts/stage-site.cjs']);
   const names=fs.readdirSync('_site');
   for(const name of ['node_modules','tests','scripts','ops','README.md','package.json','styles.css'])assert(!names.includes(name),'Development file published: '+name);
-  assert(!names.some(name=>name.endsWith('.png')),'Reference screenshots must not be published');
+  assert(!names.some(name=>name.endsWith('.png') && name!=='email-star-soccer-logo.png'),'Reference screenshots must not be published');
   for(const name of fs.readdirSync('.').filter(name=>name.endsWith('.html')))assert(names.includes(name),'Missing route: '+name);
   assert(fs.existsSync('_site/Star soccer/index.html'));
   assert(fs.existsSync('_site/site.min.css'));
@@ -29,5 +29,6 @@ test('public artifact includes all routes and excludes development files',()=>{
   assert(fs.statSync('_site/autumn-field-800.webp').size<100000,'Mobile autumn photo must stay under 100 KB');
   assert(fs.statSync('_site/autumn-field-1600.webp').size<200000,'Desktop autumn photo must stay under 200 KB');
   assert(!names.some(name=>/^(autumn|winter)-training-/.test(name)),'Superseded generated artwork must not be published');
+  for(const name of ['email-star-soccer-logo.png','email-autumn-field.jpg','email-winter-field.jpg'])assert(fs.existsSync('_site/'+name),'Missing email brand asset: '+name);
   assert(!fs.existsSync('_site/SESSION_COUNTS.md'));
 });

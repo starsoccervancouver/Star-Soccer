@@ -7,4 +7,6 @@ Licensed stock scenes for decorative seasonal backgrounds. These are not photogr
 
 Downloaded October 26, 2026 under the [Pexels License](https://www.pexels.com/license/), which permits website use and modification. Edits: cropping, resizing and WebP compression only; no generative edits. Optimized derivatives: `autumn-field-{800,1600}.webp`, `winter-field-{800,1600}.webp`.
 
+Email derivatives use the same photographs, cropped to wide JPEG banners (`email-autumn-field.jpg`, `email-winter-field.jpg`). `email-star-soccer-logo.png` is a raster export of the existing Star Soccer SVG wordmark for email compatibility.
+
 Design references reviewed: [Soccer Shots](https://www.soccershots.com/) and [IFA Sport](https://www.ifasport.com/), for large photographic backgrounds with readable foreground content. Reference-site assets were not reused.

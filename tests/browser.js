@@ -56,6 +56,11 @@
           const theme=frame.contentWindow.getComputedStyle(doc.body).getPropertyValue('--registration-art');
           check(theme.includes(page.startsWith('registration.html')?'autumn-training':'winter-training'),`${page} at ${width}px uses its matching seasonal artwork`);
         }
+        if(page==='contact.html'){
+          const more=doc.querySelector('[data-optional-fields]');
+          check(!more.open && more.querySelector('summary').textContent==='Tell us more (optional)' && more.nextElementSibling.matches('[type="submit"]'),`Contact at ${width}px puts a collapsed Tell us more immediately before Send`);
+          check(!more.querySelector('[required]') && more.querySelector('[name="Name"]') && more.querySelector('[name="Topic"]') && more.querySelector('[name="Referral source"]'),`Contact at ${width}px keeps name, topic and referral details optional`);
+        }
         if(width<=430) {
           const controls=[...doc.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>el.getClientRects().length && !el.closest('[aria-hidden="true"]'));
           if(controls.length)check(controls.every(el=>parseFloat(frame.contentWindow.getComputedStyle(el).fontSize)>=16),`${page} at ${width}px uses readable 16px form controls`);
@@ -191,10 +196,14 @@
     check(doc.querySelector('[name="Topic"]').value==='Winter camps' && !doc.querySelector('[name="Message"]').value,'Camp inquiry link selects the right topic without writing a message for the parent');
     const contact=doc.querySelector('form');
     check([...contact.querySelectorAll('[required]')].map(el=>el.name).sort().join(',')==='Message,email','Contact only requires email and a message');
+    const more=contact.querySelector('[data-optional-fields]');more.querySelector('summary').click();
+    check(more.open && more.querySelector('[name="Referral source"]').getClientRects().length && doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1,'Tell us more opens optional context without overflow');
     contact.elements.namedItem('email').value='test@example.invalid';contact.elements.namedItem('Message').value='Mocked contact test';contact.elements.namedItem('Referral source').value='community';
+    contact.elements.namedItem('Name').value='Example Parent';contact.elements.namedItem('Player or session details').value='Age 8, Thursday';
     let contactData;frame.contentWindow.fetch=async(url,options)=>{contactData=options.body;return {ok:true,json:async()=>({success:true})};};
     contact.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(contactData.get('Referral source')==='School / community' && doc.querySelector('[data-feedback]').textContent.includes('accepted'),'Contact inquiry includes the selected source after mocked service acceptance');
+    check(contactData.get('Name')==='Example Parent' && contactData.get('Topic')==='Winter camps' && contactData.get('Player or session details')==='Age 8, Thursday','Optional name, enquiry topic and player/session context reach the inquiry');
   } catch(error) {
     check(false,error.message);
   } finally {

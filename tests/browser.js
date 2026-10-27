@@ -34,6 +34,9 @@
         check(overflow<=1,`${page} at ${width}px has no horizontal overflow${overflow>1?' ('+overflow+'px; '+oversized+')':''}`);
         const header=doc.querySelector('.site-header').getBoundingClientRect();
         check(Math.abs(header.left)<=1 && Math.abs(header.right-doc.documentElement.clientWidth)<=1,`${page} at ${width}px has navigation across the full screen width`);
+        const brandImages=[...doc.querySelectorAll('img.brand-logo')];
+        check(brandImages.length>=1 && brandImages.every(img=>img.getAttribute('src').includes('galactic')), `${page} at ${width}px uses the Galactic Swoosh logo in the header and footer`);
+        check(doc.querySelector('link[rel="icon"]')?.getAttribute('href')?.includes('star-soccer-favicon.svg'), `${page} at ${width}px uses the new star favicon`);
         check(!doc.querySelector('.site-nav .header-program-cta') && [...doc.querySelectorAll('.site-nav a')].some(a=>a.getAttribute('href')==='programs.html'),`${page} at ${width}px keeps Weekly Training without a duplicate Find a Session tab`);
         const numeric=[...doc.querySelectorAll('input[type="number"]:not([data-native-number])')].filter(el=>el.step!=='any' && !el.closest('.honeypot,[aria-hidden="true"]'));
         if(numeric.length){
@@ -76,7 +79,7 @@
           if(width>=900)check(panel.width>info.width*1.5 && info.left>=panel.right,`${page} at ${width}px gives the registration form more space beside the info card`);
           if(width<=430)check(info.top>=panel.bottom,`${page} at ${width}px keeps the form before the information card`);
           const theme=frame.contentWindow.getComputedStyle(doc.body).getPropertyValue('--registration-art');
-          check(theme.includes(page.startsWith('registration.html')?'autumn-field':'winter-field'),`${page} at ${width}px uses its matching seasonal artwork`);
+          check(theme.includes(page.includes('private-small-group')?'photo-1652318696037':page.startsWith('registration.html')?'autumn-field':'winter-field'),`${page} at ${width}px uses its matching seasonal artwork`);
           check(!doc.querySelector('.registration-info img') && frame.contentWindow.getComputedStyle(doc.querySelector('.registration-info')).backgroundColor==='rgb(16, 38, 61)',`${page} at ${width}px keeps imagery outside the opaque information card`);
           if(page.startsWith('registration.html')){
             const trigger=doc.querySelector('#pass-calendar-trigger'),picker=doc.querySelector('#pass-calendar');
@@ -103,7 +106,7 @@
         }
         if(['contact.html','locations.html','methodology.html'].includes(page)){
           const bg=frame.contentWindow.getComputedStyle(doc.body,'::before');
-          check(bg.position==='fixed' && bg.backgroundImage.includes(page==='contact.html'?'1497366754035':page==='locations.html'?'1556056504':'photo-1652318696037-8d34c4d2f378'),`${page} at ${width}px has its distinct full-page themed background`);
+          check(bg.position==='fixed' && bg.backgroundImage.includes(page==='contact.html'?'1497366754035':page==='locations.html'?'1556056504':'photo-1621058567697-7673eef9ce28'),`${page} at ${width}px has its distinct full-page themed background`);
         }
         if(page==='methodology.html'){
           const nav=doc.querySelector('.method-restored-nav');

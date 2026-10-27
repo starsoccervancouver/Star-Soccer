@@ -183,3 +183,14 @@ body.private-registration .registration-info-bring {
 @media (max-width: 340px) {
   body.private-registration .quick-player-row { grid-template-columns: 1fr; }
 }
+
+/* Distinct private-coaching photograph, separate from the camp backdrop. */
+body.private-registration{
+  --seasonal-art:url("https://images.unsplash.com/photo-1652318696037-8d34c4d2f378?auto=format&fit=crop&w=1600&q=80");
+  --registration-art:var(--seasonal-art);
+}
+@media(max-width:700px){
+  body.private-registration{
+    --seasonal-art:url("https://images.unsplash.com/photo-1652318696037-8d34c4d2f378?auto=format&fit=crop&w=800&q=76");
+  }
+}

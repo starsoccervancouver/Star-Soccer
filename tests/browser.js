@@ -59,6 +59,13 @@
           const theme=frame.contentWindow.getComputedStyle(doc.body).getPropertyValue('--registration-art');
           check(theme.includes(page.startsWith('registration.html')?'autumn-field':'winter-field'),`${page} at ${width}px uses its matching seasonal artwork`);
           check(!doc.querySelector('.registration-info img') && frame.contentWindow.getComputedStyle(doc.querySelector('.registration-info')).backgroundColor==='rgb(16, 38, 61)',`${page} at ${width}px keeps imagery outside the opaque information card`);
+          if(page.startsWith('registration.html')){
+            const trigger=doc.querySelector('#pass-calendar-trigger'),picker=doc.querySelector('#pass-calendar');
+            trigger.click();const r=picker.getBoundingClientRect();
+            check(picker.open && doc.querySelector('#pass-start').hidden && r.left>=0 && r.right<=width && r.height<=716,`Pass calendar at ${width}px replaces the native picker and fits the screen`);
+            check([...picker.querySelectorAll('.pass-calendar-day:not(:disabled)')].every(day=>new Date(day.dataset.date+'T12:00:00Z').getUTCDay()===3),`Pass calendar at ${width}px only offers Wednesday start dates`);
+            picker.querySelector('.pass-calendar-cancel').click();
+          }
         }
         if(doc.body.matches('.fall-programs-page,.winter-camps-page,.seasonal-registration')){
           const bg=frame.contentWindow.getComputedStyle(doc.body,'::before');
@@ -139,10 +146,21 @@
     const passPlan=frame.contentWindow.StarWeeklySignup.passPlan('wednesday');
     check(!doc.querySelector('#quick-pass-summary').hidden && doc.querySelector('#pass-price').textContent.includes('$95') && doc.querySelector('#pass-start').value===passPlan.start && doc.querySelector('#pass-end').textContent===frame.contentWindow.StarTraining.prettyDate(passPlan.end),'Pass preview shows the approved total, upcoming start and fourth-session end');
     const changedStart=frame.contentWindow.StarTraining.addDays(passPlan.start,7);
-    change(doc,'pass-start',changedStart);
+    const calendarTrigger=doc.querySelector('#pass-calendar-trigger'),picker=doc.querySelector('#pass-calendar');
+    calendarTrigger.click();
+    if(!picker.querySelector('[data-date="'+changedStart+'"]'))picker.querySelector('.pass-calendar-arrow[aria-label="Next month"]').click();
+    picker.querySelector('[data-date="'+changedStart+'"]').click();
+    await new Promise(resolve=>setTimeout(resolve,20));
+    check(!picker.open && doc.querySelector('#pass-start').value===changedStart && doc.activeElement===calendarTrigger && calendarTrigger.getAttribute('aria-expanded')==='false','Choosing a calendar day saves the date, closes the panel and returns focus');
     const chosenPassPlan=frame.contentWindow.StarWeeklySignup.passPlan('wednesday',changedStart);
     check(doc.querySelector('#pass-end').textContent===frame.contentWindow.StarTraining.prettyDate(chosenPassPlan.end),'Changing the start on the form updates the fourth-session end immediately');
     check(doc.querySelector('[data-training-info-date]').textContent===frame.contentWindow.StarTraining.prettyDate(chosenPassPlan.start) && doc.querySelector('[data-training-info-end]').textContent===frame.contentWindow.StarTraining.prettyDate(chosenPassPlan.end),'Pass information card updates both dates when the parent changes the start');
+    calendarTrigger.click();
+    doc.activeElement.dispatchEvent(new win.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+    check(doc.activeElement.dataset.date===win.StarTraining.addDays(changedStart,7),'Calendar arrow keys move focus between eligible training dates across months');
+    picker.dispatchEvent(new win.Event('cancel',{cancelable:true}));
+    await new Promise(resolve=>setTimeout(resolve,20));
+    check(!picker.open && doc.querySelector('#pass-start').value===changedStart && doc.activeElement===calendarTrigger,'Cancelling keyboard selection preserves the selected start date and restores focus');
     for(const [name,value] of [['email','test@example.invalid'],['Player name','Test Player'],['Player age','10'],['Experience','some']])form.elements.namedItem(name).value=value;
     form.querySelector('[data-optional-fields] summary').click();
     for(const [name,value] of [['Parent name','Example Parent'],['Notes','Working on confidence'],['Referral source','community']])form.elements.namedItem(name).value=value;

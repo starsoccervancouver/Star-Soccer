@@ -21,6 +21,7 @@ test('public artifact includes all routes and excludes development files',()=>{
   assert(fs.existsSync('_site/session-counts.js'));
   assert(fs.existsSync('_site/weekly-signup.js'));
   assert(fs.existsSync('_site/weekly-signup-form.js'));
+  assert(fs.existsSync('_site/pass-calendar.js'));
   assert(fs.existsSync('_site/autumn-field-800.webp'));
   assert(fs.existsSync('_site/autumn-field-1600.webp'));
   for(const name of ['winter-field-800.webp','winter-field-1600.webp','winter-camps.js','camp-booking.js'])assert(fs.existsSync('_site/'+name),'Missing winter camp asset: '+name);

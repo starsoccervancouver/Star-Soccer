@@ -1,4 +1,4 @@
-/* Camp registration requests require coach confirmation; service acceptance is not a reservation. */
+/* Intake checks every dated camp slot before emailing a confirmation. */
 (()=>{
   'use strict';
   const T=window.StarTraining,C=window.StarWinterCamps,form=document.querySelector('#camp-registration');if(!T||!C||!form)return;
@@ -34,7 +34,7 @@
   function showReceipt(q){
     receipt.hidden=false;receipt.replaceChildren();
     const h=document.createElement('h2');h.textContent='Camp registration received';
-    const lead=document.createElement('p');lead.textContent='Our form service accepted your request. The coaching team will confirm your place before payment. Email delivery is not verified by this page.';
+    const lead=document.createElement('p');lead.textContent='Your registration was received. Look out for your confirmation email after we check space in every camp session. Romeo will follow up about payment. If the package is full, we’ll email you about the waitlist.';
     const details=document.createElement('pre');details.className='camp-receipt-details';details.textContent=receiptText(q);
     const actions=document.createElement('div');actions.className='flow-actions';
     const print=document.createElement('button');print.type='button';print.className='button';print.textContent='Print / save details';print.addEventListener('click',()=>window.print());
@@ -50,6 +50,8 @@
     if(form.elements.namedItem('_honey').value){status('Unable to send. Please email the coaching team.',true);return;}
     if(!reference)reference='SS-CAMP-'+(crypto.randomUUID?crypto.randomUUID().slice(0,8).toUpperCase():Date.now().toString(36).toUpperCase());
     const data=new FormData(form);const fields={'_subject':'Star Soccer winter camp request | '+q.weekName,'_template':'table','_captcha':'false','_replyto':data.get('email'),'Training':'Winter camps · '+q.weekName+' · '+q.time,'Booking type':q.label,'Covered dates':q.dates.join(', '),'Camp session keys':q.sessions.map(s=>s.key).join('; '),'Location':q.location,'Price CAD':String(q.price),'Lunch supervision':q.lunch?'Included noon–12:30':'Not required for one daily session','Client reference':reference,'Catalog version':C.catalog.version};
+    fields._subject='Star Soccer camp registration | '+q.weekName+' | '+reference;
+    fields['Registration version']='SS-CAMP-V2';fields['Camp week ID']=q.week;fields['Camp slot']=q.slot;
     Object.entries(fields).forEach(([k,v])=>data.set(k,v));data.set('Camp week',q.weekName);data.set('Referral source',T.referralSource(form.elements.namedItem('Referral source').value));
     busy=true;submit.disabled=true;form.setAttribute('aria-busy','true');status('Sending camp request…');
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);

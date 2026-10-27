@@ -23,6 +23,19 @@
       label:kind==='week'?'Five-day '+(slot==='both'?'morning + afternoon package':slots[0].name.toLowerCase()+' package'):(free?'Free Christmas Friday': 'Drop-in')+' · '+(slot==='both'?'morning + afternoon':slots[0].name),
       time:slot==='both'?'9 AM–noon & 12:30–3:30 PM':slots[0].time,lunch:slot==='both',location:catalog.location});
   }
-  const api=Object.freeze({catalog,getWeek,dates,selectedSlots,quote});root.StarWinterCamps=api;
+  function confirmation(q,reference,name){
+    name=String(name||'').trim();
+    if(q.kind!=='week'||!getWeek(q.week)||!/^SS-CAMP-[A-Z0-9-]{6,40}$/.test(reference)||!name||name.length>100||/[\r\n\x00-\x1f]/.test(name))throw new Error('Invalid camp confirmation.');
+    return {subject:'Star Soccer camp registration confirmed | '+q.weekName+' | '+reference,body:[
+      'You’re registered! '+name+' is on the list for '+q.weekName+'.',
+      '',q.label,q.dates.map(T.prettyDate).join('; '),q.time+' · Kitsilano Turf · Vancouver time',
+      q.lunch?'Supervised lunch is included from noon–12:30. Bring a packed lunch.':'',
+      '', 'Package price: '+T.money(q.price)+' CAD per player. No payment is needed to register; Romeo will follow up about payment.',
+      q.week==='christmas'?'Christmas Friday is free — our gift to you.':'Your package includes the Boxing Week Sale.',
+      '', 'Reply to this email if your attendance plans change or you have a question.',
+      '', 'See you on the field!','Star Soccer','starsoccervancouver@gmail.com','Reference: '+reference
+    ].filter((line,i,all)=>line!==''||all[i-1]!=='').join('\n')};
+  }
+  const api=Object.freeze({catalog,getWeek,dates,selectedSlots,quote,confirmation});root.StarWinterCamps=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

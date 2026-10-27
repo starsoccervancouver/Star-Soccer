@@ -73,3 +73,19 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setupSessions,{once:true});
   else setupSessions();
 })();
+
+/* Enhance number fields consistently without loading form UI on other pages. */
+(() => {
+  'use strict';
+  const source = document.currentScript;
+  const base = new URL('.', source && source.src ? source.src : document.baseURI);
+  function loadNumberControls() {
+    if (!document.querySelector('input[type="number"]:not([data-native-number])') || document.getElementById('ss-number-controls-js')) return;
+    const script = document.createElement('script');
+    script.id = 'ss-number-controls-js';
+    script.src = new URL('number-controls.js?v=20261027', base).href;
+    document.head.append(script);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadNumberControls, {once: true});
+  else loadNumberControls();
+})();

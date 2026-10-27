@@ -1,0 +1,92 @@
+/* Shared, touch-friendly number controls. Scoped to enhanced inputs only. */
+body .ss-number-field {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+}
+body .ss-number-field > label { margin: 0; }
+body .ss-number-stepper {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 44px minmax(44px, 1fr) 44px;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 3px;
+  border: 1px solid #6e879c;
+  border-radius: 12px;
+  background: #0d2137;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+body .ss-number-stepper:focus-within {
+  border-color: #b2e3f6;
+  box-shadow: 0 0 0 3px rgb(178 227 246 / 16%);
+}
+body .ss-number-stepper > input.ss-number-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #f1f5f8;
+  font: 700 1.05rem/1.4 Manrope, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  box-shadow: none;
+}
+body .ss-number-input::-webkit-inner-spin-button,
+body .ss-number-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+body .ss-number-stepper > input.ss-number-input:focus-visible { outline: none; }
+body .ss-number-stepper > button.ss-number-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  max-width: none;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #213d55;
+  color: #c4e6f6;
+  font: 500 1.5rem/1 system-ui, sans-serif;
+  box-shadow: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color .16s ease, color .16s ease;
+}
+body .ss-number-stepper > button.ss-number-button > span { color: inherit; line-height: 1; }
+@media (hover: hover) {
+  body .ss-number-stepper > button.ss-number-button:hover:not(:disabled) { background: #355b77; color: #fff; }
+}
+body .ss-number-stepper > button.ss-number-button:active:not(:disabled) { background: #446d89; }
+body .ss-number-stepper > button.ss-number-button:focus-visible { outline: 2px solid #b2e3f6; outline-offset: -3px; }
+body .ss-number-stepper > button.ss-number-button:disabled { opacity: .35; cursor: not-allowed; }
+body .ss-number-stepper.is-disabled { opacity: .65; }
+body .ss-number-stepper:has(input:user-invalid),
+body .ss-number-stepper:has(input[aria-invalid="true"]) { border-color: #e5a7b3; }
+body.quick-flow .quick-player-row.ss-number-row {
+  grid-template-columns: minmax(0, 1fr) minmax(146px, .42fr);
+  align-items: start;
+}
+@media (max-width: 420px) {
+  body.quick-flow .quick-player-row.ss-number-row { grid-template-columns: minmax(0, 1fr); }
+  body.quick-flow .quick-player-row.ss-number-row .ss-number-field { width: min(100%, 192px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body .ss-number-stepper, body .ss-number-stepper > button.ss-number-button { transition: none; }
+}
+@media (forced-colors: active) {
+  body .ss-number-stepper, body .ss-number-stepper > button.ss-number-button { border: 1px solid ButtonText; }
+}

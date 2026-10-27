@@ -14,18 +14,85 @@ body .private-price-details p {font-size:.9rem;}
  body .private-hourly-rates > div:nth-child(3n) {border-inline-end:0;}
  body .private-hourly-rates > div:nth-child(-n+3) {border-bottom:1px solid var(--flow-border);}
 }
-</style><link rel="stylesheet" href="site.min.css?v=20261026-cards"/><link rel="preload" as="script" href="site-ux.js?v=20261026-filters"><link rel="stylesheet" href="quick-forms.css?v=20261026-quick"></head><body class="home-page compact-hero-page quick-flow" ><a class="skip-link" href="#main-content">Skip to main content</a><header class="site-header home-header"><div class="home-header-grid"><a href="index.html" class="home-utility-logo" aria-label="Star Soccer home"><img src="logo-star-soccer-minimalized.svg" alt="Star Soccer" class="brand-logo" width="188" height="73"></a><div class="home-utility-cell home-utility-slogan">This Is Star Soccer</div><div class="home-utility-cell home-utility-email"><a href="mailto:starsoccervancouver@gmail.com">starsoccervancouver@gmail.com</a></div><nav class="site-nav home-site-nav" id="primary-navigation" aria-label="Primary"><a href="programs.html">Weekly Training</a><a href="camps.html">Winter Camps</a><a href="program-private-small-group.html" aria-current="page" class="active">Private Coaching</a><a href="methodology.html">Our Approach</a><a href="locations.html">Locations</a><a href="contact.html">Contact</a><a href="programs.html#sessions" class="header-program-cta">Find a Session</a></nav></div></header><script src="site-ux.js?v=20261026-filters"></script><div class="page-shell"><main id="main-content" class="subpage-main quick-shell"><section class="flow-surface quick-panel" id="private-form"><p class="eyebrow">Private coaching inquiry</p><h1>Training that fits your player</h1><p class="quick-context">See your estimate, then send your details. We arrange a time with you.</p><p class="quick-context" id="quick-private-coach" hidden></p><form id="private-inquiry" data-inquiry="private" action="https://formsubmit.co/starsoccervancouver@gmail.com" method="post"><div class="quick-player-row"><label>Session length<select name="Minutes"><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option><option value="other">Another duration</option></select></label><label>Players<input type="number" name="Players" min="1" step="1" value="1" inputmode="numeric" required></label></div><p class="quick-total" id="private-estimate" aria-live="polite" role="status">$60 per player for 60 minutes.</p><label>Contact email<input type="email" name="email" autocomplete="email" maxlength="254" required></label><label>Player age(s)<input type="text" name="Player ages" maxlength="150" required placeholder="For example: 8, 9" aria-describedby="private-age-help"><small class="sr-only" id="private-age-help">Whole-number ages, separated by commas for a group.</small></label><button class="button" type="submit" disabled>Ask about private coaching</button><p class="quick-assurance">Your coach confirms availability before payment.</p><p class="form-privacy">Sent to Star Soccer via FormSubmit. Keep medical and payment-card details out.</p><details class="quick-details" data-optional-fields><summary>Add coach, times or other preferences (optional)</summary><div class="quick-extras"><label>Parent / guardian name (optional)<input type="text" name="Parent name" autocomplete="name" maxlength="100"></label><label>Preferred coach (optional)<select name="Preferred coach"><option value="">No preference</option><option value="valentinos">Valentinos Dinglis</option><option value="evan">Evan Lycos</option><option value="romeo">Romeo Dinglis</option></select></label><label>Preferred dates and times (optional)<textarea name="Availability" rows="2" maxlength="500"></textarea></label><label>Preferred location (optional)<select name="Location"><option>Discuss with the coach</option><option>Connaught Park</option><option>Kitsilano Turf</option></select></label><label>Training goals (optional)<textarea name="Goals" rows="2" maxlength="1000"></textarea></label></div></details><label class="honeypot" aria-hidden="true">Leave this empty<input type="text" name="_honey" tabindex="-1" autocomplete="off"></label><p class="flow-notice" data-feedback role="status" hidden></p><noscript><p>Enable JavaScript to submit, or email starsoccervancouver@gmail.com.</p></noscript></form><details class="quick-details"><summary>Private coaching prices &amp; payment</summary><div class="quick-extras">
-<h2 id="private-prices-title">Coaching that fits your player</h2>
-<p>One-on-one or small-group training, arranged with your coach.</p>
-<p><strong>60-minute rates &middot; CAD per player</strong></p>
-<dl class="private-hourly-rates" aria-label="60-minute prices per player">
-<div><dt>1 player</dt><dd>$60</dd></div>
-<div><dt>2 players</dt><dd>$45</dd></div>
-<div><dt>3 players</dt><dd>$40</dd></div>
-<div><dt>4 players</dt><dd>$35</dd></div>
-<div><dt>5 players</dt><dd>$30</dd></div>
-<div><dt>6+ players</dt><dd>$25</dd></div>
+</style><link rel="stylesheet" href="site.min.css?v=20261026-cards"/><link rel="preload" as="script" href="site-ux.js?v=20261026-filters"><link rel="stylesheet" href="quick-forms.css?v=20261026-quick"><link rel="stylesheet" href="private-inquiry.css?v=20261027"></head><body class="home-page compact-hero-page quick-flow seasonal-registration private-registration" ><a class="skip-link" href="#main-content">Skip to main content</a><header class="site-header home-header"><div class="home-header-grid"><a href="index.html" class="home-utility-logo" aria-label="Star Soccer home"><img src="logo-star-soccer-minimalized.svg" alt="Star Soccer" class="brand-logo" width="188" height="73"></a><div class="home-utility-cell home-utility-slogan">This Is Star Soccer</div><div class="home-utility-cell home-utility-email"><a href="mailto:starsoccervancouver@gmail.com">starsoccervancouver@gmail.com</a></div><nav class="site-nav home-site-nav" id="primary-navigation" aria-label="Primary"><a href="programs.html">Weekly Training</a><a href="camps.html">Winter Camps</a><a href="program-private-small-group.html" aria-current="page" class="active">Private Coaching</a><a href="methodology.html">Our Approach</a><a href="locations.html">Locations</a><a href="contact.html">Contact</a><a href="programs.html#sessions" class="header-program-cta">Find a Session</a></nav></div></header><script src="site-ux.js?v=20261026-filters"></script><div class="page-shell"><main id="main-content" class="subpage-main quick-shell registration-layout">
+<section class="flow-surface quick-panel" id="private-form" aria-labelledby="private-heading">
+<p class="eyebrow">Private &amp; small-group coaching</p>
+<h1 id="private-heading">Training that fits your player.</h1>
+<p class="quick-context">Personalized coaching for the beautiful game. Choose your group size and session length, see an instant estimate, and ask our team to arrange a time.</p>
+<p class="quick-context" id="quick-private-coach" hidden></p>
+<form id="private-inquiry" data-inquiry="private" action="https://formsubmit.co/starsoccervancouver@gmail.com" method="post">
+<p class="private-form-intro">Your training</p>
+<div class="quick-player-row">
+<label>Session length<select name="Minutes"><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option><option value="other">Another duration</option></select></label>
+<label>Players<input type="number" name="Players" min="1" step="1" value="1" inputmode="numeric" required></label>
+</div>
+<p class="quick-total" id="private-estimate" aria-live="polite" role="status">$60 per player for 60 minutes.</p>
+<p class="private-form-intro">Your contact details</p>
+<label>Parent email<input type="email" name="email" autocomplete="email" maxlength="254" required></label>
+<label>Player age(s)<input type="text" name="Player ages" maxlength="150" required placeholder="For example: 8, 9" aria-describedby="private-age-help"><small id="private-age-help">For a group, separate whole-number ages with commas.</small></label>
+<details class="quick-details contact-more" data-optional-fields>
+<summary>Tell us more (optional)</summary>
+<div class="quick-extras">
+<p>Share your preferred coach, availability, location or training goals.</p>
+<label>Parent / guardian name (optional)<input type="text" name="Parent name" autocomplete="name" maxlength="100"></label>
+<label>Preferred coach (optional)<select name="Preferred coach"><option value="">No preference</option><option value="valentinos">Valentinos Dinglis</option><option value="evan">Evan Lycos</option><option value="romeo">Romeo Dinglis</option></select></label>
+<label>Preferred dates and times (optional)<textarea name="Availability" rows="2" maxlength="500" placeholder="For example: Tuesdays after 4 PM"></textarea></label>
+<label>Preferred location (optional)<select name="Location"><option>Discuss with the coach</option><option>Connaught Park</option><option>Kitsilano Turf</option></select></label>
+<label>Training goals (optional)<textarea name="Goals" rows="2" maxlength="1000" placeholder="What would your player like to improve?"></textarea></label>
+</div></details>
+<button class="button private-inquiry-cta" type="submit" disabled>Send coaching inquiry</button>
+<p class="quick-assurance">We'll check coach availability and contact you before any payment.</p>
+<p class="form-privacy">Sent to Star Soccer via FormSubmit. Please don't include medical or payment-card details.</p>
+<label class="honeypot" aria-hidden="true">Leave this empty<input type="text" name="_honey" tabindex="-1" autocomplete="off"></label>
+<p class="flow-notice" data-feedback role="status" hidden></p>
+<noscript><p>Enable JavaScript to submit, or email <a href="mailto:starsoccervancouver@gmail.com">starsoccervancouver@gmail.com</a>.</p></noscript>
+</form>
+<p class="quick-back"><a class="flow-text-link" href="programs.html">← Back to training programs</a></p>
+</section>
+<aside class="registration-info" aria-labelledby="private-summary-title">
+<div class="registration-info-content">
+<p class="eyebrow">Your coaching estimate</p>
+<h2 id="private-summary-title">Coaching built around you</h2>
+<p class="registration-info-promo">One-on-one and small-group training, tailored to each player.</p>
+<dl class="registration-facts">
+<div><dt>Session length</dt><dd id="private-info-duration">60 minutes</dd></div>
+<div><dt>Group size</dt><dd id="private-info-players">1 player</dd></div>
+<div><dt>Location</dt><dd>Arrange directly with your coach</dd></div>
 </dl>
-<p>Choose your group size and session length below to see your price, including longer-session savings.</p>
-<details class="private-price-details"><summary>Longer-session discounts and rounding</summary><p>Prices are in CAD per player. The first 60 minutes are charged at the standard rate. For a 90-minute session, the extra half-hour is 10% off its standard rate. For a two-hour session, the entire second hour is 20% off its standard rate; the first hour is not discounted. Discounts do not stack. The full session price is rounded once to the nearest $5 <strong>per player</strong>, then multiplied by the player count. Other durations are quoted by the coaching team.</p></details>
-<p>E-transfer after your coach confirms the appointment. This inquiry does not reserve a time.</p></div></details></section></main><footer class="home-contact-footer"><div class="home-contact-inner"><div class="home-contact-brand"><img src="logo-star-soccer-minimalized.svg" alt="Star Soccer" class="brand-logo" width="188" height="73"><p>Vancouver youth soccer coaching since 2000.</p></div><div class="home-contact-column"><p class="footer-label">Training</p><a href="programs.html">Weekly sessions</a><a href="program-private-small-group.html">Private coaching &amp; prices</a><a href="methodology.html">Coaching philosophy</a></div><div class="home-contact-column"><p class="footer-label">Visit &amp; contact</p><a href="locations.html#connaught">Connaught Park</a><a href="locations.html#kits">Kitsilano Turf</a><a href="contact.html">Contact our team</a><a href="mailto:starsoccervancouver@gmail.com">starsoccervancouver@gmail.com</a></div><div class="home-contact-column"><p class="footer-label">More</p><a href="camps.html">Winter camps</a><a href="selectivo.html">Selectivo (upcoming)</a><a href="https://www.instagram.com/604starsoccer/" target="_blank" rel="noopener noreferrer">Instagram <span class="sr-only">(opens in a new tab)</span></a></div></div></footer></div><script src="training.js?v=20261026-quick" defer></script><script src="booking.js?v=20261026-quick" defer></script></body></html>
+<p class="registration-info-price"><strong id="private-info-price">$60 CAD</strong><span id="private-info-price-label">Per player · 60 minutes</span></p>
+<p class="private-summary-total" id="private-info-total">$60 total for your group</p>
+<h3 class="private-rates-heading">Standard 60-minute prices</h3>
+<table class="private-price-table"><caption>CAD per player, based on group size</caption><thead><tr><th scope="col">Players</th><th scope="col">Per player</th></tr></thead><tbody>
+<tr><th scope="row">1 player</th><td>$60</td></tr>
+<tr><th scope="row">2 players</th><td>$45</td></tr>
+<tr><th scope="row">3 players</th><td>$40</td></tr>
+<tr><th scope="row">4 players</th><td>$35</td></tr>
+<tr><th scope="row">5 players</th><td>$30</td></tr>
+<tr><th scope="row">6+ players</th><td>$25</td></tr>
+</tbody></table>
+<details class="private-price-details"><summary>How longer sessions are priced</summary><p>For 90 minutes, the extra half-hour is discounted by 10%. For 120 minutes, the second hour is discounted by 20%. The first hour remains at its normal rate. The total per-player price is rounded to the nearest $5; discounts do not stack. Other session lengths are quoted individually.</p></details>
+<div class="registration-info-note"><h3>How it works</h3><p>Submit your inquiry, and our team will help arrange a suitable coach, time and location. This is a request, not a confirmed appointment.</p></div>
+<div class="registration-info-note"><h3>Payment after confirmation</h3><p>Pay by e-transfer after your coach confirms the session. No payment is required to inquire.</p></div>
+<p class="registration-info-bring">Serving Vancouver families since 2000 · All prices in Canadian dollars.</p>
+</div></aside>
+</main><footer class="home-contact-footer"><div class="home-contact-inner"><div class="home-contact-brand"><img src="logo-star-soccer-minimalized.svg" alt="Star Soccer" class="brand-logo" width="188" height="73"><p>Vancouver youth soccer coaching since 2000.</p></div><div class="home-contact-column"><p class="footer-label">Training</p><a href="programs.html">Weekly sessions</a><a href="program-private-small-group.html">Private coaching &amp; prices</a><a href="methodology.html">Coaching philosophy</a></div><div class="home-contact-column"><p class="footer-label">Visit &amp; contact</p><a href="locations.html#connaught">Connaught Park</a><a href="locations.html#kits">Kitsilano Turf</a><a href="contact.html">Contact our team</a><a href="mailto:starsoccervancouver@gmail.com">starsoccervancouver@gmail.com</a></div><div class="home-contact-column"><p class="footer-label">More</p><a href="camps.html">Winter camps</a><a href="selectivo.html">Selectivo (upcoming)</a><a href="https://www.instagram.com/604starsoccer/" target="_blank" rel="noopener noreferrer">Instagram <span class="sr-only">(opens in a new tab)</span></a></div></div></footer></div><script src="training.js?v=20261026-quick" defer></script><script src="booking.js?v=20261026-quick" defer></script><script>
+/* Reflect the same shared pricing calculator in the registration summary. */
+document.addEventListener('DOMContentLoaded',function(){
+  var form=document.getElementById('private-inquiry');
+  if(!form||!window.StarTraining)return;
+  var duration=form.elements.namedItem('Minutes'),players=form.elements.namedItem('Players');
+  function updateSummary(){
+    var q=window.StarTraining.privateQuote(players.value,duration.value);
+    var count=Number(players.value);
+    document.getElementById('private-info-duration').textContent=duration.value==='other'?'Custom duration':duration.value+' minutes';
+    document.getElementById('private-info-players').textContent=Number.isSafeInteger(count)&&count>0?count+' '+(count===1?'player':'players'):'Please choose';
+    document.getElementById('private-info-price').textContent=q?window.StarTraining.money(q.perPlayer)+' CAD':'Quote on request';
+    document.getElementById('private-info-price-label').textContent=q?'Per player · '+q.duration+' minutes':'Your coach will confirm a price';
+    document.getElementById('private-info-total').textContent=q?window.StarTraining.money(q.total)+' total for your group':'We will confirm your group total';
+  }
+  duration.addEventListener('change',updateSummary);
+  players.addEventListener('input',updateSummary);
+  players.addEventListener('change',updateSummary);
+  updateSummary();
+});
+</script></body></html>

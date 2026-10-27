@@ -2,18 +2,15 @@
 (()=>{
   'use strict';
   const T=window.StarTraining,C=window.StarWinterCamps,form=document.querySelector('#camp-registration');if(!T||!C||!form)return;
-  const week=form.elements.namedItem('Camp week'),kind=form.elements.namedItem('Booking option'),slot=form.elements.namedItem('Daily session'),date=form.elements.namedItem('Camp date'),age=form.elements.namedItem('Player age');
+  const week=form.dataset.campWeek,slot=form.elements.namedItem('Daily session'),age=form.elements.namedItem('Player age');
   const submit=form.querySelector('[type="submit"]'),feedback=document.querySelector('#camp-status'),receipt=document.querySelector('#camp-receipt'),summary=document.querySelector('#camp-quote'),datesList=document.querySelector('#camp-dates');
   const params=new URLSearchParams(location.search);let busy=false,reference='';
   function restore(input,key){const value=params.get(key);if([...input.options].some(o=>o.value===value))input.value=value;}
-  restore(week,'week');restore(kind,'kind');restore(slot,'slot');
-  if(C.dates(week.value).includes(params.get('date')))date.value=params.get('date');
-  function value(){return {week:week.value,kind:kind.value,slot:slot.value,date:date.value,age:age.value};}
+  restore(slot,'slot');
+  function value(){return {week,kind:'week',slot:slot.value,age:age.value};}
   function status(message,error=false){feedback.hidden=false;feedback.textContent=message;feedback.classList.toggle('is-error',error);feedback.setAttribute('role',error?'alert':'status');}
   function update(){
-    const allowed=C.dates(week.value);date.min=allowed[0];date.max=allowed[4];date.required=kind.value==='dropin';date.closest('label').hidden=!date.required;
-    if(date.required&&!allowed.includes(date.value))date.value='';
-    date.setCustomValidity('');datesList.replaceChildren();
+    datesList.replaceChildren();
     try{
       const q=C.quote({...value(),age:C.catalog.minAge});summary.querySelector('[data-camp-price]').textContent=T.money(q.price)+' CAD';form.querySelector('[data-camp-total]').textContent=T.money(q.price)+' CAD';
       summary.querySelector('[data-camp-option]').textContent=q.weekName+' · '+q.label;
@@ -26,16 +23,15 @@
       summary.querySelector('[data-camp-price]').textContent='Choose a valid option';form.querySelector('[data-camp-total]').textContent='Choose a valid date and option';summary.querySelector('[data-camp-option]').textContent=error.message;
       summary.querySelector('[data-camp-time]').textContent='9 AM–noon or 12:30–3:30 PM';summary.querySelector('[data-camp-lunch]').textContent='Supervised lunch is included when booking both sessions.';
       summary.querySelector('[data-camp-payment]').textContent='The coaching team confirms places before payment.';
-      if(date.required&&date.value)date.setCustomValidity(error.message);
       submit.disabled=true;
     }
   }
-  [week,kind,slot,date].forEach(el=>el.addEventListener('change',update));
+  slot.addEventListener('change',update);
   form.addEventListener('input',e=>{if(e.target.setCustomValidity)e.target.setCustomValidity('');});update();
   function receiptText(q){return ['Star Soccer winter camp registration request','Reference: '+reference,'Camp: '+q.weekName,'Option: '+q.label,'Dates: '+q.dates.map(T.prettyDate).join('; '),'Time: '+q.time,'Location: Kitsilano Turf','Ages: 5–14','Booking total: '+T.money(q.price)+' CAD',q.lunch?'Supervised lunch: noon–12:30 included. Bring a packed lunch.':'', 'A place is confirmed by the coaching team; form-service acceptance is not a reservation.',q.price===0?'This Christmas Friday option is free; no payment is due.':'After coach confirmation, e-transfer '+T.catalog.email+' with player name and reference.','If already paid, ask the team to reconcile it before paying again.'].filter(Boolean).join('\n');}
   function showReceipt(q){
     receipt.hidden=false;receipt.replaceChildren();
-    const h=document.createElement('h2');h.textContent='Camp request received';
+    const h=document.createElement('h2');h.textContent='Camp registration received';
     const lead=document.createElement('p');lead.textContent='Our form service accepted your request. The coaching team will confirm your place before payment. Email delivery is not verified by this page.';
     const details=document.createElement('pre');details.className='camp-receipt-details';details.textContent=receiptText(q);
     const actions=document.createElement('div');actions.className='flow-actions';
@@ -52,7 +48,7 @@
     if(form.elements.namedItem('_honey').value){status('Unable to send. Please email the coaching team.',true);return;}
     if(!reference)reference='SS-CAMP-'+(crypto.randomUUID?crypto.randomUUID().slice(0,8).toUpperCase():Date.now().toString(36).toUpperCase());
     const data=new FormData(form);const fields={'_subject':'Star Soccer winter camp request | '+q.weekName,'_template':'table','_captcha':'false','_replyto':data.get('email'),'Training':'Winter camps · '+q.weekName+' · '+q.time,'Booking type':q.label,'Covered dates':q.dates.join(', '),'Camp session keys':q.sessions.map(s=>s.key).join('; '),'Location':q.location,'Price CAD':String(q.price),'Lunch supervision':q.lunch?'Included noon–12:30':'Not required for one daily session','Client reference':reference,'Catalog version':C.catalog.version};
-    Object.entries(fields).forEach(([k,v])=>data.set(k,v));data.set('Referral source',T.referralSource(form.elements.namedItem('Referral source').value));if(kind.value==='week')data.delete('Camp date');
+    Object.entries(fields).forEach(([k,v])=>data.set(k,v));data.set('Camp week',q.weekName);data.set('Referral source',T.referralSource(form.elements.namedItem('Referral source').value));
     busy=true;submit.disabled=true;form.setAttribute('aria-busy','true');status('Sending camp request…');
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
     try{

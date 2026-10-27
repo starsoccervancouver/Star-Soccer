@@ -6,9 +6,9 @@ test('approved camp dates, ages, capacity and paid four-day Christmas price',()=
  assert.equal(choice({age:14,slot:'both'}).price,400);assert.equal(choice({slot:'both'}).sessions.length,10);assert.equal(C.catalog.capacity,20);
  for(const age of [4,15,5.5,'5.5','x'])assert.throws(()=>choice({age}),/ages/);
 });
-test('Boxing Week is $10 per training hour, both slots include supervised lunch',()=>{
- const q=choice({week:'boxing'});assert.equal(q.price,150);assert.equal(q.price/(q.dates.length*3),10);assert.equal(q.dates[4],'2027-01-01');
- const both=choice({week:'boxing',slot:'both'});assert.equal(both.price,300);assert.equal(both.lunch,true);assert.equal(both.sessions.length,10);assert.equal(choice({slot:'pm'}).lunch,false);
+test('Boxing Week uses the approved $185 weekly package and includes lunch for both slots',()=>{
+ const q=choice({week:'boxing'});assert.equal(q.price,185);assert.equal(q.dates.length*3,15);assert.equal(q.dates[4],'2027-01-01');
+ const both=choice({week:'boxing',slot:'both'});assert.equal(both.price,370);assert.equal(both.lunch,true);assert.equal(both.sessions.length,10);assert.equal(choice({slot:'pm'}).lunch,false);
 });
 test('drop-ins are $60 per three-hour slot, Christmas Friday is free including both slots',()=>{
  assert.equal(choice({kind:'dropin',date:'2026-12-22'}).price,60);assert.equal(choice({kind:'dropin',slot:'both',date:'2026-12-22'}).price,120);

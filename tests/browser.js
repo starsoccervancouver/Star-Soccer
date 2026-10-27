@@ -23,7 +23,7 @@
   }
   const change=(doc,id,value)=>{const el=doc.getElementById(id);el.value=value;el.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));};
   try {
-    const pages=['index.html','programs.html','program-private-small-group.html','methodology.html','locations.html','contact.html','camps.html','selectivo.html','registration.html?sessionId=wednesday&type=pass4','registration-thank-you.html'];
+    const pages=['index.html','programs.html','program-private-small-group.html','methodology.html','locations.html','contact.html','camps.html','christmas-camp-registration.html','boxing-camp-registration.html','selectivo.html','registration.html?sessionId=wednesday&type=pass4','registration-thank-you.html'];
     for(const width of [320,375,430,900,1024,1440]) {
       for(const page of pages) {
         const doc=await load(page,width);
@@ -129,26 +129,29 @@
     const duration=doc.querySelector('[name="Minutes"]');duration.value='120';duration.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
     check(doc.querySelector('#private-estimate').textContent.includes('$80 per player') && doc.querySelector('#private-estimate').textContent.includes('$160 total'),'Private two-hour group quote keeps approved rounding');
     doc=await load('camps.html',320);
+    check(!doc.querySelector('form') && !doc.body.textContent.includes('Request free Friday') && doc.body.textContent.includes('No registration required.'),'Camp landing page has no registration form or free-Friday request; drop-ins need no registration');
+    check(doc.querySelector('a[href="christmas-camp-registration.html"]').textContent==='Register for Christmas Week' && doc.querySelector('a[href="boxing-camp-registration.html"]').textContent==='Register for Boxing Week','Each camp links to its own registration page');
+    doc=await load('christmas-camp-registration.html',320);
     const camp=doc.querySelector('#camp-registration'),campWin=frame.contentWindow;
     check(doc.querySelector('[data-camp-price]').textContent==='$200 CAD' && doc.querySelectorAll('#camp-dates li').length===5,'Christmas package is $200 and includes all five dates');
     const setCamp=(name,value)=>{const el=camp.elements.namedItem(name);el.value=value;el.dispatchEvent(new campWin.Event('change',{bubbles:true}));};
-    setCamp('Camp week','boxing');setCamp('Daily session','both');
-    check(doc.querySelector('[data-camp-price]').textContent==='$300 CAD' && doc.querySelector('[data-camp-lunch]').textContent.includes('Supervised lunch included') && doc.querySelector('#camp-dates').textContent.includes('Jan 1, 2027'),'Boxing Week both-session package is $300 with lunch and year-crossing dates');
-    setCamp('Camp week','christmas');setCamp('Booking option','dropin');setCamp('Camp date','2026-12-25');
-    check(doc.querySelector('[data-camp-price]').textContent==='$0 CAD' && doc.querySelector('[data-camp-total]').textContent==='$0 CAD' && doc.querySelector('[data-camp-payment]').textContent.includes('No payment is due'),'Christmas Friday is free even when booking both daily sessions');
+    setCamp('Daily session','both');
+    check(doc.querySelector('[data-camp-price]').textContent==='$400 CAD' && doc.querySelector('[data-camp-total]').textContent==='$400 CAD' && !camp.elements.namedItem('Booking option'),'Christmas registration only offers weekly packages, with both sessions at $400');
     check(camp.elements.namedItem('Player age').min==='5' && camp.elements.namedItem('Player age').max==='14','Camp form uses the approved ages 5–14');
     for(const [name,value] of [['Parent name','Website Test'],['email','test@example.invalid'],['Player name','Test Player'],['Player age','5'],['Referral source','referral']])camp.elements.namedItem(name).value=value;
     let campCalls=0,campData,campReference;
     campWin.fetch=async(url,options)=>{campCalls++;campData=options.body;campReference=campData.get('Client reference');return {ok:true,json:async()=>({success:false})};};
     camp.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(campCalls===1 && !camp.hidden && doc.querySelector('#camp-receipt').hidden && camp.elements.namedItem('Player name').value==='Test Player','Rejected camp submission retains parent entries and cannot show a receipt');
-    check(campData.get('Price CAD')==='0' && campData.get('Covered dates')==='2026-12-25' && campData.get('Camp session keys').split('; ').length===2 && campData.get('Referral source')==='Family / friend','Camp request carries the calculated free price, both dated session keys and optional attribution');
+    check(campData.get('Price CAD')==='400' && campData.get('Covered dates').split(', ').length===5 && campData.get('Camp session keys').split('; ').length===10 && campData.get('Referral source')==='Family / friend','Camp registration carries the package price, all ten dated session keys and optional attribution');
     campWin.fetch=async(url,options)=>{campCalls++;campData=options.body;return {ok:true,json:async()=>({success:true})};};
     camp.requestSubmit();camp.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(campCalls===2 && camp.hidden && !doc.querySelector('#camp-receipt').hidden && campData.get('Client reference')===campReference,'Accepted camp request shows a receipt and blocks duplicate submissions with one reference');
-    check(doc.querySelector('#camp-receipt').textContent.includes('no payment is due') && doc.querySelector('#camp-receipt').textContent.includes('noon–12:30 included') && doc.documentElement.scrollWidth<=321,'Free Friday receipt keeps zero charge and lunch details readable at 320px');
-    doc=await load('camps.html?week=boxing&slot=pm&price=1#camp-booking',320);
-    check(doc.querySelector('[data-camp-price]').textContent==='$150 CAD','Camp links select the requested package without trusting a URL price');
+    check(doc.querySelector('#camp-receipt').textContent.includes('$400 CAD') && doc.querySelector('#camp-receipt').textContent.includes('noon–12:30 included') && doc.documentElement.scrollWidth<=321,'Package receipt keeps the correct charge and lunch details readable at 320px');
+    doc=await load('boxing-camp-registration.html?week=christmas&kind=dropin&slot=pm&price=1#camp-booking',320);
+    check(doc.querySelector('[data-camp-price]').textContent==='$185 CAD' && doc.querySelector('#camp-dates').textContent.includes('Jan 1, 2027'),'Boxing registration keeps its own $185 package despite untrusted week, kind and price parameters');
+    doc.querySelector('[name="Daily session"]').value='both';doc.querySelector('[name="Daily session"]').dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
+    check(doc.querySelector('[data-camp-price]').textContent==='$370 CAD' && doc.querySelector('[data-camp-lunch]').textContent.includes('Supervised lunch included'),'Boxing Week both-session package is $370 with lunch');
     doc=await load('contact.html?program=camps#contact-inquiry');
     check(doc.querySelector('[name="Topic"]').value==='Future camps' && !doc.querySelector('[name="Message"]').value,'Camp inquiry link selects the right topic without writing a message for the parent');
     const contact=doc.querySelector('form');

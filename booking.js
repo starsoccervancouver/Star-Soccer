@@ -42,7 +42,9 @@
     const blank=document.createElement('option');blank.value='';blank.textContent='Choose or leave blank';select.append(blank);
     Object.entries(T.referralSources).forEach(([value,name])=>{const option=document.createElement('option');option.value=value;option.textContent=name;select.append(option);});
     const help=document.createElement('small');help.textContent='Helps our team understand how families find training.';
-    label.append(select,help);form.querySelector('.form-privacy').before(label);
+    label.append(select,help);
+    const extras=form.querySelector('[data-optional-fields] .quick-extras');
+    if(extras)extras.append(label);else form.querySelector('.form-privacy').before(label);
   });
   function showReceipt(container,receipt) {
     container.hidden=false; container.replaceChildren();
@@ -51,7 +53,7 @@
     const dl=document.createElement('dl');dl.className='flow-summary';
     const values=[['Your reference',receipt.reference],['Training',receipt.sessionName],['Dates',receipt.dates.map(T.prettyDate).join('; ')],['Location',receipt.location],['Coaches',receipt.coaches],['Booking',receipt.label],['Booking total',T.money(receipt.price)+' CAD']];
     values.forEach(([label,value])=>{const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=value;row.append(dt,dd);dl.append(row);});container.append(dl);
-    const payment=document.createElement('p');payment.textContent='E-transfer '+T.catalog.email+', or bring cash to the first session. Include the player name, date and your reference with payment.';container.append(payment);
+    const payment=document.createElement('p');payment.textContent='After coach confirmation, e-transfer '+T.catalog.email+'. Include the player name, date and your reference with payment.';container.append(payment);
     const help=document.createElement('p');help.textContent='Save or print these details. Email delivery is not verified by this page. Contact the coaching team about attendance or weather changes.';container.append(help);
     const actions=document.createElement('div');actions.className='flow-actions';
     const print=document.createElement('button');print.type='button';print.className='button';print.textContent='Print / save confirmation';print.addEventListener('click',()=>window.print());
@@ -79,7 +81,7 @@
     let selected,busy=false,reference='';
     const recovery=document.createElement('div');recovery.className='registration-recovery';recovery.hidden=true;feedback.after(recovery);
     try {selected=T.choice(params.get('sessionId'),params.get('type'));}
-    catch(error) {form.hidden=true;document.querySelector('#booking-summary').hidden=true;status(feedback,error.message,true);return;}
+    catch(error) {form.hidden=true;document.querySelector('#booking-summary').hidden=true;document.querySelector('.quick-booking-details')?.setAttribute('hidden','');status(feedback,error.message,true);return;}
     const {session:s,type,label,price}=selected;
     age.min=s.minAge;age.max=s.maxAge;age.step='1';date.min=T.nextDate(s);
     text('#booking-title',s.day+' training');text('#booking-session',s.day+' · '+s.time);
@@ -101,9 +103,11 @@
     // Calculate on click so an overnight-open tab never selects yesterday.
     const nextDate=document.createElement('button');nextDate.type='button';
     nextDate.className='button button-ghost booking-next-date';
-    nextDate.textContent='Use next '+s.day+' · '+T.prettyDate(T.nextDate(s));
+    nextDate.textContent=form.closest('.quick-flow')?'Next date':'Use next '+s.day+' · '+T.prettyDate(T.nextDate(s));
+    nextDate.setAttribute('aria-label','Use next '+s.day+' · '+T.prettyDate(T.nextDate(s)));
     nextDate.addEventListener('click',()=>{date.min=T.nextDate(s);date.value=date.min;updateDate();});
-    date.closest('label').after(nextDate);
+    const dateRow=form.querySelector('.quick-date-row');
+    if(dateRow)dateRow.append(nextDate);else date.closest('label').after(nextDate);
     form.addEventListener('submit',async event=>{
       event.preventDefault();if(busy) return;
       updateDate();if(!validForm(form)) return;
@@ -121,7 +125,7 @@
         await send(data);
         const receipt={accepted:true,acceptedAt:Date.now(),reference,sessionName:s.day+' · '+s.time,dates:booking.dates,location:booking.location,coaches:booking.coaches,label,price};
         let saved=false;try {sessionStorage.setItem(receiptKey,JSON.stringify(receipt));saved=true;}catch { /* Keep the on-page receipt if storage is unavailable. */ }
-        form.hidden=true;feedback.hidden=true;showReceipt(receiptPanel,receipt);
+        form.hidden=true;feedback.hidden=true;document.querySelector('.quick-booking-details')?.setAttribute('hidden','');showReceipt(receiptPanel,receipt);
         if(saved) {const a=document.createElement('a');a.href='registration-thank-you.html';a.textContent='Open confirmation page';a.className='flow-text-link';receiptPanel.append(a);}
       } catch(error) {
         busy=false;button.disabled=false;status(feedback,error.message+' Your entries are still here. Contact '+T.catalog.email+' for help.',true);
@@ -137,6 +141,9 @@
   const privateForm=document.querySelector('#private-inquiry');
   if(privateForm) {
     const coach=privateForm.elements.namedItem('Preferred coach');coach.value=T.coachId(params.get('coach'));
+    const coachLabel=document.querySelector('#quick-private-coach');
+    const updateCoach=()=>{if(coachLabel){coachLabel.hidden=!coach.value;coachLabel.textContent=coach.value?'Preferred coach: '+T.catalog.coaches[coach.value]:'';}};
+    coach.addEventListener('change',updateCoach);updateCoach();
     const players=privateForm.elements.namedItem('Players'),duration=privateForm.elements.namedItem('Minutes');
     const estimate=document.querySelector('#private-estimate');
     const updateQuote=()=>{
@@ -177,6 +184,6 @@
     }
     const topic=document.querySelector('[name="Topic"]');
     if(topic && params.get('program')==='selectivo') topic.value='Selectivo updates';
-    if(topic && params.get('program')==='camps') topic.value='Future camps';
+    if(topic && params.get('program')==='camps') topic.value='Winter camps';
   }
 })();

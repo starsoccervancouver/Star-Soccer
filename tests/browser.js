@@ -32,6 +32,11 @@
         check(overflow<=1,`${page} at ${width}px has no horizontal overflow${overflow>1?' ('+overflow+'px; '+oversized+')':''}`);
         const header=doc.querySelector('.site-header').getBoundingClientRect();
         check(Math.abs(header.left)<=1 && Math.abs(header.right-doc.documentElement.clientWidth)<=1,`${page} at ${width}px has navigation across the full screen width`);
+        if(doc.body.classList.contains('quick-flow') && width<=430){
+          const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
+          check(submit.getBoundingClientRect().bottom<=740,`${page} at ${width}px shows the submit button within a 740px phone screen`);
+          check([...form.querySelectorAll('[required]')].filter(el=>el.getClientRects().length).length<=4,`${page} starts with at most four essential inputs`);
+        }
         if(width<=430) {
           const controls=[...doc.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>el.getClientRects().length && !el.closest('[aria-hidden="true"]'));
           if(controls.length)check(controls.every(el=>parseFloat(frame.contentWindow.getComputedStyle(el).fontSize)>=16),`${page} at ${width}px uses readable 16px form controls`);
@@ -47,6 +52,7 @@
     check(doc.querySelector('[data-session-day="friday"] .session-capacity').textContent==='3/20 players · 17 places remaining','Schedule shows the dated ledger count');
     check(doc.querySelector('[data-session-day="thursday"] .session-capacity').textContent==='0/20 players · 20 places remaining','Recorded zero is shown as zero');
     check(!doc.querySelector('.count-refresh') && doc.documentElement.dataset.countsState==='ready','Counts load automatically without a refresh button');
+    check(!doc.querySelector('.count-feed-note'),'Training page keeps session counts without the ledger-status message');
     frame.contentWindow.fetch=async()=>{throw new TypeError('Offline');};
     doc.dispatchEvent(new frame.contentWindow.Event('visibilitychange'));
     for(let i=0;i<100 && doc.documentElement.dataset.countsState==='loading';i++)await new Promise(resolve=>setTimeout(resolve,10));
@@ -100,12 +106,11 @@
     doc=await load('registration.html?sessionId=camp-u4-u6&type=dropin');
     check(doc.querySelector('#training-registration').hidden && doc.querySelector('#registration-status').textContent.includes('no longer available'),'Retired camp registration is rejected');
     doc=await load('registration.html?sessionId=wednesday&type=pass4');
-    check(doc.querySelector('#booking-summary').textContent.includes('Payment instructions') && doc.querySelector('#booking-summary').textContent.includes('starsoccervancouver@gmail.com'),'Payment destination and instructions are visible before registration');
-    doc.querySelector('.booking-form-jump').click();
-    check(doc.activeElement===doc.querySelector('#training-registration'),'Mobile booking shortcut moves focus to player details');
+    check(doc.querySelector('.quick-booking-details').textContent.includes('Payment instructions') && doc.querySelector('.quick-booking-details').textContent.includes('starsoccervancouver@gmail.com'),'Payment destination and instructions remain available in expandable booking details');
+    check(!doc.querySelector('[data-optional-fields]').open && !doc.querySelector('[name="Parent name"]').required,'Registration defers optional details and does not require a parent name');
     const win=frame.contentWindow,form=doc.querySelector('form'),T=win.StarTraining;
     form.elements.namedItem('Start date').value=T.nextDate(T.getSession('wednesday'));
-    for(const [name,value] of [['Parent name','Website Test'],['email','test@example.invalid'],['Player name','Test Player'],['Player age','10']])form.elements.namedItem(name).value=value;
+    for(const [name,value] of [['email','test@example.invalid'],['Player name','Test Player'],['Player age','10']])form.elements.namedItem(name).value=value;
     let calls=0,receivedData,firstReference;
     const source=form.elements.namedItem('Referral source');
     check(source && !source.required && source.value==='','Referral source is optional and has no assumed selection');
@@ -128,6 +133,10 @@
     doc.querySelector('[name="Players"]').value='2';
     const duration=doc.querySelector('[name="Minutes"]');duration.value='120';duration.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
     check(doc.querySelector('#private-estimate').textContent.includes('$80 per player') && doc.querySelector('#private-estimate').textContent.includes('$160 total'),'Private two-hour group quote keeps approved rounding');
+    const privateForm=doc.querySelector('#private-inquiry');privateForm.elements.namedItem('email').value='test@example.invalid';privateForm.elements.namedItem('Player ages').value='8, 9';
+    let privateCalls=0,privateData;frame.contentWindow.fetch=async(url,options)=>{privateCalls++;privateData=options.body;return {ok:true,json:async()=>({success:true})};};
+    privateForm.requestSubmit();privateForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
+    check(privateCalls===1 && privateData.get('Preferred coach')==='Romeo Dinglis' && privateData.get('Estimate CAD').includes('160') && doc.querySelector('[data-feedback]').textContent.includes('Request received'),'Private inquiry accepts essential details without a parent name or availability and preserves coach and quote');
     doc=await load('camps.html',320);
     check(!doc.querySelector('form') && !doc.body.textContent.includes('Request free Friday') && doc.body.textContent.includes('No registration required.'),'Camp landing page has no registration form or free-Friday request; drop-ins need no registration');
     check(doc.querySelector('a[href="christmas-camp-registration.html"]').textContent==='Register for Christmas Week' && doc.querySelector('a[href="boxing-camp-registration.html"]').textContent==='Register for Boxing Week','Each camp links to its own registration page');
@@ -137,8 +146,9 @@
     const setCamp=(name,value)=>{const el=camp.elements.namedItem(name);el.value=value;el.dispatchEvent(new campWin.Event('change',{bubbles:true}));};
     setCamp('Daily session','both');
     check(doc.querySelector('[data-camp-price]').textContent==='$400 CAD' && doc.querySelector('[data-camp-total]').textContent==='$400 CAD' && !camp.elements.namedItem('Booking option'),'Christmas registration only offers weekly packages, with both sessions at $400');
+    check(doc.querySelector('[data-quick-camp-time]').textContent.includes('12:30–3:30 PM') && doc.querySelector('[data-quick-camp-time]').textContent.includes('Supervised lunch included'),'Both-session choice shows the full times and lunch supervision outside the dropdown');
     check(camp.elements.namedItem('Player age').min==='5' && camp.elements.namedItem('Player age').max==='14','Camp form uses the approved ages 5–14');
-    for(const [name,value] of [['Parent name','Website Test'],['email','test@example.invalid'],['Player name','Test Player'],['Player age','5'],['Referral source','referral']])camp.elements.namedItem(name).value=value;
+    for(const [name,value] of [['email','test@example.invalid'],['Player name','Test Player'],['Player age','5'],['Referral source','referral']])camp.elements.namedItem(name).value=value;
     let campCalls=0,campData,campReference;
     campWin.fetch=async(url,options)=>{campCalls++;campData=options.body;campReference=campData.get('Client reference');return {ok:true,json:async()=>({success:false})};};
     camp.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
@@ -153,9 +163,10 @@
     doc.querySelector('[name="Daily session"]').value='both';doc.querySelector('[name="Daily session"]').dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
     check(doc.querySelector('[data-camp-price]').textContent==='$370 CAD' && doc.querySelector('[data-camp-lunch]').textContent.includes('Supervised lunch included'),'Boxing Week both-session package is $370 with lunch');
     doc=await load('contact.html?program=camps#contact-inquiry');
-    check(doc.querySelector('[name="Topic"]').value==='Future camps' && !doc.querySelector('[name="Message"]').value,'Camp inquiry link selects the right topic without writing a message for the parent');
+    check(doc.querySelector('[name="Topic"]').value==='Winter camps' && !doc.querySelector('[name="Message"]').value,'Camp inquiry link selects the right topic without writing a message for the parent');
     const contact=doc.querySelector('form');
-    contact.elements.namedItem('Name').value='Website Test';contact.elements.namedItem('email').value='test@example.invalid';contact.elements.namedItem('Message').value='Mocked contact test';contact.elements.namedItem('Referral source').value='community';
+    check([...contact.querySelectorAll('[required]')].map(el=>el.name).sort().join(',')==='Message,email','Contact only requires email and a message');
+    contact.elements.namedItem('email').value='test@example.invalid';contact.elements.namedItem('Message').value='Mocked contact test';contact.elements.namedItem('Referral source').value='community';
     let contactData;frame.contentWindow.fetch=async(url,options)=>{contactData=options.body;return {ok:true,json:async()=>({success:true})};};
     contact.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(contactData.get('Referral source')==='School / community' && doc.querySelector('[data-feedback]').textContent.includes('accepted'),'Contact inquiry includes the selected source after mocked service acceptance');

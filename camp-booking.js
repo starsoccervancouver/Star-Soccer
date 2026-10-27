@@ -15,6 +15,8 @@
       const q=C.quote({...value(),age:C.catalog.minAge});summary.querySelector('[data-camp-price]').textContent=T.money(q.price)+' CAD';form.querySelector('[data-camp-total]').textContent=T.money(q.price)+' CAD';
       summary.querySelector('[data-camp-option]').textContent=q.weekName+' · '+q.label;
       summary.querySelector('[data-camp-time]').textContent=q.time;
+      const quickTime=form.querySelector('[data-quick-camp-time]');
+      if(quickTime)quickTime.textContent=q.time+(q.lunch?' · Supervised lunch included':'');
       summary.querySelector('[data-camp-lunch]').textContent=q.lunch?'Supervised lunch included, noon–12:30. Bring a packed lunch.':'Lunch supervision is included when a player books both daily sessions.';
       q.dates.forEach(d=>{const li=document.createElement('li');li.textContent=T.prettyDate(d)+' · '+q.time;datesList.append(li);});
       summary.querySelector('[data-camp-payment]').textContent=q.price===0?'This Christmas Friday booking is free. No payment is due. Your place still needs coach confirmation.':'After the team confirms your place, e-transfer '+T.catalog.email+'. Include the player name and booking reference. If you have already paid, ask the team to reconcile it before paying again.';

@@ -1,0 +1,66 @@
+/* Camp registration requests require coach confirmation; service acceptance is not a reservation. */
+(()=>{
+  'use strict';
+  const T=window.StarTraining,C=window.StarWinterCamps,form=document.querySelector('#camp-registration');if(!T||!C||!form)return;
+  const week=form.elements.namedItem('Camp week'),kind=form.elements.namedItem('Booking option'),slot=form.elements.namedItem('Daily session'),date=form.elements.namedItem('Camp date'),age=form.elements.namedItem('Player age');
+  const submit=form.querySelector('[type="submit"]'),feedback=document.querySelector('#camp-status'),receipt=document.querySelector('#camp-receipt'),summary=document.querySelector('#camp-quote'),datesList=document.querySelector('#camp-dates');
+  const params=new URLSearchParams(location.search);let busy=false,reference='';
+  function restore(input,key){const value=params.get(key);if([...input.options].some(o=>o.value===value))input.value=value;}
+  restore(week,'week');restore(kind,'kind');restore(slot,'slot');
+  if(C.dates(week.value).includes(params.get('date')))date.value=params.get('date');
+  function value(){return {week:week.value,kind:kind.value,slot:slot.value,date:date.value,age:age.value};}
+  function status(message,error=false){feedback.hidden=false;feedback.textContent=message;feedback.classList.toggle('is-error',error);feedback.setAttribute('role',error?'alert':'status');}
+  function update(){
+    const allowed=C.dates(week.value);date.min=allowed[0];date.max=allowed[4];date.required=kind.value==='dropin';date.closest('label').hidden=!date.required;
+    if(date.required&&!allowed.includes(date.value))date.value='';
+    date.setCustomValidity('');datesList.replaceChildren();
+    try{
+      const q=C.quote({...value(),age:C.catalog.minAge});summary.querySelector('[data-camp-price]').textContent=T.money(q.price)+' CAD';form.querySelector('[data-camp-total]').textContent=T.money(q.price)+' CAD';
+      summary.querySelector('[data-camp-option]').textContent=q.weekName+' · '+q.label;
+      summary.querySelector('[data-camp-time]').textContent=q.time;
+      summary.querySelector('[data-camp-lunch]').textContent=q.lunch?'Supervised lunch included, noon–12:30. Bring a packed lunch.':'Lunch supervision is included when a player books both daily sessions.';
+      q.dates.forEach(d=>{const li=document.createElement('li');li.textContent=T.prettyDate(d)+' · '+q.time;datesList.append(li);});
+      summary.querySelector('[data-camp-payment]').textContent=q.price===0?'This Christmas Friday booking is free. No payment is due. Your place still needs coach confirmation.':'After the team confirms your place, e-transfer '+T.catalog.email+'. Include the player name and booking reference. If you have already paid, ask the team to reconcile it before paying again.';
+      submit.disabled=false;
+    }catch(error){
+      summary.querySelector('[data-camp-price]').textContent='Choose a valid option';form.querySelector('[data-camp-total]').textContent='Choose a valid date and option';summary.querySelector('[data-camp-option]').textContent=error.message;
+      summary.querySelector('[data-camp-time]').textContent='9 AM–noon or 12:30–3:30 PM';summary.querySelector('[data-camp-lunch]').textContent='Supervised lunch is included when booking both sessions.';
+      summary.querySelector('[data-camp-payment]').textContent='The coaching team confirms places before payment.';
+      if(date.required&&date.value)date.setCustomValidity(error.message);
+      submit.disabled=true;
+    }
+  }
+  [week,kind,slot,date].forEach(el=>el.addEventListener('change',update));
+  form.addEventListener('input',e=>{if(e.target.setCustomValidity)e.target.setCustomValidity('');});update();
+  function receiptText(q){return ['Star Soccer winter camp registration request','Reference: '+reference,'Camp: '+q.weekName,'Option: '+q.label,'Dates: '+q.dates.map(T.prettyDate).join('; '),'Time: '+q.time,'Location: Kitsilano Turf','Ages: 5–14','Booking total: '+T.money(q.price)+' CAD',q.lunch?'Supervised lunch: noon–12:30 included. Bring a packed lunch.':'', 'A place is confirmed by the coaching team; form-service acceptance is not a reservation.',q.price===0?'This Christmas Friday option is free; no payment is due.':'After coach confirmation, e-transfer '+T.catalog.email+' with player name and reference.','If already paid, ask the team to reconcile it before paying again.'].filter(Boolean).join('\n');}
+  function showReceipt(q){
+    receipt.hidden=false;receipt.replaceChildren();
+    const h=document.createElement('h2');h.textContent='Camp request received';
+    const lead=document.createElement('p');lead.textContent='Our form service accepted your request. The coaching team will confirm your place before payment. Email delivery is not verified by this page.';
+    const details=document.createElement('pre');details.className='camp-receipt-details';details.textContent=receiptText(q);
+    const actions=document.createElement('div');actions.className='flow-actions';
+    const print=document.createElement('button');print.type='button';print.className='button';print.textContent='Print / save details';print.addEventListener('click',()=>window.print());
+    const download=document.createElement('button');download.type='button';download.className='button button-ghost';download.textContent='Download camp & payment details';download.addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([receiptText(q)],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='star-soccer-'+reference+'.txt';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+    const email=document.createElement('a');email.className='flow-text-link';email.href='mailto:'+T.catalog.email;email.textContent='Contact the coaching team';
+    actions.append(print,download);receipt.append(h,lead,details,actions,email);receipt.tabIndex=-1;receipt.focus();
+  }
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();if(busy)return;
+    form.querySelectorAll('input[type="text"][required]').forEach(el=>el.setCustomValidity(el.value.trim()?'':'Please enter a value.'));
+    update();if(!form.reportValidity())return;
+    let q;try{q=C.quote(value());}catch(error){status(error.message,true);return;}
+    if(form.elements.namedItem('_honey').value){status('Unable to send. Please email the coaching team.',true);return;}
+    if(!reference)reference='SS-CAMP-'+(crypto.randomUUID?crypto.randomUUID().slice(0,8).toUpperCase():Date.now().toString(36).toUpperCase());
+    const data=new FormData(form);const fields={'_subject':'Star Soccer winter camp request | '+q.weekName,'_template':'table','_captcha':'false','_replyto':data.get('email'),'Training':'Winter camps · '+q.weekName+' · '+q.time,'Booking type':q.label,'Covered dates':q.dates.join(', '),'Camp session keys':q.sessions.map(s=>s.key).join('; '),'Location':q.location,'Price CAD':String(q.price),'Lunch supervision':q.lunch?'Included noon–12:30':'Not required for one daily session','Client reference':reference,'Catalog version':C.catalog.version};
+    Object.entries(fields).forEach(([k,v])=>data.set(k,v));data.set('Referral source',T.referralSource(form.elements.namedItem('Referral source').value));if(kind.value==='week')data.delete('Camp date');
+    busy=true;submit.disabled=true;form.setAttribute('aria-busy','true');status('Sending camp request…');
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+    try{
+      const response=await fetch('https://formsubmit.co/ajax/'+T.catalog.email,{method:'POST',body:data,headers:{Accept:'application/json'},signal:controller.signal});
+      const body=await response.json();if(!T.accepted(response,body))throw new Error('The service did not accept this request.');
+      form.hidden=true;summary.hidden=true;feedback.hidden=true;showReceipt(q);
+    }catch(error){
+      busy=false;submit.disabled=false;status((error.name==='AbortError'?'The request timed out.':'We could not confirm this request.')+' Your entries are still here. Email '+T.catalog.email+' with reference '+reference+' before trying or paying again.',true);
+    }finally{clearTimeout(timer);form.removeAttribute('aria-busy');}
+  });
+})();

@@ -24,6 +24,8 @@ Mobile refinements put the main session button on the homepage's first screen, r
 
 After editing HTML, JS or source CSS, run `pnpm build` and commit `site.min.css` with the source change. Update the stylesheet query version in maintained pages when releasing a new stylesheet so returning visitors receive it. CI rejects stale generated output and CSS exceeding 60 KB raw / 14 KB gzip. To prepare a public artifact locally, run `node scripts/stage-site.cjs` from a clean checkout. Add new public asset types to its allowlist when needed.
 
+After changing page titles/descriptions or the public training catalogs, also run `pnpm build:search`. It refreshes the existing JSON-LD graphs from those sources: shared organization and public venue identities, plus the weekly/private/winter services on their corresponding landing pages. `node scripts/build-search-data.cjs --check` rejects drift in CI. Parks remain public training venues, never a company headquarters; coaching history does not establish an organization founding date. Visible parent FAQs remain useful content without deprecated FAQ rich-result markup. No analytics or registration behavior is changed by this build.
+
 See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for booking rules and the boundaries of static registration.
 
 Payment communication: the booking summary shows the destination and cash option before submission. After acceptance, the receipt offers a text download with the booking reference, dates, location, total and payment instructions. It contains no child name, guardian name or contact email. A receipt confirms form-service acceptance and does not verify payment; staff must reconcile actual payments in the private operating ledger.

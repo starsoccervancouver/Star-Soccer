@@ -524,7 +524,7 @@ a {
   background:
     linear-gradient(180deg, rgba(8, 18, 33, 0.18), rgba(8, 18, 33, 0.78)),
     linear-gradient(90deg, rgba(8, 24, 58, 0.28), rgba(119, 16, 28, 0.14)),
-    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1600&q=80");
+    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1600&q=50");
   background-size: cover;
   background-position: center;
 }

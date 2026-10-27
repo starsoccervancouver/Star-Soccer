@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build-css.cjs",
+    "build:search": "node scripts/build-search-data.cjs",
     "test": "node --test tests/*.test.cjs"
   },
   "devDependencies": {

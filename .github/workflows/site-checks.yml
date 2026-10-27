@@ -25,6 +25,8 @@ jobs:
           git diff --exit-code -- site.min.css
       - name: Check session, date, price and acceptance rules
         run: pnpm test
+      - name: Check structured data against page metadata and program catalogs
+        run: node scripts/build-search-data.cjs --check
       - name: Check local links, catalog parity and closed camp routes
         run: python3 tests/check_site.py
       - name: Install browser for responsive and form checks

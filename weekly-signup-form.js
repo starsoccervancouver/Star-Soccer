@@ -14,6 +14,29 @@
   document.querySelector('#booking-ages').textContent='Ages '+s.minAge+'–'+s.maxAge;
   const age=form.elements.namedItem('Player age');age.min=s.minAge;age.max=s.maxAge;
   document.querySelector('#age-help').textContent='Ages '+s.minAge+'–'+s.maxAge+'.';
+  const passSummary=document.querySelector('#quick-pass-summary'),passStart=document.querySelector('#pass-start');
+  let passStartChanged=false;
+  function updatePass(){
+    if(choice.type!=='pass4')return null;
+    passStart.min=T.nextDate(s);passStart.setCustomValidity('');
+    const p=W.passPlan(s.id,passStartChanged?passStart.value:null);passSummary.hidden=false;
+    document.querySelector('#pass-price').textContent=T.money(p.price)+' CAD · 4 sessions';
+    passStart.value=p.start;
+    document.querySelector('#pass-end').textContent=T.prettyDate(p.end);
+    return p;
+  }
+  if(choice.type==='pass4'){
+    document.querySelector('#booking-title').textContent=s.day+' 4-week pass';
+    submit.textContent='Register for 4-week pass';
+    document.querySelector('.quick-assurance').textContent='Your confirmation email includes dates and payment details.';
+    passStart.disabled=false;
+    passStart.addEventListener('input',()=>passStart.setCustomValidity(''));
+    passStart.addEventListener('change',()=>{
+      passStartChanged=Boolean(passStart.value);
+      try{updatePass();}catch(error){passStart.setCustomValidity(error.message);document.querySelector('#pass-end').textContent='Choose an upcoming '+s.day;passStart.reportValidity();}
+    });
+    updatePass();
+  }
   submit.disabled=false;
   form.addEventListener('input',event=>event.target.setCustomValidity?.(''));
   form.addEventListener('submit',async event=>{
@@ -23,10 +46,15 @@
     let request;
     try{request=W.request(s.id,choice.type,{name:form.elements.namedItem('Player name').value,email:form.elements.namedItem('email').value,age:age.value,experience:form.elements.namedItem('Experience').value});}
     catch(error){status(error.message,true);return;}
+    let pass;
+    try{pass=updatePass();}catch(error){passStart.setCustomValidity(error.message);passStart.reportValidity();return;}
     if(form.elements.namedItem('_honey').value){status('Unable to send. Please email '+T.catalog.email+'.',true);return;}
     if(!reference)reference='SS-'+(crypto.randomUUID?crypto.randomUUID().toUpperCase():Date.now().toString(36).toUpperCase());
     const data=new FormData();
     const fields={'Registration version':request.version,'Client reference':reference,'Session ID':s.id,'Training':s.day+' '+s.time,'Location':T.catalog.locations[s.location].name,'Player name':request.name,'Player age':String(request.age),email:request.email,Experience:request.experience,'Requested option':choice.label,'Attendance policy':'Expect next session unless parent declines; no dated choice submitted','Payment status':'Follow up later; no payment collected',_replyto:request.email,_subject:'Star Soccer weekly registration | '+s.day+' | '+reference,_template:'table',_captcha:'false',_honey:''};
+    if(pass){
+      Object.assign(fields,{'Start date policy':'Selected at registration; defaults to next eligible session','Pass start choice':passStartChanged?'Selected date':'Upcoming session (default)','Pass start date':pass.start,'Expected start date':pass.start,'Expected end date':pass.end,'Covered dates':pass.dates.join(', '),'Price CAD':String(pass.price),'Attendance policy':'Reserve four selected weeks; attendance inquiry only for upcoming-session start','Payment status':'Instructions in confirmation email; no payment collected',_subject:'Star Soccer pass registration | '+s.day+' | '+reference});
+    }
     Object.entries(fields).forEach(([key,value])=>data.set(key,value));
     busy=true;submit.disabled=true;form.setAttribute('aria-busy','true');status('Registering…');
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
@@ -34,12 +62,14 @@
       const response=await fetch('https://formsubmit.co/ajax/'+T.catalog.email,{method:'POST',body:data,headers:{Accept:'application/json'},signal:controller.signal});
       let body;try{body=await response.json();}catch{throw new Error('We couldn’t verify your registration.');}
       if(!T.accepted(response,body))throw new Error('Your registration wasn’t accepted.');
-      form.hidden=true;feedback.hidden=true;receipt.hidden=false;receipt.replaceChildren();
+      form.hidden=true;feedback.hidden=true;passSummary.hidden=true;receipt.hidden=false;receipt.replaceChildren();
       const heading=document.createElement('h2');heading.textContent='Thanks — registration received';
-      const message=document.createElement('p');message.textContent='Look out for your registration email and next-session attendance question. Romeo will follow up about payment. If the group is full, we’ll email you about the waitlist.';
+      const message=document.createElement('p');message.textContent=pass?'Look out for your pass confirmation with all four dates, payment instructions and a way to change your start. If any session is full, we’ll email you about availability.':'Look out for your registration email and next-session attendance question. Romeo will follow up about payment. If the group is full, we’ll email you about the waitlist.';
       const ref=document.createElement('p');ref.textContent='Your reference: '+reference;
       const back=document.createElement('a');back.href='programs.html#sessions';back.className='flow-text-link';back.textContent='Back to weekly training';
-      receipt.append(heading,message,ref,back);receipt.tabIndex=-1;receipt.focus();
+      receipt.append(heading,message);
+      if(pass){const details=document.createElement('p');details.textContent=T.money(pass.price)+' CAD · Expected start: '+T.prettyDate(pass.start)+' · Expected end (4th session): '+T.prettyDate(pass.end);receipt.append(details);}
+      receipt.append(ref,back);receipt.tabIndex=-1;receipt.focus();
     }catch(error){
       busy=false;submit.disabled=false;
       const message=error.name==='AbortError'?'This took longer than expected. We can’t tell whether it arrived.':error.message;

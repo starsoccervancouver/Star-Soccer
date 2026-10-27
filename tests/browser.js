@@ -75,6 +75,7 @@
     doc=await load(url.split('/').pop());
     check(doc.querySelector('#schedule-age').value==='14' && doc.querySelectorAll('.schedule-entry:not([hidden])').length===1,'Reload restores the selected filter');
     const toggle=doc.querySelector('.mobile-nav-toggle');toggle.click();
+    check(toggle.getAttribute('aria-label').toLowerCase().includes(toggle.textContent.toLowerCase()),'Navigation accessible name includes the visible button label');
     check(toggle.getAttribute('aria-expanded')==='true' && frame.contentWindow.getComputedStyle(doc.querySelector('nav')).display!=='none','Mobile menu opens');
     check([...doc.querySelectorAll('nav a')].every(el=>el.getBoundingClientRect().height>=44),'Expanded mobile menu links have 44px touch targets');
     doc.dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));

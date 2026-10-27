@@ -37,3 +37,9 @@ body.quick-flow .quick-pass-summary p{margin:4px 0 0;font-size:.8rem;line-height
 body.quick-flow .pass-start-label{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 10px;margin-top:6px}
 body.quick-flow .pass-start-label small{font-size:.72rem}
 body.quick-flow .pass-start-label input{grid-column:1/-1;margin:0;min-height:44px;color-scheme:dark}
+
+body.camp-registration-page .camp-gift-note{margin:0 0 8px;font-size:.8rem;line-height:1.45;color:#f3d699}
+body.quick-flow .quick-total [data-camp-discount]{display:block;margin:3px 0 0;font-size:.68rem;line-height:1.35;white-space:normal;color:#b9cbd9}
+body.quick-flow .quick-total [data-camp-discount][hidden]{display:none}
+body.quick-flow [data-camp-discount] s{color:#9fb4c6;text-decoration-thickness:1px}
+@media(max-width:540px){body.camp-registration-page.quick-flow h1{font-size:1.3rem}}

@@ -106,7 +106,7 @@
       'Location: '+receipt.location,
       'Booking: '+receipt.label,
       'Booking total: '+money(receipt.price)+' CAD',
-      '', 'Pay by e-transfer to '+catalog.email+' or bring cash.',
+      '', 'After coach confirmation, pay by e-transfer to '+catalog.email+'.',
       'Include the player name, session date and booking reference with payment.',
       'If you have already paid, contact the coaching team to reconcile it. This file does not verify payment.',
       'Keep these details before and after training. Contact '+catalog.email+' about payment or session changes.'

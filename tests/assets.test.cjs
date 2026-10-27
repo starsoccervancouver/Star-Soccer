@@ -17,6 +17,7 @@ test('public artifact includes all routes and excludes development files',()=>{
   for(const name of fs.readdirSync('.').filter(name=>name.endsWith('.html')))assert(names.includes(name),'Missing route: '+name);
   assert(fs.existsSync('_site/Star soccer/index.html'));
   assert(fs.existsSync('_site/site.min.css'));
+  assert(fs.existsSync('_site/quick-forms.css'));
   assert(fs.existsSync('_site/session-counts.js'));
   assert(fs.existsSync('_site/autumn-training-800.webp'));
   assert(fs.existsSync('_site/autumn-training-1600.webp'));

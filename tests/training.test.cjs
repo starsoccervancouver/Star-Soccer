@@ -75,6 +75,7 @@ test('registration recovery includes public booking context without personal for
 test('saved booking details keep dates, total and payment destination together without personal form data',()=>{
  const receipt={reference:'SS-TEST',sessionName:'Wednesday · 3:45–5:15 PM',dates:['2026-10-21','2026-10-28','2026-11-04','2026-11-11'],location:'Connaught Park',label:'Four-session pass',price:95,email:'private@example.invalid',playerName:'Private Test Name'};
  const text=T.receiptText(receipt);
- for(const expected of ['SS-TEST','Oct 21','Oct 28','Nov 4','Nov 11','$95 CAD','starsoccervancouver@gmail.com','or bring cash','does not verify payment'])assert(text.includes(expected),expected);
+ for(const expected of ['SS-TEST','Oct 21','Oct 28','Nov 4','Nov 11','$95 CAD','starsoccervancouver@gmail.com','After coach confirmation','does not verify payment'])assert(text.includes(expected),expected);
+ assert(!text.includes('cash'));
  assert(!text.includes(receipt.email));assert(!text.includes(receipt.playerName));
 });

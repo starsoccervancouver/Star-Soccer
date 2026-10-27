@@ -65,8 +65,8 @@
   const status=document.createElement('p');status.setAttribute('role','status');
   const help=document.createElement('p');help.textContent='20 players maximum per session. Counts include accepted registrations and coach-reported expected players whose contact details may still be pending. Availability is confirmed by the coaching team.';
   note.append(status,help);
-  if(rows.length)rows[rows.length-1].parentElement.after(note);
-  else preview.after(note);
+  // The training list already carries a count on each session; keep it uncluttered.
+  if(!rows.length)preview.after(note);
   function render() {
     rows.forEach(row=>{
       const session=T.getSession(row.dataset.sessionDay),date=session && T.nextDate(session);

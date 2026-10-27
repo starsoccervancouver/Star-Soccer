@@ -55,7 +55,7 @@
       `Your dates: ${p.dates.map(T.prettyDate).join('; ')}`,
       `${s.day} · ${s.time} · ${T.catalog.locations[s.location].name} · Vancouver time`,
       '',`Need a different start? Reply START YYYY-MM-DD, for example START ${example}. We’ll check space and email your revised four dates.`,
-      ...(p.upcoming?['',`Will ${name} join us on ${T.prettyDate(p.start)}? Reply YES to confirm attendance. If you’re starting later, reply START with your preferred date. We’re expecting you unless you tell us otherwise.`]:[]),
+      ...(p.upcoming?['',`Will ${name} join us on ${T.prettyDate(p.start)}? Reply YES to confirm, or NO if you can’t attend this date. We’re expecting you unless you tell us otherwise. A NO does not cancel your pass. For a different start, reply START YYYY-MM-DD.`]:[]),
       '',`Payment: e-transfer ${T.money(p.price)} CAD to ${T.catalog.email}. Include ${name} and reference ${reference} in the transfer message.`,
       `If you’ve already paid, reply with the details so Romeo can reconcile it. Please don’t pay twice. This email does not confirm that payment has been received.`,
       '',`Thank you — we look forward to seeing you on the field!`,`Star Soccer`,T.catalog.email,`Reference: ${reference}`

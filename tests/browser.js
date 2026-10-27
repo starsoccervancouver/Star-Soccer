@@ -48,6 +48,14 @@
           check(submit.getBoundingClientRect().bottom<=740,`${page} at ${width}px shows the submit button within a 740px phone screen`);
           check([...form.querySelectorAll('[required]')].filter(el=>el.getClientRects().length).length<=4,`${page} starts with at most four essential inputs`);
         }
+        if(doc.body.classList.contains('seasonal-registration')){
+          const panel=doc.querySelector('.quick-panel').getBoundingClientRect(),info=doc.querySelector('.registration-info').getBoundingClientRect();
+          check(info.width>0,`${page} at ${width}px shows its information card`);
+          if(width>=900)check(panel.width>info.width*1.5 && info.left>=panel.right,`${page} at ${width}px gives the registration form more space beside the info card`);
+          if(width<=430)check(info.top>=panel.bottom,`${page} at ${width}px keeps the form before the information card`);
+          const theme=frame.contentWindow.getComputedStyle(doc.body).getPropertyValue('--registration-art');
+          check(theme.includes(page.startsWith('registration.html')?'autumn-training':'winter-training'),`${page} at ${width}px uses its matching seasonal artwork`);
+        }
         if(width<=430) {
           const controls=[...doc.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>el.getClientRects().length && !el.closest('[aria-hidden="true"]'));
           if(controls.length)check(controls.every(el=>parseFloat(frame.contentWindow.getComputedStyle(el).fontSize)>=16),`${page} at ${width}px uses readable 16px form controls`);
@@ -78,6 +86,7 @@
     doc=await load('registration.html?sessionId=friday&type=dropin',320);
     check(![...doc.querySelectorAll('input[type="date"]')].some(el=>el.getClientRects().length) && !doc.querySelector('.count-feed-note') && !doc.querySelector('[data-optional-fields]'),'Weekly registration has no date picker, count paragraph or optional questions');
     check([...doc.querySelector('form').querySelectorAll('[required]')].map(el=>el.name).sort().join(',')==='Experience,Player age,Player name,email','Weekly registration requires exactly child, age, email and experience');
+    check(doc.querySelector('[data-training-info-option]').textContent==='Friday · Drop-in' && doc.querySelector('[data-training-info-price]').textContent==='$25 CAD' && doc.querySelector('[data-training-info-venue]').textContent==='Connaught Park','Drop-in information card follows the selected session and approved price');
     doc=await load('programs.html?age=14&day=sunday&source=test#sessions');
     check(doc.querySelector('[data-filter-panel]').open,'Shared filtered links open the filter controls automatically');
     check(!doc.querySelector('#schedule-empty').hidden,'Incompatible age/day shows empty state');
@@ -120,6 +129,7 @@
     change(doc,'pass-start',changedStart);
     const chosenPassPlan=frame.contentWindow.StarWeeklySignup.passPlan('wednesday',changedStart);
     check(doc.querySelector('#pass-end').textContent===frame.contentWindow.StarTraining.prettyDate(chosenPassPlan.end),'Changing the start on the form updates the fourth-session end immediately');
+    check(doc.querySelector('[data-training-info-date]').textContent===frame.contentWindow.StarTraining.prettyDate(chosenPassPlan.start) && doc.querySelector('[data-training-info-end]').textContent===frame.contentWindow.StarTraining.prettyDate(chosenPassPlan.end),'Pass information card updates both dates when the parent changes the start');
     for(const [name,value] of [['email','test@example.invalid'],['Player name','Test Player'],['Player age','10'],['Experience','some']])form.elements.namedItem(name).value=value;
     let calls=0,receivedData,firstReference;
     win.fetch=async(url,options)=>{calls++;receivedData=options.body;firstReference=receivedData.get('Client reference');return {ok:true,json:async()=>({success:false})};};
@@ -157,6 +167,7 @@
     setCamp('Daily session','both');
     check(doc.querySelector('[data-camp-price]').textContent==='$400 CAD' && doc.querySelector('[data-camp-total]').textContent==='$400 CAD' && !camp.elements.namedItem('Booking option'),'Christmas registration only offers weekly packages, with both sessions at $400');
     check(doc.querySelector('[data-camp-standard]').textContent==='$500' && doc.querySelector('[data-camp-saving]').textContent==='$100','Week 1 both-session savings scale to $100 against $500');
+    check(doc.querySelector('[data-camp-info-price]').textContent==='$400 CAD' && doc.querySelector('[data-camp-info-savings]').textContent==='Standard $500 · Save $100' && doc.querySelector('[data-camp-info-time]').textContent.includes('12:30–3:30 PM') && doc.querySelector('[data-camp-info-lunch]').textContent.includes('noon–12:30'),'Week 1 information card stays synchronized with both-session price, savings, times and lunch');
     check(doc.querySelector('[data-quick-camp-time]').textContent.includes('12:30–3:30 PM') && doc.querySelector('[data-quick-camp-time]').textContent.includes('Supervised lunch included'),'Both-session choice shows the full times and lunch supervision outside the dropdown');
     check(camp.elements.namedItem('Player age').min==='5' && camp.elements.namedItem('Player age').max==='14','Camp form uses the approved ages 5–14');
     for(const [name,value] of [['email','test@example.invalid'],['Player name','Test Player'],['Player age','5'],['Referral source','referral']])camp.elements.namedItem(name).value=value;
@@ -175,6 +186,7 @@
     doc.querySelector('[name="Daily session"]').value='both';doc.querySelector('[name="Daily session"]').dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
     check(doc.querySelector('[data-camp-price]').textContent==='$370 CAD' && doc.querySelector('[data-camp-lunch]').textContent.includes('Supervised lunch included'),'Boxing Week both-session package is $370 with lunch');
     check(doc.querySelector('[data-camp-standard]').textContent==='$500' && doc.querySelector('[data-camp-saving]').textContent==='$130','Week 2 both-session savings scale to $130 against $500');
+    check(doc.querySelector('[data-camp-info-price]').textContent==='$370 CAD' && doc.querySelector('[data-camp-info-savings]').textContent==='Standard $500 · Save $130','Week 2 information card shows the selected package and savings');
     doc=await load('contact.html?program=camps#contact-inquiry');
     check(doc.querySelector('[name="Topic"]').value==='Winter camps' && !doc.querySelector('[name="Message"]').value,'Camp inquiry link selects the right topic without writing a message for the parent');
     const contact=doc.querySelector('form');

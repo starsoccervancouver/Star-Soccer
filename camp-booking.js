@@ -16,6 +16,15 @@
       form.querySelector('[data-camp-standard]').textContent=T.money(q.standardPrice);
       form.querySelector('[data-camp-saving]').textContent=T.money(q.savings);
       form.querySelector('[data-camp-discount]').hidden=false;
+      const info=document.querySelector('[data-camp-info]');
+      if(info){
+        info.hidden=false;
+        info.querySelector('[data-camp-info-time]').textContent=q.time;
+        info.querySelector('[data-camp-info-price]').textContent=T.money(q.price)+' CAD';
+        info.querySelector('[data-camp-info-package]').textContent=q.label;
+        info.querySelector('[data-camp-info-savings]').textContent='Standard '+T.money(q.standardPrice)+' · Save '+T.money(q.savings);
+        info.querySelector('[data-camp-info-lunch]').textContent=q.lunch?'Supervised lunch included from noon–12:30. Bring a packed lunch.':'Supervised lunch is included when booking both daily sessions.';
+      }
       summary.querySelector('[data-camp-option]').textContent=q.weekName+' · '+q.label;
       summary.querySelector('[data-camp-time]').textContent=q.time;
       const quickTime=form.querySelector('[data-quick-camp-time]');
@@ -26,6 +35,7 @@
       submit.disabled=false;
     }catch(error){
       form.querySelector('[data-camp-discount]').hidden=true;
+      const info=document.querySelector('[data-camp-info]');if(info)info.hidden=true;
       summary.querySelector('[data-camp-price]').textContent='Choose a valid option';form.querySelector('[data-camp-total]').textContent='Choose a valid date and option';summary.querySelector('[data-camp-option]').textContent=error.message;
       summary.querySelector('[data-camp-time]').textContent='9 AM–noon or 12:30–3:30 PM';summary.querySelector('[data-camp-lunch]').textContent='Supervised lunch is included when booking both sessions.';
       summary.querySelector('[data-camp-payment]').textContent='The coaching team confirms places before payment.';

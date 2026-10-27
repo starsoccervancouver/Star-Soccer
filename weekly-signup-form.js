@@ -9,6 +9,18 @@
   try{choice=T.choice(params.get('sessionId'),params.get('type')||'dropin');}
   catch(error){form.hidden=true;document.querySelector('#booking-summary').hidden=true;status(error.message,true);return;}
   const s=choice.session;
+  const info=document.querySelector('[data-training-info]');
+  if(info){
+    info.hidden=false;
+    info.querySelector('[data-training-info-option]').textContent=s.day+' · '+choice.label;
+    info.querySelector('[data-training-info-venue]').textContent=T.catalog.locations[s.location].name;
+    info.querySelector('[data-training-info-time]').textContent=s.time+' · Vancouver time';
+    info.querySelector('[data-training-info-ages]').textContent='Ages '+s.minAge+'–'+s.maxAge+' · 20 per session';
+    info.querySelector('[data-training-info-coaches]').textContent=s.coaches.map(id=>T.catalog.coaches[id]).join(' & ');
+    info.querySelector('[data-training-info-date]').textContent=T.prettyDate(T.nextDate(s));
+    info.querySelector('[data-training-info-price]').textContent=T.money(choice.price)+' CAD';
+    info.querySelector('[data-training-info-price-label]').textContent=choice.type==='pass4'?'per player · four sessions':'per player · one session';
+  }
   document.querySelector('#booking-title').textContent=s.day+' training';
   document.querySelector('#booking-session').textContent=s.time+' · '+T.catalog.locations[s.location].name;
   document.querySelector('#booking-ages').textContent='Ages '+s.minAge+'–'+s.maxAge;
@@ -23,6 +35,12 @@
     document.querySelector('#pass-price').textContent=T.money(p.price)+' CAD · 4 sessions';
     passStart.value=p.start;
     document.querySelector('#pass-end').textContent=T.prettyDate(p.end);
+    if(info){
+      info.querySelector('[data-training-info-date-label]').textContent='Pass starts';
+      info.querySelector('[data-training-info-date]').textContent=T.prettyDate(p.start);
+      info.querySelector('[data-training-info-end-row]').hidden=false;
+      info.querySelector('[data-training-info-end]').textContent=T.prettyDate(p.end);
+    }
     return p;
   }
   if(choice.type==='pass4'){
@@ -33,7 +51,7 @@
     passStart.addEventListener('input',()=>passStart.setCustomValidity(''));
     passStart.addEventListener('change',()=>{
       passStartChanged=Boolean(passStart.value);
-      try{updatePass();}catch(error){passStart.setCustomValidity(error.message);document.querySelector('#pass-end').textContent='Choose an upcoming '+s.day;passStart.reportValidity();}
+      try{updatePass();}catch(error){passStart.setCustomValidity(error.message);document.querySelector('#pass-end').textContent='Choose an upcoming '+s.day;if(info){info.querySelector('[data-training-info-date]').textContent='Choose a valid start date';info.querySelector('[data-training-info-end]').textContent='—';}passStart.reportValidity();}
     });
     updatePass();
   }

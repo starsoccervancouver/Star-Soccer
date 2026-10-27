@@ -50,18 +50,21 @@ test('reminders open at 9am Vancouver two days before, catch up before training,
   assert.equal(E.reminderDue('wednesday','2026-11-11',vancouver('2026-11-09',8,59)),false);
   assert.equal(E.reminderDue('wednesday','2026-11-11',vancouver('2026-11-09',9,0)),true);
 });
-test('registration confirmation includes attendance; a future pass omits the immediate attendance inquiry',()=>{
+test('branded confirmation ends with a separate attendance invitation note and future passes defer the inquiry',()=>{
   const m=E.registrationConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Player');
-  assert.match(m.body,/Thank you/);assert.match(m.html,/Calendar invitation/);
+  assert.match(m.body,/Thank you/);assert.match(m.html,/Calendar attendance invitation/);assert.match(m.body,/\$30 CAD/);
+  assert.match(m.html,/email-star-soccer-logo\.png/);assert.match(m.html,/email-autumn-field\.jpg/);assert.match(m.html,/Your attendance invitation is coming/);
+  assert.doesNotMatch(m.html,/Coming to training\?|RSVP in Google Calendar/);assert.doesNotMatch(m.body,/Attendance:\n/);
   const now=new Date('2026-10-27T03:00:00Z');
   const next=E.passConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Player',now);
-  assert.match(next.html,/Calendar invitation/);assert.match(next.body,/e-transfer/);assert.doesNotMatch(next.body,/START/);
+  assert.match(next.html,/Calendar attendance invitation/);assert.match(next.body,/e-transfer/);assert.doesNotMatch(next.body,/START/);
   const future=E.passConfirmation('wednesday','2026-11-04','SS-ABCDEF12','Player',now);
-  assert.doesNotMatch(future.html,/Coming to training/);assert.doesNotMatch(future.body,/Attendance:|Calendar invitation/);
+  assert.doesNotMatch(future.html,/Coming to training/);assert.doesNotMatch(future.body,/Attendance:\n|Choose Yes/);assert.match(future.body,/No attendance response is needed now/);
 });
 
 test('camp confirmation uses the winter brand and keeps the package details',()=>{
   const C=require('../winter-camps.js'),q=C.quote({week:'boxing',kind:'week',slot:'pm',age:8},new Date('2026-10-27T03:00:00Z'));
   const m=E.campConfirmation(q,'SS-CAMP-EXAMPLE123','Player');
   assert.match(m.html,/WINTER CAMPS/);assert.match(m.body,/Winter Camp — Week 2|\$185 CAD/);assert.doesNotMatch(m.html,/subject=Re|body=YES/);
+  assert.match(m.html,/email-winter-field\.jpg/);assert.match(m.body,/Before camp starts/);
 });

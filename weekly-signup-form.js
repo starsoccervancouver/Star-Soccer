@@ -70,6 +70,9 @@
     if(!reference)reference='SS-'+(crypto.randomUUID?crypto.randomUUID().toUpperCase():Date.now().toString(36).toUpperCase());
     const data=new FormData();
     const fields={'Registration version':request.version,'Client reference':reference,'Session ID':s.id,'Training':s.day+' '+s.time,'Location':T.catalog.locations[s.location].name,'Player name':request.name,'Player age':String(request.age),email:request.email,Experience:request.experience,'Requested option':choice.label,'Attendance policy':'Expect next session unless parent declines; no dated choice submitted','Payment status':'Follow up later; no payment collected',_replyto:request.email,_subject:'Star Soccer weekly registration | '+s.day+' | '+reference,_template:'table',_captcha:'false',_honey:''};
+    fields['Parent name']=form.elements.namedItem('Parent name').value.trim();
+    fields.Notes=form.elements.namedItem('Notes').value.trim();
+    fields['Referral source']=T.referralSource(form.elements.namedItem('Referral source').value);
     if(pass){
       Object.assign(fields,{'Start date policy':'Selected at registration; defaults to next eligible session','Pass start choice':passStartChanged?'Selected date':'Upcoming session (default)','Pass start date':pass.start,'Expected start date':pass.start,'Expected end date':pass.end,'Covered dates':pass.dates.join(', '),'Price CAD':String(pass.price),'Attendance policy':'Reserve four selected weeks; attendance inquiry only for upcoming-session start','Payment status':'Instructions in confirmation email; no payment collected',_subject:'Star Soccer pass registration | '+s.day+' | '+reference});
     }

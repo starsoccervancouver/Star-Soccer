@@ -37,6 +37,12 @@
           check(links.length===2 && links.every(el=>el.getBoundingClientRect().bottom<=740 && el.getBoundingClientRect().height>=48),`Camps at ${width}px shows both registration buttons within the first 740px`);
           check(!doc.querySelector('.camp-overview') && [...doc.querySelectorAll('.camp-card-details')].every(el=>el.textContent.includes('20 players') && el.textContent.includes('noon–12:30')),`Camp cards at ${width}px include capacity and supervised lunch details`);
         }
+        if(page==='programs.html') {
+          const actions=[...doc.querySelectorAll('.schedule-direct-actions a')];
+          check(actions.length===8 && actions.every(el=>el.getClientRects().length && el.getBoundingClientRect().height>=48),`Training at ${width}px shows direct drop-in and pass buttons on every card`);
+          check(!doc.querySelector('details.schedule-entry,.session-share'),`Training at ${width}px has no registration disclosure or copy-link step`);
+          if(width<=430)check(actions.slice(0,2).every(el=>el.getBoundingClientRect().bottom<=740),`Training at ${width}px shows the first session's registration buttons within 740px (${Math.round(actions[0].getBoundingClientRect().bottom)}px)`);
+        }
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
           check(submit.getBoundingClientRect().bottom<=740,`${page} at ${width}px shows the submit button within a 740px phone screen`);
@@ -95,19 +101,14 @@
     check(doc.activeElement===doc.querySelector('#sessions') && toggle.getAttribute('aria-expanded')==='false','Same-page menu link moves focus to sessions');
     for(const day of ['wednesday','thursday','friday','sunday']) {
       doc=await load('programs.html?day='+day,320);
-      check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===1 && doc.querySelector('.schedule-entry:not([hidden])').open,'Shared '+day+' link opens its booking options');
-      check(doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1,'Expanded '+day+' session has no overflow at 320px');
+      const row=doc.querySelector('.schedule-entry:not([hidden])'),links=[...row.querySelectorAll('.schedule-direct-actions a')];
+      check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===1 && links.length===2 && links.every(el=>el.getClientRects().length),'Shared '+day+' link shows both registration options immediately');
+      check(links.every((el,i)=>{const u=new URL(el.href);return u.searchParams.get('sessionId')===day && u.searchParams.get('type')===['dropin','pass4'][i];}),'Direct '+day+' links select the correct group and registration type');
+      check(doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1,day+' registration choices have no overflow at 320px');
     }
     doc=await load('programs.html?day=friday&age=8&email=private%40example.invalid#sessions',320);
-    let copied='';
-    Object.defineProperty(frame.contentWindow.navigator,'clipboard',{configurable:true,value:{writeText:async value=>{copied=value;}}});
-    doc.querySelector('[data-session-day="friday"] .session-share').click();await new Promise(resolve=>setTimeout(resolve,30));
-    check(copied==='https://starsoccer.ca/programs.html?day=friday#sessions' && doc.querySelector('[data-session-day="friday"] .share-feedback').textContent.includes('copied'),'Share copies the approved session without age or unrelated query values');
-    Object.defineProperty(frame.contentWindow.navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw new Error('Permission denied');}}});
-    doc.querySelector('[data-session-day="friday"] .session-share').click();await new Promise(resolve=>setTimeout(resolve,30));
-    const manual=doc.querySelector('[data-session-day="friday"] .session-share-manual');
-    check(!manual.hidden && doc.activeElement===manual.querySelector('input') && manual.querySelector('input').readOnly,'Clipboard denial offers a focused, selectable fallback link');
-    check(doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1 && doc.querySelector('[data-session-day="friday"] .session-share').getBoundingClientRect().height>=44,'Sharing fallback fits 320px and keeps a large touch target');
+    const fridayLinks=[...doc.querySelectorAll('[data-session-day="friday"] .schedule-direct-actions a')];
+    check(fridayLinks.every(el=>!new URL(el.href).searchParams.has('email') && !new URL(el.href).searchParams.has('age')),'Registration links keep session and product without forwarding unrelated query values');
     doc=await load('registration.html?sessionId=camp-u4-u6&type=dropin');
     check(doc.querySelector('#training-registration').hidden && doc.querySelector('#registration-status').textContent.includes('no longer available'),'Retired camp registration is rejected');
     doc=await load('registration.html?sessionId=wednesday&type=pass4');

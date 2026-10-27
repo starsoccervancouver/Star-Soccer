@@ -83,6 +83,9 @@ body.quick-flow .quick-player-row.ss-number-row {
 @media (max-width: 420px) {
   body.quick-flow .quick-player-row.ss-number-row { grid-template-columns: minmax(0, 1fr); }
   body.quick-flow .quick-player-row.ss-number-row .ss-number-field { width: min(100%, 192px); }
+  body.private-registration .flow-surface form { gap: 10px; }
+  body.private-registration .quick-context { margin-bottom: 10px; }
+  body.private-registration .private-form-intro { margin-top: 2px; }
 }
 @media (prefers-reduced-motion: reduce) {
   body .ss-number-stepper, body .ss-number-stepper > button.ss-number-button { transition: none; }

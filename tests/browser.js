@@ -36,6 +36,7 @@
           const links=[...doc.querySelectorAll('.camp-week-card .winter-camp-cta')];
           check(links.length===2 && links.every(el=>el.getBoundingClientRect().bottom<=740 && el.getBoundingClientRect().height>=48),`Camps at ${width}px shows both registration buttons within the first 740px (${Math.round(links.at(-1).getBoundingClientRect().bottom)}px)`);
           check(!doc.querySelector('.camp-overview') && [...doc.querySelectorAll('.camp-card-details')].every(el=>el.textContent.includes('20 players') && el.textContent.includes('noon–12:30')),`Camp cards at ${width}px include capacity and supervised lunch details`);
+          check([...doc.querySelectorAll('.camp-week-card,.seasonal-feature')].every(el=>!frame.contentWindow.getComputedStyle(el,'::before').backgroundImage.includes('url(') && frame.contentWindow.getComputedStyle(el).backgroundImage==='none'),`Camp cards at ${width}px have solid surfaces without photography`);
         }
         if(page==='programs.html') {
           const actions=[...doc.querySelectorAll('.schedule-direct-actions a')];
@@ -54,7 +55,12 @@
           if(width>=900)check(panel.width>info.width*1.5 && info.left>=panel.right,`${page} at ${width}px gives the registration form more space beside the info card`);
           if(width<=430)check(info.top>=panel.bottom,`${page} at ${width}px keeps the form before the information card`);
           const theme=frame.contentWindow.getComputedStyle(doc.body).getPropertyValue('--registration-art');
-          check(theme.includes(page.startsWith('registration.html')?'autumn-training':'winter-training'),`${page} at ${width}px uses its matching seasonal artwork`);
+          check(theme.includes(page.startsWith('registration.html')?'autumn-field':'winter-field'),`${page} at ${width}px uses its matching seasonal artwork`);
+          check(!doc.querySelector('.registration-info img') && frame.contentWindow.getComputedStyle(doc.querySelector('.registration-info')).backgroundColor==='rgb(16, 38, 61)',`${page} at ${width}px keeps imagery outside the opaque information card`);
+        }
+        if(doc.body.matches('.fall-programs-page,.winter-camps-page,.seasonal-registration')){
+          const bg=frame.contentWindow.getComputedStyle(doc.body,'::before');
+          check(bg.position==='fixed' && bg.backgroundImage.includes('-field-') && !doc.querySelector('.fall-hero-art,.winter-hero-art'),`${page} at ${width}px uses one continuous seasonal page background`);
         }
         if(page==='contact.html'){
           const more=doc.querySelector('[data-optional-fields]');

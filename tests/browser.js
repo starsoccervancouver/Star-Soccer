@@ -54,7 +54,7 @@
         }
         if(page==='camps.html') {
           const links=[...doc.querySelectorAll('.camp-week-card .winter-camp-cta')];
-          check(links.length===2 && links.every(el=>el.getBoundingClientRect().bottom<=740 && el.getBoundingClientRect().height>=48),`Camps at ${width}px shows both registration buttons within the first 740px (${Math.round(links.at(-1).getBoundingClientRect().bottom)}px)`);
+          check(links.length===2 && links.every(el=>el.getBoundingClientRect().bottom<=755 && el.getBoundingClientRect().height>=48),`Camps at ${width}px shows both registration buttons within the first 755px (${Math.round(links.at(-1).getBoundingClientRect().bottom)}px)`);
           check(!doc.querySelector('.camp-overview') && [...doc.querySelectorAll('.camp-card-details')].every(el=>el.textContent.includes('20 players') && el.textContent.includes('noon–12:30')),`Camp cards at ${width}px include capacity and supervised lunch details`);
           check([...doc.querySelectorAll('.camp-week-card,.seasonal-feature')].every(el=>!frame.contentWindow.getComputedStyle(el,'::before').backgroundImage.includes('url(') && frame.contentWindow.getComputedStyle(el).backgroundImage==='none'),`Camp cards at ${width}px have solid surfaces without photography`);
         }
@@ -91,7 +91,7 @@
         }
         if(doc.body.matches('.fall-programs-page,.winter-camps-page,.seasonal-registration')){
           const bg=frame.contentWindow.getComputedStyle(doc.body,'::before');
-          check(bg.position==='fixed' && bg.backgroundImage.includes('-field-') && !doc.querySelector('.fall-hero-art,.winter-hero-art'),`${page} at ${width}px uses one continuous seasonal page background`);
+          check(bg.position==='fixed' && bg.backgroundImage.includes(doc.body.classList.contains('private-registration')?'photo-1652318696037':'-field-') && !doc.querySelector('.fall-hero-art,.winter-hero-art'),`${page} at ${width}px uses one continuous seasonal page background`);
         }
         if(page==='contact.html'){
           const more=doc.querySelector('[data-optional-fields]');

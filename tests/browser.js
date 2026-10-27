@@ -103,7 +103,13 @@
         }
         if(['contact.html','locations.html','methodology.html'].includes(page)){
           const bg=frame.contentWindow.getComputedStyle(doc.body,'::before');
-          check(bg.position==='fixed' && bg.backgroundImage.includes(page==='contact.html'?'1497366754035':page==='locations.html'?'1556056504':'photo-1775005968032-2182d504a75d'),`${page} at ${width}px has its distinct full-page themed background`);
+          check(bg.position==='fixed' && bg.backgroundImage.includes(page==='contact.html'?'1497366754035':page==='locations.html'?'1556056504':'photo-1652318696037-8d34c4d2f378'),`${page} at ${width}px has its distinct full-page themed background`);
+        }
+        if(page==='methodology.html'){
+          const nav=doc.querySelector('.method-restored-nav');
+          const navStyle=frame.contentWindow.getComputedStyle(nav);
+          check(navStyle.backgroundColor==='rgba(0, 0, 0, 0)' && navStyle.backgroundImage==='none' && navStyle.boxShadow==='none',`Our Approach at ${width}px has no solid bar behind the section links`);
+          check([...nav.querySelectorAll('a')].every(link=>link.getBoundingClientRect().height>=44),`Our Approach at ${width}px keeps the links easy to tap`);
         }
         if(width<=430) {
           const controls=[...doc.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>el.getClientRects().length && !el.closest('[aria-hidden="true"]'));

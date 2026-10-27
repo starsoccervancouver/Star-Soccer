@@ -171,7 +171,7 @@ body.locations-themed-page .flow-hero .eyebrow { color: #b9e3d7; }
 
 /* Approach: soccer coaching and in-game decision making.
    A distinct coaching photo instead of the weekly training background. */
-body.approach-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1775005968032-2182d504a75d?auto=format&fit=crop&w=1600&q=82"); }
+body.approach-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1652318696037-8d34c4d2f378?auto=format&fit=crop&w=1600&q=82"); }
 body.approach-themed-page::before {
   background:
     radial-gradient(circle at 80% 12%, rgba(241, 174, 108, .12), transparent 35%),
@@ -181,9 +181,25 @@ body.approach-themed-page::before {
 }
 body.approach-themed-page .flow-hero .eyebrow { color: #f0bc94; }
 body.approach-themed-page .flow-surface { border-color: #8a776b; }
+/* The section shortcuts sit on the photo, not on a solid horizontal bar. */
 body.approach-themed-page .method-restored-nav {
-  border-color: rgba(201, 164, 127, .4);
-  background: #10263d;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 10px 0 20px;
+}
+body.approach-themed-page .method-restored-nav a {
+  color: #f3f7fb;
+  font-weight: 800;
+  min-height: 44px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .75);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+}
+body.approach-themed-page .method-restored-nav a:hover,
+body.approach-themed-page .method-restored-nav a:focus-visible {
+  color: #f5d29d;
 }
 
 /* Preserve the same form-first mobile order as the approved registration pages. */
@@ -199,7 +215,7 @@ body.approach-themed-page .method-restored-nav {
 @media (max-width: 700px) {
   body.contact-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=72"); }
   body.locations-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=900&q=72"); }
-  body.approach-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1775005968032-2182d504a75d?auto=format&fit=crop&w=900&q=75"); }
+  body.approach-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1652318696037-8d34c4d2f378?auto=format&fit=crop&w=900&q=75"); }
 }
 @media (max-width: 540px) {
   body.contact-themed-page.quick-flow .quick-shell.registration-layout {

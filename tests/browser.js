@@ -93,6 +93,16 @@
           const more=doc.querySelector('[data-optional-fields]');
           check(!more.open && more.querySelector('summary').textContent==='Tell us more (optional)' && more.nextElementSibling.matches('[type="submit"]'),`Contact at ${width}px puts a collapsed Tell us more immediately before Send`);
           check(!more.querySelector('[required]') && more.querySelector('[name="Name"]') && more.querySelector('[name="Topic"]') && more.querySelector('[name="Referral source"]'),`Contact at ${width}px keeps name, topic and referral details optional`);
+          const formCard=doc.querySelector('.quick-panel').getBoundingClientRect();
+          const infoCard=doc.querySelector('.registration-info');
+          const infoRect=infoCard.getBoundingClientRect();
+          check(infoRect.width>0 && infoCard.textContent.includes('as soon as possible') && infoCard.querySelector('a[href="mailto:starsoccervancouver@gmail.com"]'),`Contact at ${width}px shows the response information card and verified email`);
+          if(width>=900)check(infoRect.left>=formCard.right && formCard.width>infoRect.width*1.4,`Contact at ${width}px keeps the form wider than the right-hand guide`);
+          if(width<=430)check(infoRect.top>=formCard.bottom,`Contact at ${width}px stacks the information card below the form`);
+        }
+        if(['contact.html','locations.html','methodology.html'].includes(page)){
+          const bg=frame.contentWindow.getComputedStyle(doc.body,'::before');
+          check(bg.position==='fixed' && bg.backgroundImage.includes(page==='contact.html'?'1497366754035':page==='locations.html'?'1556056504':'autumn-field'),`${page} at ${width}px has its distinct full-page themed background`);
         }
         if(width<=430) {
           const controls=[...doc.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>el.getClientRects().length && !el.closest('[aria-hidden="true"]'));

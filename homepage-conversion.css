@@ -156,3 +156,142 @@ body.home-landing .home-proof-item span {
   }
   body.home-landing .home-proof-item strong { font-size: 1.15rem; }
 }
+
+/* Prominent two-choice action area: programs and discounted winter camps */
+body.home-landing .immersive-hero-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.46fr) minmax(320px, .95fr);
+  align-items: center;
+  gap: clamp(34px, 4.5vw, 76px);
+}
+body.home-landing .immersive-hero h1 {
+  max-width: 18ch;
+  font-size: clamp(3.1rem, 4.2vw, 4.55rem);
+}
+body.home-landing .hero-action-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 15px;
+  align-content: center;
+  width: 100%;
+  min-width: 0;
+}
+body.home-landing .hero-action-label {
+  margin: 0 0 2px;
+  color: #e8e6e0;
+  font: 700 .75rem/1.5 Inter, Manrope, system-ui, sans-serif;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+body.home-landing a.hero-action {
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 142px;
+  padding: clamp(22px, 2.5vw, 32px);
+  border: 1px solid rgba(180, 213, 248, .45);
+  border-radius: 16px;
+  background: rgba(14, 39, 68, .91);
+  color: #eff5fb;
+  font-family: Inter, Manrope, system-ui, sans-serif;
+  box-shadow: 0 22px 50px rgba(1, 7, 19, .38);
+  -webkit-backdrop-filter: blur(13px);
+  backdrop-filter: blur(13px);
+  transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+body.home-landing a.hero-action-programs {
+  background: linear-gradient(135deg, #82d5fa, #3d88e5);
+  color: #071728;
+  border-color: rgba(235, 250, 255, .75);
+  min-height: 150px;
+}
+body.home-landing a.hero-action-camps {
+  min-height: 190px;
+  background: linear-gradient(125deg, rgba(18, 52, 86, .97), rgba(11, 30, 54, .97));
+}
+body.home-landing a.hero-action:hover,
+body.home-landing a.hero-action:focus-visible {
+  transform: translateY(-3px);
+  border-color: #f9dc9d;
+  box-shadow: 0 25px 55px rgba(1, 7, 19, .55);
+}
+body.home-landing a.hero-action:focus-visible {
+  outline: 3px solid #ffdd98;
+  outline-offset: 4px;
+}
+body.home-landing .hero-action-eyebrow {
+  display: block;
+  font-size: .75rem;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+body.home-landing .hero-action-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: clamp(1.45rem, 2.1vw, 1.95rem);
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1.15;
+}
+body.home-landing .hero-action-title > span {
+  flex: none;
+  font-size: 1.3em;
+  line-height: 1;
+}
+body.home-landing .hero-action-detail {
+  display: block;
+  font-size: .9rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+body.home-landing .hero-action-camps .hero-action-eyebrow { color: #f9d593; }
+body.home-landing .hero-action-camps .hero-action-detail { color: #dbe9f6; }
+body.home-landing .hero-action-camps .hero-action-detail strong {
+  color: #ffffff;
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+body.home-landing .hero-action-camps s { color: #aebfd0; }
+@media (max-width: 1050px) {
+  body.home-landing .immersive-hero-stage {
+    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr);
+    gap: 28px;
+  }
+  body.home-landing .immersive-hero h1 { font-size: clamp(2.85rem, 4.8vw, 3.8rem); }
+}
+@media (max-width: 900px) {
+  body.home-landing .immersive-hero-stage {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+  body.home-landing .hero-action-panel {
+    max-width: 560px;
+  }
+  body.home-landing .immersive-hero h1 {
+    max-width: 18ch;
+    font-size: clamp(2.85rem, 6.7vw, 4.3rem);
+  }
+}
+@media (max-width: 600px) {
+  body.home-landing .immersive-hero-stage { gap: 26px; }
+  body.home-landing .hero-action-panel { gap: 12px; }
+  body.home-landing .immersive-hero h1 {
+    max-width: 17ch;
+    font-size: clamp(2.55rem, 9.4vw, 3.35rem);
+  }
+  body.home-landing a.hero-action {
+    min-height: 120px;
+    padding: 21px 22px;
+  }
+  body.home-landing a.hero-action-camps { min-height: 166px; }
+  body.home-landing .hero-action-title { font-size: 1.52rem; }
+  body.home-landing .hero-action-detail { font-size: .86rem; }
+}

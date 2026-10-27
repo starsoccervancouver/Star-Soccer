@@ -27,6 +27,9 @@ body.quick-flow .quick-extras :is(p,h2){margin:0;font-size:.9rem;line-height:1.6
 body.quick-flow .quick-back{margin:8px 0 0;font-size:.8rem;line-height:1.5}
 body.quick-flow .quick-back a{display:inline-flex;align-items:center;min-height:44px}
 body.quick-flow .quick-extras .date-list{margin:0}
+body.quick-flow .contact-more{border-bottom:1px solid #45617a}
+body.quick-flow .contact-more summary{font-size:.85rem;font-weight:700}
+body.quick-flow .contact-more .quick-extras>p{font-size:.8rem;color:#adc2d3}
 @media(max-width:540px){body.quick-flow .quick-shell{width:calc(100% - 24px);margin:12px auto 24px}body.quick-flow .quick-panel{padding:16px}body.quick-flow .quick-context{font-size:.82rem}body.quick-flow .quick-session-row{grid-template-columns:minmax(0,1fr) 95px}body.quick-flow .quick-total strong{font-size:1.05rem}body.quick-flow .quick-date-row{gap:8px}body.quick-flow .quick-date-row .booking-next-date{padding-inline:10px;font-size:.82rem}}
 @media(max-width:350px){body.quick-flow .quick-session-row{grid-template-columns:1fr}body.quick-flow .quick-session-row .quick-total small{display:inline;margin-left:6px}body.quick-flow .quick-session-row .quick-total{padding:0}body.quick-flow .quick-player-row{grid-template-columns:minmax(0,1fr) 76px;gap:8px}}
 

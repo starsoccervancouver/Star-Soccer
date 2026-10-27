@@ -36,7 +36,7 @@ for name,p in PAGES.items():
             if not any(asset in link for _,link in p.links):errors.append(f'{name}: missing shared {asset}')
 catalog=json.loads(subprocess.check_output(['node','-e',"console.log(JSON.stringify(require('./training.js').catalog))"],cwd=ROOT,text=True))
 schedule=PAGES['programs.html'];links=[urlparse(link) for _,link in schedule.links if link.startswith('registration.html?')]
-expected={(s['id'],typ) for s in catalog['sessions'] if s['active'] for typ in ['dropin','pass4']}
+expected={(s['id'],'dropin') for s in catalog['sessions'] if s['active']}
 actual={(parse_qs(u.query).get('sessionId',[''])[0],parse_qs(u.query).get('type',[''])[0]) for u in links}
 if actual!=expected:errors.append('Programs registration links do not match the catalog')
 for s in catalog['sessions']:

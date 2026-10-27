@@ -6,16 +6,8 @@
   const T=typeof module!=='undefined' && module.exports ? require('./training.js') : root.StarTraining;
   const feed='https://docs.google.com/spreadsheets/d/1xnSKoG20G9P-OcESiUv71IPOSYdEGfU6CLm38xcnSmA/gviz/tq?gid=1408406597&range=A5%3AF155&headers=1&tqx=out%3Ajson';
   const labels=['Date','Group','Players','Capacity','Places remaining','Session status'];
-  // Time-limited coach-reported expected totals: the Oct 25 Sunday group has
-  // four returning players (names pending) and two accepted drop-ins. The
-  // brothers have not booked subsequent dates. These are aggregate counts only.
-  // MAX keeps these unrecorded participants from being double-counted when
-  // named registrations are added to the public sheet later.
-  const reportedMinimums=Object.freeze({
-    'sunday:2026-10-25':6,
-    'sunday:2026-11-01':4,
-    'sunday:2026-11-08':4
-  });
+  // The export reconciles unique registrations and owner-reported totals in
+  // Airtable. No hardcoded player counts can override later RSVP changes.
   function parse(source) {
     // Parse the known Google response envelope as data; never execute remote code.
     const match=source.match(/^\s*(?:\/\*O_o\*\/\s*)?google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
@@ -36,12 +28,6 @@
     if(!records.size)throw new Error('No session counts');
     return records;
   }
-  function withReportedCounts(record,group,date) {
-    if(!record || record.status==='Cancelled' || record.status==='Completed')return record;
-    const expected=reportedMinimums[group+':'+date];
-    if(!Number.isSafeInteger(expected) || expected<=record.players)return record;
-    return Object.freeze({...record,players:expected,remaining:Math.max(0,record.capacity-expected)});
-  }
   function describe(record) {
     if(!record)return 'Capacity '+T.catalog.groupCapacity+' · Count unavailable';
     const count=record.players+'/'+record.capacity+' players';
@@ -51,7 +37,7 @@
     if(record.remaining===0)return count+' · Full — contact us';
     return count+' · '+record.remaining+' places remaining';
   }
-  const api={parse,describe,withReportedCounts,feed};
+  const api={parse,describe,feed};
   if(typeof module!=='undefined' && module.exports) {module.exports=api;return;}
   root.StarSessionCounts=api;
   const rows=[...document.querySelectorAll('.schedule-entry')],preview=document.querySelector('#booking-dates');
@@ -72,12 +58,12 @@
       const session=T.getSession(row.dataset.sessionDay),date=session && T.nextDate(session);
       if(!date)return;
       row.querySelector('.schedule-next').textContent='Next: '+T.prettyDate(date);
-      row.querySelector('.session-capacity').textContent=describe(withReportedCounts(records?.get(session.id+':'+date),session.id,date));
+      row.querySelector('.session-capacity').textContent=describe(records?.get(session.id+':'+date));
     });
     if(preview)preview.querySelectorAll('li[data-session-date]').forEach(li=>{
       let count=li.querySelector('.session-capacity');
       if(!count){count=document.createElement('span');count.className='session-capacity';li.append(count);}
-      count.textContent=describe(withReportedCounts(records?.get(li.dataset.sessionId+':'+li.dataset.sessionDate),li.dataset.sessionId,li.dataset.sessionDate));
+      count.textContent=describe(records?.get(li.dataset.sessionId+':'+li.dataset.sessionDate));
     });
   }
   if(preview)new MutationObserver(render).observe(preview,{childList:true});

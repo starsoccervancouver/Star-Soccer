@@ -149,6 +149,12 @@
     const updateQuote=()=>{
       const q=T.privateQuote(players.value,duration.value);
       estimate.textContent=q?`${T.money(q.perPlayer)} per player · ${T.money(q.total)} total for ${q.count} ${q.count===1?'player':'players'} / ${q.duration} minutes (CAD).`:'We will confirm a quote for your requested duration.';
+      const durationText=duration.value==='other'?'Custom duration':duration.value+' minutes';
+      text('#private-info-duration',durationText);
+      text('#private-info-players',players.value+' '+(Number(players.value)===1?'player':'players'));
+      text('#private-info-price',q?T.money(q.perPlayer)+' CAD':'Quote required');
+      text('#private-info-price-label',q?'Per player · '+durationText:'We will confirm your rate');
+      text('#private-info-total',q?T.money(q.total)+' group total':'Contact our coaching team for a custom estimate');
     };
     [players,duration].forEach(el=>el.addEventListener('change',updateQuote));players.addEventListener('input',updateQuote);updateQuote();
   }

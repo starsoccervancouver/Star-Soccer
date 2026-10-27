@@ -18,5 +18,9 @@ test('public artifact includes all routes and excludes development files',()=>{
   assert(fs.existsSync('_site/Star soccer/index.html'));
   assert(fs.existsSync('_site/site.min.css'));
   assert(fs.existsSync('_site/session-counts.js'));
+  assert(fs.existsSync('_site/autumn-training-800.webp'));
+  assert(fs.existsSync('_site/autumn-training-1600.webp'));
+  assert(fs.statSync('_site/autumn-training-800.webp').size<60000,'Mobile fall hero must stay under 60 KB');
+  assert(fs.statSync('_site/autumn-training-1600.webp').size<140000,'Desktop fall hero must stay under 140 KB');
   assert(!fs.existsSync('_site/SESSION_COUNTS.md'));
 });

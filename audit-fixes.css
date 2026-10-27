@@ -70,6 +70,36 @@ body .camp-status-panel .flow-actions {justify-content:center;margin-top:22px;}
 body .camp-status-panel .button {text-decoration:none;}
 body .camp-status-panel .button:not(.button-ghost) {color:#07111f;}
 body #contact-inquiry {scroll-margin-top:116px;}
+/* Approved autumn programs design; session data remains in the shared catalog. */
+body.fall-programs-page .page-shell {width:100%;}
+body.fall-programs-page .subpage-main {padding-top:0;}
+body .fall-program-hero {position:relative;isolation:isolate;min-height:440px;display:flex;align-items:center;background:#081a22;overflow:hidden;}
+body .fall-hero-art {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-2;}
+body .fall-program-hero::after {content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(4,14,22,.88),rgba(4,14,22,.42) 48%,rgba(4,14,22,.05)),linear-gradient(0deg,rgba(6,19,38,.5),transparent 50%);}
+body .fall-hero-copy {width:min(1040px,calc(100% - 48px));margin:0 auto;padding:46px 0 64px;}
+body .fall-hero-copy .eyebrow {color:#f1c29e;font-weight:700;letter-spacing:.12em;margin:0 0 14px;}
+body .fall-hero-copy h1 {font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,7vw,6rem);font-weight:400;line-height:.92;max-width:8ch;margin:0 0 14px;color:#fff2df;}
+body .fall-hero-copy h1 span {display:block;color:#efa977;}
+body .fall-hero-tagline {font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:clamp(1.7rem,3vw,2.3rem);line-height:1.15;color:#fff2df;margin:0 0 10px;}
+body .fall-hero-lead {color:#f4e9df;font-size:1rem;line-height:1.6;margin:0 0 22px;}
+body .fall-session-cta {gap:14px;min-height:48px;color:#101923;background:#eda472;border-color:#f4bd94;box-shadow:0 8px 24px #0003;}
+body .fall-session-cta:hover {background:#f5b98e;}
+body.fall-programs-page .flow-surface {width:min(1040px,calc(100% - 32px));}
+body.fall-programs-page #sessions {position:relative;z-index:1;margin-top:-24px;border-top:3px solid #d88a58;background:linear-gradient(145deg,#142b3d,#12283a);}
+body.fall-programs-page #session-finder-title {font-size:2rem;margin-bottom:12px;}
+body.fall-programs-page .schedule-entry {border-color:#6e777d;}
+body.fall-programs-page .schedule-entry[open] {border-color:#c49370;}
+@media(max-width:600px) {
+ body .fall-program-hero {min-height:350px;}
+ body .fall-hero-art {object-position:72% center;}
+ body .fall-program-hero::after {background:linear-gradient(90deg,rgba(4,14,22,.9),rgba(4,14,22,.64) 62%,rgba(4,14,22,.28)),linear-gradient(0deg,#06132666,transparent);}
+ body .fall-hero-copy {width:calc(100% - 40px);padding:28px 0 52px;}
+ body .fall-hero-copy .eyebrow {font-size:.65rem;letter-spacing:.09em;margin-bottom:12px;}
+ body .fall-hero-copy h1 {font-size:3.25rem;margin-bottom:12px;}
+ body .fall-hero-tagline {font-size:1.65rem;}
+ body .fall-hero-lead {font-size:.9rem;margin-bottom:18px;}
+ body.fall-programs-page #sessions {margin-top:-20px;}
+}
 body summary.schedule-entry-main {list-style:none;cursor:pointer;grid-template-columns:minmax(125px,.9fr) minmax(210px,1.6fr) minmax(125px,.9fr) auto;padding:18px;gap:14px;}
 body summary.schedule-entry-main::-webkit-details-marker {display:none;}
 body summary.schedule-entry-main :is(strong,span) {color:#c5cfdb;line-height:1.5;}

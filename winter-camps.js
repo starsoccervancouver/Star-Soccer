@@ -2,8 +2,8 @@
 (function(root){
   'use strict';
   const T=typeof module!=='undefined'&&module.exports?require('./training.js'):root.StarTraining;
-  const catalog=Object.freeze({version:'20261026-winter',zone:'America/Vancouver',minAge:5,maxAge:14,capacity:20,location:'Kitsilano Turf',
-    weeks:Object.freeze({christmas:Object.freeze({id:'christmas',name:'Christmas week',start:'2026-12-21',end:'2026-12-25',price:200,freeDate:'2026-12-25'}),boxing:Object.freeze({id:'boxing',name:'Boxing Week',start:'2026-12-28',end:'2027-01-01',price:150,freeDate:null})}),
+  const catalog=Object.freeze({version:'20261026-register',zone:'America/Vancouver',minAge:5,maxAge:14,capacity:20,location:'Kitsilano Turf',
+    weeks:Object.freeze({christmas:Object.freeze({id:'christmas',name:'Christmas week',start:'2026-12-21',end:'2026-12-25',price:200,freeDate:'2026-12-25'}),boxing:Object.freeze({id:'boxing',name:'Boxing Week',start:'2026-12-28',end:'2027-01-01',price:185,freeDate:null})}),
     slots:Object.freeze({am:Object.freeze({id:'am',name:'Morning',time:'9 AM–noon',startMinutes:540}),pm:Object.freeze({id:'pm',name:'Afternoon',time:'12:30–3:30 PM',startMinutes:750})})});
   function getWeek(id){return Object.hasOwn(catalog.weeks,id)?catalog.weeks[id]:null;}
   function dates(id){const w=getWeek(id);if(!w)throw new Error('Choose a camp week.');return Array.from({length:5},(_,i)=>T.addDays(w.start,i));}

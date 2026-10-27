@@ -33,6 +33,7 @@
     data.set('_subject',subject);data.set('_template','table');data.set('_captcha','false');
     data.set('_replyto',String(data.get('email')||''));
     data.delete('_autoresponse');data.delete('_cc');
+    window.StarCampaignSource?.append(data);
     return data;
   }
   // Optional, parent-reported attribution travels with the inquiry, not to a tracker.
@@ -142,16 +143,20 @@
   if(privateForm) {
     const coach=privateForm.elements.namedItem('Preferred coach');coach.value=T.coachId(params.get('coach'));
     const coachLabel=document.querySelector('#quick-private-coach');
-    const updateCoach=()=>{if(coachLabel){coachLabel.hidden=!coach.value;coachLabel.textContent=coach.value?'Preferred coach: '+T.catalog.coaches[coach.value]:'';}};
+    const updateCoach=()=>{
+      if(coachLabel){coachLabel.hidden=!coach.value;coachLabel.textContent=coach.value?'Preferred coach: '+T.catalog.coaches[coach.value]:'';}
+      text('#private-info-coach',T.catalog.coaches[coach.value]||'No preference');
+    };
     coach.addEventListener('change',updateCoach);updateCoach();
     const players=privateForm.elements.namedItem('Players'),duration=privateForm.elements.namedItem('Minutes');
     const estimate=document.querySelector('#private-estimate');
     const updateQuote=()=>{
       const q=T.privateQuote(players.value,duration.value);
-      estimate.textContent=q?`${T.money(q.perPlayer)} per player · ${T.money(q.total)} total for ${q.count} ${q.count===1?'player':'players'} / ${q.duration} minutes (CAD).`:'We will confirm a quote for your requested duration.';
+      estimate.textContent=q?`${T.money(q.perPlayer)} per player · ${T.money(q.total)} total (CAD)`:'We’ll confirm a price for your requested duration.';
       const durationText=duration.value==='other'?'Custom duration':duration.value+' minutes';
       text('#private-info-duration',durationText);
-      text('#private-info-players',players.value+' '+(Number(players.value)===1?'player':'players'));
+      const count=Number(players.value);
+      text('#private-info-players',Number.isSafeInteger(count)&&count>0?count+' '+(count===1?'player':'players'):'Choose players');
       text('#private-info-price',q?T.money(q.perPlayer)+' CAD':'Quote required');
       text('#private-info-price-label',q?'Per player · '+durationText:'We will confirm your rate');
       text('#private-info-total',q?T.money(q.total)+' group total':'Contact our coaching team for a custom estimate');

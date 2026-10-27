@@ -79,6 +79,7 @@
       Object.assign(fields,{'Start date policy':'Selected at registration; defaults to next eligible session','Pass start choice':passStartChanged?'Selected date':'Upcoming session (default)','Pass start date':pass.start,'Expected start date':pass.start,'Expected end date':pass.end,'Covered dates':pass.dates.join(', '),'Price CAD':String(pass.price),'Attendance policy':'Reserve four selected weeks; attendance inquiry only for upcoming-session start','Payment status':'Instructions in confirmation email; no payment collected',_subject:'Star Soccer pass registration | '+s.day+' | '+reference});
     }
     Object.entries(fields).forEach(([key,value])=>data.set(key,value));
+    window.StarCampaignSource?.append(data);
     busy=true;submit.disabled=true;form.setAttribute('aria-busy','true');status('Registering…');
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
     try{

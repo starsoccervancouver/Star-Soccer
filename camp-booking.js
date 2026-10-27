@@ -66,6 +66,7 @@
     fields._subject='Star Soccer camp registration | '+q.weekName+' | '+reference;
     fields['Registration version']='SS-CAMP-V2';fields['Camp week ID']=q.week;fields['Camp slot']=q.slot;
     Object.entries(fields).forEach(([k,v])=>data.set(k,v));data.set('Camp week',q.weekName);data.set('Referral source',T.referralSource(form.elements.namedItem('Referral source').value));
+    window.StarCampaignSource?.append(data);
     busy=true;submit.disabled=true;form.setAttribute('aria-busy','true');status('Sending camp request…');
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
     try{

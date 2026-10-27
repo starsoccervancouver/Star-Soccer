@@ -34,6 +34,7 @@
         check(overflow<=1,`${page} at ${width}px has no horizontal overflow${overflow>1?' ('+overflow+'px; '+oversized+')':''}`);
         const header=doc.querySelector('.site-header').getBoundingClientRect();
         check(Math.abs(header.left)<=1 && Math.abs(header.right-doc.documentElement.clientWidth)<=1,`${page} at ${width}px has navigation across the full screen width`);
+        check(!doc.querySelector('.site-nav .header-program-cta') && [...doc.querySelectorAll('.site-nav a')].some(a=>a.getAttribute('href')==='programs.html'),`${page} at ${width}px keeps Weekly Training without a duplicate Find a Session tab`);
         const numeric=[...doc.querySelectorAll('input[type="number"]:not([data-native-number])')].filter(el=>el.step!=='any' && !el.closest('.honeypot,[aria-hidden="true"]'));
         if(numeric.length){
           check(numeric.every(el=>el.closest('.ss-number-stepper') && el.labels.length && !el.closest('label')),`${page} at ${width}px enhances number fields while preserving an associated label`);
@@ -102,7 +103,7 @@
         }
         if(['contact.html','locations.html','methodology.html'].includes(page)){
           const bg=frame.contentWindow.getComputedStyle(doc.body,'::before');
-          check(bg.position==='fixed' && bg.backgroundImage.includes(page==='contact.html'?'1497366754035':page==='locations.html'?'1556056504':'autumn-field'),`${page} at ${width}px has its distinct full-page themed background`);
+          check(bg.position==='fixed' && bg.backgroundImage.includes(page==='contact.html'?'1497366754035':page==='locations.html'?'1556056504':'photo-1775005968032-2182d504a75d'),`${page} at ${width}px has its distinct full-page themed background`);
         }
         if(width<=430) {
           const controls=[...doc.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>el.getClientRects().length && !el.closest('[aria-hidden="true"]'));
@@ -151,8 +152,7 @@
     check([...doc.querySelectorAll('nav a')].every(el=>el.getBoundingClientRect().height>=44),'Expanded mobile menu links have 44px touch targets');
     doc.dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
     check(toggle.getAttribute('aria-expanded')==='false' && doc.activeElement===toggle,'Escape closes menu and returns focus');
-    toggle.click();doc.querySelector('.header-program-cta').click();
-    check(doc.activeElement===doc.querySelector('#sessions') && toggle.getAttribute('aria-expanded')==='false','Same-page menu link moves focus to sessions');
+    check(!doc.querySelector('.header-program-cta') && [...doc.querySelectorAll('nav a')].some(a=>a.getAttribute('href')==='programs.html'),'Navigation removes redundant session CTA and retains Weekly Training');
     for(const day of ['wednesday','thursday','friday','sunday']) {
       doc=await load('programs.html?day='+day,320);
       const row=doc.querySelector('.schedule-entry:not([hidden])'),links=[...row.querySelectorAll('.schedule-direct-actions a')];

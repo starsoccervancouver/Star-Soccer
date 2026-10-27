@@ -169,9 +169,9 @@ body.locations-themed-page::before {
 body.locations-themed-page .flow-surface { border-color: #597e78; }
 body.locations-themed-page .flow-hero .eyebrow { color: #b9e3d7; }
 
-/* Approach: the training ground with a warmer coaching/strategy treatment.
-   Use the same locally hosted autumn artwork as weekly training for reliability. */
-body.approach-themed-page { --theme-photo: url("autumn-field-1600.webp"); }
+/* Approach: soccer coaching and in-game decision making.
+   A distinct coaching photo instead of the weekly training background. */
+body.approach-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1775005968032-2182d504a75d?auto=format&fit=crop&w=1600&q=82"); }
 body.approach-themed-page::before {
   background:
     radial-gradient(circle at 80% 12%, rgba(241, 174, 108, .12), transparent 35%),
@@ -199,7 +199,7 @@ body.approach-themed-page .method-restored-nav {
 @media (max-width: 700px) {
   body.contact-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=72"); }
   body.locations-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=900&q=72"); }
-  body.approach-themed-page { --theme-photo: url("autumn-field-800.webp"); }
+  body.approach-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1775005968032-2182d504a75d?auto=format&fit=crop&w=900&q=75"); }
 }
 @media (max-width: 540px) {
   body.contact-themed-page.quick-flow .quick-shell.registration-layout {

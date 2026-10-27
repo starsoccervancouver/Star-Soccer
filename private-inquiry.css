@@ -1,196 +1,108 @@
-/* Private coaching inquiry: uses the same two-column registration system as camps. */
+/* Private inquiries follow the compact autumn registration template. */
 body.private-registration {
-  --registration-accent: #b2e3f6;
+  --seasonal-art: url('autumn-field-1600.webp');
+  --registration-art: var(--seasonal-art);
+  --registration-accent: #efbc98;
 }
-body.private-registration .registration-layout {
-  scroll-margin-top: 120px;
-}
+body.private-registration .registration-layout { scroll-margin-top: 110px; }
 body.private-registration .quick-panel h1 {
-  max-width: 19ch;
-  margin-bottom: 10px;
-  font-size: clamp(1.75rem, 3.1vw, 2.35rem);
-  letter-spacing: -.025em;
+  max-width: 25ch;
+  margin: 4px 0 8px;
+  font: 700 clamp(1.55rem, 2.8vw, 2rem)/1.2 Manrope, system-ui, sans-serif;
+  letter-spacing: -.02em;
 }
 body.private-registration .quick-context {
-  max-width: 52ch;
-  margin-bottom: 16px;
-  color: #b9cddd;
-  line-height: 1.65;
+  max-width: 54ch;
+  margin: 0 0 14px;
+  color: #c3d4e2;
+  font-size: .9rem;
+  line-height: 1.5;
 }
-body.private-registration #quick-private-coach:not([hidden]) {
-  display: block;
-  margin: 6px 0 14px;
-  padding: 10px 14px;
-  border: 1px solid #4d829d;
-  border-radius: 10px;
-  background: #133b50;
-  color: #d9f1fd;
-  font-weight: 700;
+body.private-registration .flow-surface form { gap: 10px; }
+body.private-registration .flow-surface label { gap: 5px; font-size: .85rem; }
+body.private-registration .flow-surface :is(input, select, textarea) {
+  min-height: 46px;
+  padding: 9px 10px;
+  font: 500 16px/1.4 Manrope, system-ui, sans-serif;
 }
-body.private-registration .private-form-intro {
-  margin: 6px 0 2px;
-  color: #b2e3f6;
-  font-size: .78rem;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+/* Keep both quote controls together, including after number enhancement. */
+body.private-registration .flow-surface .quick-player-row,
+body.private-registration .flow-surface .quick-player-row.ss-number-row {
+  grid-template-columns: minmax(0, 1fr) 146px;
+  align-items: start;
+  gap: 10px;
 }
-body.private-registration .quick-player-row {
-  grid-template-columns: minmax(0, 1fr) minmax(106px, .45fr);
-  gap: 14px;
-}
-body.private-registration #private-estimate {
-  margin: 0 0 7px;
-  padding: 15px 17px;
-  border: 1px solid #547b96;
-  border-radius: 12px;
-  background: #0c233a;
-  color: #eef5fc;
-  font-size: .94rem;
+body.private-registration .flow-surface #private-estimate {
+  margin: 0 0 2px;
+  padding: 0;
+  color: #f3d0a7;
+  font-size: .88rem;
   font-weight: 700;
   line-height: 1.5;
 }
-body.private-registration .private-coach-field {
-  margin-top: 2px;
+body.private-registration .flow-surface .private-inquiry-cta {
+  min-height: 50px;
+  margin: 0;
+  font: 800 .94rem/1.4 Manrope, system-ui, sans-serif;
 }
-body.private-registration .private-inquiry-cta {
-  min-height: 52px;
-  margin-top: 4px;
-  font-size: 1rem;
-  font-weight: 800;
+body.private-registration .flow-surface .quick-assurance {
+  margin: 0;
+  color: #bfd2e1;
+  font-size: .78rem;
+  line-height: 1.5;
 }
-body.private-registration .quick-assurance {
-  color: #bed6e5;
-  font-size: .82rem;
-}
-body.private-registration .quick-back {
-  margin-top: 16px;
-}
-body.private-registration .registration-info-content {
-  padding: clamp(20px, 2.2vw, 26px);
-}
+body.private-registration .flow-surface .form-privacy { margin: 0; font-size: .7rem; }
+body.private-registration .flow-surface .quick-back { margin: 6px 0 0; font-size: .76rem; }
+body.private-registration .registration-info-content { padding: 22px; }
 body.private-registration .registration-info h2 {
-  margin: 6px 0 14px;
-  font-size: 1.4rem;
-  line-height: 1.25;
+  margin: 5px 0 10px;
+  font: 700 1.2rem/1.35 Manrope, system-ui, sans-serif;
 }
-body.private-registration .registration-info-promo {
-  margin-bottom: 18px;
-  color: #c8dce9;
-}
-body.private-registration .registration-info-price {
-  margin-top: 22px;
-  padding-top: 16px;
-  border-top: 1px solid #526b7f;
-}
-body.private-registration .registration-info-price strong {
-  font-size: clamp(1.6rem, 2.5vw, 2rem);
-}
-body.private-registration .registration-info-price span {
-  font-size: .82rem;
-}
+body.private-registration .registration-info-promo { margin: 0 0 14px; color: #c3d4e2; }
+body.private-registration .registration-info-price { margin: 0; }
+body.private-registration .registration-info-price strong { font-size: 1.65rem; }
 body.private-registration .private-summary-total {
-  margin: 9px 0 0;
-  color: #ecf4fb;
-  font-size: .9rem;
+  margin: 3px 0 18px;
+  color: #dce8f1;
   font-weight: 700;
 }
-body.private-registration .private-rates-heading {
-  margin: 18px 0 9px;
-  padding-top: 18px;
-  border-top: 1px solid #526b7f;
-  font: 800 .85rem/1.45 Manrope, sans-serif;
-  color: #dcecf5;
+body.private-registration .registration-facts { gap: 12px; }
+body.private-registration .registration-info a {
+  color: #b6dbf3;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
-body.private-registration .private-price-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: Manrope, system-ui, sans-serif;
-  font-size: .77rem;
-  line-height: 1.45;
-  font-variant-numeric: tabular-nums;
-}
-body.private-registration .private-price-table caption {
-  padding: 0 0 10px;
-  color: #b6cbd9;
-  font-size: .73rem;
-  text-align: left;
-}
-body.private-registration .private-price-table th,
-body.private-registration .private-price-table td {
-  padding: 9px 5px;
-  border-bottom: 1px solid #36536b;
-  text-align: right;
-  white-space: nowrap;
-}
-body.private-registration .private-price-table th:first-child,
-body.private-registration .private-price-table td:first-child {
-  text-align: left;
-}
-body.private-registration .private-price-table thead th {
-  color: #9fcbeb;
-  font-size: .73rem;
-  font-weight: 800;
-}
-body.private-registration .private-price-table tbody th {
-  color: #dceaf4;
-  font-weight: 700;
-}
-body.private-registration .private-price-table tbody td {
-  color: #e4ecf2;
-}
-body.private-registration .private-price-details {
-  margin: 14px 0 0;
-  border-top: 1px solid #526b7f;
-}
+body.private-registration .registration-info a:hover { color: #f3d0a7; }
+body.private-registration .private-price-details { border-top: 1px solid #526b7f; margin-top: 16px; }
 body.private-registration .private-price-details summary {
   min-height: 44px;
   padding: 12px 0;
-  color: #bdddf3;
+  color: #c5dbea;
   font-size: .81rem;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.5;
   cursor: pointer;
 }
-body.private-registration .private-price-details p {
-  margin: 0 0 12px;
-  color: #bacddd;
-  font-size: .78rem;
-  line-height: 1.65;
+body.private-registration .private-price-details p { margin: 12px 0 0; color: #b9cddd; font-size: .78rem; }
+body.private-registration .private-rates-heading { margin: 0 0 8px; }
+body.private-registration .private-price-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: .78rem/1.5 Manrope, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
-body.private-registration .registration-info-note {
-  margin-top: 15px;
-}
-body.private-registration .registration-info-bring {
-  line-height: 1.7;
-}
-@media (max-width: 850px) {
-  body.private-registration .registration-info-content { padding: 22px; }
-  body.private-registration .registration-info h2 { font-size: 1.3rem; }
+body.private-registration .private-price-table caption { padding-bottom: 8px; color: #b6cbd9; font-size: .73rem; text-align: left; }
+body.private-registration .private-price-table :is(th, td) { padding: 7px 4px; border-bottom: 1px solid #36536b; text-align: right; }
+body.private-registration .private-price-table th:first-child { text-align: left; }
+body.private-registration .private-price-table thead th { color: #b6cbd9; font-size: .73rem; }
+body.private-registration .registration-info-note { margin-top: 8px; padding-top: 16px; }
+body.private-registration .private-info-links { display: grid; gap: 4px; margin: 12px 0 0; }
+body.private-registration .private-info-links a { display: flex; align-items: center; min-height: 44px; font-size: .8rem; }
+@media (max-width: 700px) {
+  body.private-registration { --seasonal-art: url('autumn-field-800.webp'); }
 }
 @media (max-width: 540px) {
-  body.private-registration .quick-panel h1 { font-size: 1.7rem; }
-  body.private-registration .quick-player-row {
-    grid-template-columns: minmax(0, 1fr) minmax(84px, .38fr);
-    gap: 10px;
-  }
-  body.private-registration #private-estimate { padding: 13px; }
+  body.private-registration .quick-panel h1 { font-size: 1.55rem; }
+  body.private-registration .quick-context { margin-bottom: 12px; font-size: .82rem; }
   body.private-registration .registration-info-content { padding: 18px; }
-  body.private-registration .private-price-table { font-size: .75rem; }
-  body.private-registration .private-price-table th,
-  body.private-registration .private-price-table td { padding-inline: 4px; }
-}
-@media (max-width: 340px) {
-  body.private-registration .quick-player-row { grid-template-columns: 1fr; }
-}
-
-/* Distinct private-coaching photograph, separate from the camp backdrop. */
-body.private-registration{
-  --seasonal-art:url("https://images.unsplash.com/photo-1652318696037-8d34c4d2f378?auto=format&fit=crop&w=1600&q=80");
-  --registration-art:var(--seasonal-art);
-}
-@media(max-width:700px){
-  body.private-registration{
-    --seasonal-art:url("https://images.unsplash.com/photo-1652318696037-8d34c4d2f378?auto=format&fit=crop&w=800&q=76");
-  }
 }

@@ -10,3 +10,5 @@ Downloaded October 26, 2026 under the [Pexels License](https://www.pexels.com/li
 Email derivatives use the same photographs, cropped to wide JPEG banners (`email-autumn-field.jpg`, `email-winter-field.jpg`). `email-star-soccer-logo.png` is a raster export of the existing Star Soccer SVG wordmark for email compatibility.
 
 Design references reviewed: [Soccer Shots](https://www.soccershots.com/) and [IFA Sport](https://www.ifasport.com/), for large photographic backgrounds with readable foreground content. Reference-site assets were not reused.
+
+The social preview image `star-soccer-social.jpg` combines the same licensed autumn field photograph with the existing approved Galactic Swoosh wordmark, a dark overlay and factual service text. It is a stock-field brand graphic, not a Star Soccer session photograph.

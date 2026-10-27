@@ -6,7 +6,7 @@ import collections, json, subprocess
 ROOT=Path(__file__).resolve().parents[1]
 class Page(HTMLParser):
     def __init__(self,path):
-        super().__init__();self.ids=[];self.links=[];self.tags=[];self.path=path;self.feed(path.read_text())
+        super().__init__();self.ids=[];self.links=[];self.tags=[];self.path=path;self.feed(path.read_text(encoding='utf-8'))
     def handle_starttag(self,tag,attrs):
         a=dict(attrs);self.tags.append((tag,a))
         if 'id' in a:self.ids.append(a['id'])
@@ -21,7 +21,7 @@ for name,p in PAGES.items():
     for key,link in p.links:
         u=urlparse(link)
         if u.scheme or u.netloc:continue
-        path=(p.path.parent/unquote(u.path)).resolve() if u.path else p.path
+        path=(ROOT/unquote(u.path).lstrip('/')).resolve() if u.path.startswith('/') else (p.path.parent/unquote(u.path)).resolve() if u.path else p.path
         if path.is_dir():path=path/'index.html'
         if not path.exists():errors.append(f'{name}: missing {link}')
         elif key=='href' and u.fragment and path.suffix=='.html':
@@ -31,7 +31,7 @@ for name,p in PAGES.items():
     if Path(name).name.startswith('camp-'):
         if any('registration.html' in link for _,link in p.links):errors.append(f'{name}: old camp still links to registration')
         if any(tag=='form' for tag,a in p.tags):errors.append(f'{name}: retired camp form still present')
-    if 'data-redirect' not in p.path.read_text():
+    if 'data-redirect' not in p.path.read_text(encoding='utf-8'):
         for asset in ['site-ux.js','site.min.css']:
             if not any(asset in link for _,link in p.links):errors.append(f'{name}: missing shared {asset}')
 catalog=json.loads(subprocess.check_output(['node','-e',"console.log(JSON.stringify(require('./training.js').catalog))"],cwd=ROOT,text=True))

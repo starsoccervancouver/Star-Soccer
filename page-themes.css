@@ -1,0 +1,217 @@
+/* Star Soccer: page-specific atmosphere and enquiry layout.
+   The existing brand palette, forms, validation and registration controls are retained.
+   Photos decorate only the background; foreground content stays fully opaque. */
+body.star-themed-page {
+  --theme-photo: none;
+  --theme-shade: rgba(4, 15, 29, .82);
+  position: relative;
+  isolation: isolate;
+  background: #061326;
+}
+body.star-themed-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(4, 14, 29, .9) 0%, rgba(4, 14, 29, .64) 55%, rgba(4, 14, 29, .78) 100%),
+    linear-gradient(0deg, rgba(4, 14, 29, .83), transparent 58%),
+    var(--theme-photo) center / cover no-repeat;
+}
+body.star-themed-page .page-shell,
+body.star-themed-page .subpage-main {
+  background: transparent;
+}
+body.star-themed-page .flow-surface {
+  background: #10263d;
+  border-color: #607a90;
+  box-shadow: 0 16px 40px rgba(2, 10, 24, .33);
+}
+body.star-themed-page .flow-hero {
+  background: transparent;
+  border-color: transparent;
+}
+body.star-themed-page .flow-hero h1 { color: #f4f7fc; }
+body.star-themed-page .flow-hero > p { color: #e8eff8; }
+body.star-themed-page .flow-intro { color: #e2edf7; }
+
+/* A warm, quiet coaching-office backdrop for conversations with families. */
+body.contact-themed-page {
+  --theme-photo: url("https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=78");
+  --registration-accent: #e7c59a;
+}
+body.contact-themed-page::before {
+  background:
+    linear-gradient(90deg, rgba(5, 15, 28, .91), rgba(10, 20, 31, .68) 56%, rgba(8, 17, 28, .82)),
+    linear-gradient(0deg, rgba(5, 16, 30, .88), transparent 65%),
+    var(--theme-photo) center 46% / cover no-repeat;
+}
+body.contact-themed-page.quick-flow .quick-shell.registration-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(280px, 1fr);
+  align-items: start;
+  gap: 24px;
+  width: min(1120px, calc(100% - 32px));
+  max-width: none;
+  margin: 28px auto 48px;
+  padding: 0;
+}
+body.contact-themed-page.quick-flow .quick-panel {
+  min-width: 0;
+  margin: 0;
+  padding: 28px;
+  border: 1px solid #857868;
+  border-radius: 14px;
+  background: #122a40;
+  box-shadow: 0 18px 44px rgba(1, 9, 22, .4);
+}
+body.contact-themed-page .quick-panel .eyebrow,
+body.contact-themed-page .registration-info .eyebrow { color: #e7c59a; }
+body.contact-themed-page .quick-panel h1 {
+  font-size: clamp(1.7rem, 3vw, 2.25rem);
+  max-width: 22ch;
+}
+body.contact-themed-page .quick-context { max-width: 62ch; color: #ccdae7; }
+body.contact-themed-page.quick-flow #contact-inquiry > .button[type="submit"] {
+  min-height: 54px;
+  font-weight: 800;
+}
+body.contact-themed-page .registration-info {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #857868;
+  border-radius: 14px;
+  background: #10263d;
+  box-shadow: 0 16px 40px rgba(2, 10, 24, .36);
+}
+body.contact-themed-page .registration-info-content { padding: clamp(22px, 2.3vw, 28px); }
+body.contact-themed-page .registration-info h2 {
+  margin: 6px 0 14px;
+  font: 800 clamp(1.22rem, 1.9vw, 1.55rem)/1.28 "Manrope", system-ui, sans-serif;
+  color: #f1f4f9;
+}
+body.contact-themed-page .contact-response-lead {
+  margin: 0 0 18px;
+  color: #c7d9e8;
+  font-size: .9rem;
+  line-height: 1.65;
+}
+body.contact-themed-page .registration-facts {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+}
+body.contact-themed-page .registration-facts > div {
+  display: grid;
+  gap: 4px;
+}
+body.contact-themed-page .registration-facts dt {
+  color: #e7c59a;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+body.contact-themed-page .registration-facts dd {
+  margin: 0;
+  color: #d5e4ef;
+  font-size: .86rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+body.contact-themed-page .registration-info a {
+  color: #a8dfff;
+  text-underline-offset: 3px;
+}
+body.contact-themed-page .registration-info a:hover { color: #e7c59a; }
+body.contact-themed-page .registration-info-note {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #50677c;
+}
+body.contact-themed-page .registration-info-note h3 {
+  margin: 0 0 8px;
+  color: #f0f4fa;
+  font-size: .88rem;
+}
+body.contact-themed-page .registration-info-note p {
+  margin: 0;
+  color: #b8ccdc;
+  font-size: .82rem;
+  line-height: 1.65;
+}
+body.contact-themed-page .contact-assistance-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-top: 16px;
+}
+body.contact-themed-page .contact-assistance-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+/* Locations: an overhead, floodlit football pitch. */
+body.locations-themed-page {
+  --theme-photo: url("https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1600&q=78");
+}
+body.locations-themed-page::before {
+  background:
+    linear-gradient(90deg, rgba(4, 20, 28, .87), rgba(6, 28, 33, .63) 62%, rgba(4, 20, 28, .82)),
+    linear-gradient(0deg, rgba(3, 18, 27, .87), transparent 70%),
+    var(--theme-photo) center / cover no-repeat;
+}
+body.locations-themed-page .flow-surface { border-color: #597e78; }
+body.locations-themed-page .flow-hero .eyebrow { color: #b9e3d7; }
+
+/* Approach: the training ground with a warmer coaching/strategy treatment.
+   Use the same locally hosted autumn artwork as weekly training for reliability. */
+body.approach-themed-page { --theme-photo: url("autumn-field-1600.webp"); }
+body.approach-themed-page::before {
+  background:
+    radial-gradient(circle at 80% 12%, rgba(241, 174, 108, .12), transparent 35%),
+    linear-gradient(90deg, rgba(7, 20, 34, .89), rgba(16, 29, 39, .65) 62%, rgba(6, 18, 31, .78)),
+    linear-gradient(0deg, rgba(5, 17, 30, .87), transparent 70%),
+    var(--theme-photo) center / cover no-repeat;
+}
+body.approach-themed-page .flow-hero .eyebrow { color: #f0bc94; }
+body.approach-themed-page .flow-surface { border-color: #8a776b; }
+body.approach-themed-page .method-restored-nav {
+  border-color: rgba(201, 164, 127, .4);
+  background: #10263d;
+}
+
+/* Preserve the same form-first mobile order as the approved registration pages. */
+@media (max-width: 850px) {
+  body.contact-themed-page.quick-flow .quick-shell.registration-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    width: min(720px, calc(100% - 32px));
+    margin-top: 20px;
+  }
+  body.contact-themed-page.quick-flow .quick-panel { padding: 24px; }
+}
+@media (max-width: 700px) {
+  body.contact-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=72"); }
+  body.locations-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=900&q=72"); }
+  body.approach-themed-page { --theme-photo: url("autumn-field-800.webp"); }
+}
+@media (max-width: 540px) {
+  body.contact-themed-page.quick-flow .quick-shell.registration-layout {
+    width: calc(100% - 24px);
+    gap: 14px;
+    margin: 12px auto 24px;
+  }
+  body.contact-themed-page.quick-flow .quick-panel { padding: 16px; }
+  body.contact-themed-page .registration-info-content { padding: 18px; }
+  body.contact-themed-page .registration-info h2 { font-size: 1.22rem; }
+}
+@media print {
+  body.star-themed-page::before { display: none; }
+  body.contact-themed-page .registration-info { box-shadow: none; }
+}

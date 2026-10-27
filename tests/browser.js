@@ -34,7 +34,7 @@
         check(Math.abs(header.left)<=1 && Math.abs(header.right-doc.documentElement.clientWidth)<=1,`${page} at ${width}px has navigation across the full screen width`);
         if(page==='camps.html') {
           const links=[...doc.querySelectorAll('.camp-week-card .winter-camp-cta')];
-          check(links.length===2 && links.every(el=>el.getBoundingClientRect().bottom<=740 && el.getBoundingClientRect().height>=48),`Camps at ${width}px shows both registration buttons within the first 740px`);
+          check(links.length===2 && links.every(el=>el.getBoundingClientRect().bottom<=740 && el.getBoundingClientRect().height>=48),`Camps at ${width}px shows both registration buttons within the first 740px (${Math.round(links.at(-1).getBoundingClientRect().bottom)}px)`);
           check(!doc.querySelector('.camp-overview') && [...doc.querySelectorAll('.camp-card-details')].every(el=>el.textContent.includes('20 players') && el.textContent.includes('noon–12:30')),`Camp cards at ${width}px include capacity and supervised lunch details`);
         }
         if(page==='programs.html') {
@@ -146,13 +146,17 @@
     check(privateCalls===1 && privateData.get('Preferred coach')==='Romeo Dinglis' && privateData.get('Estimate CAD').includes('160') && doc.querySelector('[data-feedback]').textContent.includes('Request received'),'Private inquiry accepts essential details without a parent name or availability and preserves coach and quote');
     doc=await load('camps.html',320);
     check(!doc.querySelector('form') && !doc.body.textContent.includes('Request free Friday') && doc.body.textContent.includes('No registration required.'),'Camp landing page has no registration form or free-Friday request; drop-ins need no registration');
-    check(doc.querySelector('a[href="christmas-camp-registration.html"]').textContent==='Register for Christmas Week' && doc.querySelector('a[href="boxing-camp-registration.html"]').textContent==='Register for Boxing Week','Each camp links to its own registration page');
+    check(doc.querySelector('a[href="christmas-camp-registration.html"]').textContent==='Register for Week 1' && doc.querySelector('a[href="boxing-camp-registration.html"]').textContent==='Register for Week 2','Each numbered winter camp links directly to its own registration page');
+    check([...doc.querySelectorAll('.camp-price-saving')].every((el,i)=>el.textContent.includes('$250') && el.textContent.includes(['Save $50','Save $65'][i])),'Both camp cards show the standard $250 and correct package savings');
+    check(doc.querySelector('.camp-card-highlight').textContent==='Christmas gift: Christmas Day is free!','Week 1 clearly advertises the free Christmas Day gift');
     doc=await load('christmas-camp-registration.html',320);
     const camp=doc.querySelector('#camp-registration'),campWin=frame.contentWindow;
     check(doc.querySelector('[data-camp-price]').textContent==='$200 CAD' && doc.querySelectorAll('#camp-dates li').length===5,'Christmas package is $200 and includes all five dates');
+    check(doc.querySelector('#camp-booking-title').textContent==='Winter Camp — Week 1' && doc.querySelector('[data-camp-standard]').textContent==='$250' && doc.querySelector('[data-camp-saving]').textContent==='$50','Week 1 registration has the numbered camp name and $50 savings');
     const setCamp=(name,value)=>{const el=camp.elements.namedItem(name);el.value=value;el.dispatchEvent(new campWin.Event('change',{bubbles:true}));};
     setCamp('Daily session','both');
     check(doc.querySelector('[data-camp-price]').textContent==='$400 CAD' && doc.querySelector('[data-camp-total]').textContent==='$400 CAD' && !camp.elements.namedItem('Booking option'),'Christmas registration only offers weekly packages, with both sessions at $400');
+    check(doc.querySelector('[data-camp-standard]').textContent==='$500' && doc.querySelector('[data-camp-saving]').textContent==='$100','Week 1 both-session savings scale to $100 against $500');
     check(doc.querySelector('[data-quick-camp-time]').textContent.includes('12:30–3:30 PM') && doc.querySelector('[data-quick-camp-time]').textContent.includes('Supervised lunch included'),'Both-session choice shows the full times and lunch supervision outside the dropdown');
     check(camp.elements.namedItem('Player age').min==='5' && camp.elements.namedItem('Player age').max==='14','Camp form uses the approved ages 5–14');
     for(const [name,value] of [['email','test@example.invalid'],['Player name','Test Player'],['Player age','5'],['Referral source','referral']])camp.elements.namedItem(name).value=value;
@@ -167,8 +171,10 @@
     check(doc.querySelector('#camp-receipt').textContent.includes('$400 CAD') && doc.querySelector('#camp-receipt').textContent.includes('noon–12:30 included') && doc.documentElement.scrollWidth<=321,'Package receipt keeps the correct charge and lunch details readable at 320px');
     doc=await load('boxing-camp-registration.html?week=christmas&kind=dropin&slot=pm&price=1#camp-booking',320);
     check(doc.querySelector('[data-camp-price]').textContent==='$185 CAD' && doc.querySelector('#camp-dates').textContent.includes('Jan 1, 2027'),'Boxing registration keeps its own $185 package despite untrusted week, kind and price parameters');
+    check(doc.querySelector('#camp-booking-title').textContent==='Winter Camp — Week 2' && doc.querySelector('[data-camp-standard]').textContent==='$250' && doc.querySelector('[data-camp-saving]').textContent==='$65','Week 2 registration shows the numbered name and $65 savings');
     doc.querySelector('[name="Daily session"]').value='both';doc.querySelector('[name="Daily session"]').dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
     check(doc.querySelector('[data-camp-price]').textContent==='$370 CAD' && doc.querySelector('[data-camp-lunch]').textContent.includes('Supervised lunch included'),'Boxing Week both-session package is $370 with lunch');
+    check(doc.querySelector('[data-camp-standard]').textContent==='$500' && doc.querySelector('[data-camp-saving]').textContent==='$130','Week 2 both-session savings scale to $130 against $500');
     doc=await load('contact.html?program=camps#contact-inquiry');
     check(doc.querySelector('[name="Topic"]').value==='Winter camps' && !doc.querySelector('[name="Message"]').value,'Camp inquiry link selects the right topic without writing a message for the parent');
     const contact=doc.querySelector('form');

@@ -3,15 +3,19 @@ const now=new Date('2026-10-26T19:00:00Z');
 const choice=(patch={})=>C.quote({week:'christmas',kind:'week',slot:'am',age:5,...patch},now);
 test('approved camp dates, ages, capacity and paid four-day Christmas price',()=>{
  assert.equal(choice().price,200);assert.deepEqual(choice().dates,['2026-12-21','2026-12-22','2026-12-23','2026-12-24','2026-12-25']);
+ assert.equal(choice().weekName,'Winter Camp — Week 1');assert.equal(choice().standardPrice,250);assert.equal(choice().savings,50);
  assert.equal(choice({age:14,slot:'both'}).price,400);assert.equal(choice({slot:'both'}).sessions.length,10);assert.equal(C.catalog.capacity,20);
  for(const age of [4,15,5.5,'5.5','x'])assert.throws(()=>choice({age}),/ages/);
 });
 test('Boxing Week uses the approved $185 weekly package and includes lunch for both slots',()=>{
  const q=choice({week:'boxing'});assert.equal(q.price,185);assert.equal(q.dates.length*3,15);assert.equal(q.dates[4],'2027-01-01');
+ assert.equal(q.weekName,'Winter Camp — Week 2');assert.equal(q.standardPrice,250);assert.equal(q.savings,65);
  const both=choice({week:'boxing',slot:'both'});assert.equal(both.price,370);assert.equal(both.lunch,true);assert.equal(both.sessions.length,10);assert.equal(choice({slot:'pm'}).lunch,false);
+ assert.equal(both.standardPrice,500);assert.equal(both.savings,130);
 });
 test('drop-ins are $60 per three-hour slot, Christmas Friday is free including both slots',()=>{
  assert.equal(choice({kind:'dropin',date:'2026-12-22'}).price,60);assert.equal(choice({kind:'dropin',slot:'both',date:'2026-12-22'}).price,120);
+ assert.equal(choice({kind:'dropin',date:'2026-12-22'}).standardPrice,null);assert.equal(choice({kind:'dropin',date:'2026-12-22'}).savings,0);
  for(const slot of ['am','pm','both']){const q=choice({kind:'dropin',date:'2026-12-25',slot});assert.equal(q.price,0);assert.equal(q.free,true);}
  assert.equal(choice({week:'boxing',kind:'dropin',date:'2027-01-01'}).price,60);
 });

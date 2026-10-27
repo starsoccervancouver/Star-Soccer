@@ -2,8 +2,8 @@
 (function(root){
   'use strict';
   const T=typeof module!=='undefined'&&module.exports?require('./training.js'):root.StarTraining;
-  const catalog=Object.freeze({version:'20261026-sale',zone:'America/Vancouver',minAge:5,maxAge:14,capacity:20,location:'Kitsilano Turf',
-    weeks:Object.freeze({christmas:Object.freeze({id:'christmas',name:'Christmas week',start:'2026-12-21',end:'2026-12-25',price:200,freeDate:'2026-12-25'}),boxing:Object.freeze({id:'boxing',name:'Boxing Week Sale',start:'2026-12-28',end:'2027-01-01',price:185,freeDate:null})}),
+  const catalog=Object.freeze({version:'20261026-savings',zone:'America/Vancouver',minAge:5,maxAge:14,capacity:20,location:'Kitsilano Turf',
+    weeks:Object.freeze({christmas:Object.freeze({id:'christmas',name:'Winter Camp — Week 1',start:'2026-12-21',end:'2026-12-25',price:200,standardPrice:250,freeDate:'2026-12-25'}),boxing:Object.freeze({id:'boxing',name:'Winter Camp — Week 2',start:'2026-12-28',end:'2027-01-01',price:185,standardPrice:250,freeDate:null})}),
     slots:Object.freeze({am:Object.freeze({id:'am',name:'Morning',time:'9 AM–noon',startMinutes:540}),pm:Object.freeze({id:'pm',name:'Afternoon',time:'12:30–3:30 PM',startMinutes:750})})});
   function getWeek(id){return Object.hasOwn(catalog.weeks,id)?catalog.weeks[id]:null;}
   function dates(id){const w=getWeek(id);if(!w)throw new Error('Choose a camp week.');return Array.from({length:5},(_,i)=>T.addDays(w.start,i));}
@@ -19,7 +19,8 @@
     const free=kind==='dropin'&&date===w.freeDate;
     const price=(kind==='week'?w.price:free?0:60)*slots.length;
     const sessions=covered.flatMap(d=>slots.map(s=>Object.freeze({key:'winter-'+week+'-'+s.id+':'+d,date:d,slot:s.id,time:s.time,capacity:20})));
-    return Object.freeze({week:w.id,weekName:w.name,kind,slot,dates:Object.freeze(covered),sessions:Object.freeze(sessions),price,free,
+    const standardPrice=kind==='week'?w.standardPrice*slots.length:null;
+    return Object.freeze({week:w.id,weekName:w.name,kind,slot,dates:Object.freeze(covered),sessions:Object.freeze(sessions),price,standardPrice,savings:standardPrice===null?0:standardPrice-price,free,
       label:kind==='week'?'Five-day '+(slot==='both'?'morning + afternoon package':slots[0].name.toLowerCase()+' package'):(free?'Free Christmas Friday': 'Drop-in')+' · '+(slot==='both'?'morning + afternoon':slots[0].name),
       time:slot==='both'?'9 AM–noon & 12:30–3:30 PM':slots[0].time,lunch:slot==='both',location:catalog.location});
   }

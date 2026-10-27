@@ -13,6 +13,9 @@
     datesList.replaceChildren();
     try{
       const q=C.quote({...value(),age:C.catalog.minAge});summary.querySelector('[data-camp-price]').textContent=T.money(q.price)+' CAD';form.querySelector('[data-camp-total]').textContent=T.money(q.price)+' CAD';
+      form.querySelector('[data-camp-standard]').textContent=T.money(q.standardPrice);
+      form.querySelector('[data-camp-saving]').textContent=T.money(q.savings);
+      form.querySelector('[data-camp-discount]').hidden=false;
       summary.querySelector('[data-camp-option]').textContent=q.weekName+' · '+q.label;
       summary.querySelector('[data-camp-time]').textContent=q.time;
       const quickTime=form.querySelector('[data-quick-camp-time]');
@@ -22,6 +25,7 @@
       summary.querySelector('[data-camp-payment]').textContent=q.price===0?'This Christmas Friday booking is free. No payment is due. Your place still needs coach confirmation.':'After the team confirms your place, e-transfer '+T.catalog.email+'. Include the player name and booking reference. If you have already paid, ask the team to reconcile it before paying again.';
       submit.disabled=false;
     }catch(error){
+      form.querySelector('[data-camp-discount]').hidden=true;
       summary.querySelector('[data-camp-price]').textContent='Choose a valid option';form.querySelector('[data-camp-total]').textContent='Choose a valid date and option';summary.querySelector('[data-camp-option]').textContent=error.message;
       summary.querySelector('[data-camp-time]').textContent='9 AM–noon or 12:30–3:30 PM';summary.querySelector('[data-camp-lunch]').textContent='Supervised lunch is included when booking both sessions.';
       summary.querySelector('[data-camp-payment]').textContent='The coaching team confirms places before payment.';

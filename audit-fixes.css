@@ -283,6 +283,14 @@ body .camp-week-card .camp-card-dates {margin:10px 0 6px;font-size:.88rem;}
 body .camp-week-card .camp-card-times {margin:0;font-size:.88rem;font-weight:700;}
 body .camp-card-times span {font-weight:400;color:#c1d3df;}
 body .camp-week-card .camp-card-highlight {margin:6px 0 0;font-size:.84rem;color:#f3d699;}
+body .camp-card-heading h2 span {display:block;font:inherit;color:inherit;}
+body .camp-card-heading .camp-package-price .camp-price-saving {font-size:.7rem;font-weight:500;color:#b9cbd9;line-height:1.4;}
+body .camp-price-saving s {color:#9fb4c6;text-decoration-thickness:1px;}
+@media(max-width:350px) {
+ body .camp-week-card {padding:12px;}
+ body .camp-week-card .camp-card-dates {margin-top:8px;}
+ body .camp-week-card .flow-actions {margin-top:10px;}
+}
 body .camp-card-details {border-top:1px solid #61788a;margin-top:8px;font-size:.9rem;}
 body .camp-card-details summary,body .schedule-filter-panel summary {cursor:pointer;min-height:44px;align-content:center;font-weight:700;}
 body .camp-card-details p {font-size:.9rem;line-height:1.6;}

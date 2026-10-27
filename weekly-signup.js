@@ -25,13 +25,12 @@
     const name=String(playerName||'').trim();
     if(!name||name.length>100||/[\r\n\x00-\x1f]/.test(name))throw new Error('Invalid player name.');
     return {subject:`Star Soccer registration confirmed | ${s.day} | ${reference}`,body:[
-      `You’re registered! We’ve added ${name} to our ${s.day} training list.`,
-      '',`Are you joining us on ${T.prettyDate(date)}?`,
-      `${s.time} · ${T.catalog.locations[s.location].name} · Vancouver time`,
-      '',`We’re expecting ${name} for this next session. Reply YES to confirm, or NO if you can’t make it and we’ll update the roster. If another week suits you better, tell us in your reply.`,
-      '',`No payment is needed to register. Romeo will follow up with you about payment and any questions.`,
-      '',`This confirms registration and the next session only; future drop-ins are arranged with the team.`,
-      '',`See you on the field!`,`Star Soccer`,`starsoccervancouver@gmail.com`,`Reference: ${reference}`
+      `Thank you, ${name} — you’re registered!`,
+      '',`Next session:\n${s.day} training · ${T.prettyDate(date)}\n${s.time}\n${T.catalog.locations[s.location].name} · Vancouver time`,
+      '',`Attendance:\nPlease RSVP Yes, No or Maybe in your Google Calendar invitation. We’re expecting ${name} unless you decline.`,
+      '',`No payment is needed to register. Romeo will follow up about payment.`,
+      '',`This confirms the next session only; arrange future drop-ins with the team.`,
+      '',`See you on the field!`,`Star Soccer`,T.catalog.email,`Reference: ${reference}`
     ].join('\n')};
   }
   function rsvp(body){
@@ -47,18 +46,15 @@
     // Reuse identity/reference validation; derive every date and price from the catalog.
     confirmation(sessionId,startDate,reference,playerName);
     const s=T.getSession(sessionId),p=passPlan(sessionId,startDate,now);
-    const example=T.addDays(p.start,7),name=String(playerName).trim();
+    const name=String(playerName).trim();
     return {subject:`Star Soccer 4-week pass ${updated?'start updated':'confirmed'} | ${s.day} | ${p.start} | ${reference}`,body:[
-      `Thank you for registering ${name} with Star Soccer! Your four-session pass is ${updated?'updated':'confirmed'}.`,
-      '',`Price: ${T.money(p.price)} CAD per player for 4 sessions.`,
-      `Start date: ${T.prettyDate(p.start)}`,`Expected end date (4th session): ${T.prettyDate(p.end)}`,
-      `Your dates: ${p.dates.map(T.prettyDate).join('; ')}`,
-      `${s.day} · ${s.time} · ${T.catalog.locations[s.location].name} · Vancouver time`,
-      '',`Need a different start? Reply START YYYY-MM-DD, for example START ${example}. We’ll check space and email your revised four dates.`,
-      ...(p.upcoming?['',`Will ${name} join us on ${T.prettyDate(p.start)}? Reply YES to confirm, or NO if you can’t attend this date. We’re expecting you unless you tell us otherwise. A NO does not cancel your pass. For a different start, reply START YYYY-MM-DD.`]:[]),
+      `Thank you, ${name} — your four-session pass is ${updated?'updated':'confirmed'}!`,
+      '',`Your pass:\n${T.money(p.price)} CAD per player · 4 sessions\nStart: ${T.prettyDate(p.start)}\nEnd (4th session): ${T.prettyDate(p.end)}\n${s.time} · ${T.catalog.locations[s.location].name} · Vancouver time`,
+      '',`Your four dates:\n${p.dates.map(T.prettyDate).join('\n')}`,
+      ...(p.upcoming?['',`Attendance:\nPlease RSVP Yes, No or Maybe in your Google Calendar invitation for ${T.prettyDate(p.start)}. We’re expecting you unless you decline. Declining this date does not cancel your pass.`]:[]),
       '',`Payment: e-transfer ${T.money(p.price)} CAD to ${T.catalog.email}. Include ${name} and reference ${reference} in the transfer message.`,
-      `If you’ve already paid, reply with the details so Romeo can reconcile it. Please don’t pay twice. This email does not confirm that payment has been received.`,
-      '',`Thank you — we look forward to seeing you on the field!`,`Star Soccer`,T.catalog.email,`Reference: ${reference}`
+      `Already paid? Let Romeo know; please don’t pay twice. This email does not confirm that payment has been received.`,
+      '',`See you on the field!`,`Star Soccer`,T.catalog.email,`Reference: ${reference}`
     ].join('\n')};
   }
   const api=Object.freeze({experience,request,confirmation,rsvp,passPlan,passConfirmation,startChange});

@@ -11,27 +11,25 @@ function vancouver(date,hour,minute){
   }
   throw new Error('Local test instant not found');
 }
-test('attendance email contains date, location, YES/NO replies and no payment demand',()=>{
+test('attendance email contains date, location, Calendar RSVP and no payment demand',()=>{
   const m=E.attendanceInquiry('wednesday','2026-10-28',['Example Player'],ref);
-  for(const text of ['Wed, Oct 28, 2026','3:45–5:15 PM','Connaught Park','Reply YES','or NO',ref])assert.ok(m.body.includes(text),text);
-  assert.match(m.html,/YES, coming/);assert.match(m.html,/Buttons open an email reply/);
+  for(const text of ['Wed, Oct 28, 2026','3:45–5:15 PM','Connaught Park','Google Calendar invitation',ref])assert.ok(m.body.includes(text),text);
+  assert.match(m.html,/RSVP in your Calendar invitation/);assert.doesNotMatch(m.html,/body=YES|body=NO|Tap Send/);
   assert.doesNotMatch(m.body,/e-transfer|payment|paid|Present/);
   assert.doesNotMatch(m.html,/https?:\/\/|<script|<img/);
   assert.equal(E.reminderKey('recABCDEFGHIJKLMN','wednesday','2026-10-28'),ref);
   assert.notEqual(E.reminderKey('recABCDEFGHIJKLMN','wednesday','2026-11-04'),ref);
 });
-test('email buttons draft an exact YES/NO only to the business, with the message reference',()=>{
-  const html=E.attendanceInquiry('wednesday','2026-10-28',['Player'],ref).html;
-  const links=[...html.matchAll(/href="([^"]+)"/g)].map(m=>m[1].replaceAll('&amp;','&')).filter(s=>s.includes('subject='));
-  assert.equal(links.length,2);
-  for(const [i,link] of links.entries()){
-    const u=new URL(link);assert.equal(u.protocol,'mailto:');assert.equal(u.pathname,'starsoccervancouver@gmail.com');
-    assert.ok(u.searchParams.get('subject').includes(ref));assert.equal(u.searchParams.get('body'),['YES','NO'][i]);
-  }
+test('RSVP button uses only an actual Calendar event URL and never opens a YES/NO email',()=>{
+  const url='https://www.google.com/calendar/event?eid=EXAMPLE';
+  const m=E.attendanceInquiry('wednesday','2026-10-28',['Player'],ref,url);
+  assert.ok(m.html.includes('href="'+url+'"'));assert.ok(m.body.includes(url));
+  assert.doesNotMatch(m.html,/subject=Re|body=YES|body=NO/);
+  for(const url of ['https://evil.invalid/calendar/event?eid=x','javascript:alert(1)','https://www.google.com/search?eid=x','http://calendar.google.com/calendar/event?eid=x'])assert.throws(()=>E.approvedCalendarUrl(url));
 });
 test('siblings get explicit all-child choices and independently parsed answers',()=>{
   const m=E.attendanceInquiry('friday','2026-10-30',['Child One','Child Two'],ref);
-  assert.match(m.body,/if everyone is coming/);assert.match(m.body,/Child One: YES or NO/);
+  assert.match(m.body,/Choose Maybe/);assert.match(m.body,/Child One, Child Two/);
   assert.deepEqual(E.parseReply('Child One: YES\nChild Two: NO\n\n> quoted mail',['Child One','Child Two']),[{name:'Child One',answer:'Yes'},{name:'Child Two',answer:'No'}]);
   assert.deepEqual(E.parseReply('YES',['Child One','Child Two']),[{name:'Child One',answer:'Yes'},{name:'Child Two',answer:'Yes'}]);
   assert.deepEqual(E.parseReply('Child One: NO',['Child One','Child Two']),[{name:'Child One',answer:'No'}]);
@@ -54,10 +52,16 @@ test('reminders open at 9am Vancouver two days before, catch up before training,
 });
 test('registration confirmation includes attendance; a future pass omits the immediate attendance inquiry',()=>{
   const m=E.registrationConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Player');
-  assert.match(m.body,/Thank you for registering/);assert.match(m.html,/YES, coming/);
+  assert.match(m.body,/Thank you/);assert.match(m.html,/Calendar invitation/);
   const now=new Date('2026-10-27T03:00:00Z');
   const next=E.passConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Player',now);
-  assert.match(next.html,/YES, coming/);assert.match(next.body,/e-transfer/);
+  assert.match(next.html,/Calendar invitation/);assert.match(next.body,/e-transfer/);assert.doesNotMatch(next.body,/START/);
   const future=E.passConfirmation('wednesday','2026-11-04','SS-ABCDEF12','Player',now);
-  assert.doesNotMatch(future.html,/YES, coming/);assert.doesNotMatch(future.body,/Reply YES/);
+  assert.doesNotMatch(future.html,/Coming to training/);assert.doesNotMatch(future.body,/Attendance:|Calendar invitation/);
+});
+
+test('camp confirmation uses the winter brand and keeps the package details',()=>{
+  const C=require('../winter-camps.js'),q=C.quote({week:'boxing',kind:'week',slot:'pm',age:8},new Date('2026-10-27T03:00:00Z'));
+  const m=E.campConfirmation(q,'SS-CAMP-EXAMPLE123','Player');
+  assert.match(m.html,/WINTER CAMPS/);assert.match(m.body,/Winter Camp — Week 2|\$185 CAD/);assert.doesNotMatch(m.html,/subject=Re|body=YES/);
 });

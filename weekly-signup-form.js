@@ -27,13 +27,14 @@
   const age=form.elements.namedItem('Player age');age.min=s.minAge;age.max=s.maxAge;
   document.querySelector('#age-help').textContent='Ages '+s.minAge+'–'+s.maxAge+'.';
   const passSummary=document.querySelector('#quick-pass-summary'),passStart=document.querySelector('#pass-start');
-  let passStartChanged=false;
+  let passStartChanged=false,passCalendar=null;
   function updatePass(){
     if(choice.type!=='pass4')return null;
     passStart.min=T.nextDate(s);passStart.setCustomValidity('');
     const p=W.passPlan(s.id,passStartChanged?passStart.value:null);passSummary.hidden=false;
     document.querySelector('#pass-price').textContent=T.money(p.price)+' CAD · 4 sessions';
     passStart.value=p.start;
+    passCalendar?.sync();
     document.querySelector('#pass-end').textContent=T.prettyDate(p.end);
     if(info){
       info.querySelector('[data-training-info-date-label]').textContent='Pass starts';
@@ -54,6 +55,7 @@
       try{updatePass();}catch(error){passStart.setCustomValidity(error.message);document.querySelector('#pass-end').textContent='Choose an upcoming '+s.day;if(info){info.querySelector('[data-training-info-date]').textContent='Choose a valid start date';info.querySelector('[data-training-info-end]').textContent='—';}passStart.reportValidity();}
     });
     updatePass();
+    passCalendar=window.StarPassCalendar?.(passStart,s);
   }
   submit.disabled=false;
   form.addEventListener('input',event=>event.target.setCustomValidity?.(''));

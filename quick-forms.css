@@ -40,6 +40,34 @@ body.quick-flow .quick-pass-summary p{margin:4px 0 0;font-size:.8rem;line-height
 body.quick-flow .pass-start-label{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 10px;margin-top:6px}
 body.quick-flow .pass-start-label small{font-size:.72rem}
 body.quick-flow .pass-start-label input{grid-column:1/-1;margin:0;min-height:44px;color-scheme:dark}
+body.quick-flow .pass-calendar-trigger{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:10px 12px;margin:0;border:1px solid #9a7c65;border-radius:9px;background:#0d2137;color:#e0e8ef;font:700 .9rem/1.4 'Manrope',sans-serif;text-align:left;cursor:pointer}
+body.quick-flow .pass-calendar-trigger:hover{border-color:#efbc98;background:#173249}
+body.quick-flow .pass-calendar-icon{display:flex;flex:none;color:#efbc98}
+body.quick-flow .pass-calendar{width:min(420px,calc(100% - 24px));max-width:none;max-height:calc(100dvh - 24px);margin:auto;padding:22px;border:1px solid #9a7c65;border-radius:18px;background:#10263d;color:#dce6ee;box-shadow:0 24px 90px #020913b3;overflow:auto;color-scheme:dark}
+body.quick-flow .pass-calendar::backdrop{background:#020b1bbd;backdrop-filter:blur(5px)}
+body.quick-flow .pass-calendar-head{display:flex;justify-content:space-between;align-items:start;gap:12px}
+body.quick-flow .pass-calendar-eyebrow{margin:0 0 6px;color:#efbc98;font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+body.quick-flow .pass-calendar h2{margin:0;font:700 1.25rem/1.35 'Manrope',sans-serif;color:#e8eef4}
+body.quick-flow .pass-calendar-help{margin:14px 0 18px;font-size:.8rem;line-height:1.6;color:#acc1d3}
+body.quick-flow .pass-calendar button{font-family:'Manrope',sans-serif;cursor:pointer;box-sizing:border-box}
+body.quick-flow :is(.pass-calendar-close,.pass-calendar-arrow){display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;padding:0;border:1px solid #526d83;border-radius:10px;background:#163149;color:#dce6ee;font-size:1.7rem;line-height:1}
+body.quick-flow .pass-calendar-close{margin:-6px -6px 0 0;font-size:1.5rem}
+body.quick-flow .pass-calendar-nav{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;margin-bottom:12px}
+body.quick-flow .pass-calendar-nav h3{margin:0;text-align:center;font:700 1rem/1.4 'Manrope',sans-serif;color:#e8eef4}
+body.quick-flow .pass-calendar-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:4px}
+body.quick-flow .pass-calendar-week [role=columnheader]{padding:6px 0;text-align:center;font-size:.68rem;font-weight:700;color:#acc1d3}
+body.quick-flow .pass-calendar-cell{display:block;min-width:0}
+body.quick-flow .pass-calendar-day{display:block;width:100%;min-width:0;height:42px;padding:0;border:1px solid #927763;border-radius:9px;background:#243b4c;color:#f0c8a9;font-size:.9rem;font-weight:800;line-height:1}
+body.quick-flow .pass-calendar-day:disabled{border-color:transparent;background:transparent;color:#71899e;cursor:default;font-weight:400}
+body.quick-flow .pass-calendar-day:not(:disabled):hover{border-color:#efbc98;background:#355267}
+body.quick-flow .pass-calendar-day.is-selected{border-color:#efbc98;background:#efbc98;color:#112638}
+body.quick-flow .pass-calendar-day[aria-current=date]:not(.is-selected){box-shadow:inset 0 0 0 1px #85acc9}
+body.quick-flow .pass-calendar-arrow:disabled{opacity:.35;cursor:default}
+body.quick-flow :is(.pass-calendar button,.pass-calendar-trigger):focus-visible{outline:3px solid #b7e0fb;outline-offset:3px}
+body.quick-flow .pass-calendar-footer{display:grid;grid-template-columns:1.5fr 1fr;gap:10px;border-top:1px solid #486378;margin-top:16px;padding-top:16px}
+body.quick-flow :is(.pass-calendar-upcoming,.pass-calendar-cancel){min-height:44px;padding:10px 8px;border:1px solid #617d95;border-radius:10px;background:#19374f;color:#dce6ee;font-size:.8rem;font-weight:700}
+body.quick-flow .pass-calendar-upcoming{border-color:#efbc98;background:#efbc98;color:#112638}
+@media(max-width:380px){body.quick-flow .pass-calendar{padding:16px}body.quick-flow .pass-calendar h2{font-size:1.1rem}body.quick-flow .pass-calendar-week{gap:3px}}
 
 body.camp-registration-page .camp-gift-note{margin:0 0 8px;font-size:.8rem;line-height:1.45;color:#f3d699}
 body.quick-flow .quick-total [data-camp-discount]{display:block;margin:3px 0 0;font-size:.68rem;line-height:1.35;white-space:normal;color:#b9cbd9}

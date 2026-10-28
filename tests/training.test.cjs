@@ -21,27 +21,38 @@ test('whole-number age and correct session ranges',()=>{
  assert.equal(T.booking('wednesday','dropin','2026-10-21','9',now).price,30);
  assert.equal(T.booking('friday','pass4','2026-10-16','12',now).dates.length,4);
 });
-test('private first-hour rates stay unchanged',()=>{
- const counts=[1,2,3,4,5,6,7,10],expected=[60,45,40,35,30,25,25,25];
+test('hourly prices cover private 1–5 and small group 6–18',()=>{
+ const counts=[1,2,3,4,5,6,7,10,18],expected=[85,55,45,40,35,30,30,30,30];
  counts.forEach((n,i)=>{const q=T.privateQuote(n,60);assert.equal(q.perPlayer,expected[i]);assert.equal(q.total,expected[i]*n);});
 });
-test('90-minute rates keep the existing extra-half-hour discount',()=>{
- const counts=[1,2,3,4,5,6,7,10],expected=[85,65,60,50,45,35,35,35];
+test('90-minute prices apply the hourly rate without rounding away revenue',()=>{
+ const counts=[1,2,3,4,5,6,7,10,18],expected=[127.5,82.5,67.5,60,52.5,45,45,45,45];
  counts.forEach((n,i)=>{const q=T.privateQuote(n,90);assert.equal(q.perPlayer,expected[i]);assert.equal(q.total,expected[i]*n);});
 });
-test('two hours discount only the second hour by 20 percent then round per player',()=>{
- const counts=[1,2,3,4,5,6,7,10],expected=[110,80,70,65,55,45,45,45];
+test('two-hour prices preserve the hourly return',()=>{
+ const counts=[1,2,3,4,5,6,7,10,18],expected=[170,110,90,80,70,60,60,60,60];
  counts.forEach((n,i)=>{
   const q=T.privateQuote(n,120);
   assert.equal(q.perPlayer,expected[i]);
-  assert.equal(q.perPlayer,Math.round((q.base+q.base*0.8)/5)*5);
+  assert.equal(q.perPlayer,q.base*2);
   assert.equal(q.total,expected[i]*n);
   assert.equal(q.duration,120);assert.equal(q.count,n);
  });
- assert.equal(T.privateQuote('2','120').total,160);
+ assert.equal(T.privateQuote('2','120').total,220);
+});
+test('format boundaries and increasing headcount cannot lower total revenue',()=>{
+ for(const duration of [60,90,120]){
+  let previous=0;
+  for(let n=1;n<=18;n++){
+   const q=T.privateQuote(n,duration);
+   assert.equal(q.format,n<=5?'private':'smallgroup');
+   assert(q.total>previous);previous=q.total;
+   assert.equal(q.total/(duration/60),T.privateQuote(n,60).total);
+  }
+ }
 });
 test('invalid private requests and custom durations still require a quote',()=>{
- for(const count of [0,-1,1.5,NaN,Infinity,'',null,'bad'])assert.equal(T.privateQuote(count,60),null);
+ for(const count of [0,-1,1.5,19,100,NaN,Infinity,'',null,'bad'])assert.equal(T.privateQuote(count,60),null);
  for(const duration of ['other',0,30,75,150,180,NaN,Infinity])assert.equal(T.privateQuote(2,duration),null);
 });
 test('transport success alone never confirms acceptance',()=>{

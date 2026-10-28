@@ -19,6 +19,14 @@ body.private-registration .quick-context {
   line-height: 1.5;
 }
 body.private-registration .flow-surface form { gap: 10px; }
+body.private-registration .private-format-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-width: 0; margin: 0 0 2px; padding: 0; border: 0; }
+body.private-registration .private-format-picker label { display: flex; align-items: center; gap: 9px; min-width: 0; min-height: 66px; padding: 10px; border: 1px solid #5c7487; border-radius: 10px; background: #0c2035; cursor: pointer; }
+body.private-registration .private-format-picker label:has(:checked) { border-color: #efbc98; background: #26333e; }
+body.private-registration .private-format-picker label:focus-within { outline: 2px solid #efbc98; outline-offset: 3px; }
+body.private-registration .private-format-picker input { flex: 0 0 16px; width: 16px; min-width: 16px; height: 16px; min-height: 16px; margin: 0; padding: 0; accent-color: #efbc98; }
+body.private-registration .private-format-picker span { display: grid; gap: 3px; min-width: 0; }
+body.private-registration .private-format-picker strong { font: 700 .84rem/1.35 Manrope, system-ui, sans-serif; }
+body.private-registration .private-format-picker small { color: #c5d6e2; font: 500 .76rem/1.35 Manrope, system-ui, sans-serif; }
 body.private-registration .flow-surface label { gap: 5px; font-size: .85rem; }
 body.private-registration .flow-surface :is(input, select, textarea) {
   min-height: 46px;
@@ -99,6 +107,19 @@ body.private-registration .registration-info-note { margin-top: 8px; padding-top
 body.private-registration .private-info-links { display: grid; gap: 4px; margin: 12px 0 0; }
 body.private-registration .private-info-links a { display: flex; align-items: center; min-height: 44px; font-size: .8rem; }
 body.private-registration .private-training-guide { grid-column: 1 / -1; min-width: 0; }
+body.private-registration .private-training-options { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; min-width: 0; }
+body.private-registration .private-training-options > section { min-width: 0; display: flex; flex-direction: column; }
+body.private-registration .private-training-options > section + section { border-left: 1px solid #45617a; padding-left: 24px; }
+body.private-registration .private-training-options h2 { margin: 6px 0 10px; font: 700 1.4rem/1.3 Manrope, system-ui, sans-serif; }
+body.private-registration .private-training-options p { font-size: .9rem; line-height: 1.6; }
+body.private-registration .private-rate-list { display: grid; gap: 0; margin: 6px 0 24px; font-size: .85rem; }
+body.private-registration .private-rate-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #36536b; }
+body.private-registration .private-rate-list dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+body.private-registration .private-group-rate { margin: 10px 0 6px; color: #f3d0a7; }
+body.private-registration .private-group-rate strong { font: 700 2rem/1.25 Manrope, system-ui, sans-serif; }
+body.private-registration .private-group-example { font-variant-numeric: tabular-nums; }
+body.private-registration .private-training-options .button { width: 100%; margin-top: auto; text-align: center; font-size: .85rem; }
+body.private-registration .private-training-options .private-options-note { grid-column: 1 / -1; margin: 0; color: #b9cddd; font-size: .8rem; }
 body.private-registration .private-training-guide h2 { font: 700 clamp(1.45rem, 2.7vw, 1.9rem)/1.25 Manrope, system-ui, sans-serif; }
 body.private-registration .private-goals-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 24px 0; }
 body.private-registration .private-goals-grid h3 { font: 700 1rem/1.4 Manrope, system-ui, sans-serif; }
@@ -106,6 +127,8 @@ body.private-registration .private-goals-grid p { font-size: .9rem; }
 @media (max-width: 700px) {
   body.private-registration { --seasonal-art:var(--seasonal-photo,url('autumn-field-800.webp')); }
   body.private-registration .private-goals-grid { grid-template-columns: 1fr; gap: 8px; }
+  body.private-registration .private-training-options { grid-template-columns: 1fr; gap: 24px; }
+  body.private-registration .private-training-options > section + section { border-left: 0; border-top: 1px solid #45617a; padding: 24px 0 0; }
 }
 @media (max-width: 540px) {
   body.private-registration .quick-panel h1 { font-size: 1.55rem; }

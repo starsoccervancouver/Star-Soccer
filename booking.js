@@ -149,10 +149,24 @@
     };
     coach.addEventListener('change',updateCoach);updateCoach();
     const players=privateForm.elements.namedItem('Players'),duration=privateForm.elements.namedItem('Minutes');
+    const formats=[...privateForm.querySelectorAll('[name="Training format"]')];
+    const smallGroup=()=>formats.some(el=>el.checked && el.value==='smallgroup');
+    const applyFormat=()=>{
+      const group=smallGroup(),min=group?6:1,max=group?18:5;
+      players.min=String(min);players.max=String(max);
+      if(!Number.isSafeInteger(Number(players.value)) || Number(players.value)<min || Number(players.value)>max)players.value=String(min);
+      // Let the shared number stepper refresh its boundary buttons as well.
+      players.dispatchEvent(new Event('input',{bubbles:true}));
+    };
     const estimate=document.querySelector('#private-estimate');
     const updateQuote=()=>{
-      const q=T.privateQuote(players.value,duration.value);
-      estimate.textContent=q?`${T.money(q.perPlayer)} per player · ${T.money(q.total)} total (CAD)`:'We’ll confirm a price for your requested duration.';
+      const validCount=players.validity.valid;
+      const q=validCount?T.privateQuote(players.value,duration.value):null;
+      const group=smallGroup();
+      text('#private-summary-title',group?'Small Group Training':'Private Training');
+      const submit=privateForm.querySelector('[type="submit"]');
+      if(!privateForm.hasAttribute('aria-busy') && submit.textContent!=='Inquiry submitted')submit.textContent=group?'Inquire about small group training':'Inquire about private training';
+      estimate.textContent=q?`${T.money(q.perPlayer)} per player · ${T.money(q.total)} total (CAD)`:validCount?'We’ll confirm a price for your requested duration.':`Choose ${group?'6–18':'1–5'} players for this training.`;
       const durationText=duration.value==='other'?'Custom duration':duration.value+' minutes';
       text('#private-info-duration',durationText);
       const count=Number(players.value);
@@ -161,7 +175,16 @@
       text('#private-info-price-label',q?'Per player · '+durationText:'We will confirm your rate');
       text('#private-info-total',q?T.money(q.total)+' group total':'Contact our coaching team for a custom estimate');
     };
-    [players,duration].forEach(el=>el.addEventListener('change',updateQuote));players.addEventListener('input',updateQuote);updateQuote();
+    [players,duration].forEach(el=>el.addEventListener('change',updateQuote));players.addEventListener('input',updateQuote);
+    formats.forEach(el=>el.addEventListener('change',applyFormat));
+    const initialFormat=params.get('format')==='smallgroup'?'smallgroup':'private';
+    formats.forEach(el=>{el.checked=el.value===initialFormat;});applyFormat();
+    document.querySelectorAll('[data-private-format]').forEach(link=>link.addEventListener('click',event=>{
+      event.preventDefault();
+      formats.forEach(el=>{el.checked=el.value===link.dataset.privateFormat;});applyFormat();
+      const url=new URL(window.location.href);url.searchParams.set('format',link.dataset.privateFormat);url.hash='private-form';
+      window.history.replaceState(null,'',url);document.querySelector('#private-form').scrollIntoView({block:'start'});
+    }));
   }
   document.querySelectorAll('form[data-inquiry]').forEach(inquiry=>{
     let busy=false;
@@ -179,7 +202,7 @@
       if(isPrivate) {
         const n=inquiry.elements.namedItem('Players').value,minutes=inquiry.elements.namedItem('Minutes').value;
         const quote=T.privateQuote(n,minutes),coach=inquiry.elements.namedItem('Preferred coach').value;
-        data.set('Format',Number(n)===1?'One-on-one':'Small group');data.set('Preferred coach',T.catalog.coaches[coach]||'No preference');
+        data.set('Format',Number(n)<=5?'Private Training (1–5 players)':'Small Group Training (6–18 players)');data.set('Preferred coach',T.catalog.coaches[coach]||'No preference');
         data.set('Estimate CAD',quote?`${quote.perPlayer} per player; ${quote.total} group total`:'Quote to be arranged');
       }
       busy=true;submit.disabled=true;inquiry.setAttribute('aria-busy','true');status(feedback,'Sending inquiry…');

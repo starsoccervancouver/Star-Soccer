@@ -62,15 +62,12 @@
   function money(value) { return new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD',maximumFractionDigits:2,minimumFractionDigits:Number.isInteger(value)?0:2}).format(value); }
   function privateQuote(count,duration) {
     count=Number(count);duration=Number(duration);
-    if (!Number.isSafeInteger(count) || count<1 || ![60,90,120].includes(duration)) return null;
-    const base=({1:60,2:45,3:40,4:35,5:30})[count] || 25;
-    // Keep the first hour at full price. For 90 minutes, discount only the
-    // extra half-hour by 10%; for 120 minutes, discount the whole second
-    // hour by 20% instead. These discounts do not stack.
-    const extensionRate=duration===120 ? 0.8 : 0.9;
-    const unrounded=base+(duration-60)/30*(base/2)*extensionRate;
-    const perPlayer=Math.round(unrounded/5)*5;
-    return {perPlayer,total:perPlayer*count,base,duration,count};
+    if (!Number.isSafeInteger(count) || count<1 || count>18 || ![60,90,120].includes(duration)) return null;
+    const base=({1:85,2:55,3:45,4:40,5:35})[count] || 30;
+    // New standard inquiries use a consistent hourly rate for every duration.
+    // Existing agreed bookings keep their recorded charge in the ledger.
+    const perPlayer=base*duration/60;
+    return {perPlayer,total:perPlayer*count,base,duration,count,format:count<=5?'private':'smallgroup'};
   }
   function coachId(value) {
     if(Object.hasOwn(catalog.coaches,value)) return value;

@@ -20,8 +20,8 @@ test('pass defaults to upcoming training and ends on the fourth occurrence, acro
 test('pass email confirms price, dates and payment with Calendar attendance and no start-change option',()=>{
   const now=new Date('2026-10-27T03:00:00Z');
   const mail=W.passConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Test Player',now);
-  for(const text of ['$95 CAD','Wed, Oct 28, 2026','Wed, Nov 18, 2026','4th session','e-transfer','starsoccervancouver@gmail.com','Thank you','Google Calendar invitation','does not confirm that payment has been received'])assert.ok(mail.body.includes(text),text);
-  assert.doesNotMatch(mail.body,/START|different start|Reply YES|Reply NO/);
+  for(const text of ['$95 CAD','Wed, Oct 28, 2026','Wed, Nov 18, 2026','4th session','e-transfer','starsoccervancouver@gmail.com','Thank you','Google Calendar invitation','player’s full name','coach on the day'])assert.ok(mail.body.includes(text),text);
+  assert.doesNotMatch(mail.body,/START|different start|Reply YES|Reply NO|per player|Already paid|transfer message|Include .+reference/);
   const future=W.passConfirmation('wednesday','2026-11-04','SS-ABCDEF12','Test Player',now,true);
   assert.match(future.subject,/start updated/);assert.doesNotMatch(future.body,/Attendance:|Google Calendar invitation|START/);
 });
@@ -35,7 +35,7 @@ test('invalid session, age, experience, blank name and header injection cannot b
 test('confirmation requests next-week attendance without charging or claiming actual attendance',()=>{
   const mail=W.confirmation('wednesday','2026-10-28','SS-ABCDEF12','Test Player');
   assert.match(mail.subject,/registration confirmed/);assert.match(mail.body,/Wed, Oct 28, 2026/);
-  assert.match(mail.body,/Google Calendar invitation/);assert.match(mail.body,/No payment is needed/);
+  assert.match(mail.body,/Google Calendar invitation/);assert.match(mail.body,/Test Player’s session total is \$30 CAD/);assert.match(mail.body,/coach on the day/);
   assert.match(mail.body,/next session only/);assert.doesNotMatch(mail.body,/paid|marked present|every Wednesday/);
   assert.throws(()=>W.confirmation('wednesday','2026-10-29','SS-ABCDEF12','Player'));
   assert.throws(()=>W.confirmation('wednesday','2026-10-28','SS-ABCDEF12','Player\nBCC:bad'));
@@ -45,12 +45,12 @@ test('RSVP parses clear first-line YES and NO only, without acting on quoted or 
   assert.equal(W.rsvp(' No! '),'No');
   for(const body of ['Maybe','Yes, but not this week','> YES','Thanks\nNO','NO for John, YES for Sam',''])assert.equal(W.rsvp(body),null);
 });
-test('camp confirmation covers the right package and defers payment follow-up',()=>{
+test('camp confirmation gives one child’s total and the approved payment choices',()=>{
   const C=require('../winter-camps.js');
   const q=C.quote({week:'boxing',kind:'week',slot:'both',age:8},new Date('2026-10-27T03:00:00Z'));
   const mail=C.confirmation(q,'SS-CAMP-ABCDEF12','Test Player');
   assert.match(mail.body,/\$370 CAD/);assert.match(mail.body,/Jan 1, 2027/);
-  assert.match(mail.body,/Supervised lunch/);assert.match(mail.body,/No payment is needed/);
+  assert.match(mail.body,/Supervised lunch/);assert.match(mail.body,/camp package total is \$370 CAD/);assert.match(mail.body,/coach on the day/);assert.doesNotMatch(mail.body,/per player|Romeo will follow up about payment/);
   assert.match(mail.body,/Boxing Week Sale/);
   assert.throws(()=>C.confirmation(q,'SS-CAMP-ABCDEF12','Bad\nName'));
 });

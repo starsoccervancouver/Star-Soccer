@@ -25,6 +25,15 @@ test('hourly prices cover private 1–5 and small group 6–18',()=>{
  const counts=[1,2,3,4,5,6,7,10,18],expected=[65,55,45,40,35,30,30,30,30];
  counts.forEach((n,i)=>{const q=T.privateQuote(n,60);assert.equal(q.perPlayer,expected[i]);assert.equal(q.total,expected[i]*n);});
 });
+test('payment directions use full names in transfer notes with no reference-code request',()=>{
+ const one=T.paymentInstructions(),many=T.paymentInstructions(2);
+ assert.match(one,/e-transfer to starsoccervancouver@gmail.com/);
+ assert.match(one,/arrange payment with your coach on the day/);
+ assert.match(one,/player’s full name in the transfer notes/);
+ assert.match(many,/players’ full names in the transfer notes/);
+ assert.doesNotMatch(one,/reference|session date|No payment|Already paid|follow up/);
+ for(const value of [0,-1,1.5,NaN])assert.throws(()=>T.paymentInstructions(value));
+});
 test('90-minute prices apply the hourly rate without rounding away revenue',()=>{
  const counts=[1,2,3,4,5,6,7,10,18],expected=[97.5,82.5,67.5,60,52.5,45,45,45,45];
  counts.forEach((n,i)=>{const q=T.privateQuote(n,90);assert.equal(q.perPlayer,expected[i]);assert.equal(q.total,expected[i]*n);});
@@ -78,7 +87,7 @@ test('registration recovery includes public booking context without personal for
  const url=new URL(T.registrationHelp(b,'SS-TEST'));
  assert.equal(url.protocol,'mailto:');assert.equal(url.pathname,T.catalog.email);
  const body=url.searchParams.get('body');
- for(const expected of ['SS-TEST','Oct 21','Oct 28','Nov 4','Nov 11','$95 CAD','not confirmed','before I register or pay again'])assert(body.includes(expected),expected);
+ for(const expected of ['SS-TEST','Oct 21','Oct 28','Nov 4','Nov 11','$95 CAD','not confirmed','Please check whether my registration arrived.'])assert(body.includes(expected),expected);
  for(const privateValue of [b.playerName,b.email,b.notes])assert(!body.includes(privateValue));
  assert(!body.includes('Registration confirmed'));
 });
@@ -86,7 +95,8 @@ test('registration recovery includes public booking context without personal for
 test('saved booking details keep dates, total and payment destination together without personal form data',()=>{
  const receipt={reference:'SS-TEST',sessionName:'Wednesday · 3:45–5:15 PM',dates:['2026-10-21','2026-10-28','2026-11-04','2026-11-11'],location:'Connaught Park',label:'Four-session pass',price:95,email:'private@example.invalid',playerName:'Private Test Name'};
  const text=T.receiptText(receipt);
- for(const expected of ['SS-TEST','Oct 21','Oct 28','Nov 4','Nov 11','$95 CAD','starsoccervancouver@gmail.com','After coach confirmation','does not verify payment'])assert(text.includes(expected),expected);
+ for(const expected of ['SS-TEST','Oct 21','Oct 28','Nov 4','Nov 11','$95 CAD','starsoccervancouver@gmail.com','Your place is confirmed by the coaching team','player’s full name in the transfer notes','arrange payment with your coach on the day'])assert(text.includes(expected),expected);
+ assert.doesNotMatch(text,/pay twice|pay again|another payment|already paid|Include .+reference/i);
  assert(!text.includes('cash'));
  assert(!text.includes(receipt.email));assert(!text.includes(receipt.playerName));
 });

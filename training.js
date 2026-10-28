@@ -60,6 +60,10 @@
   }
   function prettyDate(value) { return new Intl.DateTimeFormat('en-CA',{timeZone:'UTC',weekday:'short',month:'short',day:'numeric',year:'numeric'}).format(isoDate(value)); }
   function money(value) { return new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD',maximumFractionDigits:2,minimumFractionDigits:Number.isInteger(value)?0:2}).format(value); }
+  function paymentInstructions(playerCount=1) {
+    if(!Number.isSafeInteger(playerCount)||playerCount<1)throw new Error('Use the actual number of registered players.');
+    return `You can pay by e-transfer to ${catalog.email}, or arrange payment with your coach on the day. Please put your ${playerCount===1?'player’s full name':'players’ full names'} in the transfer notes.`;
+  }
   function privateQuote(count,duration) {
     count=Number(count);duration=Number(duration);
     if (!Number.isSafeInteger(count) || count<1 || count>18 || ![60,90,120].includes(duration)) return null;
@@ -83,7 +87,7 @@
     return 'https://starsoccer.ca/programs.html?day='+encodeURIComponent(id)+'#sessions';
   }
   function registrationHelp(booking,reference) {
-    const body=['Please check whether my registration arrived before I register or pay again.',
+    const body=['Please check whether my registration arrived.',
       'Website reference: '+reference,
       'Training: '+booking.session.day+' · '+booking.session.time,
       'Dates: '+booking.dates.map(prettyDate).join('; '),
@@ -103,13 +107,12 @@
       'Location: '+receipt.location,
       'Booking: '+receipt.label,
       'Booking total: '+money(receipt.price)+' CAD',
-      '', 'After coach confirmation, pay by e-transfer to '+catalog.email+'.',
-      'Include the player name, session date and booking reference with payment.',
-      'If you have already paid, contact the coaching team to reconcile it. This file does not verify payment.',
+      '', 'Your place is confirmed by the coaching team.',
+      paymentInstructions(),
       'Keep these details before and after training. Contact '+catalog.email+' about payment or session changes.'
     ].join('\n');
   }
-  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,prettyDate,money,privateQuote,coachId,accepted,receiptText,referralSources,referralSource,sessionLink,registrationHelp});
+  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,prettyDate,money,paymentInstructions,privateQuote,coachId,accepted,receiptText,referralSources,referralSource,sessionLink,registrationHelp});
   root.StarTraining=api;
   if(typeof module!=='undefined' && module.exports) module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

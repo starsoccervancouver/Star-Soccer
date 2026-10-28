@@ -30,7 +30,7 @@ test('multiple drop-in days are sorted, priced by paid daily slots and explicitl
  assert.deepEqual(q.dates,['2026-12-21','2026-12-23','2026-12-25']);
  assert.equal(q.price,240);assert.equal(q.sessions.length,6);assert.equal(q.lunch,true);assert.equal(q.standardPrice,null);
  const mail=C.confirmation(q,'SS-CAMP-ABCDEF12','Test Player');
- assert.match(mail.body,/Drop-in total: \$240 CAD/);assert.match(mail.body,/Christmas Friday is free/);
+ assert.match(mail.body,/Test Player’s selected camp days come to \$240 CAD/);assert.match(mail.body,/Christmas Friday is free/);
  assert.doesNotMatch(mail.body,/Boxing Week Sale/);
  assert.equal(choice({week:'boxing',kind:'dropin',dates:['2026-12-28','2027-01-01'],slot:'pm'}).price,120);
  for(const dates of [[],['2026-12-21','2026-12-21'],['2026-12-26'],['2027-01-01'],'2026-12-21'])assert.throws(()=>choice({kind:'dropin',dates}));

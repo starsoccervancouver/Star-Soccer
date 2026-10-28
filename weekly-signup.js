@@ -28,7 +28,8 @@
       `Thank you, ${name} — you’re registered!`,
       '',`Next session:\n${s.day} training · ${T.prettyDate(date)}\n${s.time}\n${T.catalog.locations[s.location].name} · Vancouver time`,
       '',`Attendance:\nPlease RSVP Yes, No or Maybe in your Google Calendar invitation. We’re expecting ${name} unless you decline.`,
-      '',`No payment is needed to register. Romeo will follow up about payment.`,
+      '',`${name}’s session total is ${T.money(s.dropin)} CAD.`,
+      '',T.paymentInstructions(),
       '',`This confirms the next session only; arrange future drop-ins with the team.`,
       '',`See you on the field!`,`Star Soccer`,T.catalog.email,`Reference: ${reference}`
     ].join('\n')};
@@ -49,11 +50,10 @@
     const name=String(playerName).trim();
     return {subject:`Star Soccer 4-week pass ${updated?'start updated':'confirmed'} | ${s.day} | ${p.start} | ${reference}`,body:[
       `Thank you, ${name} — your four-session pass is ${updated?'updated':'confirmed'}!`,
-      '',`Your pass:\n${T.money(p.price)} CAD per player · 4 sessions\nStart: ${T.prettyDate(p.start)}\nEnd (4th session): ${T.prettyDate(p.end)}\n${s.time} · ${T.catalog.locations[s.location].name} · Vancouver time`,
+      '',`Your pass:\n${name}’s four-session pass comes to ${T.money(p.price)} CAD.\nStart: ${T.prettyDate(p.start)}\nEnd (4th session): ${T.prettyDate(p.end)}\n${s.time} · ${T.catalog.locations[s.location].name} · Vancouver time`,
       '',`Your four dates:\n${p.dates.map(T.prettyDate).join('\n')}`,
       ...(p.upcoming?['',`Attendance:\nPlease RSVP Yes, No or Maybe in your Google Calendar invitation for ${T.prettyDate(p.start)}. We’re expecting you unless you decline. Declining this date does not cancel your pass.`]:[]),
-      '',`Payment: e-transfer ${T.money(p.price)} CAD to ${T.catalog.email}. Include ${name} and reference ${reference} in the transfer message.`,
-      `Already paid? Let Romeo know; please don’t pay twice. This email does not confirm that payment has been received.`,
+      '',T.paymentInstructions(),
       '',`See you on the field!`,`Star Soccer`,T.catalog.email,`Reference: ${reference}`
     ].join('\n')};
   }

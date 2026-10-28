@@ -36,7 +36,8 @@
       '', 'Your camp:\n'+q.weekName+'\n'+q.label+'\n'+q.time+'\nKitsilano Turf · Vancouver time',
       '', 'Your dates:\n'+q.dates.map(T.prettyDate).join('\n'),
       q.lunch?'Supervised lunch is included from noon–12:30. Bring a packed lunch.':'',
-      '', (q.kind==='week'?'Package price: ':'Drop-in total: ')+T.money(q.price)+' CAD per player. No payment is needed to register; Romeo will follow up about payment.',
+      '', q.kind==='week'?`${name}’s camp package total is ${T.money(q.price)} CAD.`:`${name}’s selected camp days come to ${T.money(q.price)} CAD.`,
+      ...(q.price>0?['',T.paymentInstructions()]:[]),
       q.week==='christmas'&&q.dates.includes('2026-12-25')?'Christmas Friday is free — our gift to you.':q.kind==='week'&&q.week==='boxing'?'Your package includes the Boxing Week Sale.':'',
       '', 'Reply to this email if your attendance plans change or you have a question.',
       '', 'See you on the field!','Star Soccer','starsoccervancouver@gmail.com','Reference: '+reference

@@ -54,7 +54,7 @@
       if(quickTime)quickTime.textContent=q.time+(q.lunch?' · Supervised lunch included':'');
       summary.querySelector('[data-camp-lunch]').textContent=q.lunch?'Supervised lunch included, noon–12:30. Bring a packed lunch.':'Lunch supervision is included when a player books both daily sessions.';
       q.dates.forEach(d=>{const li=document.createElement('li');li.textContent=T.prettyDate(d)+' · '+q.time;datesList.append(li);});
-      summary.querySelector('[data-camp-payment]').textContent=q.price===0?'This Christmas Friday booking is free. No payment is due. Your place still needs coach confirmation.':'After the team confirms your place, e-transfer '+T.catalog.email+'. Include the player name and booking reference. If you have already paid, ask the team to reconcile it before paying again.';
+      summary.querySelector('[data-camp-payment]').textContent=q.price===0?'This Christmas Friday booking is free. Your place still needs coach confirmation.':T.paymentInstructions();
       submit.disabled=false;
       feedback.hidden=true;
     }catch(error){
@@ -84,7 +84,7 @@
   dayGrid.addEventListener('change',()=>{reference='';update();});
   slot.addEventListener('change',()=>{reference='';});
   form.addEventListener('input',e=>{if(e.target.setCustomValidity)e.target.setCustomValidity('');});update();
-  function receiptText(q){return ['Star Soccer winter camp registration request','Reference: '+reference,'Camp: '+q.weekName,'Option: '+q.label,'Dates: '+q.dates.map(T.prettyDate).join('; '),'Time: '+q.time,'Location: Kitsilano Turf','Ages: 5–14','Booking total: '+T.money(q.price)+' CAD',q.lunch?'Supervised lunch: noon–12:30 included. Bring a packed lunch.':'', 'A place is confirmed by the coaching team; form-service acceptance is not a reservation.',q.price===0?'This Christmas Friday option is free; no payment is due.':'After coach confirmation, e-transfer '+T.catalog.email+' with player name and reference.','If already paid, ask the team to reconcile it before paying again.'].filter(Boolean).join('\n');}
+  function receiptText(q){return ['Star Soccer winter camp registration request','Reference: '+reference,'Camp: '+q.weekName,'Option: '+q.label,'Dates: '+q.dates.map(T.prettyDate).join('; '),'Time: '+q.time,'Location: Kitsilano Turf','Ages: 5–14','Booking total: '+T.money(q.price)+' CAD',q.lunch?'Supervised lunch: noon–12:30 included. Bring a packed lunch.':'', 'A place is confirmed by the coaching team; form-service acceptance is not a reservation.',q.price===0?'This Christmas Friday option is free.':T.paymentInstructions()].filter(Boolean).join('\n');}
   function showReceipt(q){
     receipt.hidden=false;receipt.replaceChildren();
     const h=document.createElement('h2');h.textContent='Camp registration submitted';

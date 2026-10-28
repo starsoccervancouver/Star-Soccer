@@ -73,7 +73,6 @@ function withoutAttendance(message){
 }
 function registrationConfirmation(sessionId,date,ref,playerName,parentName=null){
   const s=T.getSession(sessionId),message=personalized(withoutAttendance(W.confirmation(sessionId,date,ref,playerName)),playerName,parentName);
-  message.body=message.body.replace('No payment is needed to register.',`Session price: ${T.money(s.dropin)} CAD per player. No payment is needed to register.`);
   return render({...message,reference:ref},{title:s.day+' training',visuals:true,followUp:'A separate Google Calendar attendance invitation will follow for your next session. Please choose Yes, No or Maybe there to let us know if you’re coming. We’re expecting your player unless you decline.'});
 }
 function passConfirmation(sessionId,date,ref,playerName,now=new Date(),updated=false,parentName=null){

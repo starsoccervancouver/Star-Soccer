@@ -14,16 +14,26 @@
   C.dates(week).forEach(date=>{
     const label=document.createElement('label');label.className='camp-day';
     const input=document.createElement('input');input.type='checkbox';input.name='Camp days';input.value=date;
-    const text=document.createElement('span');text.textContent=T.prettyDate(date);
-    const price=document.createElement('small');price.textContent=date===C.getWeek(week).freeDate?'Christmas gift · Free':'$60 / session';
+    const text=document.createElement('span');
+    const weekday=document.createElement('b');weekday.textContent=new Intl.DateTimeFormat('en-CA',{timeZone:'UTC',weekday:'short'}).format(T.isoDate(date));
+    const day=document.createElement('span');day.textContent=String(T.isoDate(date).getUTCDate());
+    text.append(weekday,day);
+    const price=document.createElement('small');
     label.append(input,text,price);dayGrid.append(label);
   });
   function value(){return {week,kind:kind(),slot:slot.value,age:age.value,dates:[...dayGrid.querySelectorAll('input:checked')].map(el=>el.value)};}
   function status(message,error=false){feedback.hidden=false;feedback.textContent=message;feedback.classList.toggle('is-error',error);feedback.setAttribute('role',error?'alert':'status');}
   function update(){
     const dropin=kind()==='dropin';days.hidden=!dropin;
-    dayGrid.querySelectorAll('input').forEach(el=>{try{C.quote({week,kind:'dropin',slot:slot.value,date:el.value,age:C.catalog.minAge});el.disabled=false;}catch{el.disabled=true;el.checked=false;}});
-    form.querySelector('[data-camp-price-unit]').textContent=dropin?'per player / selected days':'per player / week';
+    document.body.classList.toggle('camp-dropin-mode',dropin);
+    days.querySelector('p').textContent=(slot.value==='both'?'$120 per day for both sessions.':'$60 per 3-hour session.')+(C.getWeek(week).freeDate?' Christmas Day is free.':'');
+    dayGrid.querySelectorAll('input').forEach(el=>{
+      const free=el.value===C.getWeek(week).freeDate,price=free?0:slot.value==='both'?120:60;
+      el.setAttribute('aria-label',T.prettyDate(el.value)+' · '+(free?'Christmas gift, free':T.money(price)+' for '+(slot.value==='both'?'both sessions':'one session')));
+      el.closest('label').querySelector('small').textContent=free?'Free':T.money(price);
+      try{C.quote({week,kind:'dropin',slot:slot.value,date:el.value,age:C.catalog.minAge});el.disabled=false;}catch{el.disabled=true;el.checked=false;}
+    });
+    form.querySelector('[data-camp-price-unit]').textContent=dropin?'per player':'per player / week';
     datesList.replaceChildren();
     try{
       const q=C.quote({...value(),age:C.catalog.minAge});summary.querySelector('[data-camp-price]').textContent=T.money(q.price)+' CAD';form.querySelector('[data-camp-total]').textContent=T.money(q.price)+' CAD';
@@ -53,7 +63,7 @@
       if(info){
         info.hidden=!dropin;
         if(dropin){
-          info.querySelector('[data-camp-info-price]').textContent='Select your days';
+          info.querySelector('[data-camp-info-price]').textContent='Choose days';
           info.querySelector('[data-camp-info-package]').textContent='Your total covers only the days you choose.';
           info.querySelector('[data-camp-info-savings]').textContent='$60 per 3-hour session'+(C.getWeek(week).freeDate?' · Christmas Friday free':'');
         }
@@ -63,8 +73,8 @@
       summary.querySelector('[data-camp-payment]').textContent='The coaching team confirms places before payment.';
       submit.disabled=true;
       if(dropin){
-        form.querySelector('[data-camp-total]').textContent='Select your days';
-        summary.querySelector('[data-camp-price]').textContent='Select your days';
+        form.querySelector('[data-camp-total]').textContent='Choose days';
+        summary.querySelector('[data-camp-price]').textContent='Choose days';
         const li=document.createElement('li');li.textContent='Choose one or more days to see your dates and total.';datesList.append(li);
       }
     }
@@ -77,8 +87,8 @@
   function receiptText(q){return ['Star Soccer winter camp registration request','Reference: '+reference,'Camp: '+q.weekName,'Option: '+q.label,'Dates: '+q.dates.map(T.prettyDate).join('; '),'Time: '+q.time,'Location: Kitsilano Turf','Ages: 5–14','Booking total: '+T.money(q.price)+' CAD',q.lunch?'Supervised lunch: noon–12:30 included. Bring a packed lunch.':'', 'A place is confirmed by the coaching team; form-service acceptance is not a reservation.',q.price===0?'This Christmas Friday option is free; no payment is due.':'After coach confirmation, e-transfer '+T.catalog.email+' with player name and reference.','If already paid, ask the team to reconcile it before paying again.'].filter(Boolean).join('\n');}
   function showReceipt(q){
     receipt.hidden=false;receipt.replaceChildren();
-    const h=document.createElement('h2');h.textContent='Camp registration received';
-    const lead=document.createElement('p');lead.textContent='Your registration was received. Look out for your confirmation email after we check space in your selected camp sessions. Romeo will follow up about payment. If a session is full, we’ll email you about the waitlist.';
+    const h=document.createElement('h2');h.textContent='Camp registration submitted';
+    const lead=document.createElement('p');lead.textContent='Your request was submitted. We’ll check space and email your confirmation. Romeo will follow up about payment. If a session is full, we’ll email you about the waitlist.';
     const details=document.createElement('pre');details.className='camp-receipt-details';details.textContent=receiptText(q);
     const actions=document.createElement('div');actions.className='flow-actions';
     const print=document.createElement('button');print.type='button';print.className='button';print.textContent='Print / save details';print.addEventListener('click',()=>window.print());

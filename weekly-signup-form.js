@@ -24,6 +24,11 @@
   document.querySelector('#booking-title').textContent=s.day+' training';
   document.querySelector('#booking-session').textContent=s.time+' · '+T.catalog.locations[s.location].name;
   document.querySelector('#booking-ages').textContent='Ages '+s.minAge+'–'+s.maxAge;
+  const dropinSummary=document.querySelector('#quick-dropin-summary');
+  if(choice.type==='dropin' && dropinSummary){
+    dropinSummary.hidden=false;
+    dropinSummary.querySelector('strong').textContent=T.money(choice.price)+' CAD · one session';
+  }
   const age=form.elements.namedItem('Player age');age.min=s.minAge;age.max=s.maxAge;
   document.querySelector('#age-help').textContent='Ages '+s.minAge+'–'+s.maxAge+'.';
   const passSummary=document.querySelector('#quick-pass-summary'),passStart=document.querySelector('#pass-start');

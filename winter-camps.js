@@ -2,8 +2,8 @@
 (function(root){
   'use strict';
   const T=typeof module!=='undefined'&&module.exports?require('./training.js'):root.StarTraining;
-  const catalog=Object.freeze({version:'20261027-dropin-days',zone:'America/Vancouver',minAge:5,maxAge:14,capacity:20,location:'Kitsilano Turf',
-    weeks:Object.freeze({christmas:Object.freeze({id:'christmas',name:'Winter Camp — Week 1',start:'2026-12-21',end:'2026-12-25',price:200,standardPrice:250,freeDate:'2026-12-25'}),boxing:Object.freeze({id:'boxing',name:'Winter Camp — Week 2',start:'2026-12-28',end:'2027-01-01',price:185,standardPrice:250,freeDate:null})}),
+  const catalog=Object.freeze({version:'20261028-full-day-value',zone:'America/Vancouver',minAge:5,maxAge:14,capacity:20,location:'Kitsilano Turf',dropin:Object.freeze({halfDay:60,fullDay:100}),
+    weeks:Object.freeze({christmas:Object.freeze({id:'christmas',name:'Winter Camp — Week 1',start:'2026-12-21',end:'2026-12-25',price:200,fullDayPrice:350,standardPrice:250,freeDate:'2026-12-25'}),boxing:Object.freeze({id:'boxing',name:'Winter Camp — Week 2',start:'2026-12-28',end:'2027-01-01',price:185,fullDayPrice:325,standardPrice:250,freeDate:null})}),
     slots:Object.freeze({am:Object.freeze({id:'am',name:'Morning',time:'9 AM–noon',startMinutes:540}),pm:Object.freeze({id:'pm',name:'Afternoon',time:'12:30–3:30 PM',startMinutes:750})})});
   function getWeek(id){return Object.hasOwn(catalog.weeks,id)?catalog.weeks[id]:null;}
   function dates(id){const w=getWeek(id);if(!w)throw new Error('Choose a camp week.');return Array.from({length:5},(_,i)=>T.addDays(w.start,i));}
@@ -21,7 +21,7 @@
     if(covered[0]<clock.date||(covered[0]===clock.date&&clock.minutes>=slots[0].startMinutes))throw new Error('This option has already started. Choose an upcoming date or session.');
     const paidDays=covered.filter(d=>d!==w.freeDate).length;
     const free=kind==='dropin'&&paidDays===0;
-    const price=(kind==='week'?w.price:paidDays*60)*slots.length;
+    const price=kind==='week'?(slot==='both'?w.fullDayPrice:w.price):paidDays*(slot==='both'?catalog.dropin.fullDay:catalog.dropin.halfDay);
     const sessions=covered.flatMap(d=>slots.map(s=>Object.freeze({key:'winter-'+week+'-'+s.id+':'+d,date:d,slot:s.id,time:s.time,capacity:20})));
     const standardPrice=kind==='week'?w.standardPrice*slots.length:null;
     return Object.freeze({week:w.id,weekName:w.name,kind,slot,dates:Object.freeze(covered),sessions:Object.freeze(sessions),price,standardPrice,savings:standardPrice===null?0:standardPrice-price,free,

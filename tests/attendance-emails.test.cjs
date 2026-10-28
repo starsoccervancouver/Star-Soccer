@@ -92,3 +92,17 @@ test('payment thank-you requires verified receipt, preserves cents and personali
  for(const bad of [{confirmedReceived:false},{amountCents:97.5},{amountCents:0},{reference:'bad'},{receivedDate:'2026-02-30'},{players:['Player','player']}])assert.throws(()=>E.paymentThankYou({...args,...bad}));
  const escaped=E.paymentThankYou({...args,parentName:'<Parent & Co>'});assert.match(escaped.html,/&lt;Parent &amp; Co&gt;/);assert.ok(!escaped.html.includes('<Parent'));
 });
+
+test('full-day confirmations use the discounted catalog total in both HTML and plain text',()=>{
+ const C=require('../winter-camps.js'),now=new Date('2026-10-28T19:00:00Z');
+ for(const [week,kind,dates,total] of [
+  ['christmas','week',undefined,350],['boxing','week',undefined,325],
+  ['christmas','dropin',['2026-12-21'],100],['boxing','dropin',['2026-12-28','2027-01-01'],200],
+  ['christmas','dropin',['2026-12-25'],0]
+ ]){
+  const q=C.quote({week,kind,slot:'both',dates,age:8},now),m=E.campConfirmation(q,'SS-CAMP-FULLDAY01','Alex','Jordan');
+  assert.equal(q.price,total);assert.equal(q.lunch,true);
+  for(const content of [m.body,m.html]){assert.ok(content.includes('$'+total+' CAD'));assert.ok(content.includes('Alex'));assert.ok(content.includes('Bring a packed lunch'));assert.doesNotMatch(content,/per player|pay twice|another payment/);}
+  if(total===0)assert.doesNotMatch(m.body,/You can pay|transfer notes/);
+ }
+});

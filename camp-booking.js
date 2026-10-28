@@ -26,9 +26,10 @@
   function update(){
     const dropin=kind()==='dropin';days.hidden=!dropin;
     document.body.classList.toggle('camp-dropin-mode',dropin);
-    days.querySelector('p').textContent=(slot.value==='both'?'$120 per day for both sessions.':'$60 per 3-hour session.')+(C.getWeek(week).freeDate?' Christmas Day is free.':'');
+    const dayPrice=slot.value==='both'?C.catalog.dropin.fullDay:C.catalog.dropin.halfDay;
+    days.querySelector('p').textContent=T.money(dayPrice)+(slot.value==='both'?' per full day, including supervised lunch.':' per 3-hour session.')+(C.getWeek(week).freeDate?' Christmas Day is free.':'');
     dayGrid.querySelectorAll('input').forEach(el=>{
-      const free=el.value===C.getWeek(week).freeDate,price=free?0:slot.value==='both'?120:60;
+      const free=el.value===C.getWeek(week).freeDate,price=free?0:dayPrice;
       el.setAttribute('aria-label',T.prettyDate(el.value)+' · '+(free?'Christmas gift, free':T.money(price)+' for '+(slot.value==='both'?'both sessions':'one session')));
       el.closest('label').querySelector('small').textContent=free?'Free':T.money(price);
       try{C.quote({week,kind:'dropin',slot:slot.value,date:el.value,age:C.catalog.minAge});el.disabled=false;}catch{el.disabled=true;el.checked=false;}
@@ -46,7 +47,7 @@
         info.querySelector('[data-camp-info-time]').textContent=q.time;
         info.querySelector('[data-camp-info-price]').textContent=T.money(q.price)+' CAD';
         info.querySelector('[data-camp-info-package]').textContent=q.label;
-        info.querySelector('[data-camp-info-savings]').textContent=dropin?q.sessions.filter(s=>s.date!==C.getWeek(week).freeDate).length+' paid sessions × $60'+(q.dates.includes(C.getWeek(week).freeDate)?' · Christmas Friday free':''):'Standard '+T.money(q.standardPrice)+' · Save '+T.money(q.savings);
+        info.querySelector('[data-camp-info-savings]').textContent=dropin?q.dates.filter(d=>d!==C.getWeek(week).freeDate).length+(slot.value==='both'?' full days':' sessions')+' × '+T.money(dayPrice)+(q.dates.includes(C.getWeek(week).freeDate)?' · Christmas Friday free':''):'Standard '+T.money(q.standardPrice)+' · Save '+T.money(q.savings);
         info.querySelector('[data-camp-info-lunch]').textContent=q.lunch?'Supervised lunch included from noon–12:30. Bring a packed lunch.':'Supervised lunch is included when booking both daily sessions.';
       }
       summary.querySelector('[data-camp-time]').textContent=q.time;
@@ -65,7 +66,7 @@
         if(dropin){
           info.querySelector('[data-camp-info-price]').textContent='Choose days';
           info.querySelector('[data-camp-info-package]').textContent='Your total covers only the days you choose.';
-          info.querySelector('[data-camp-info-savings]').textContent='$60 per 3-hour session'+(C.getWeek(week).freeDate?' · Christmas Friday free':'');
+          info.querySelector('[data-camp-info-savings]').textContent=T.money(dayPrice)+(slot.value==='both'?' per full day':' per 3-hour session')+(C.getWeek(week).freeDate?' · Christmas Friday free':'');
         }
       }
       summary.querySelector('[data-camp-price]').textContent='Choose a valid option';form.querySelector('[data-camp-total]').textContent='Choose a valid date and option';

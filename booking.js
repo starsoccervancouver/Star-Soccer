@@ -142,9 +142,23 @@
   const privateForm=document.querySelector('#private-inquiry');
   if(privateForm) {
     const youngest=privateForm.elements.namedItem('Youngest age'),oldest=privateForm.elements.namedItem('Oldest age');
-    const validateAges=()=>oldest.setCustomValidity(youngest.value && oldest.value && Number(youngest.value)>Number(oldest.value)?'The oldest age must be the same as or above the youngest age.':'');
+    const validateAges=()=>{
+      const group=Number(privateForm.elements.namedItem('Players').value)>1;
+      const label=group?'Youngest age':'Player age';
+      document.querySelector('.private-age-end').hidden=!group;
+      document.querySelector('.private-age-range').classList.toggle('is-single',!group);
+      text('#private-age-label',label);youngest.setAttribute('aria-label',label);
+      text('.private-age-range legend',group?'Player age range in years':'Player age in years');
+      text('#private-age-help',group?'Choose the youngest and oldest player ages in whole years, starting at five.':'Choose the player’s age in whole years, starting at five.');
+      youngest.closest('.ss-number-stepper')?.querySelectorAll('[data-direction]').forEach(button=>button.setAttribute('aria-label',(button.dataset.direction==='1'?'Increase ':'Decrease ')+label.toLowerCase()));
+      oldest.disabled=!group;oldest.required=group;
+      const lower=Number(youngest.value);
+      oldest.min=String(Number.isSafeInteger(lower)&&lower>=5&&lower<=99?lower:5);
+      oldest.setCustomValidity(group && youngest.value && oldest.value && lower>Number(oldest.value)?'The oldest age must be the same as or above the youngest age.':'');
+    };
     privateForm.addEventListener('input',validateAges);
     privateForm.addEventListener('change',validateAges);
+    validateAges();
     const coach=privateForm.elements.namedItem('Preferred coach');coach.value=T.coachId(params.get('coach'));
     const coachLabel=document.querySelector('#quick-private-coach');
     const updateCoach=()=>{
@@ -198,14 +212,14 @@
       const isPrivate=inquiry===privateForm;
       if(isPrivate) {
         const youngest=inquiry.elements.namedItem('Youngest age'),oldest=inquiry.elements.namedItem('Oldest age');
-        if(Number(youngest.value)>Number(oldest.value)) {oldest.setCustomValidity('The oldest age must be the same as or above the youngest age.');oldest.reportValidity();return;}
+        if(Number(inquiry.elements.namedItem('Players').value)>1 && Number(youngest.value)>Number(oldest.value)) {oldest.setCustomValidity('The oldest age must be the same as or above the youngest age.');oldest.reportValidity();return;}
       }
       if(inquiry.elements.namedItem('_honey').value) {status(feedback,'Unable to send this request. Please email the coaching team.',true);return;}
       const data=configuredData(inquiry,isPrivate?'Star Soccer private coaching inquiry':'Star Soccer inquiry');
       if(isPrivate) {
         const n=inquiry.elements.namedItem('Players').value,minutes=inquiry.elements.namedItem('Minutes').value;
         const quote=T.privateQuote(n,minutes),coach=inquiry.elements.namedItem('Preferred coach').value;
-        const youngest=inquiry.elements.namedItem('Youngest age').value,oldest=inquiry.elements.namedItem('Oldest age').value;
+        const youngest=inquiry.elements.namedItem('Youngest age').value,oldest=Number(n)===1?youngest:inquiry.elements.namedItem('Oldest age').value;
         data.set('Player ages',youngest===oldest?`${youngest} years`:`${youngest}–${oldest} years`);
         data.delete('Youngest age');data.delete('Oldest age');
         data.set('Format',Number(n)<=5?'Private Training (1–5 players)':'Small Group Training (6–18 players)');data.set('Preferred coach',T.catalog.coaches[coach]||'No preference');

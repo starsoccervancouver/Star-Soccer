@@ -42,7 +42,7 @@
         const numeric=[...doc.querySelectorAll('input[type="number"]:not([data-native-number])')].filter(el=>el.step!=='any' && !el.closest('.honeypot,[aria-hidden="true"]'));
         if(numeric.length){
           check(numeric.every(el=>el.closest('.ss-number-stepper') && el.labels.length && !el.closest('label')),`${page} at ${width}px enhances number fields while preserving an associated label`);
-          check(numeric.every(el=>[...el.closest('.ss-number-stepper').querySelectorAll('button')].length===2 && [...el.closest('.ss-number-stepper').querySelectorAll('button')].every(button=>button.type==='button' && button.getAttribute('aria-controls')===el.id && button.getAttribute('aria-label') && button.getBoundingClientRect().width>=44 && button.getBoundingClientRect().height>=44)),`${page} at ${width}px has labelled 44px minus and plus controls that cannot submit the form`);
+          check(numeric.every(el=>[...el.closest('.ss-number-stepper').querySelectorAll('button')].length===2 && [...el.closest('.ss-number-stepper').querySelectorAll('button')].every(button=>button.type==='button' && button.getAttribute('aria-controls')===el.id && button.getAttribute('aria-label') && (!el.getClientRects().length || button.getBoundingClientRect().width>=44 && button.getBoundingClientRect().height>=44))),`${page} at ${width}px has labelled 44px visible minus and plus controls that cannot submit the form`);
         }
         if(page==='index.html') {
           const heroPhotos=frame.contentWindow.performance.getEntriesByType('resource').filter(r=>r.name.includes('/site-photos/home-'));
@@ -264,9 +264,17 @@
     const minus=stepper.querySelector('[data-direction="-1"]'),plus=stepper.querySelector('[data-direction="1"]');
     let stepperSubmits=0;doc.querySelector('#private-inquiry').addEventListener('submit',()=>stepperSubmits++);
     check(players.value==='1' && minus.disabled,'Private player control starts at one with decrement disabled');
+    const singleAge=doc.querySelector('[name="Youngest age"]'),hiddenOldest=doc.querySelector('[name="Oldest age"]');
+    check(singleAge.value==='5' && singleAge.min==='5' && hiddenOldest.disabled && !hiddenOldest.required && !hiddenOldest.getClientRects().length && doc.querySelector('#private-age-label').textContent==='Player age','One player starts at age five and shows only one required age ticker');
+    singleAge.value='4';singleAge.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));
+    check(!singleAge.checkValidity(),'The player age cannot be below five');
+    singleAge.value='5';singleAge.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));
+    check(singleAge.closest('.ss-number-stepper').querySelector('[data-direction="-1"]').disabled,'Age ticker decrement stops at five');
     plus.click();
+    check(!hiddenOldest.disabled && hiddenOldest.required && hiddenOldest.getClientRects().length && doc.querySelector('#private-age-label').textContent==='Youngest age','Adding a second player reveals the age range');
     check(players.value==='2' && doc.querySelector('#private-estimate').textContent.includes('$55 per player') && doc.querySelector('#private-info-price').textContent==='$55 CAD' && doc.querySelector('#private-info-total').textContent.includes('$110'),'Increasing players updates the actual form calculator and sidebar');
     minus.click();
+    check(hiddenOldest.disabled && !hiddenOldest.getClientRects().length && singleAge.getAttribute('aria-label')==='Player age','Returning to one player hides the upper age and restores its accessible label');
     check(players.value==='1' && minus.disabled && doc.querySelector('#private-info-price').textContent==='$65 CAD' && stepperSubmits===0,'Decreasing players respects the minimum, refreshes the quote and never submits');
     players.value='2';players.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));
     const duration=doc.querySelector('[name="Minutes"]');duration.value='120';duration.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
@@ -281,6 +289,9 @@
     editAge(youngest,'6');
     check(oldest.checkValidity(),'Changing the youngest age clears a previously inverted range');
     editAge(youngest,'8');editAge(oldest,'9');
+    oldest.closest('.ss-number-stepper').querySelector('[data-direction="-1"]').click();
+    check(oldest.value==='8' && oldest.min==='8' && oldest.closest('.ss-number-stepper').querySelector('[data-direction="-1"]').disabled,'Oldest age ticker cannot step below the youngest age');
+    editAge(oldest,'9');
     oldest.closest('.ss-number-stepper').querySelector('[data-direction="1"]').click();
     check(oldest.value==='10' && privateCalls===0,'Age ticker advances the upper end without submitting');
     editAge(oldest,'99');
@@ -291,6 +302,11 @@
     privateForm.requestSubmit();privateForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(privateCalls===1 && privateData.get('Player ages')==='8–9 years' && !privateData.has('Youngest age') && privateData.get('Preferred coach')==='Romeo Dinglis' && privateData.get('Estimate CAD').includes('220') && privateData.get('Format')==='Private Training (1–5 players)' && doc.querySelector('[data-feedback]').textContent.includes('Request received'),'Private inquiry accepts essential details without a parent name or availability and preserves coach and quote');
     check(privateData.get('Campaign source (URL tag)')==='local-guide','Private inquiry includes the same valid campaign context after navigation');
+    doc=await load('program-private-small-group.html',320);
+    const soloForm=doc.querySelector('#private-inquiry');soloForm.elements.namedItem('email').value='test@example.invalid';soloForm.elements.namedItem('Youngest age').value='7';soloForm.elements.namedItem('Oldest age').value='6';
+    let soloData;frame.contentWindow.fetch=async(url,options)=>{soloData=options.body;return {ok:true,json:async()=>({success:true})};};
+    soloForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
+    check(soloData?.get('Player ages')==='7 years' && soloData.get('Players')==='1' && soloData.get('Estimate CAD')==='65 per player; 65 group total','Solo inquiry submits one age without requiring or using an oldest age');
     doc=await load('camps.html',320);
     check(!doc.querySelector('form') && !doc.body.textContent.includes('Request free Friday') && doc.querySelectorAll('a[href$="?kind=dropin"]').length===2,'Each camp offers a direct drop-in registration link');
     check(doc.querySelector('a[href="christmas-camp-registration.html"]').textContent==='Register for Week 1' && doc.querySelector('a[href="boxing-camp-registration.html"]').textContent==='Register for Week 2','Each numbered winter camp links directly to its own registration page');

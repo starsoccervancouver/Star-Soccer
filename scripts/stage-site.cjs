@@ -16,3 +16,8 @@ for (const name of fs.readdirSync('Star soccer').filter(name => name.endsWith('.
   fs.copyFileSync(path.join('Star soccer', name), path.join('_site/Star soccer', name));
 }
 fs.writeFileSync('_site/.nojekyll', '');
+// Only vetted public fonts/photos and their attribution; no workspace folders.
+for(const directory of ['fonts','site-photos'])fs.cpSync(directory,path.join('_site',directory),{recursive:true});
+for(const season of ['autumn','winter'])for(const width of [800,1600]){
+  const name=`${season}-field-${width}.avif`;fs.copyFileSync(name,path.join('_site',name));
+}

@@ -916,7 +916,8 @@ a {
 }
 
 .video-placeholder-player {
-  background-image: url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80");
+  background-image: url("site-photos/home-1600.webp");
+background-image: image-set(url("site-photos/home-1600.avif") type("image/avif"),url("site-photos/home-1600.webp") type("image/webp"));
 }
 
 .video-placeholder-trainer {
@@ -1431,7 +1432,10 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .pm-video-section .video-placeholder-player {
   background-image:
     linear-gradient(180deg, rgba(8, 17, 37, 0.12), rgba(8, 17, 37, 0.34)),
-    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80");
+    url("site-photos/home-1600.webp");
+background-image:
+    linear-gradient(180deg, rgba(8, 17, 37, 0.12), rgba(8, 17, 37, 0.34)),
+    image-set(url("site-photos/home-1600.avif") type("image/avif"),url("site-photos/home-1600.webp") type("image/webp"));
 }
 
 .pm-video-section .video-placeholder-trainer {
@@ -1778,7 +1782,10 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
 .programs-photo-group::before {
   background-image:
     linear-gradient(180deg, rgba(7, 17, 37, 0.12), rgba(7, 17, 37, 0.22)),
-    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=1200&q=80");
+    url("site-photos/home-1600.webp");
+background-image:
+    linear-gradient(180deg, rgba(7, 17, 37, 0.12), rgba(7, 17, 37, 0.22)),
+    image-set(url("site-photos/home-1600.avif") type("image/avif"),url("site-photos/home-1600.webp") type("image/webp"));
 }
 
 .programs-photo-surface::after {
@@ -3259,7 +3266,10 @@ html.has-motion [data-reveal="up"]:not(.is-visible) {
   min-height: 240px;
   background-image:
     linear-gradient(180deg, rgba(7, 18, 39, 0.18), rgba(7, 18, 39, 0.5)),
-    url("https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=900&q=80");
+    url("site-photos/home-800.webp");
+background-image:
+    linear-gradient(180deg, rgba(7, 18, 39, 0.18), rgba(7, 18, 39, 0.5)),
+    image-set(url("site-photos/home-800.avif") type("image/avif"),url("site-photos/home-800.webp") type("image/webp"));
 }
 
 .registration-photo-top {

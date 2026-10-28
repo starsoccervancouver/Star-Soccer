@@ -176,6 +176,15 @@ body .flow-surface,[id="private-form"],[id="sessions"] {scroll-margin-top:110px;
  body .flow-layout {grid-template-columns:1fr;}
  body summary.schedule-entry-main {grid-template-columns:1fr 1fr;}
  body .home-page .site-header,body .site-header {width:100%;margin-left:0;}
+ body .site-header {background:#071529;-webkit-backdrop-filter:none;backdrop-filter:none;}
+ body header[data-nav-ready] .site-nav.mobile-nav-open {overscroll-behavior:contain;}
+ body :is(button,.button,summary) {touch-action:manipulation;}
+}
+@media(max-width:540px){
+ body .home-utility-logo {padding:10px 14px;}
+ body .home-utility-logo .brand-logo {width:126px;}
+ body header[data-nav-ready] .mobile-nav-toggle {min-height:48px;min-width:64px;margin:8px 14px;}
+ body :is(input,select,textarea) {scroll-margin-block:88px 24px;}
 }
 @media (max-width:540px) {
  body .flow-surface {padding:20px 16px;}
@@ -212,7 +221,8 @@ body .schedule-next {font-size:.85rem;color:#bad4ed!important;}
 @media(max-width:900px) {
  body.home-landing .immersive-hero-stage {grid-template-columns:1fr;gap:24px;min-height:0;}
  body.home-landing .hero-placeholder-cards {max-width:520px;justify-self:start;}
- body.home-landing .immersive-hero {background-image:linear-gradient(180deg,rgba(8,18,33,.18),rgba(8,18,33,.78)),linear-gradient(90deg,rgba(8,24,58,.28),rgba(119,16,28,.14)),url('https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&w=800&q=80');}
+ body.home-landing .immersive-hero {background-image:linear-gradient(180deg,rgba(8,18,33,.18),rgba(8,18,33,.78)),linear-gradient(90deg,rgba(8,24,58,.28),rgba(119,16,28,.14)),url("site-photos/home-800.webp");
+background-image:linear-gradient(180deg,rgba(8,18,33,.18),rgba(8,18,33,.78)),linear-gradient(90deg,rgba(8,24,58,.28),rgba(119,16,28,.14)),image-set(url("site-photos/home-800.avif") type("image/avif"),url("site-photos/home-800.webp") type("image/webp"));}
  body header .site-nav.mobile-nav-open a {min-height:44px;display:flex;align-items:center;}
  body .schedule-reset {min-height:44px;}
 }
@@ -324,3 +334,15 @@ body .training-questions details{border-top:1px solid #49657c}
 body .training-questions summary{min-height:48px;padding:14px 0;font-size:.95rem;font-weight:700;line-height:1.5;cursor:pointer}
 body .training-questions details p{font-size:.9rem;padding-bottom:10px}
 @media(max-width:900px){body.home-page .home-site-nav a{font-size:.95rem}}
+
+@supports(background-image:image-set(url("x.avif") type("image/avif"))){
+body.fall-programs-page{--seasonal-art:image-set(url("autumn-field-1600.avif") type("image/avif"),url("autumn-field-1600.webp") type("image/webp"))}
+body.winter-camps-page{--seasonal-art:image-set(url("winter-field-1600.avif") type("image/avif"),url("winter-field-1600.webp") type("image/webp"))}
+body.seasonal-registration{--seasonal-photo:image-set(url("winter-field-1600.avif") type("image/avif"),url("winter-field-1600.webp") type("image/webp"))}
+body.fall-registration-page{--seasonal-photo:image-set(url("autumn-field-1600.avif") type("image/avif"),url("autumn-field-1600.webp") type("image/webp"))}
+@media(max-width:700px){
+body.fall-programs-page{--seasonal-art:image-set(url("autumn-field-800.avif") type("image/avif"),url("autumn-field-800.webp") type("image/webp"))}
+body.winter-camps-page{--seasonal-art:image-set(url("winter-field-800.avif") type("image/avif"),url("winter-field-800.webp") type("image/webp"))}
+body.seasonal-registration{--seasonal-photo:image-set(url("winter-field-800.avif") type("image/avif"),url("winter-field-800.webp") type("image/webp"))}
+body.fall-registration-page{--seasonal-photo:image-set(url("autumn-field-800.avif") type("image/avif"),url("autumn-field-800.webp") type("image/webp"))}
+}}

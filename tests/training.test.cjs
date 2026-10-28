@@ -22,15 +22,15 @@ test('whole-number age and correct session ranges',()=>{
  assert.equal(T.booking('friday','pass4','2026-10-16','12',now).dates.length,4);
 });
 test('hourly prices cover private 1–5 and small group 6–18',()=>{
- const counts=[1,2,3,4,5,6,7,10,18],expected=[85,55,45,40,35,30,30,30,30];
+ const counts=[1,2,3,4,5,6,7,10,18],expected=[65,55,45,40,35,30,30,30,30];
  counts.forEach((n,i)=>{const q=T.privateQuote(n,60);assert.equal(q.perPlayer,expected[i]);assert.equal(q.total,expected[i]*n);});
 });
 test('90-minute prices apply the hourly rate without rounding away revenue',()=>{
- const counts=[1,2,3,4,5,6,7,10,18],expected=[127.5,82.5,67.5,60,52.5,45,45,45,45];
+ const counts=[1,2,3,4,5,6,7,10,18],expected=[97.5,82.5,67.5,60,52.5,45,45,45,45];
  counts.forEach((n,i)=>{const q=T.privateQuote(n,90);assert.equal(q.perPlayer,expected[i]);assert.equal(q.total,expected[i]*n);});
 });
 test('two-hour prices preserve the hourly return',()=>{
- const counts=[1,2,3,4,5,6,7,10,18],expected=[170,110,90,80,70,60,60,60,60];
+ const counts=[1,2,3,4,5,6,7,10,18],expected=[130,110,90,80,70,60,60,60,60];
  counts.forEach((n,i)=>{
   const q=T.privateQuote(n,120);
   assert.equal(q.perPlayer,expected[i]);

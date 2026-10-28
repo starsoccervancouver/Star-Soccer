@@ -141,6 +141,10 @@
   }
   const privateForm=document.querySelector('#private-inquiry');
   if(privateForm) {
+    const youngest=privateForm.elements.namedItem('Youngest age'),oldest=privateForm.elements.namedItem('Oldest age');
+    const validateAges=()=>oldest.setCustomValidity(youngest.value && oldest.value && Number(youngest.value)>Number(oldest.value)?'The oldest age must be the same as or above the youngest age.':'');
+    privateForm.addEventListener('input',validateAges);
+    privateForm.addEventListener('change',validateAges);
     const coach=privateForm.elements.namedItem('Preferred coach');coach.value=T.coachId(params.get('coach'));
     const coachLabel=document.querySelector('#quick-private-coach');
     const updateCoach=()=>{
@@ -193,15 +197,17 @@
       event.preventDefault();if(busy || !validForm(inquiry))return;
       const isPrivate=inquiry===privateForm;
       if(isPrivate) {
-        const ages=inquiry.elements.namedItem('Player ages');
-        const parsed=ages.value.split(',').map(x=>x.trim());
-        if(parsed.some(a=>!/^\d{1,2}$/.test(a)||Number(a)<1||Number(a)>99)) {ages.setCustomValidity('Enter ages as whole numbers separated by commas, for example 8, 9.');ages.reportValidity();return;}
+        const youngest=inquiry.elements.namedItem('Youngest age'),oldest=inquiry.elements.namedItem('Oldest age');
+        if(Number(youngest.value)>Number(oldest.value)) {oldest.setCustomValidity('The oldest age must be the same as or above the youngest age.');oldest.reportValidity();return;}
       }
       if(inquiry.elements.namedItem('_honey').value) {status(feedback,'Unable to send this request. Please email the coaching team.',true);return;}
       const data=configuredData(inquiry,isPrivate?'Star Soccer private coaching inquiry':'Star Soccer inquiry');
       if(isPrivate) {
         const n=inquiry.elements.namedItem('Players').value,minutes=inquiry.elements.namedItem('Minutes').value;
         const quote=T.privateQuote(n,minutes),coach=inquiry.elements.namedItem('Preferred coach').value;
+        const youngest=inquiry.elements.namedItem('Youngest age').value,oldest=inquiry.elements.namedItem('Oldest age').value;
+        data.set('Player ages',youngest===oldest?`${youngest} years`:`${youngest}–${oldest} years`);
+        data.delete('Youngest age');data.delete('Oldest age');
         data.set('Format',Number(n)<=5?'Private Training (1–5 players)':'Small Group Training (6–18 players)');data.set('Preferred coach',T.catalog.coaches[coach]||'No preference');
         data.set('Estimate CAD',quote?`${quote.perPlayer} per player; ${quote.total} group total`:'Quote to be arranged');
       }

@@ -18,7 +18,10 @@ body.private-registration .quick-context {
   font-size: .9rem;
   line-height: 1.5;
 }
-body.private-registration .flow-surface form { gap: 10px; }
+body.private-registration #private-inquiry { gap: 8px; }
+body.private-registration .private-age-range { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+body.private-registration .private-age-range .ss-number-stepper { grid-template-columns: 44px minmax(24px, 1fr) 44px; gap: 1px; padding: 2px; }
+body.private-registration .private-age-range .ss-number-input { font-size: 16px; }
 body.private-registration .private-format-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-width: 0; margin: 0 0 2px; padding: 0; border: 0; }
 body.private-registration .private-format-picker label { display: flex; align-items: center; gap: 9px; min-width: 0; min-height: 66px; padding: 10px; border: 1px solid #5c7487; border-radius: 10px; background: #0c2035; cursor: pointer; }
 body.private-registration .private-format-picker label:has(:checked) { border-color: #efbc98; background: #26333e; }

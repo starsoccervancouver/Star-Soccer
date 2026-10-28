@@ -63,7 +63,7 @@
   function privateQuote(count,duration) {
     count=Number(count);duration=Number(duration);
     if (!Number.isSafeInteger(count) || count<1 || count>18 || ![60,90,120].includes(duration)) return null;
-    const base=({1:85,2:55,3:45,4:40,5:35})[count] || 30;
+    const base=({1:65,2:55,3:45,4:40,5:35})[count] || 30;
     // New standard inquiries use a consistent hourly rate for every duration.
     // Existing agreed bookings keep their recorded charge in the ledger.
     const perPlayer=base*duration/60;

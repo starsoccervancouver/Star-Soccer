@@ -197,12 +197,6 @@
     formats.forEach(el=>el.addEventListener('change',applyFormat));
     const initialFormat=params.get('format')==='smallgroup'?'smallgroup':'private';
     formats.forEach(el=>{el.checked=el.value===initialFormat;});applyFormat();
-    document.querySelectorAll('[data-private-format]').forEach(link=>link.addEventListener('click',event=>{
-      event.preventDefault();
-      formats.forEach(el=>{el.checked=el.value===link.dataset.privateFormat;});applyFormat();
-      const url=new URL(window.location.href);url.searchParams.set('format',link.dataset.privateFormat);url.hash='private-form';
-      window.history.replaceState(null,'',url);document.querySelector('#private-form').scrollIntoView({block:'start'});
-    }));
   }
   document.querySelectorAll('form[data-inquiry]').forEach(inquiry=>{
     let busy=false;

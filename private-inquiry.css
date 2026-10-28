@@ -125,7 +125,6 @@ body.private-registration .private-rate-list dd { margin: 0; text-align: right; 
 body.private-registration .private-group-rate { margin: 10px 0 6px; color: #f3d0a7; }
 body.private-registration .private-group-rate strong { font: 700 2rem/1.25 Manrope, system-ui, sans-serif; }
 body.private-registration .private-group-example { font-variant-numeric: tabular-nums; }
-body.private-registration .private-training-options .button { width: 100%; margin-top: auto; text-align: center; font-size: .85rem; }
 body.private-registration .private-training-options .private-options-note { grid-column: 1 / -1; margin: 0; color: #b9cddd; font-size: .8rem; }
 body.private-registration .private-training-guide h2 { font: 700 clamp(1.45rem, 2.7vw, 1.9rem)/1.25 Manrope, system-ui, sans-serif; }
 body.private-registration .private-goals-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 24px 0; }

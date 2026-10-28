@@ -169,8 +169,7 @@
     groupForm.requestSubmit();groupForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(groupCalls===1 && groupData.get('Format')==='Small Group Training (6–18 players)' && groupData.get('Estimate CAD')==='30 per player; 540 group total' && groupData.get('Preferred coach')==='Evan Lycos','Small group submits the category, exact quote and coach once');
     doc=await load('program-private-small-group.html?coach=romeo',375);
-    doc.querySelector('[data-private-format="smallgroup"]').click();
-    check(doc.querySelector('[value="smallgroup"]').checked && doc.querySelector('[name="Players"]').value==='6' && doc.querySelector('[name="Preferred coach"]').value==='romeo' && frame.contentWindow.location.search.includes('format=smallgroup'),'Format section link returns to the same form without losing the coach');
+    check(!doc.querySelector('[data-private-format],.private-training-options .button,.private-training-guide .button') && doc.querySelectorAll('#private-inquiry [type="submit"]').length===1,'Private coaching has one clear inquiry action in its form and no duplicate return-to-form buttons');
     doc=await load('camps.html',320);
     for(const details of doc.querySelectorAll('.camp-card-details'))details.querySelector('summary').click();
     check([...doc.querySelectorAll('.camp-card-details')].every(el=>el.open && el.querySelector('ul').getClientRects().length) && doc.documentElement.scrollWidth<=321,'Both camp detail disclosures open without overflow at 320px');

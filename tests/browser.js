@@ -72,6 +72,11 @@
           // The approved private form and 44px stepper rows stack on narrow phones.
           const limit=doc.body.classList.contains('private-registration')?740:(width<=420 && numeric.length?850:740);
           check(submit.getBoundingClientRect().bottom<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
+          if(doc.body.classList.contains('private-registration')){
+            doc.querySelector('[name="Training format"][value="smallgroup"]').click();
+            check(submit.getBoundingClientRect().bottom<=limit && submit.getBoundingClientRect().height>=48,`Small group at ${width}px also keeps its inquiry button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
+            doc.querySelector('[name="Training format"][value="private"]').click();
+          }
           check([...form.querySelectorAll('[required]')].filter(el=>el.getClientRects().length).length<=4,`${page} starts with at most four essential inputs`);
         }
         if(doc.body.classList.contains('seasonal-registration')){

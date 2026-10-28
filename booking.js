@@ -169,7 +169,7 @@
       const group=smallGroup();
       text('#private-summary-title',group?'Small Group Training':'Private Training');
       const submit=privateForm.querySelector('[type="submit"]');
-      if(!privateForm.hasAttribute('aria-busy') && submit.textContent!=='Inquiry submitted')submit.textContent=group?'Inquire about small group training':'Inquire about private training';
+      if(!privateForm.hasAttribute('aria-busy') && submit.textContent!=='Inquiry submitted')submit.textContent=group?'Send small group inquiry':'Send private inquiry';
       estimate.textContent=q?`${T.money(q.perPlayer)} per player · ${T.money(q.total)} total (CAD)`:validCount?'We’ll confirm a price for your requested duration.':`Choose ${group?'6–18':'1–5'} players for this training.`;
       const durationText=duration.value==='other'?'Custom duration':duration.value+' minutes';
       text('#private-info-duration',durationText);

@@ -68,6 +68,13 @@ test('camp confirmation uses the winter brand and keeps the package details',()=
   assert.match(m.html,/WINTER CAMPS/);assert.match(m.body,/Winter Camp — Week 2|\$185 CAD/);assert.doesNotMatch(m.html,/subject=Re|body=YES/);
   assert.match(m.html,/email-winter-field\.jpg/);assert.match(m.body,/Before camp starts/);
 });
+test('camp drop-in confirmation personalizes only the chosen dates and exact total',()=>{
+ const C=require('../winter-camps.js'),q=C.quote({week:'christmas',kind:'dropin',slot:'am',dates:['2026-12-21','2026-12-25'],age:8},new Date('2026-10-27T03:00:00Z'));
+ const m=E.campConfirmation(q,'SS-CAMP-EXAMPLE123','Example Player','Example Parent');
+ assert.match(m.body,/^Hi Example Parent,/);assert.match(m.body,/Thank you for registering Example Player/);
+ assert.match(m.body,/Drop-in total: \$60 CAD/);assert.match(m.body,/only your selected dates/);
+ assert.doesNotMatch(m.body,/Dec 22|every package date|Boxing Week Sale/);
+});
 test('confirmations address the known guardian and child without inventing a missing parent name',()=>{
  const now=new Date('2026-10-26T19:00:00Z'),C=require('../winter-camps.js');
  const drop=E.registrationConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Example Player','Example Parent');

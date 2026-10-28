@@ -25,3 +25,14 @@ test('rejects unknown choices, wrong dates and sessions that have already starte
  assert.equal(C.quote({week:'christmas',kind:'dropin',slot:'pm',date:'2026-12-21',age:9},new Date('2026-12-21T16:00:00Z')).price,60);
  assert.throws(()=>C.quote({week:'boxing',kind:'dropin',slot:'pm',date:'2027-01-01',age:9},new Date('2027-01-01T19:30:00Z')),/started/);
 });
+test('multiple drop-in days are sorted, priced by paid daily slots and explicitly confirmed',()=>{
+ const q=choice({kind:'dropin',dates:['2026-12-25','2026-12-21','2026-12-23'],slot:'both'});
+ assert.deepEqual(q.dates,['2026-12-21','2026-12-23','2026-12-25']);
+ assert.equal(q.price,240);assert.equal(q.sessions.length,6);assert.equal(q.lunch,true);assert.equal(q.standardPrice,null);
+ const mail=C.confirmation(q,'SS-CAMP-ABCDEF12','Test Player');
+ assert.match(mail.body,/Drop-in total: \$240 CAD/);assert.match(mail.body,/Christmas Friday is free/);
+ assert.doesNotMatch(mail.body,/Boxing Week Sale/);
+ assert.equal(choice({week:'boxing',kind:'dropin',dates:['2026-12-28','2027-01-01'],slot:'pm'}).price,120);
+ for(const dates of [[],['2026-12-21','2026-12-21'],['2026-12-26'],['2027-01-01'],'2026-12-21'])assert.throws(()=>choice({kind:'dropin',dates}));
+ assert.throws(()=>C.quote({week:'christmas',kind:'dropin',dates:['2026-12-21','2026-12-23'],slot:'am',age:8},new Date('2026-12-21T16:00:00Z')),/started/);
+});

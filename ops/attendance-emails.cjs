@@ -82,7 +82,7 @@ function passConfirmation(sessionId,date,ref,playerName,now=new Date(),updated=f
 }
 function campConfirmation(q,ref,playerName,parentName=null){
   const C=require('../winter-camps.js');
-  return render({...personalized(C.confirmation(q,ref,playerName),playerName,parentName),reference:ref},{title:q.weekName,theme:'winter',visuals:true,followUp:'Before camp starts, we’ll send a separate Google Calendar attendance invitation for your first session. Your registration covers every package date listed above; RSVP applies only to the invited session.'});
+  return render({...personalized(C.confirmation(q,ref,playerName),playerName,parentName),reference:ref},{title:q.weekName,theme:'winter',visuals:true,followUp:'Before camp starts, we’ll send a separate Google Calendar attendance invitation for your first session. Your registration covers '+(q.kind==='dropin'?'only your selected dates listed above':'every package date listed above')+'; RSVP applies only to the invited session.'});
 }
 function paymentThankYou({parentName=null,players,amountCents,reference:ref,confirmedReceived=false,receivedDate=null,theme='autumn'}){
   const list=names(players);

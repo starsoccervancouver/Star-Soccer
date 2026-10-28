@@ -16,6 +16,7 @@ body.quick-flow .quick-date-row{display:grid;grid-template-columns:minmax(0,1fr)
 body.quick-flow .quick-date-row .booking-next-date{margin:0;min-height:48px;padding:9px 12px}
 body.quick-flow .quick-session-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
 body.quick-flow .quick-session-row .quick-total{margin:0;padding-bottom:4px;white-space:nowrap}
+body.quick-flow .quick-total [data-camp-price-unit]{max-width:140px;white-space:normal}
 body.quick-flow [data-quick-camp-time]{margin:-6px 0 0;font-size:.8rem;line-height:1.45}
 body.quick-flow form>[type=submit]{width:100%;min-height:48px;margin:0}
 body.quick-flow .quick-assurance{margin:0;text-align:center;font-size:.8rem;line-height:1.4}
@@ -109,3 +110,21 @@ body.seasonal-registration .registration-info-bring{margin:14px 0 0;color:#a6bdc
 @media(max-width:700px){body.seasonal-registration{--seasonal-art:url('winter-field-800.webp')}body.fall-registration-page{--seasonal-art:url('autumn-field-800.webp')}}
 @media(max-width:540px){body.seasonal-registration .registration-layout{width:100%;margin:12px auto 24px;gap:14px}body.seasonal-registration .quick-panel{padding:16px}body.seasonal-registration .registration-info-content{padding:18px}}
 @media print{body.seasonal-registration .registration-info{display:none}}
+
+/* Camp options and individual days share the site's quiet winter palette. */
+body.quick-flow :is(.camp-booking-options,.camp-day-picker){min-width:0;margin:0;padding:0;border:0}
+body.quick-flow :is(.camp-booking-options,.camp-day-picker) legend{margin-bottom:8px;padding:0;font:700 .85rem/1.4 'Manrope',sans-serif;color:#d2dfe9}
+body.quick-flow .camp-booking-options{display:flex;gap:8px}
+body.quick-flow .camp-booking-options label{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1px solid #667e91;border-radius:9px;color:#d2dfe9;cursor:pointer}
+body.quick-flow .camp-booking-options label:has(:checked){background:#b2e3f6;border-color:#b2e3f6;color:#10263d}
+body.quick-flow :is(.camp-booking-options,.camp-day-picker) input{accent-color:#285c77;min-height:18px;width:18px;height:18px;margin:0;padding:0;flex:none}
+body.quick-flow .camp-day-picker[hidden]{display:none}
+body.quick-flow .camp-day-picker>p{margin:0 0 8px;font-size:.76rem;line-height:1.5;color:#b9cddd}
+body.quick-flow .camp-day-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+body.quick-flow .camp-day{display:grid;grid-template-columns:18px 1fr;align-items:center;gap:4px 8px;min-height:58px;padding:10px;border:1px solid #667e91;border-radius:9px;cursor:pointer}
+body.quick-flow .camp-day span{font-size:.75rem;line-height:1.4}
+body.quick-flow .camp-day small{grid-column:2;font-size:.65rem;line-height:1.4;color:#b9cddd}
+body.quick-flow .camp-day:has(:checked){border-color:#b2e3f6;background:#1b4058}
+body.quick-flow .camp-day:has(:disabled){opacity:.5;cursor:default}
+body.quick-flow :is(.camp-day,.camp-booking-options label):focus-within{outline:2px solid #b2e3f6;outline-offset:2px}
+@media(max-width:540px){body.quick-flow .camp-day-grid{grid-template-columns:repeat(2,minmax(0,1fr))}body.quick-flow .camp-booking-options label{padding:10px 6px;font-size:.76rem}}

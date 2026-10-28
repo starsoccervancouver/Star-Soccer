@@ -285,16 +285,18 @@ body .camp-price-saving s {color:#9fb4c6;text-decoration-thickness:1px;}
 body .camp-card-details {border-top:1px solid #61788a;margin-top:8px;font-size:.9rem;}
 body .camp-card-details summary,body .schedule-filter-panel summary {cursor:pointer;min-height:44px;align-content:center;font-weight:700;}
 body .camp-card-details p {font-size:.9rem;line-height:1.6;}
+body .camp-week-card .flow-actions {display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+body .camp-week-card .flow-actions .button {width:100%;min-width:0;min-height:48px;padding:10px 8px;white-space:normal;text-align:center;font-size:.82rem;}
 body .schedule-filter-panel {margin:12px 0;border-block:1px solid #61788a;}
 body .schedule-filter-panel .schedule-controls {margin:8px 0 16px;}
 body .home-camp-shortcuts {display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 body .home-camp-shortcuts a {display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px;border:1px solid #f0cb80;border-radius:6px;color:#f3d699;font:700 .85rem/1.4 'Manrope',sans-serif;text-align:center;}
 @media(max-width:700px) {
  body .camp-week-grid {gap:12px;}
- body .camp-week-card {padding:14px;}
+ body .camp-week-card {padding:12px;}
  body .camp-card-heading h2 {font-size:1.2rem;}
  body .camp-package-price {font-size:1.7rem;}
- body .camp-week-card .flow-actions .button {padding:10px 8px;font-size:.9rem;}
+ body .camp-week-card .flow-actions .button {padding:10px 6px;font-size:.78rem;line-height:1.35;}
 }
 @media(max-width:600px) {
  body summary.schedule-entry-main {grid-template-columns:minmax(0,1fr) minmax(0,1fr);}

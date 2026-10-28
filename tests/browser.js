@@ -25,7 +25,7 @@
   }
   const change=(doc,id,value)=>{const el=doc.getElementById(id);el.value=value;el.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));};
   try {
-    const pages=['index.html','programs.html','program-private-small-group.html','methodology.html','locations.html','contact.html','camps.html','christmas-camp-registration.html','boxing-camp-registration.html','selectivo.html','registration.html?sessionId=wednesday&type=pass4','registration-thank-you.html'];
+    const pages=['index.html','programs.html','program-private-small-group.html','methodology.html','locations.html','contact.html','camps.html','christmas-camp-registration.html','boxing-camp-registration.html','christmas-camp-registration.html?kind=dropin','boxing-camp-registration.html?kind=dropin','selectivo.html','registration.html?sessionId=wednesday&type=pass4','registration.html?sessionId=wednesday&type=dropin','registration-thank-you.html'];
     for(const width of [320,375,430,900,1024,1440]) {
       for(const page of pages) {
         const doc=await load(page,width);
@@ -70,7 +70,7 @@
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
           // The approved private form and 44px stepper rows stack on narrow phones.
-          const limit=doc.body.classList.contains('private-registration')?740:(width<=420 && numeric.length?850:740);
+          const limit=page.includes('kind=dropin')?850:doc.body.classList.contains('private-registration')?740:(width<=420 && numeric.length?850:740);
           check(submit.getBoundingClientRect().bottom<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
           if(doc.body.classList.contains('private-registration')){
             doc.querySelector('[name="Training format"][value="smallgroup"]').click();
@@ -80,6 +80,14 @@
           check([...form.querySelectorAll('[required]')].filter(el=>el.getClientRects().length).length<=4,`${page} starts with at most four essential inputs`);
         }
         if(doc.body.classList.contains('seasonal-registration')){
+          if(page.startsWith('registration.html') && page.includes('type=dropin')){
+            const price=doc.querySelector('#quick-dropin-summary');
+            check(!price.hidden && price.textContent.includes('$30 CAD') && price.getBoundingClientRect().bottom<doc.querySelector('#training-registration [type="submit"]').getBoundingClientRect().top,`Drop-in at ${width}px shows its catalog price and payment reassurance before registration`);
+          }
+          if(page.includes('kind=dropin')){
+            const total=doc.querySelector('[data-camp-total]');
+            check(total.getBoundingClientRect().right<=width && [...doc.querySelectorAll('.camp-day')].every(el=>el.getBoundingClientRect().width>=44 && el.getBoundingClientRect().height>=44),`Camp drop-in at ${width}px keeps the total readable and every day touch-friendly`);
+          }
           const more=doc.querySelector('[data-optional-fields]');
           check(doc.querySelectorAll('form details').length===1 && !more.open && more.querySelector('summary').textContent==='Tell us more (optional)' && more.nextElementSibling.matches('[type="submit"]') && !more.querySelector('[required]'),`${page} at ${width}px has one optional Tell us more directly before registration`);
           const panel=doc.querySelector('.quick-panel').getBoundingClientRect(),info=doc.querySelector('.registration-info').getBoundingClientRect();
@@ -89,7 +97,7 @@
           const theme=frame.contentWindow.getComputedStyle(doc.body).getPropertyValue('--registration-art');
           check(theme.includes(page.includes('private-small-group') || page.startsWith('registration.html')?'autumn-field':'winter-field'),`${page} at ${width}px uses its matching seasonal artwork`);
           check(!doc.querySelector('.registration-info img') && frame.contentWindow.getComputedStyle(doc.querySelector('.registration-info')).backgroundColor==='rgb(16, 38, 61)',`${page} at ${width}px keeps imagery outside the opaque information card`);
-          if(page.startsWith('registration.html')){
+          if(page.startsWith('registration.html') && page.includes('type=pass4')){
             const trigger=doc.querySelector('#pass-calendar-trigger'),picker=doc.querySelector('#pass-calendar');
             trigger.click();const r=picker.getBoundingClientRect();
             check(picker.open && doc.querySelector('#pass-start').hidden && r.left>=0 && r.right<=width && r.height<=716,`Pass calendar at ${width}px replaces the native picker and fits the screen`);
@@ -219,6 +227,7 @@
     frame.contentWindow.StarCampaignSource.append(campaignPreview);
     check(campaignPreview.get('Campaign source (URL tag)')==='local-guide' && campaignPreview.get('Campaign medium (URL tag)')==='directory' && campaignPreview.get('Campaign name (URL tag)')==='winter2026' && [...campaignPreview].length===3,'Landing page retains only explicit campaign labels without forwarding unrelated personal URL values');
     doc=await load('registration.html?sessionId=wednesday&type=pass4');
+    check(doc.querySelector('#quick-dropin-summary').hidden,'Pass registration uses its existing pass summary without a second drop-in price');
     const win=frame.contentWindow,form=doc.querySelector('form');
     check(!form.elements.namedItem('Start date') && !form.elements.namedItem('Parent name').required && !form.elements.namedItem('Referral source').required,'Pass keeps extra context optional and the chosen start date separate');
     const passPlan=frame.contentWindow.StarWeeklySignup.passPlan('wednesday');
@@ -300,7 +309,7 @@
     check(!youngest.checkValidity() && privateCalls===0,'Fractional ages cannot be submitted');
     editAge(youngest,'8');editAge(oldest,'9');
     privateForm.requestSubmit();privateForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
-    check(privateCalls===1 && privateData.get('Player ages')==='8–9 years' && !privateData.has('Youngest age') && privateData.get('Preferred coach')==='Romeo Dinglis' && privateData.get('Estimate CAD').includes('220') && privateData.get('Format')==='Private Training (1–5 players)' && doc.querySelector('[data-feedback]').textContent.includes('Request received'),'Private inquiry accepts essential details without a parent name or availability and preserves coach and quote');
+    check(privateCalls===1 && privateData.get('Player ages')==='8–9 years' && !privateData.has('Youngest age') && privateData.get('Preferred coach')==='Romeo Dinglis' && privateData.get('Estimate CAD').includes('220') && privateData.get('Format')==='Private Training (1–5 players)' && doc.querySelector('[data-feedback]').textContent.includes('coaching inquiry was submitted'),'Private inquiry accepts essential details without a parent name or availability and preserves coach and quote');
     check(privateData.get('Campaign source (URL tag)')==='local-guide','Private inquiry includes the same valid campaign context after navigation');
     doc=await load('program-private-small-group.html',320);
     const soloForm=doc.querySelector('#private-inquiry');soloForm.elements.namedItem('email').value='test@example.invalid';soloForm.elements.namedItem('Youngest age').value='7';soloForm.elements.namedItem('Oldest age').value='6';
@@ -345,11 +354,13 @@
     check(doc.querySelector('#camp-receipt').textContent.includes('$400 CAD') && doc.querySelector('#camp-receipt').textContent.includes('noon–12:30 included') && doc.documentElement.scrollWidth<=321,'Package receipt keeps the correct charge and lunch details readable at 320px');
     doc=await load('christmas-camp-registration.html?kind=dropin',390);
     const dropForm=doc.querySelector('#camp-registration'),dropWin=frame.contentWindow;
-    check(!doc.querySelector('[data-camp-day-picker]').hidden && doc.querySelector('[data-camp-total]').textContent==='Select your days' && dropForm.querySelector('[type=submit]').disabled,'Drop-in link opens the day picker and requires an explicit day');
+    check(!doc.querySelector('[data-camp-day-picker]').hidden && doc.querySelector('[data-camp-total]').textContent==='Choose days' && dropForm.querySelector('[type=submit]').disabled,'Drop-in link opens the day picker and requires an explicit day');
+    check([...dropForm.querySelectorAll('.camp-day')].every(el=>el.getBoundingClientRect().height>=44 && el.getBoundingClientRect().width>=44) && [...dropForm.querySelectorAll('[name="Camp days"]')].every(el=>el.getAttribute('aria-label').includes('2026')),'Compact day choices retain full dated accessible names and large touch targets');
     for(const date of ['2026-12-21','2026-12-23','2026-12-25'])dropForm.querySelector('[name="Camp days"][value="'+date+'"]').click();
     check(doc.querySelector('[data-camp-total]').textContent==='$120 CAD' && doc.querySelectorAll('#camp-dates li').length===3 && doc.querySelector('[data-camp-discount]').hidden,'Two paid days plus free Christmas Friday total $120 without a package discount');
     dropForm.elements.namedItem('Daily session').value='both';dropForm.elements.namedItem('Daily session').dispatchEvent(new dropWin.Event('change',{bubbles:true}));
     check(doc.querySelector('[data-camp-total]').textContent==='$240 CAD' && doc.querySelector('[data-camp-lunch]').textContent.includes('Supervised lunch included') && doc.documentElement.scrollWidth<=391,'Both-session drop-ins double the paid total and stay readable on mobile');
+    check([...dropForm.querySelectorAll('.camp-day')].every(el=>el.querySelector('small').textContent===(el.querySelector('input').value==='2026-12-25'?'Free':'$120')),'Day labels show the actual full-day price and keep Christmas Friday free');
     for(const [name,value] of [['email','test@example.invalid'],['Player name','Test Player'],['Player age','8']])dropForm.elements.namedItem(name).value=value;
     let dropCalls=0,dropData;dropWin.fetch=async(url,options)=>{dropCalls++;dropData=options.body;return {ok:true,json:async()=>({success:true})};};
     dropForm.requestSubmit();dropForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
@@ -377,7 +388,7 @@
     contact.elements.namedItem('Name').value='Example Parent';contact.elements.namedItem('Player or session details').value='Age 8, Thursday';
     let contactData;frame.contentWindow.fetch=async(url,options)=>{contactData=options.body;return {ok:true,json:async()=>({success:true})};};
     contact.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
-    check(contactData.get('Referral source')==='School / community' && doc.querySelector('[data-feedback]').textContent.includes('accepted'),'Contact inquiry includes the selected source after mocked service acceptance');
+    check(contactData.get('Referral source')==='School / community' && doc.querySelector('[data-feedback]').textContent.includes('message was submitted') && doc.activeElement===doc.querySelector('[data-feedback]'),'Contact inquiry preserves attribution and focuses a truthful submitted message with email next steps');
     check(contactData.get('Name')==='Example Parent' && contactData.get('Topic')==='Winter camps' && contactData.get('Player or session details')==='Age 8, Thursday','Optional name, enquiry topic and player/session context reach the inquiry');
     check(!['Campaign source (URL tag)','Campaign medium (URL tag)','Campaign name (URL tag)'].some(key=>contactData.has(key)),'An invalid personal campaign value clears prior attribution and cannot reach the contact request');
   } catch(error) {

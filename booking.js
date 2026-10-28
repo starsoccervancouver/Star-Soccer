@@ -226,7 +226,7 @@
         data.set('Estimate CAD',quote?`${quote.perPlayer} per player; ${quote.total} group total`:'Quote to be arranged');
       }
       busy=true;submit.disabled=true;inquiry.setAttribute('aria-busy','true');status(feedback,'Sending inquiry…');
-      try {await send(data);status(feedback,isPrivate?'Request received. This is an inquiry, not a confirmed private appointment; the coaching team will arrange a time with you.':'Your inquiry was accepted. Keep a note of it; this message does not reserve a training session.');submit.textContent='Inquiry submitted';}
+      try {await send(data);status(feedback,isPrivate?'Your coaching inquiry was submitted. We’ll reply by email to arrange a coach, time and location. The coaching team confirms your appointment.':'Your message was submitted. The Star Soccer team will reply by email.');submit.textContent=isPrivate?'Inquiry submitted':'Message submitted';feedback.tabIndex=-1;feedback.focus();}
       catch(error) {busy=false;submit.disabled=false;status(feedback,error.message+' Your entries have been kept. Email '+T.catalog.email+' for help.',true);}
       finally {inquiry.removeAttribute('aria-busy');}
     });

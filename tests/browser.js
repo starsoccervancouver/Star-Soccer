@@ -33,6 +33,7 @@
         const oversized=[...doc.body.querySelectorAll('*')].filter(el=>el.getBoundingClientRect().right>doc.documentElement.clientWidth+1).slice(0,4).map(el=>el.className).join(', ');
         check(overflow<=1,`${page} at ${width}px has no horizontal overflow${overflow>1?' ('+overflow+'px; '+oversized+')':''}`);
         const header=doc.querySelector('.site-header').getBoundingClientRect();
+        check(doc.fonts.check('700 16px Manrope') && !doc.querySelector('link[href*="fonts.googleapis.com"],link[href*="fonts.gstatic.com"]'),`${page} at ${width}px renders its local brand font without Google font connections`);
         check(Math.abs(header.left)<=1 && Math.abs(header.right-doc.documentElement.clientWidth)<=1,`${page} at ${width}px has navigation across the full screen width`);
         const brandImages=[...doc.querySelectorAll('img.brand-logo')];
         check(brandImages.length>=1 && brandImages.every(img=>img.getAttribute('src').includes('galactic')), `${page} at ${width}px uses the Galactic Swoosh logo in the header and footer`);
@@ -44,6 +45,8 @@
           check(numeric.every(el=>[...el.closest('.ss-number-stepper').querySelectorAll('button')].length===2 && [...el.closest('.ss-number-stepper').querySelectorAll('button')].every(button=>button.type==='button' && button.getAttribute('aria-controls')===el.id && button.getAttribute('aria-label') && button.getBoundingClientRect().width>=44 && button.getBoundingClientRect().height>=44)),`${page} at ${width}px has labelled 44px minus and plus controls that cannot submit the form`);
         }
         if(page==='index.html') {
+          const heroPhotos=frame.contentWindow.performance.getEntriesByType('resource').filter(r=>r.name.includes('/site-photos/home-'));
+          check(heroPhotos.length===1 && heroPhotos[0].name.includes('-'+(width<=900?'800':'1600')+'.avif'),`Homepage at ${width}px downloads one local hero at the right size`);
           const programs=doc.querySelector('.hero-action-programs'),camps=doc.querySelector('.hero-action-camps');
           check(programs && camps && programs.getAttribute('href')==='programs.html#sessions' && camps.getAttribute('href')==='camps.html',`Homepage at ${width}px keeps the two approved program and camp destinations`);
           check(programs && camps && [programs,camps].every(el=>el.getClientRects().length && el.getBoundingClientRect().height>=48),`Homepage at ${width}px shows large program and camp actions`);
@@ -92,6 +95,8 @@
         if(doc.body.matches('.fall-programs-page,.winter-camps-page,.seasonal-registration')){
           const bg=frame.contentWindow.getComputedStyle(doc.body,'::before');
           check(bg.position==='fixed' && bg.backgroundImage.includes('-field-') && !doc.querySelector('.fall-hero-art,.winter-hero-art'),`${page} at ${width}px uses one continuous seasonal page background`);
+          const loaded=frame.contentWindow.performance.getEntriesByType('resource').filter(r=>/(autumn|winter)-field-\d+\.(avif|webp)/.test(r.name));
+          check(loaded.length===1 && loaded[0].name.includes('-'+(width<=700?'800':'1600')+'.avif'),`${page} at ${width}px downloads one correctly sized seasonal photo without a duplicate preload`);
         }
         if(page==='contact.html'){
           const more=doc.querySelector('[data-optional-fields]');
@@ -106,7 +111,7 @@
         }
         if(['contact.html','locations.html','methodology.html'].includes(page)){
           const bg=frame.contentWindow.getComputedStyle(doc.body,'::before');
-          check(bg.position==='fixed' && bg.backgroundImage.includes(page==='contact.html'?'1497366754035':page==='locations.html'?'1556056504':'photo-1621058567697-7673eef9ce28'),`${page} at ${width}px has its distinct full-page themed background`);
+          check(bg.position==='fixed' && bg.backgroundImage.includes('site-photos/'+(page==='contact.html'?'contact':page==='locations.html'?'locations':'approach')+'-'),`${page} at ${width}px has its distinct locally served full-page themed background`);
         }
         if(page==='methodology.html'){
           const nav=doc.querySelector('.method-restored-nav');
@@ -115,6 +120,7 @@
           check([...nav.querySelectorAll('a')].every(link=>link.getBoundingClientRect().height>=44),`Our Approach at ${width}px keeps the links easy to tap`);
         }
         if(width<=430) {
+          check(header.height<=78,`${page} at ${width}px keeps the mobile header compact`);
           const controls=[...doc.querySelectorAll('input:not([type="hidden"]),select,textarea')].filter(el=>el.getClientRects().length && !el.closest('[aria-hidden="true"]'));
           if(controls.length)check(controls.every(el=>parseFloat(frame.contentWindow.getComputedStyle(el).fontSize)>=16),`${page} at ${width}px uses readable 16px form controls`);
           if(page==='index.html') {

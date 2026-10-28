@@ -38,7 +38,7 @@ body.star-themed-page .flow-intro { color: #e2edf7; }
 
 /* A warm, quiet coaching-office backdrop for conversations with families. */
 body.contact-themed-page {
-  --theme-photo: url("https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1600&q=78");
+  --theme-photo: url("site-photos/contact-1600.webp");
   --registration-accent: #e7c59a;
 }
 body.contact-themed-page::before {
@@ -158,7 +158,7 @@ body.contact-themed-page .contact-assistance-links a {
 
 /* Locations: an overhead, floodlit football pitch. */
 body.locations-themed-page {
-  --theme-photo: url("https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=1600&q=78");
+  --theme-photo: url("site-photos/locations-1600.webp");
 }
 body.locations-themed-page::before {
   background:
@@ -171,7 +171,7 @@ body.locations-themed-page .flow-hero .eyebrow { color: #b9e3d7; }
 
 /* Approach: soccer coaching and in-game decision making.
    A distinct coaching photo instead of the weekly training background. */
-body.approach-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1621058567697-7673eef9ce28?auto=format&fit=crop&w=1600&q=82"); }
+body.approach-themed-page { --theme-photo: url("site-photos/approach-1600.webp"); }
 body.approach-themed-page::before {
   background:
     radial-gradient(circle at 80% 12%, rgba(241, 174, 108, .12), transparent 35%),
@@ -213,9 +213,9 @@ body.approach-themed-page .method-restored-nav a:focus-visible {
   body.contact-themed-page.quick-flow .quick-panel { padding: 24px; }
 }
 @media (max-width: 700px) {
-  body.contact-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=72"); }
-  body.locations-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1556056504-5c7696c4c28d?auto=format&fit=crop&w=900&q=72"); }
-  body.approach-themed-page { --theme-photo: url("https://images.unsplash.com/photo-1621058567697-7673eef9ce28?auto=format&fit=crop&w=900&q=75"); }
+  body.contact-themed-page { --theme-photo: url("site-photos/contact-800.webp"); }
+  body.locations-themed-page { --theme-photo: url("site-photos/locations-800.webp"); }
+  body.approach-themed-page { --theme-photo: url("site-photos/approach-800.webp"); }
 }
 @media (max-width: 540px) {
   body.contact-themed-page.quick-flow .quick-shell.registration-layout {
@@ -231,3 +231,13 @@ body.approach-themed-page .method-restored-nav a:focus-visible {
   body.star-themed-page::before { display: none; }
   body.contact-themed-page .registration-info { box-shadow: none; }
 }
+
+@supports(background-image:image-set(url("x.avif") type("image/avif"))){
+body.contact-themed-page{--theme-photo:image-set(url("site-photos/contact-1600.avif") type("image/avif"),url("site-photos/contact-1600.webp") type("image/webp"))}
+body.locations-themed-page{--theme-photo:image-set(url("site-photos/locations-1600.avif") type("image/avif"),url("site-photos/locations-1600.webp") type("image/webp"))}
+body.approach-themed-page{--theme-photo:image-set(url("site-photos/approach-1600.avif") type("image/avif"),url("site-photos/approach-1600.webp") type("image/webp"))}
+@media(max-width:700px){
+body.contact-themed-page{--theme-photo:image-set(url("site-photos/contact-800.avif") type("image/avif"),url("site-photos/contact-800.webp") type("image/webp"))}
+body.locations-themed-page{--theme-photo:image-set(url("site-photos/locations-800.avif") type("image/avif"),url("site-photos/locations-800.webp") type("image/webp"))}
+body.approach-themed-page{--theme-photo:image-set(url("site-photos/approach-800.avif") type("image/avif"),url("site-photos/approach-800.webp") type("image/webp"))}
+}}

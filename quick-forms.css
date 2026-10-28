@@ -77,8 +77,8 @@ body.quick-flow [data-camp-discount] s{color:#9fb4c6;text-decoration-thickness:1
 @media(max-width:540px){body.camp-registration-page.quick-flow h1{font-size:1.3rem}}
 
 /* A larger form beside the seasonal information; phones keep the form first. */
-body.seasonal-registration{--seasonal-art:url('winter-field-1600.webp');--registration-art:var(--seasonal-art);--registration-accent:#b2e3f6}
-body.fall-registration-page{--seasonal-art:url('autumn-field-1600.webp');--registration-accent:#efbc98}
+body.seasonal-registration{--seasonal-art:var(--seasonal-photo,url('winter-field-1600.webp'));--registration-art:var(--seasonal-art);--registration-accent:#b2e3f6}
+body.fall-registration-page{--seasonal-art:var(--seasonal-photo,url('autumn-field-1600.webp'));--registration-accent:#efbc98}
 body.seasonal-registration .registration-layout{display:grid;grid-template-columns:minmax(0,1.85fr) minmax(280px,1fr);align-items:start;gap:24px;width:min(1120px,100%);margin:24px auto 40px}
 body.seasonal-registration .quick-panel{padding:28px;background:#122a40;border-color:#667e91;box-shadow:0 16px 42px #020b1933}
 body.fall-registration-page .quick-panel{border-color:#9a7c65}
@@ -107,7 +107,7 @@ body.seasonal-registration .registration-info h3{font:700 .84rem/1.5 'Manrope',s
 body.seasonal-registration .registration-info-note p{margin:0 0 10px;color:#b9cddd}
 body.seasonal-registration .registration-info-bring{margin:14px 0 0;color:#a6bdcf;font-size:.76rem}
 @media(max-width:850px){body.seasonal-registration .registration-layout{grid-template-columns:minmax(0,1fr);width:min(720px,100%);gap:18px;margin-top:20px}body.seasonal-registration .quick-panel{padding:24px}}
-@media(max-width:700px){body.seasonal-registration{--seasonal-art:url('winter-field-800.webp')}body.fall-registration-page{--seasonal-art:url('autumn-field-800.webp')}}
+@media(max-width:700px){body.seasonal-registration{--seasonal-art:var(--seasonal-photo,url('winter-field-800.webp'))}body.fall-registration-page{--seasonal-art:var(--seasonal-photo,url('autumn-field-800.webp'))}}
 @media(max-width:540px){body.seasonal-registration .registration-layout{width:100%;margin:12px auto 24px;gap:14px}body.seasonal-registration .quick-panel{padding:16px}body.seasonal-registration .registration-info-content{padding:18px}}
 @media print{body.seasonal-registration .registration-info{display:none}}
 

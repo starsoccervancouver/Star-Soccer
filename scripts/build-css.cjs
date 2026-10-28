@@ -7,7 +7,7 @@ const path = require('node:path');
 process.chdir(path.join(__dirname, '..'));
 
 async function build() {
-  const sources = ['styles.css', 'audit-fixes.css', 'restoration.css'];
+  const sources = ['fonts.css', 'styles.css', 'audit-fixes.css', 'restoration.css'];
   const raw = sources.map(file => fs.readFileSync(file, 'utf8')).join('\n');
   const content = fs.readdirSync('.').filter(file => /\.(html|js)$/.test(file));
   const [result] = await new PurgeCSS().purge({

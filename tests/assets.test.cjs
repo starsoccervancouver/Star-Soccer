@@ -34,4 +34,8 @@ test('public artifact includes all routes and excludes development files',()=>{
   assert(!names.some(name=>/^(autumn|winter)-training-/.test(name)),'Superseded generated artwork must not be published');
   for(const name of ['email-star-soccer-logo.png','email-autumn-field.jpg','email-winter-field.jpg'])assert(fs.existsSync('_site/'+name),'Missing email brand asset: '+name);
   assert(!fs.existsSync('_site/SESSION_COUNTS.md'));
+  for(const font of ['manrope-normal','bebas-neue-normal','instrument-serif-normal','instrument-serif-italic'])assert(fs.existsSync('_site/fonts/'+font+'-latin.woff2'));
+  for(const family of ['manrope','bebasneue','instrumentserif'])assert(fs.readFileSync('_site/fonts/'+family+'-OFL.txt','utf8').includes('SIL OPEN FONT LICENSE'));
+  for(const name of ['home','contact','locations','approach'])for(const width of [800,1600])for(const format of ['avif','webp'])assert(fs.existsSync(`_site/site-photos/${name}-${width}.${format}`));
+  for(const season of ['autumn','winter'])for(const width of [800,1600])assert(fs.existsSync(`_site/${season}-field-${width}.avif`));
 });

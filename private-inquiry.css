@@ -1,6 +1,6 @@
 /* Private inquiries follow the compact autumn registration template. */
 body.private-registration {
-  --seasonal-art: url('autumn-field-1600.webp');
+  --seasonal-art:var(--seasonal-photo,url('autumn-field-1600.webp'));
   --registration-art: var(--seasonal-art);
   --registration-accent: #efbc98;
 }
@@ -104,7 +104,7 @@ body.private-registration .private-goals-grid { display: grid; grid-template-col
 body.private-registration .private-goals-grid h3 { font: 700 1rem/1.4 Manrope, system-ui, sans-serif; }
 body.private-registration .private-goals-grid p { font-size: .9rem; }
 @media (max-width: 700px) {
-  body.private-registration { --seasonal-art: url('autumn-field-800.webp'); }
+  body.private-registration { --seasonal-art:var(--seasonal-photo,url('autumn-field-800.webp')); }
   body.private-registration .private-goals-grid { grid-template-columns: 1fr; gap: 8px; }
 }
 @media (max-width: 540px) {

@@ -11,7 +11,7 @@ const countRows=T.catalog.sessions.flatMap(s=>Array.from({length:8},(_,i)=>{
 }));
 const countFixture='/*O_o*/\ngoogle.visualization.Query.setResponse('+JSON.stringify({status:'ok',table:{cols:columns.map(label=>({label})),rows:countRows}})+');';
 const root=path.resolve(__dirname,'..');
-const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml'};
+const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.woff2':'font/woff2','.avif':'image/avif','.webp':'image/webp'};
 const server=http.createServer((req,res)=>{
   const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
   const file=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));

@@ -19,7 +19,7 @@ function heroBackgrounds(css,media='') {
     const selector=css.slice(position,open).trim(),body=css.slice(open+1,end-1);
     if(selector.startsWith('@media'))rules.push(...heroBackgrounds(body,media+' '+selector));
     else if(selector.split(',').some(value=>['.immersive-hero','body.home-landing .immersive-hero'].includes(value.trim()))) {
-      const url=body.match(/url\(["']?(https:\/\/images\.unsplash\.com\/[^"')]+)["']?\)/)?.[1];
+      const url=body.match(/url\(["']?(site-photos\/home-\d+\.avif)["']?\)/)?.[1];
       if(url)rules.push({media,url});
     }
     position=end;
@@ -37,9 +37,10 @@ test('homepage preloads exactly the hero image selected by the CSS at each break
     assert.equal(preload.length,1,'Exactly one hero should be preloaded at '+width+'px');
     assert.equal(preload[0].href,selected.url,'Preload mismatch downloads an extra image at '+width+'px');
     assert.equal(preload[0].fetchpriority,'high','The visible hero must retain priority');
-    const image=new URL(selected.url);
-    assert.equal(image.pathname,'/photo-1517466787929-bc90951d0974','Keep the approved hero photograph');
-    assert.equal(image.searchParams.get('w'),width<=900?'800':'1600','Avoid oversized mobile images');
-    assert.equal(image.searchParams.get('auto'),'format','Retain format negotiation');
+    assert.equal(preload[0].type,'image/avif');
+    assert.equal(selected.url,'site-photos/home-'+(width<=900?'800':'1600')+'.avif','Avoid oversized mobile images');
+    const source=JSON.parse(read('site-photos/credits.json')).assets.find(a=>a.file===selected.url);
+    assert(new URL(source.source).pathname.includes('photo-1517466787929-bc90951d0974'),'Keep the approved hero photograph');
+    assert(fs.statSync(selected.url).size<(width<=900?70000:180000),'Hero download stays within the responsive image budget');
   }
 });

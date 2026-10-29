@@ -62,8 +62,19 @@
           check([...doc.querySelectorAll('.camp-week-card,.seasonal-feature')].every(el=>!frame.contentWindow.getComputedStyle(el,'::before').backgroundImage.includes('url(') && frame.contentWindow.getComputedStyle(el).backgroundImage==='none'),`Camp cards at ${width}px have solid surfaces without photography`);
         }
         if(page==='programs.html') {
-          const actions=[...doc.querySelectorAll('.schedule-direct-actions a')];
-          check(actions.length===8 && actions.every(el=>el.getClientRects().length && el.getBoundingClientRect().height>=48),`Training at ${width}px shows direct drop-in and pass buttons on every card`);
+          const youthCards=[...doc.querySelectorAll('#sessions .schedule-entry[data-session-day]')];
+          const actions=youthCards.flatMap(card=>[...card.querySelectorAll('.schedule-direct-actions a')]);
+          check(youthCards.length===4 && actions.length===8 && youthCards.every(card=>{
+            const links=[...card.querySelectorAll('.schedule-direct-actions a')];
+            return links.length===2 && links.every((link,index)=>{
+              const url=new URL(link.href);
+              return url.pathname.endsWith('/registration.html') && url.searchParams.get('sessionId')===card.dataset.sessionDay && url.searchParams.get('type')===['dropin','pass4'][index] && link.getClientRects().length && link.getBoundingClientRect().height>=48;
+            });
+          }),`Training at ${width}px shows direct drop-in and pass buttons on all four youth cards`);
+          const adultCards=[...doc.querySelectorAll('#adult-women .schedule-entry')];
+          const adultLinks=[...doc.querySelectorAll('#adult-women .schedule-direct-actions a')];
+          const adultUrl=adultLinks.length===1?new URL(adultLinks[0].href):null;
+          check(adultCards.length===1 && adultCards[0].textContent.includes('Tuesday') && adultUrl?.pathname.endsWith('/contact.html') && adultUrl.searchParams.get('topic')==='adult-women' && adultLinks[0].getClientRects().length && adultLinks[0].getBoundingClientRect().height>=48 && !doc.querySelector('#adult-women a[href*="registration.html"],#adult-women [data-session-day]'),`Training at ${width}px keeps Tuesday adult soccer separate with one inquiry action and no youth booking`);
           check(!doc.querySelector('details.schedule-entry,.session-share'),`Training at ${width}px has no registration disclosure or copy-link step`);
           if(width<=430)check(actions.slice(0,2).every(el=>el.getBoundingClientRect().bottom<=740),`Training at ${width}px shows the first session's registration buttons within 740px (${Math.round(actions[0].getBoundingClientRect().bottom)}px)`);
         }
@@ -193,7 +204,7 @@
     check(doc.querySelector('[data-filter-panel]').open,'Shared filtered links open the filter controls automatically');
     check(!doc.querySelector('#schedule-empty').hidden,'Incompatible age/day shows empty state');
     doc.querySelector('#schedule-reset').click();
-    check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===4,'Clear filters restores every session');
+    check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===5 && doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===4 && doc.querySelectorAll('#adult-women .schedule-entry:not([hidden])').length===1 && doc.querySelector('#schedule-results').textContent==='Showing 5 of 5 sessions','Clear filters restores four youth sessions and the separate adult session');
     check(frame.contentWindow.location.search==='?source=test' && frame.contentWindow.location.hash==='#sessions','Clear filters preserves unrelated query and anchor');
     change(doc,'schedule-age','14');
     check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===1,'Age 14 shows only eligible training');

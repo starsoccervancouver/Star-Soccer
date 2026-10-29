@@ -4,17 +4,17 @@ const choice=(patch={})=>C.quote({week:'christmas',kind:'week',slot:'am',age:5,.
 test('approved camp dates, ages, capacity and paid four-day Christmas price',()=>{
  assert.equal(choice().price,200);assert.deepEqual(choice().dates,['2026-12-21','2026-12-22','2026-12-23','2026-12-24','2026-12-25']);
  assert.equal(choice().weekName,'Winter Camp — Week 1');assert.equal(choice().standardPrice,250);assert.equal(choice().savings,50);
- assert.equal(choice({age:14,slot:'both'}).price,350);assert.equal(choice({slot:'both'}).sessions.length,10);assert.equal(C.catalog.capacity,20);
+ assert.equal(choice({age:14,slot:'both'}).price,400);assert.equal(choice({slot:'both'}).sessions.length,10);assert.equal(C.catalog.capacity,20);
  for(const age of [4,15,5.5,'5.5','x'])assert.throws(()=>choice({age}),/ages/);
 });
 test('Boxing Week uses the approved $185 weekly package and includes lunch for both slots',()=>{
  const q=choice({week:'boxing'});assert.equal(q.price,185);assert.equal(q.dates.length*3,15);assert.equal(q.dates[4],'2027-01-01');
  assert.equal(q.weekName,'Winter Camp — Week 2');assert.equal(q.standardPrice,250);assert.equal(q.savings,65);
- const both=choice({week:'boxing',slot:'both'});assert.equal(both.price,325);assert.equal(both.lunch,true);assert.equal(both.sessions.length,10);assert.equal(choice({slot:'pm'}).lunch,false);
- assert.equal(both.standardPrice,500);assert.equal(both.savings,175);
+ const both=choice({week:'boxing',slot:'both'});assert.equal(both.price,370);assert.equal(both.lunch,true);assert.equal(both.sessions.length,10);assert.equal(choice({slot:'pm'}).lunch,false);
+ assert.equal(both.standardPrice,500);assert.equal(both.savings,130);
 });
 test('drop-ins are $60 per three-hour slot, Christmas Friday is free including both slots',()=>{
- assert.equal(choice({kind:'dropin',date:'2026-12-22'}).price,60);assert.equal(choice({kind:'dropin',slot:'both',date:'2026-12-22'}).price,100);
+ assert.equal(choice({kind:'dropin',date:'2026-12-22'}).price,60);assert.equal(choice({kind:'dropin',slot:'both',date:'2026-12-22'}).price,120);
  assert.equal(choice({kind:'dropin',date:'2026-12-22'}).standardPrice,null);assert.equal(choice({kind:'dropin',date:'2026-12-22'}).savings,0);
  for(const slot of ['am','pm','both']){const q=choice({kind:'dropin',date:'2026-12-25',slot});assert.equal(q.price,0);assert.equal(q.free,true);}
  assert.equal(choice({week:'boxing',kind:'dropin',date:'2027-01-01'}).price,60);
@@ -28,9 +28,9 @@ test('rejects unknown choices, wrong dates and sessions that have already starte
 test('multiple drop-in days are sorted, priced by paid daily slots and explicitly confirmed',()=>{
  const q=choice({kind:'dropin',dates:['2026-12-25','2026-12-21','2026-12-23'],slot:'both'});
  assert.deepEqual(q.dates,['2026-12-21','2026-12-23','2026-12-25']);
- assert.equal(q.price,200);assert.equal(q.sessions.length,6);assert.equal(q.lunch,true);assert.equal(q.standardPrice,null);
+ assert.equal(q.price,240);assert.equal(q.sessions.length,6);assert.equal(q.lunch,true);assert.equal(q.standardPrice,null);
  const mail=C.confirmation(q,'SS-CAMP-ABCDEF12','Test Player');
- assert.match(mail.body,/Test Player’s selected camp days come to \$200 CAD/);assert.match(mail.body,/Christmas Friday is free/);
+ assert.match(mail.body,/Test Player’s selected camp days come to \$240 CAD/);assert.match(mail.body,/Christmas Friday is free/);
  assert.doesNotMatch(mail.body,/Boxing Week Sale/);
  assert.equal(choice({week:'boxing',kind:'dropin',dates:['2026-12-28','2027-01-01'],slot:'pm'}).price,120);
  for(const dates of [[],['2026-12-21','2026-12-21'],['2026-12-26'],['2027-01-01'],'2026-12-21'])assert.throws(()=>choice({kind:'dropin',dates}));

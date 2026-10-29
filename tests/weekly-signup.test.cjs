@@ -49,8 +49,8 @@ test('camp confirmation gives one child’s total and the approved payment choic
   const C=require('../winter-camps.js');
   const q=C.quote({week:'boxing',kind:'week',slot:'both',age:8},new Date('2026-10-27T03:00:00Z'));
   const mail=C.confirmation(q,'SS-CAMP-ABCDEF12','Test Player');
-  assert.match(mail.body,/\$325 CAD/);assert.match(mail.body,/Jan 1, 2027/);
-  assert.match(mail.body,/Supervised lunch/);assert.match(mail.body,/camp package total is \$325 CAD/);assert.match(mail.body,/coach on the day/);assert.doesNotMatch(mail.body,/per player|Romeo will follow up about payment/);
+  assert.match(mail.body,/\$370 CAD/);assert.match(mail.body,/Jan 1, 2027/);
+  assert.match(mail.body,/Supervised lunch/);assert.match(mail.body,/camp package total is \$370 CAD/);assert.match(mail.body,/coach on the day/);assert.doesNotMatch(mail.body,/per player|Romeo will follow up about payment/);
   assert.match(mail.body,/Boxing Week Sale/);
   assert.throws(()=>C.confirmation(q,'SS-CAMP-ABCDEF12','Bad\nName'));
 });

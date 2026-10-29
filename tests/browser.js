@@ -62,7 +62,7 @@
           check([...doc.querySelectorAll('.camp-week-card,.seasonal-feature')].every(el=>!frame.contentWindow.getComputedStyle(el,'::before').backgroundImage.includes('url(') && frame.contentWindow.getComputedStyle(el).backgroundImage==='none'),`Camp cards at ${width}px have solid surfaces without photography`);
         }
         if(page==='programs.html') {
-          const youthCards=[...doc.querySelectorAll('#sessions .schedule-entry[data-session-day]')];
+          const youthCards=[...doc.querySelectorAll('#sessions .schedule-entry[data-session-day]:not([data-audience="adult"])')];
           const actions=youthCards.flatMap(card=>[...card.querySelectorAll('.schedule-direct-actions a')]);
           check(youthCards.length===4 && actions.length===8 && youthCards.every(card=>{
             const links=[...card.querySelectorAll('.schedule-direct-actions a')];
@@ -71,12 +71,13 @@
               return url.pathname.endsWith('/registration.html') && url.searchParams.get('sessionId')===card.dataset.sessionDay && url.searchParams.get('type')===['dropin','pass4'][index] && link.getClientRects().length && link.getBoundingClientRect().height>=48;
             });
           }),`Training at ${width}px shows direct drop-in and pass buttons on all four youth cards`);
-          const adultCards=[...doc.querySelectorAll('#adult-women .schedule-entry')];
-          const adultLinks=[...doc.querySelectorAll('#adult-women .schedule-direct-actions a')];
+          const adultCard=doc.querySelector('#sessions #adult-women.schedule-entry[data-audience="adult"][data-session-day="tuesday"][data-session-location="fen-burdett"]');
+          const adultLinks=adultCard?[...adultCard.querySelectorAll('.schedule-direct-actions a')]:[];
           const adultUrl=adultLinks.length===1?new URL(adultLinks[0].href):null;
-          check(adultCards.length===1 && adultCards[0].textContent.includes('Tuesday') && adultUrl?.pathname.endsWith('/contact.html') && adultUrl.searchParams.get('topic')==='adult-women' && adultLinks[0].getClientRects().length && adultLinks[0].getBoundingClientRect().height>=48 && !doc.querySelector('#adult-women a[href*="registration.html"],#adult-women [data-session-day]'),`Training at ${width}px keeps Tuesday adult soccer separate with one inquiry action and no youth booking`);
+          check(!!adultCard && adultCard.textContent.includes('9:30–11:00 AM') && adultCard.textContent.includes('Fen Burdett Stadium') && adultCard.textContent.includes('$20 per session') && adultCard.textContent.includes('8/20 reported') && adultUrl?.pathname.endsWith('/contact.html') && adultUrl.searchParams.get('topic')==='adult-women' && adultLinks[0].getClientRects().length && adultLinks[0].getBoundingClientRect().height>=48 && !adultCard.querySelector('a[href*="registration.html"],.session-capacity'),`Training at ${width}px puts Tuesday adult women in the weekly schedule without youth booking or an unreliable count`);
+          check([...doc.querySelectorAll('#sessions .schedule-entry')].length===5 && doc.querySelector('#sessions .schedule-entry')===adultCard && doc.querySelector('#schedule-results').textContent==='Showing 5 of 5 sessions',`Training at ${width}px shows all five sessions in the weekly list`);
           check(!doc.querySelector('details.schedule-entry,.session-share'),`Training at ${width}px has no registration disclosure or copy-link step`);
-          if(width<=430)check(actions.slice(0,2).every(el=>el.getBoundingClientRect().bottom<=740),`Training at ${width}px shows the first session's registration buttons within 740px (${Math.round(actions[0].getBoundingClientRect().bottom)}px)`);
+          if(width<=430)check(adultLinks[0].getBoundingClientRect().bottom<=820,`Training at ${width}px puts Tuesday's enquiry within the first screen (${Math.round(adultLinks[0].getBoundingClientRect().bottom)}px)`);
         }
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
@@ -204,12 +205,23 @@
     check(doc.querySelector('[data-filter-panel]').open,'Shared filtered links open the filter controls automatically');
     check(!doc.querySelector('#schedule-empty').hidden,'Incompatible age/day shows empty state');
     doc.querySelector('#schedule-reset').click();
-    check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===5 && doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===4 && doc.querySelectorAll('#adult-women .schedule-entry:not([hidden])').length===1 && doc.querySelector('#schedule-results').textContent==='Showing 5 of 5 sessions','Clear filters restores four youth sessions and the separate adult session');
+    check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===5 && doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===5 && !doc.querySelector('#adult-women').hidden && doc.querySelector('#schedule-results').textContent==='Showing 5 of 5 sessions','Clear filters restores four youth sessions and Tuesday adults in the same list');
     check(frame.contentWindow.location.search==='?source=test' && frame.contentWindow.location.hash==='#sessions','Clear filters preserves unrelated query and anchor');
     change(doc,'schedule-age','14');
     check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===1,'Age 14 shows only eligible training');
     check(frame.contentWindow.location.search.includes('age=14'),'Filter is reflected in shareable URL');
-    check(doc.querySelectorAll('.schedule-next').length===4,'Every session shows its next Vancouver date');
+    check(doc.querySelectorAll('.schedule-next').length===4,'All four youth sessions show their next Vancouver date');
+    doc.querySelector('#schedule-reset').click();
+    change(doc,'schedule-age','adult');
+    check(doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===1 && !doc.querySelector('#adult-women').hidden && doc.querySelector('#schedule-results').textContent==='Showing 1 of 5 sessions','Adult age filter displays only Tuesday');
+    doc.querySelector('#schedule-reset').click();
+    change(doc,'schedule-day','tuesday');
+    check(!doc.querySelector('#adult-women').hidden && doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===1,'Tuesday filter displays adult women');
+    doc.querySelector('#schedule-reset').click();
+    change(doc,'schedule-location','fen-burdett');
+    check(!doc.querySelector('#adult-women').hidden && doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===1,'Fen Burdett location filter displays adult women');
+    doc.querySelector('#schedule-reset').click();
+    change(doc,'schedule-age','14');
     const url=frame.contentWindow.location.href;
     doc=await load(url.split('/').pop());
     check(doc.querySelector('#schedule-age').value==='14' && doc.querySelectorAll('.schedule-entry:not([hidden])').length===1,'Reload restores the selected filter');
@@ -230,6 +242,8 @@
     doc=await load('programs.html?day=friday&age=8&email=private%40example.invalid#sessions',320);
     const fridayLinks=[...doc.querySelectorAll('[data-session-day="friday"] .schedule-direct-actions a')];
     check(fridayLinks.every(el=>!new URL(el.href).searchParams.has('email') && !new URL(el.href).searchParams.has('age')),'Registration links keep session and product without forwarding unrelated query values');
+    doc=await load('contact.html?topic=adult-women',375);
+    check(doc.querySelector('select[name="Topic"]')?.value==="Tuesday women's soccer" && doc.querySelector('select[name="Topic"]').closest('details')?.open,'Adult Tuesday enquiry preselects the correct contact topic');
     doc=await load('registration.html?sessionId=camp-u4-u6&type=dropin');
     check(doc.querySelector('#training-registration').hidden && doc.querySelector('#registration-status').textContent.includes('no longer available'),'Retired camp registration is rejected');
     doc=await load('index.html?utm_source=local-guide&utm_medium=directory&utm_campaign=winter2026&email=private%40example.invalid');

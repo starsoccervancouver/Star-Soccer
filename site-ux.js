@@ -41,7 +41,8 @@
     const update=(save=false)=>{
       let visible=0;
       rows.forEach(row=>{
-        const matches=(age.value==='all'||(Number(age.value)>=Number(row.dataset.minAge)&&Number(age.value)<=Number(row.dataset.maxAge)))&&(day.value==='all'||day.value===row.dataset.sessionDay)&&(locationSelect.value==='all'||locationSelect.value===row.dataset.sessionLocation);
+        const matchesAge=age.value==='all' || (age.value==='adult' ? row.dataset.audience==='adult' : row.dataset.audience!=='adult' && Number(age.value)>=Number(row.dataset.minAge) && Number(age.value)<=Number(row.dataset.maxAge));
+        const matches=matchesAge && (day.value==='all'||day.value===row.dataset.sessionDay) && (locationSelect.value==='all'||locationSelect.value===row.dataset.sessionLocation);
         row.hidden=!matches;if(matches)visible++;
       });
       document.querySelector('#schedule-results').textContent=`Showing ${visible} of ${rows.length} ${rows.length===1?'session':'sessions'}`;

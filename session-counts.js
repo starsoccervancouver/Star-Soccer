@@ -40,7 +40,8 @@
   const api={parse,describe,feed};
   if(typeof module!=='undefined' && module.exports) {module.exports=api;return;}
   root.StarSessionCounts=api;
-  const rows=[...document.querySelectorAll('.schedule-entry')],preview=document.querySelector('#booking-dates');
+  // Only youth groups use the public youth booking feed. The adult estimate remains coach-reported.
+  const rows=[...document.querySelectorAll('.schedule-entry[data-session-day]:not([data-audience="adult"])')],preview=document.querySelector('#booking-dates');
   if(!T || (!rows.length && !preview))return;
   let records=null,busy=false;
   rows.forEach(row=>{

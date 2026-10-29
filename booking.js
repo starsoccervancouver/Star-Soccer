@@ -233,5 +233,10 @@
     const topic=document.querySelector('[name="Topic"]');
     if(topic && params.get('program')==='selectivo') topic.value='Selectivo updates';
     if(topic && params.get('program')==='camps') topic.value='Winter camps';
+    if(topic && params.get('topic')==='adult-women') {
+      topic.value="Tuesday women's soccer";
+      const extras=topic.closest('details');
+      if(extras) extras.open=true;
+    }
   }
 })();

@@ -11,9 +11,11 @@
   let context = null, identity = '', epoch = 0, records = [], loaded = false, loading = false, writing = false;
   let record = blank(), baseline = '', recovery = null, lastAttempt = null, historyLimit = 8, suggestionInputs = null;
   const permitted = drill => context?.profile && (['owner', 'admin'].includes(context.profile.role) || drill.author_email === context.profile.email);
-  const ready = () => !!context?.profile && context.tab === 'plan';
+  const standalone = () => context?.tab === 'library';
+  const ready = () => !!context?.profile && ['plan', 'library'].includes(context.tab);
+  const sessionHome = mount.parentNode, sessionAnchor = document.createComment('session drill library'); sessionHome.insertBefore(sessionAnchor, mount);
   const locked = () => !ready() || !!context.busy || writing || loading;
-  const canInsert = () => !locked() && context.planReady && context.session?.status !== 'Cancelled';
+  const canInsert = () => !locked() && !standalone() && context.planReady && context.session?.status !== 'Cancelled';
   const values = () => Object.fromEntries(fields.map(key => [key, key === 'minutes' ? Number($('library-' + key).value) : $('library-' + key).value.trim()]));
   const fingerprint = value => JSON.stringify(Object.fromEntries(fields.map(key => [key, value[key]])));
   const dirty = () => !!identity && (Boolean(recovery) || fingerprint(values()) !== baseline);
@@ -28,9 +30,10 @@
     $('library-editor-title').textContent = record.id ? 'Edit reusable drill' : 'Create a reusable drill';
     renderState();
   }
-  function discard() { if (writing) return; writeEditor(); notify(''); }
+  function discard() { if (writing) return; writeEditor(); if (standalone()) editor.hidden = true; notify(''); }
   window.CoachLibrary = Object.freeze({ isDirty: dirty, isBusy: () => writing, discard });
 
+  const newDrill = action('New drill', () => { if (locked() || recovery) return; if (dirty() && !confirm('Start a new drill and discard this draft?')) return; writeEditor(); editor.hidden = false; $('library-title').focus(); }, 'button'); newDrill.id = 'library-new';
   const disclosure = node('details', '', 'coaching-tools-disclosure library-disclosure'); disclosure.id = 'library-disclosure';
   disclosure.append(node('summary', 'Your drill library & suggested practice'));
   const body = node('div', '', 'library-body');
@@ -40,7 +43,7 @@
   const focus = select('library-filter', [['all', 'Every plan section'], ...Object.entries(targets)]);
   filters.append(label('Find a saved drill', search), label('Plan section', focus));
   const reload = action('Load saved drills', () => load(true)); reload.id = 'library-reload';
-  filters.append(reload); body.append(filters);
+  filters.append(reload, newDrill); body.append(filters);
   const results = node('p', '', 'small'); results.id = 'library-results'; results.setAttribute('role', 'status'); body.append(results);
   const list = node('div', '', 'library-list'); list.id = 'library-list'; body.append(list);
   const more = action('Show more drills', () => { historyLimit += 8; renderList(); }); more.id = 'library-more'; more.hidden = true; body.append(more);
@@ -90,11 +93,13 @@
     for (const field of editor.querySelectorAll('input,select,textarea')) field.disabled = locked() || !!recovery;
     save.disabled = locked() || !!recovery; cancel.disabled = locked(); retry.disabled = locked();
     cancel.hidden = !record.id && !dirty(); retry.hidden = !recovery; retry.textContent = recovery?.operation === 'archive' ? 'Retry same archive' : 'Retry same save';
+    newDrill.hidden = !standalone(); newDrill.disabled = locked() || !!recovery;
+    suggestions.hidden = reuse.hidden = standalone();
     capture.disabled = !canInsert() || !!recovery; reload.disabled = locked() || loading;
     search.disabled = focus.disabled = scope.disabled = locked();
     reload.textContent = loading ? 'Loading…' : loaded ? 'Refresh saved drills' : 'Load saved drills';
     save.textContent = writing ? 'Saving…' : record.id ? 'Save changes' : 'Save drill';
-    for (const el of list.querySelectorAll('button')) el.disabled = locked() || !!recovery || (el.dataset.insert === 'true' && !canInsert());
+    for (const el of list.querySelectorAll('button')) { el.disabled = locked() || !!recovery || (el.dataset.insert === 'true' && !canInsert()); if (el.dataset.insert === 'true') el.hidden = standalone(); }
     for (const el of recommendationList.querySelectorAll('button')) el.disabled = !canInsert() || !!recovery;
   }
   function insert(drill) {
@@ -105,7 +110,7 @@
   function edit(drill) {
     if (locked() || recovery || !permitted(drill)) return;
     if (dirty() && !confirm('Edit this drill and discard the current unsaved drill?')) return;
-    writeEditor(drill); notify(''); $('library-title').focus();
+    writeEditor(drill); editor.hidden = false; notify(''); $('library-title').focus();
   }
   function renderList() {
     const query = search.value.trim().toLowerCase();
@@ -200,7 +205,7 @@
       const result = await request(attempt.operation, clone(attempt.payload)); if (ticket !== epoch || identity !== started) return;
       if (attempt.operation === 'save') {
         const saved = validateRows([result.drill])[0]; if (!matchesSaved(saved, attempt.payload)) throw Error('The save could not be verified. Refresh the library before changing this draft.');
-        records = [saved, ...records.filter(drill => drill.id !== saved.id)]; writeEditor(saved); notify('Reusable drill saved. Session plans stay unchanged until you add it.');
+        records = [saved, ...records.filter(drill => drill.id !== saved.id)]; writeEditor(saved); if (standalone()) editor.hidden = true; notify('Reusable drill saved. Session plans stay unchanged until you add it.');
       } else {
         if (result.saved !== true) throw Error('The archive could not be verified.');
         records = records.filter(drill => drill.id !== attempt.payload.id); if (record.id === attempt.payload.id) writeEditor(); notify('Drill archived. Previously saved plans stay unchanged.');
@@ -232,8 +237,18 @@
       epoch++; writing = loading = false; records = []; loaded = false; recovery = lastAttempt = null; identity = nextIdentity; context = next;
       disclosure.open = false; search.value = ''; focus.value = 'all'; scope.value = ''; historyLimit = 8; suggestionInputs = null; writeEditor(); notify(''); list.replaceChildren(); recommendationList.replaceChildren(); results.textContent = ''; scope.replaceChildren();
     } else context = next;
-    if (!next?.profile) { mount.hidden = true; return; }
+    if (!next?.profile) { mount.hidden = true; sessionAnchor.after(mount); return; }
+    const root = standalone() ? $('standalone-drill-library') : sessionHome;
+    if (mount.parentNode !== root) {
+      if (standalone()) root.append(mount); else sessionAnchor.after(mount);
+      editor.hidden = standalone() && !dirty();
+      if (standalone()) results.before(editor); else body.append(editor);
+      disclosure.open = standalone();
+    }
+    disclosure.querySelector('summary').hidden = standalone();
+    mount.classList.toggle('library-standalone', standalone());
     mount.hidden = false; renderState(); renderSuggestions();
+    if (standalone() && !loaded && !loading) { disclosure.open = true; load(); }
   });
   writeEditor(); emit('coach:request-context');
 })();

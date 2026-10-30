@@ -25,7 +25,7 @@ require('./coach-fixture-fonts.cjs')(assets);
 (async () => {
   const browser = await chromium.launch(); let checks = 0;
   try {
-    async function fixture({ role = 'owner', width = 1365 } = {}) {
+    async function fixture({ role = 'owner', width = 1365, standalone = false, noSessions = false } = {}) {
       const context = await browser.newContext({ viewport: { width, height: 950 } });
       const profile = { ...owner, role };
       const state = { profile, drills: Array.from({ length: 10 }, (_, i) => drill(i + 1)), mode: 'success', listDelay: false }, requests = [], errors = [], pending = [], pendingLists = [];
@@ -41,7 +41,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         requests.push({ path, payload, method: request.method() });
         let value, status = 200;
         if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-library-csrf', googleEnabled: true };
-        else if (path.endsWith('/desk')) value = { profile: state.profile, sessions, notes, tasks: [], observedAt: now };
+        else if (path.endsWith('/desk')) value = { profile: state.profile, sessions: noSessions ? [] : sessions, notes, tasks: [], observedAt: now };
         else if (path.endsWith('/session')) value = { plan: { version: 1, session_id: payload.sessionId, content: { technical: 'Saved receiving activity', warmup: 'Saved movement activity' } } };
         else if (path.endsWith('/diagrams/list')) value = { diagrams: [] };
         else if (path.endsWith('/drills/list')) { const snapshot = state.drills.map(row => ({ ...row })); if (state.listDelay) await new Promise(resolve => pendingLists.push(resolve)); value = { drills: snapshot }; }
@@ -65,14 +65,30 @@ require('./coach-fixture-fonts.cjs')(assets);
       });
       const page = await context.newPage(); page.setDefaultTimeout(6500); page.on('pageerror', error => errors.push(error.stack || error.message));
       await page.goto(origin + '/workspace'); await page.locator('#app').waitFor({ state: 'visible' });
-      await openSession(page, sessions, rid(1), 'plan');
-      await page.locator('#planner-open-tools').click();
+      if (standalone) await page.locator('#navigation [data-tab="library"]').click();
+      else { await openSession(page, sessions, rid(1), 'plan'); await page.locator('#planner-open-tools').click(); }
       return { page, context, state, requests, errors, pending, pendingLists, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
     }
     const count = (f, suffix) => f.requests.filter(r => r.path.endsWith(suffix)).length;
     const open = async f => { await f.page.locator('#library-disclosure > summary').click(); await f.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh saved drills'); };
     const clean = async f => { assert.deepEqual(f.errors, []); await f.context.close(); };
     const fill = async (f, title) => { await f.page.locator('#library-title').fill(title); await f.page.locator('#library-setup').fill('Pairs pass through wide gates.'); };
+
+    const standalone = await fixture({standalone:true,noSessions:true,width:390});
+    await standalone.page.waitForFunction(()=>document.getElementById('library-reload').textContent==='Refresh saved drills');
+    assert.equal(await standalone.page.locator('#panel-library').isVisible(),true);
+    assert.equal(await standalone.page.locator('#library-form').isVisible(),false);
+    assert.equal(count(standalone,'/session'),0,'Standalone library needs no session');
+    assert.equal(await standalone.page.locator('#library-list [data-insert=true]:visible').count(),0);
+    await standalone.page.locator('#library-new').click(); await fill(standalone,'Standalone new activity');
+    await standalone.page.locator('#navigation [data-tab="profiles"]').click();
+    assert.equal(await standalone.page.locator('#panel-library').isVisible(),true,'Unsaved drill stays after declining navigation');
+    await standalone.page.locator('#library-save').click(); await standalone.page.getByText('Reusable drill saved. Session plans stay unchanged until you add it.',{exact:true}).waitFor();
+    assert.equal(count(standalone,'/drills/save'),1); assert.equal(count(standalone,'/session'),0);
+    assert.equal(await standalone.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await standalone.page.screenshot({path:'outputs/coach-library-standalone-mobile.png',fullPage:true});
+    await standalone.page.locator('#logout').click(); await standalone.page.locator('#login').waitFor({state:'visible'});
+    assert.equal(await standalone.page.locator('#library-list').textContent(),''); await clean(standalone); checks++;
 
     const f = await fixture(); assert.equal(count(f, '/drills/list'), 0, 'Closed archive makes no server request'); await open(f);
     assert.equal(count(f, '/drills/list'), 1); assert.equal(await f.page.locator('#library-list .library-card').count(), 8);

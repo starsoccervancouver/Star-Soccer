@@ -218,19 +218,19 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
     assert.match(type.heading, /Manrope/);
     assert(type.faces.some(face => /Manrope/.test(face.family) && face.status === 'loaded'), 'Simple brand typography loads from isolated first-party fixtures');
     checks++;
-    const tabs = ['home', 'attendance', 'notes', 'plan', 'settings', 'team', 'activity', 'legacy'];
+    const tabs = ['home', 'attendance', 'notes', 'plan', 'profiles', 'settings', 'team', 'activity', 'legacy'];
     for (const width of [320, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       for (const tab of tabs) {
         if (await page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) await page.locator('#planner-home').click();
         const settingsSection = ['team', 'activity', 'legacy'].includes(tab);
-        await page.locator('#navigation button[data-tab="' + (settingsSection ? 'settings' : tab === 'attendance' ? 'plan' : tab) + '"]').click();
+        await page.locator('#navigation button[data-tab="' + (settingsSection ? 'settings' : ['attendance','notes'].includes(tab) ? 'plan' : tab) + '"]').click();
         if (settingsSection) await page.locator('#settings-navigation button[data-settings-tab="' + tab + '"]').click();
         if (['plan', 'attendance', 'notes'].includes(tab)) await openSession(page, sessions, rid(1), tab);
         await page.locator('#panel-' + tab).waitFor({ state: 'visible' });
         const overflow = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('#app *')].filter(element => { const rect = element.getBoundingClientRect(); return rect.width && (rect.right > innerWidth + 1 || rect.left < -1) && !element.closest('#navigation'); }).slice(-12).map(element => ({ tag: element.tagName, id: element.id, class: element.className, left: element.getBoundingClientRect().left, right: element.getBoundingClientRect().right, width: element.getBoundingClientRect().width })) }));
         assert(overflow.scroll <= width + 1, tab + ' must not overflow at ' + width + 'px: ' + JSON.stringify(overflow));
-        assert.equal(await page.locator('#navigation button.nav-active').getAttribute('data-tab'), settingsSection ? 'settings' : tab === 'attendance' ? 'plan' : tab);
+        assert.equal(await page.locator('#navigation button.nav-active').getAttribute('data-tab'), settingsSection ? 'settings' : ['attendance','notes'].includes(tab) ? 'plan' : tab);
         if (settingsSection) assert.equal(await page.locator('#settings-navigation button[data-settings-tab="' + tab + '"]').getAttribute('aria-current'), 'page');
         assert.equal(await page.locator('#navigation button.nav-active').getAttribute('aria-current'), 'page');
         // Inspect one current DOM snapshot: async plan readback may replace toolbox controls.

@@ -28,6 +28,8 @@
 <script src="/workspace/assets/planner.js" defer></script>
 <script src="/workspace/assets/library.js" defer></script>
 <script src="/workspace/assets/folders.js" defer></script>
+<script src="/workspace/assets/profiles.js" defer></script>
+<link rel="stylesheet" href="/workspace/assets/profiles.css">
 </head>
 <body>
 <a class="desk-skip" href="#desk-main">Skip to coach workspace</a>
@@ -94,8 +96,9 @@
 <p class="nav-section">WORKSPACE</p>
 <nav id="navigation">
 <button data-tab="home" class="nav-active">Overview</button>
-<button data-tab="notes">Player notes &amp; goals</button>
+<button data-tab="profiles">Player profiles</button>
 <button data-tab="plan">Training groups</button>
+<button data-tab="library">Drill library</button>
 
 <button data-tab="settings" class="nav-settings">Settings &amp; profile</button>
 </nav>
@@ -158,7 +161,8 @@
 <label>Open Coach Desk to<select id="preference-start">
 <option value="home">Overview</option>
 <option value="attendance">Attendance</option>
-<option value="notes">Player notes &amp; goals</option>
+<option value="profiles">Player profiles</option>
+<option value="library">Drill library</option>
 <option value="plan">Training groups</option>
 
 </select></label>
@@ -409,6 +413,8 @@
 </div>
 </div>
 </section>
+<section id="panel-profiles" class="tab-panel" hidden><div id="player-profiles"></div></section>
+<section id="panel-library" class="tab-panel" hidden><div id="standalone-drill-library"></div></section>
 <section id="panel-tasks" class="tab-panel" hidden inert>
 <section class="card">
 <p class="eyebrow">Small steps, followed through</p>

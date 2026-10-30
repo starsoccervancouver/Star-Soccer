@@ -65,20 +65,11 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert.equal(await page.locator('#session').isVisible(), false); assert.equal(await page.locator('#planner-dates-pane').isVisible(), false);
     const labels = await page.locator('#coaching-hub h3').allTextContents(); assert.notEqual(labels[0], labels[1], 'Distinct programs at identical weekday/time/venue remain distinguishable');
     assert.equal(await page.locator('#navigation [data-tab="attendance"]').count(), 0, 'Attendance is available inside the session, without a redundant sidebar shortcut');
-    for (const [view, title] of [['notes', 'Player notes & goals']]) {
-      await page.locator('#navigation [data-tab="' + view + '"]').click();
-      assert.equal(await page.locator('#page-title').innerText(), title, 'Sidebar shortcut identifies its destination');
-      assert.equal(await page.locator('#navigation [aria-current="page"]').getAttribute('data-tab'), view);
-      assert.equal(await page.locator('#planner-days [data-group-key]').count(), 2);
-      await page.locator('#planner-days [data-group-key]').first().click();
-      assert.equal(await page.locator('#panel-' + view).isVisible(), true, 'Group opens requested section');
-      await page.locator('#planner-home').click();
-      await page.locator('#navigation [data-tab="' + view + '"]').click();
-      assert.equal(await page.locator('#panel-' + view).isVisible(), true, 'Shortcut reopens the chosen group directly');
-      await page.locator('#planner-home').click();
-      // A fresh sign-in has no previously chosen group.
-      await page.reload(); await page.locator('#app').waitFor({ state: 'visible' });
-    } checks++;
+    await page.locator('#navigation [data-tab="profiles"]').click();
+    assert.equal(await page.locator('#page-title').innerText(), 'Player profiles');
+    assert.equal(await page.locator('#navigation [aria-current="page"]').getAttribute('data-tab'), 'profiles');
+    assert.equal(await page.locator('#player-profiles').isVisible(), true); checks++;
+
     await page.locator('#navigation [data-tab="plan"]').click();
     assert.equal(await page.locator('#planner-days [data-group-key]').count(), 2); assert.equal(await page.locator('#session-workspace-tabs').isVisible(), false);
     assert.equal(await page.locator('#planner-dates-pane').isVisible(), false); assert.equal(await page.locator('#session-toolbar').isVisible(), false);

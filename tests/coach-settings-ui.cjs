@@ -54,7 +54,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     for (const role of ['owner', 'admin', 'coach']) {
       const f = await fixture({ role }); await clickSettings(f);
       assert.equal(await f.page.locator('#panel-settings').isVisible(), true);
-      assert.deepEqual(await f.page.locator('#navigation button').evaluateAll(buttons=>buttons.map(button=>button.dataset.tab)), ['home','notes','plan','settings'], 'Main navigation contains only active coaching sections');
+      assert.deepEqual(await f.page.locator('#navigation button').evaluateAll(buttons=>buttons.map(button=>button.dataset.tab)), ['home','profiles','plan','library','settings'], 'Main navigation contains only active coaching sections');
       assert.equal(await f.page.locator('#navigation [data-tab="team"],#navigation [data-tab="activity"],#navigation [data-tab="legacy"]').count(), 0);
       assert.equal(await f.page.locator('#profile-name').innerText(), 'Fictional ' + role);
       assert.equal(await f.page.locator('#profile-email').innerText(), 'fictional-' + role + '@example.test');

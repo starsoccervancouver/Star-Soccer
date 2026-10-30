@@ -86,7 +86,7 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
     await page.screenshot({ path: 'outputs/coach-command-center-mobile.png', fullPage: true });
     for (const width of [320,390,768]) {
       await page.setViewportSize({ width, height: 844 });
-      for (const tab of ['home','notes','plan']) {
+      for (const tab of ['home','profiles','plan']) {
         if (await page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) await page.locator('#planner-home').click();
         await page.locator('#navigation [data-tab="'+tab+'"]').click();
         if (tab === 'plan' || tab === 'notes') await openSession(page, sessions, rid(1), tab === 'notes' ? 'notes' : 'plan');

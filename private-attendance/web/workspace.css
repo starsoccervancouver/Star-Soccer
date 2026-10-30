@@ -16,14 +16,15 @@
 
 :root {
   color-scheme: light;
-  --desk-navy: #061326;
-  --desk-navy-soft: #10263d;
-  --desk-gold: #e7c59a;
-  --desk-blue: #a9dcf5;
-  --desk-ink: #162d41;
-  --desk-muted: #596b78;
-  --desk-line: #dce2e4;
-  --desk-canvas: #f5f4ef;
+  --desk-navy: #27292d;
+  --desk-navy-soft: #3c4046;
+  --desk-gold: #d5d8dd;
+  --desk-blue: #d5d8dd;
+  --desk-ink: #292d33;
+  --desk-muted: #626872;
+  --desk-line: #d8dce1;
+  --desk-canvas: #f3f4f5;
+  --desk-accent: #596779;
   --desk-green: #21664e;
   --desk-red: #923f35;
   --desk-header-height: 88px;
@@ -76,19 +77,19 @@ button, .button {
 }
 
 button:hover:not(:disabled), .button:hover:not(:disabled) {
-  border-color: #31597a;
-  background: #1e3d59;
+  border-color: #50565f;
+  background: #50565f;
 }
 
 button.secondary, .button.secondary {
-  border-color: #bfccd4;
-  color: #24445e;
+  border-color: #858b94;
+  color: var(--desk-ink);
   background: #fff;
 }
 
 button.secondary:hover:not(:disabled), .button.secondary:hover:not(:disabled) {
-  border-color: #789bb2;
-  background: #f0f7fb;
+  border-color: var(--desk-accent);
+  background: #eceef0;
 }
 
 .confirm {
@@ -102,13 +103,13 @@ button:disabled {
 }
 
 a {
-  color: #1c5d83;
+  color: #43556a;
   text-underline-offset: 3px;
 }
 
 a:focus-visible, button:focus-visible, input:focus-visible,
 textarea:focus-visible, select:focus-visible, summary:focus-visible {
-  outline: 3px solid #b98742;
+  outline: 3px solid var(--desk-accent);
   outline-offset: 3px;
 }
 
@@ -133,7 +134,7 @@ h2, h3 {
 
 .eyebrow {
   margin: 0 0 9px;
-  color: #865c31;
+  color: var(--desk-muted);
   font-size: 11px;
   font-weight: 800;
   line-height: 1.5;
@@ -160,7 +161,7 @@ h2, h3 {
   transform: translateY(0);
 }
 
-/* The public site's navy shell surrounds clear, light working surfaces. */
+/* A neutral shell separates navigation from the light working surfaces. */
 .desk-header {
   position: sticky;
   top: 0;
@@ -171,7 +172,7 @@ h2, h3 {
   gap: 26px;
   height: var(--desk-header-height);
   padding: 12px 30px;
-  border-top: 3px solid var(--desk-gold);
+  border-top: 3px solid var(--desk-navy);
   border-bottom: 1px solid #ffffff17;
   background: var(--desk-navy);
 }
@@ -201,7 +202,7 @@ h2, h3 {
 }
 
 .desk-header > div strong {
-  color: #fff4e5;
+  color: #f4f5f6;
   font-size: 17px;
   font-weight: 750;
   letter-spacing: -.02em;
@@ -209,7 +210,7 @@ h2, h3 {
 
 .desk-header > div span {
   overflow: hidden;
-  color: #b4c6d4;
+  color: #c2c6cc;
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -217,8 +218,8 @@ h2, h3 {
 
 .desk-header #logout {
   min-height: 44px;
-  border-color: #50657a;
-  color: #f8f5f0;
+  border-color: #858b94;
+  color: #f4f5f6;
   background: transparent;
   white-space: nowrap;
 }
@@ -255,7 +256,7 @@ h2, h3 {
 
 .nav-section {
   margin: 0 14px 18px;
-  color: #9cadbd;
+  color: #b9bec6;
   font-size: 10px;
   font-weight: 750;
   letter-spacing: .16em;
@@ -273,7 +274,7 @@ h2, h3 {
   padding: 12px 14px;
   border: 1px solid transparent;
   border-radius: 9px;
-  color: #c3d0dc;
+  color: #d0d4d9;
   background: transparent;
   font-size: 14px;
   font-weight: 550;
@@ -287,9 +288,9 @@ h2, h3 {
 }
 
 .desk-nav nav button.nav-active {
-  border-color: #729db53a;
-  color: #ddf1ff;
-  background: #17364f;
+  border-color: #616873;
+  color: #fff;
+  background: #3c4046;
   box-shadow: inset 3px 0 var(--desk-gold);
   font-weight: 750;
 }
@@ -302,7 +303,7 @@ h2, h3 {
   margin: 30px 12px 0;
   padding: 21px 0 0;
   border-top: 1px solid #ffffff1a;
-  color: #b1c0cc;
+  color: #b9bec6;
   font-size: 12px;
   line-height: 1.75;
 }
@@ -343,7 +344,7 @@ h2, h3 {
 
 .page-heading h1 {
   margin: 5px 0 8px;
-  font: italic 400 clamp(36px, 3.4vw, 53px)/1.05 "Instrument Serif", Georgia, serif;
+  font: 700 clamp(28px, 2.7vw, 38px)/1.2 "Manrope", Arial, sans-serif;
   letter-spacing: -.025em;
 }
 
@@ -2223,3 +2224,26 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
   #app .audit-row::before { left:16px; top:22px; }
   #app .audit-row p { text-align:left; }
 }
+/* Quiet working surfaces; warning, attendance and tactics colours retain meaning. */
+body .card { box-shadow: none; }
+body .session-spotlight { background: #fff; border-color: var(--desk-line); color: var(--desk-ink); }
+body .session-spotlight::after { display: none; }
+body .session-spotlight h2 { color: var(--desk-ink); font-size: clamp(24px, 2.3vw, 32px); }
+body .session-spotlight .eyebrow, body .session-spotlight #next-details { color: var(--desk-muted); }
+body .session-spotlight .callout { background: #f3f4f5; border-color: var(--desk-accent); color: var(--desk-ink); }
+body .session-spotlight .button { background: var(--desk-navy-soft); border-color: var(--desk-navy-soft); color: #fff; }
+body .session-spotlight .button:hover:not(:disabled) { background: #50565f; border-color: #50565f; }
+body .session-spotlight .secondary { background: #fff; border-color: #858b94; color: var(--desk-ink); }
+body .session-spotlight .secondary:hover:not(:disabled) { background: #eceef0; border-color: var(--desk-accent); color: var(--desk-ink); }
+body .coaching-tools-disclosure > summary,
+body .coaching-agenda-row.is-current,
+body .field-saved-notice,
+body .attendance-day[aria-pressed="true"],
+body #app .planner-workspace-actions button[aria-expanded="true"],
+body #app .planner-workspace-actions #planner-open-notes {
+  background: #eceef0;
+  border-color: #858b94;
+  color: var(--desk-ink);
+}
+body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accent); }
+.desk-nav :focus-visible, .desk-header :focus-visible, .desk-skip:focus-visible { outline-color: #d5d8dd; }

@@ -64,6 +64,20 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert.equal(await page.locator('#coaching-hub .coaching-agenda-row').count(), 2, 'Home lists recurring groups rather than every dated session');
     assert.equal(await page.locator('#session').isVisible(), false); assert.equal(await page.locator('#planner-date').isVisible(), false);
     const labels = await page.locator('#coaching-hub h3').allTextContents(); assert.notEqual(labels[0], labels[1], 'Distinct programs at identical weekday/time/venue remain distinguishable');
+    for (const [view, title] of [['attendance', 'Attendance'], ['notes', 'Player notes & goals']]) {
+      await page.locator('#navigation [data-tab="' + view + '"]').click();
+      assert.equal(await page.locator('#page-title').innerText(), title, 'Sidebar shortcut identifies its destination');
+      assert.equal(await page.locator('#navigation [aria-current="page"]').getAttribute('data-tab'), view);
+      assert.equal(await page.locator('#planner-days [data-group-key]').count(), 2);
+      await page.locator('#planner-days [data-group-key]').first().click();
+      assert.equal(await page.locator('#panel-' + view).isVisible(), true, 'Group opens requested section');
+      await page.locator('#planner-home').click();
+      await page.locator('#navigation [data-tab="' + view + '"]').click();
+      assert.equal(await page.locator('#panel-' + view).isVisible(), true, 'Shortcut reopens the chosen group directly');
+      await page.locator('#planner-home').click();
+      // A fresh sign-in has no previously chosen group.
+      await page.reload(); await page.locator('#app').waitFor({ state: 'visible' });
+    } checks++;
     await page.locator('#navigation [data-tab="plan"]').click();
     assert.equal(await page.locator('#planner-days [data-group-key]').count(), 2); assert.equal(await page.locator('#session-workspace-tabs').isVisible(), false);
     assert.equal(await page.locator('#planner-date').isVisible(), false); assert.equal(await page.locator('#session-toolbar').isVisible(), false);

@@ -230,7 +230,7 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
         await page.locator('#panel-' + tab).waitFor({ state: 'visible' });
         const overflow = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('#app *')].filter(element => { const rect = element.getBoundingClientRect(); return rect.width && (rect.right > innerWidth + 1 || rect.left < -1) && !element.closest('#navigation'); }).slice(-12).map(element => ({ tag: element.tagName, id: element.id, class: element.className, left: element.getBoundingClientRect().left, right: element.getBoundingClientRect().right, width: element.getBoundingClientRect().width })) }));
         assert(overflow.scroll <= width + 1, tab + ' must not overflow at ' + width + 'px: ' + JSON.stringify(overflow));
-        assert.equal(await page.locator('#navigation button.nav-active').getAttribute('data-tab'), settingsSection ? 'settings' : ['attendance', 'notes'].includes(tab) ? 'plan' : tab);
+        assert.equal(await page.locator('#navigation button.nav-active').getAttribute('data-tab'), settingsSection ? 'settings' : tab);
         if (settingsSection) assert.equal(await page.locator('#settings-navigation button[data-settings-tab="' + tab + '"]').getAttribute('aria-current'), 'page');
         assert.equal(await page.locator('#navigation button.nav-active').getAttribute('aria-current'), 'page');
         // Inspect one current DOM snapshot: async plan readback may replace toolbox controls.

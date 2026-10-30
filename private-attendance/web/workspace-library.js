@@ -9,15 +9,15 @@
   const blank = () => ({ id: null, title: '', skill: '', minutes: 10, target: 'technical', setup: '', coaching: '', progression: '', equipment: '', diagram: null, version: 0 });
   const clone = value => JSON.parse(JSON.stringify(value));
   let context = null, identity = '', epoch = 0, records = [], loaded = false, loading = false, writing = false;
-  let record = blank(), baseline = '', recovery = null, lastAttempt = null, historyLimit = 8, suggestionInputs = null;
+  let record = blank(), baseline = '', recovery = null, conflict = false, lastAttempt = null, historyLimit = 8, suggestionInputs = null;
   const permitted = drill => context?.profile && (['owner', 'admin'].includes(context.profile.role) || drill.author_email === context.profile.email);
   const standalone = () => context?.tab === 'library';
   const ready = () => !!context?.profile && ['plan', 'library'].includes(context.tab);
   const sessionHome = mount.parentNode, sessionAnchor = document.createComment('session drill library'); sessionHome.insertBefore(sessionAnchor, mount);
   const locked = () => !ready() || !!context.busy || writing || loading;
   const canInsert = () => !locked() && !standalone() && context.planReady && context.session?.status !== 'Cancelled';
-  const values = () => Object.fromEntries(fields.map(key => [key, key === 'minutes' ? Number($('library-' + key).value) : $('library-' + key).value.trim()]));
-  const fingerprint = value => JSON.stringify(Object.fromEntries(fields.map(key => [key, value[key]])));
+  const values = () => ({ ...Object.fromEntries(fields.map(key => [key, key === 'minutes' ? Number($('library-' + key).value) : $('library-' + key).value.trim()])), diagram: record.diagram || null });
+  const fingerprint = value => JSON.stringify({ ...Object.fromEntries(fields.map(key => [key, value[key]])), diagram: value.diagram || null });
   const dirty = () => !!identity && (Boolean(recovery) || fingerprint(values()) !== baseline);
   const request = (operation, payload) => new Promise((resolve, reject) => emit('coach:library-request', { operation, payload, resolve, reject }));
   const notify = (text, error = false) => { $('library-status').textContent = text; $('library-status').setAttribute('role', error ? 'alert' : 'status'); };
@@ -26,7 +26,7 @@
   function select(id, entries) { const el = node('select'); el.id = id; entries.forEach(([value, text]) => { const option = node('option', text); option.value = value; el.append(option); }); return el; }
   function writeEditor(next = blank()) {
     record = clone(next); for (const key of fields) $('library-' + key).value = record[key] ?? '';
-    baseline = fingerprint(values()); recovery = null; lastAttempt = null;
+    baseline = fingerprint(values()); recovery = null; conflict = false; lastAttempt = null;
     $('library-editor-title').textContent = record.id ? 'Edit reusable drill' : 'Create a reusable drill';
     renderState();
   }
@@ -41,7 +41,8 @@
   const status = node('p', '', 'library-status'); status.id = 'library-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); body.append(status);
   const filters = node('div', '', 'library-filters'), search = node('input'); search.id = 'library-search'; search.type = 'search'; search.placeholder = 'Title, focus or setup'; search.autocomplete = 'off';
   const focus = select('library-filter', [['all', 'Every plan section'], ...Object.entries(targets)]);
-  filters.append(label('Find a saved drill', search), label('Plan section', focus));
+  const skillFilter = select('library-skill-filter', [['', 'Every skill focus']]), durationFilter = select('library-duration-filter', [['', 'Any duration'], ['short', 'Up to 10 minutes'], ['medium', '11–20 minutes'], ['long', 'Over 20 minutes']]);
+  filters.append(label('Find a saved drill', search), label('Plan section', focus), label('Skill focus', skillFilter), label('Duration', durationFilter));
   const reload = action('Load saved drills', () => load(true)); reload.id = 'library-reload';
   filters.append(reload, newDrill); body.append(filters);
   const results = node('p', '', 'small'); results.id = 'library-results'; results.setAttribute('role', 'status'); body.append(results);
@@ -65,9 +66,15 @@
     const field = node('textarea'); field.id = 'library-' + key; field.rows = key === 'setup' ? 4 : 2; field.maxLength = 2000; field.required = key === 'setup'; editor.append(label(title, field));
   }
   const editorActions = node('div', '', 'library-actions'), save = node('button', 'Save drill', 'button'); save.id = 'library-save'; save.type = 'submit';
+  const diagramBox = node('section', '', 'library-diagram'), diagramPreview = node('div', '', 'library-diagram-preview'), diagramStatus = node('p', '', 'small'); diagramStatus.id = 'library-diagram-status';
+  const attachDiagram = action('Attach current tactics board', () => { if (locked() || recovery) return; const draft = window.CoachTactics?.getDraft(); if (!draft || draft.sessionId !== context.session?.id) return notify('Open the tactics board in a session first, then attach it here.', true); record.diagram = clone(draft.diagram); renderState(); notify('Diagram attached to this drill draft. Save drill to keep both together.'); }); attachDiagram.id = 'library-attach-diagram';
+  const removeDiagram = action('Remove attached diagram', () => { if (locked() || recovery) return; record.diagram = null; renderState(); }); removeDiagram.id = 'library-remove-diagram';
+  diagramBox.append(node('h4', 'Drill diagram'), diagramPreview, diagramStatus, attachDiagram, removeDiagram); editor.append(diagramBox);
   const cancel = action('Clear draft', () => { if (locked()) return; if (dirty() && !confirm('Discard this unsaved drill?')) return; discard(); }); cancel.id = 'library-cancel';
   const retry = action('Retry same save', () => { if (recovery && !locked()) persist(recovery); }); retry.id = 'library-retry'; retry.hidden = true;
-  editorActions.append(save, cancel, retry); editor.append(editorActions);
+  const latest = action('Open latest saved drill', () => { if (locked() || recovery || !conflict) return; if (dirty() && !confirm('Discard your unsaved changes and open the latest saved drill?')) return; load(true, record.id); }); latest.id = 'library-open-latest';
+  const keepCopy = action('Keep draft as new drill', () => { if (!locked() && !recovery && conflict) copyDraft({ ...record, ...values() }); }); keepCopy.id = 'library-keep-copy';
+  editorActions.append(save, cancel, retry, latest, keepCopy); editor.append(editorActions);
   const reuse = node('div', '', 'library-capture'), source = select('library-source-section', Object.entries(targets));
   const capture = action('Use saved plan section', () => {
     if (!canInsert() || recovery) return;
@@ -79,24 +86,29 @@
     notify(String(text).length > 2000 ? 'The first 2,000 characters were copied. Review the draft, remove personal details, then save.' : 'Copied from the saved plan. Review the draft and remove personal details before saving.'); renderState();
   }); capture.id = 'library-capture'; reuse.append(label('Turn a saved activity into a drill', source), capture); editor.append(reuse); body.append(editor); disclosure.append(body); mount.append(disclosure);
   for (const key of fields) $('library-' + key).addEventListener('input', renderState);
-  search.addEventListener('input', () => { historyLimit = 8; renderList(); }); focus.addEventListener('change', () => { historyLimit = 8; renderList(); });
+  search.addEventListener('input', () => { historyLimit = 8; renderList(); });
+  for (const filter of [focus, skillFilter, durationFilter]) filter.addEventListener('change', () => { historyLimit = 8; renderList(); });
   scope.addEventListener('change', renderSuggestions);
   disclosure.addEventListener('toggle', () => { if (disclosure.open && ready() && !loaded && !loading) load(); });
   editor.addEventListener('submit', event => {
-    event.preventDefault(); if (locked() || recovery || !editor.reportValidity()) return;
+    event.preventDefault(); if (locked() || recovery || conflict || !editor.reportValidity()) return;
     const draft = values(), signature = fingerprint(draft);
     const payload = { id: record.id, ...draft, diagram: record.diagram || null, expectedVersion: record.version || 0 };
     if (!record.id) payload.requestId = lastAttempt?.signature === signature ? lastAttempt.payload.requestId : crypto.randomUUID();
     lastAttempt = { signature, payload }; persist({ operation: 'save', payload });
   });
   function renderState() {
+    diagramPreview.replaceChildren(); const thumbnail = window.CoachTactics?.preview(record.diagram); if (thumbnail) diagramPreview.append(thumbnail);
+    diagramStatus.textContent = record.diagram ? 'Attached · ' + record.diagram.frames.length + ' steps. Changes to the tactics board do not change this saved copy.' : 'No diagram attached.';
+    attachDiagram.hidden = standalone(); attachDiagram.disabled = removeDiagram.disabled = locked() || !!recovery; removeDiagram.hidden = !record.diagram;
     for (const field of editor.querySelectorAll('input,select,textarea')) field.disabled = locked() || !!recovery;
-    save.disabled = locked() || !!recovery; cancel.disabled = locked(); retry.disabled = locked();
+    save.disabled = locked() || !!recovery || conflict; cancel.disabled = locked(); retry.disabled = locked();
+    latest.hidden = keepCopy.hidden = !conflict; latest.disabled = keepCopy.disabled = locked() || !!recovery;
     cancel.hidden = !record.id && !dirty(); retry.hidden = !recovery; retry.textContent = recovery?.operation === 'archive' ? 'Retry same archive' : 'Retry same save';
     newDrill.hidden = !standalone(); newDrill.disabled = locked() || !!recovery;
     suggestions.hidden = reuse.hidden = standalone();
     capture.disabled = !canInsert() || !!recovery; reload.disabled = locked() || loading;
-    search.disabled = focus.disabled = scope.disabled = locked();
+    search.disabled = focus.disabled = skillFilter.disabled = durationFilter.disabled = scope.disabled = locked();
     reload.textContent = loading ? 'Loading…' : loaded ? 'Refresh saved drills' : 'Load saved drills';
     save.textContent = writing ? 'Saving…' : record.id ? 'Save changes' : 'Save drill';
     for (const el of list.querySelectorAll('button')) { el.disabled = locked() || !!recovery || (el.dataset.insert === 'true' && !canInsert()); if (el.dataset.insert === 'true') el.hidden = standalone(); }
@@ -106,24 +118,36 @@
   function insert(drill) {
     if (!canInsert() || recovery) return;
     const text = drill.title + ' (' + drill.minutes + ' min)\n' + drill.setup + (drill.coaching ? '\nCoach: ' + drill.coaching : '') + (drill.progression ? '\nAdapt: ' + drill.progression : '') + (drill.equipment ? '\nEquipment: ' + drill.equipment : '');
-    emit('coach:insert-plan', { target: drill.target, text }); notify('Activity offered to your plan draft. Review it and save the shared plan when ready.');
+    const addition = { target: drill.target, text, title: drill.title, diagram: drill.diagram || null };
+    emit('coach:insert-plan', addition); if (addition.inserted) notify(drill.diagram ? 'Instructions and diagram added to drafts. Save the plan and Save setup when ready.' : 'Activity offered to your plan draft. Review it and save the shared plan when ready.');
   }
   function edit(drill) {
     if (locked() || recovery || !permitted(drill)) return;
     if (dirty() && !confirm('Edit this drill and discard the current unsaved drill?')) return;
     writeEditor(drill); editor.hidden = false; notify(''); $('library-title').focus();
   }
+  function copyDraft(drill) {
+    writeEditor({ ...blank(), ...Object.fromEntries(fields.map(key => [key, drill[key]])), title: drill.title.slice(0, 73) + ' (copy)', diagram: drill.diagram || null });
+    baseline = fingerprint(blank()); editor.hidden = false; renderState();
+    notify('Unsaved drill copy. Review it and choose Save drill to keep it.'); $('library-title').focus();
+  }
   function renderList() {
     const query = search.value.trim().toLowerCase();
-    const matching = records.filter(permitted).filter(drill => (focus.value === 'all' || drill.target === focus.value) && (!query || [drill.title, drill.skill, drill.setup, drill.coaching, drill.progression, drill.equipment].join(' ').toLowerCase().includes(query))).sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)) || a.title.localeCompare(b.title));
+    const available = records.filter(permitted), priorSkill = skillFilter.value, skills = new Map(available.filter(drill => drill.skill.trim()).map(drill => [drill.skill.trim().toLowerCase(), drill.skill.trim()]));
+    skillFilter.replaceChildren(...select('', [['', 'Every skill focus'], ...[...skills].sort((a, b) => a[1].localeCompare(b[1]))]).options); skillFilter.value = skills.has(priorSkill) ? priorSkill : '';
+    const matching = available.filter(drill => (focus.value === 'all' || drill.target === focus.value) && (!skillFilter.value || drill.skill.trim().toLowerCase() === skillFilter.value) && (!durationFilter.value || (durationFilter.value === 'short' ? drill.minutes <= 10 : durationFilter.value === 'medium' ? drill.minutes > 10 && drill.minutes <= 20 : drill.minutes > 20)) && (!query || [drill.title, drill.skill, drill.setup, drill.coaching, drill.progression, drill.equipment].join(' ').toLowerCase().includes(query))).sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)) || a.title.localeCompare(b.title));
     results.textContent = loaded ? Math.min(matching.length, historyLimit) + ' of ' + matching.length + ' matching drills' : 'Open or load your library to see saved drills.';
     list.replaceChildren();
     for (const drill of matching.slice(0, historyLimit)) {
       const card = node('article', '', 'library-card'); card.dataset.drillId = drill.id;
-      card.append(node('h3', drill.title), node('p', [drill.skill, drill.minutes + ' min', targets[drill.target]].filter(Boolean).join(' · '), 'small'), node('p', drill.setup, 'library-instructions'));
-      if (drill.coaching) card.append(node('p', 'Coach: ' + drill.coaching));
-      if (drill.progression) card.append(node('p', 'Adapt: ' + drill.progression));
-      if (drill.equipment) card.append(node('p', 'Equipment: ' + drill.equipment, 'small'));
+      const longSetup = drill.setup.length > 160;
+      card.append(node('h3', drill.title), node('p', [drill.skill, drill.minutes + ' min', targets[drill.target]].filter(Boolean).join(' · '), 'small'), node('p', longSetup ? drill.setup.slice(0, 157).trimEnd() + '…' : drill.setup, 'library-instructions'));
+      if (longSetup || drill.coaching || drill.progression || drill.equipment) {
+        const details = node('details', '', 'library-card-details'); details.append(node('summary', 'Drill details'));
+        if (longSetup) details.append(node('p', drill.setup, 'library-instructions'));
+        for (const [key, label] of [['coaching', 'Coach'], ['progression', 'Adapt'], ['equipment', 'Equipment']]) if (drill[key]) details.append(node('p', label + ': ' + drill[key], 'library-instructions'));
+        card.append(details);
+      }
       card.append(node('p', drill.author_email === context.profile.email ? 'Your reusable drill' : 'Shared with full-access coaches · ' + drill.author_email, 'small'));
       const actions = node('div', '', 'library-actions'), add = action('Add to ' + targets[drill.target].toLowerCase(), () => insert(drill)); add.dataset.insert = 'true';
       const change = action('Edit drill', () => edit(drill)), archive = action('Archive drill', () => {
@@ -131,7 +155,8 @@
         if (dirty()) return notify('Save or clear your current drill draft before archiving.', true);
         if (confirm('Archive this reusable drill? Saved session plans will stay unchanged.')) persist({ operation: 'archive', payload: { id: drill.id, expectedVersion: drill.version } });
       });
-      actions.append(add, change, archive); card.append(actions); list.append(card);
+      const duplicate = action('Duplicate drill', () => { if (locked() || recovery || !permitted(drill)) return; if (dirty() && !confirm('Discard your current unsaved drill and make a copy?')) return; copyDraft(drill); });
+      actions.append(add, change, duplicate, archive); const thumbnail = window.CoachTactics?.preview(drill.diagram); if (thumbnail) { const preview = node('div', '', 'library-diagram-preview'); preview.append(thumbnail); card.prepend(preview); } card.append(actions); list.append(card);
     }
     if (loaded && !matching.length) list.append(node('p', records.length ? 'No saved drills match these filters.' : 'Your library is empty. Save a useful activity below to reuse it.', 'empty-state'));
     more.hidden = matching.length <= historyLimit; renderState();
@@ -182,7 +207,7 @@
     return rows.filter(permitted);
   }
   function matchesSaved(drill, payload) { return drill && (!payload.id || drill.id === payload.id) && drill.version >= payload.expectedVersion + 1 && fingerprint(drill) === fingerprint(payload) && JSON.stringify(drill.diagram || null) === JSON.stringify(payload.diagram || null) && (payload.id || drill.request_id === payload.requestId); }
-  async function load(force = false) {
+  async function load(force = false, openId = null) {
     if (!ready() || loading || writing || context.busy || loaded && !force) return;
     const ticket = ++epoch, started = identity; loading = true; renderState();
     try {
@@ -193,7 +218,11 @@
         if (matches.length === 1) { writeEditor(matches[0]); notify('The earlier save is verified. Your drill is in the library.'); }
         else notify('The earlier save is not verified yet. Retry the same save or review before discarding.', true);
       } else if (recovery?.operation === 'archive' && !records.some(drill => drill.id === recovery.payload.id)) { writeEditor(); notify('The earlier archive is verified.'); }
-      else notify('Saved drills refreshed.');
+      else if (openId) {
+        const saved = records.find(drill => drill.id === openId);
+        if (saved) { writeEditor(saved); notify('Latest saved drill opened.'); }
+        else notify('This drill is no longer available. Keep your draft as a new drill to preserve it.', true);
+      } else notify(conflict ? 'Saved drills refreshed. Open the latest saved drill or keep your draft as a new drill.' : 'Saved drills refreshed.');
       renderList(); renderSuggestions();
     } catch (error) { if (ticket === epoch && identity === started) notify(error.message || 'Your library could not load. Try again.', true); }
     finally { if (ticket === epoch && identity === started) { loading = false; renderState(); } }
@@ -215,6 +244,7 @@
     } catch (error) {
       if (ticket !== epoch || identity !== started) return;
       if (!error.code) recovery = clone(attempt);
+      if (error.code === 'DRILL_CHANGED' && attempt.operation === 'save' && attempt.payload.id === record.id) conflict = true;
       notify(error.code ? error.message || 'The drill could not be saved. Review or refresh it.' : 'The result could not be verified. Refresh the library or retry the exact same action; your draft is kept.', true);
     } finally { if (ticket === epoch && identity === started) { writing = false; renderState(); } }
   }
@@ -237,7 +267,7 @@
     const next = event.detail, nextIdentity = next?.profile ? [next.profile.email, next.profile.role, next.profile.sessionVersion, next.session?.id || ''].join(':') : '';
     if (nextIdentity !== identity) {
       epoch++; writing = loading = false; records = []; loaded = false; recovery = lastAttempt = null; identity = nextIdentity; context = next;
-      disclosure.open = false; search.value = ''; focus.value = 'all'; scope.value = ''; historyLimit = 8; suggestionInputs = null; writeEditor(); notify(''); list.replaceChildren(); recommendationList.replaceChildren(); results.textContent = ''; scope.replaceChildren();
+      disclosure.open = false; search.value = ''; focus.value = 'all'; skillFilter.value = durationFilter.value = ''; scope.value = ''; historyLimit = 8; suggestionInputs = null; writeEditor(); notify(''); list.replaceChildren(); recommendationList.replaceChildren(); results.textContent = ''; scope.replaceChildren(); skillFilter.replaceChildren(...select('', [['', 'Every skill focus']]).options);
     } else context = next;
     if (!next?.profile) { mount.hidden = true; sessionAnchor.after(mount); return; }
     const root = standalone() ? $('standalone-drill-library') : sessionHome;

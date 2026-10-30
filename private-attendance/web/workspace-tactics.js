@@ -16,7 +16,7 @@
   const blank = () => ({ id: null, title: 'New drill', version: 0, content: { schemaVersion: 1, pitch: 'full', items: [], frames: [{ id: uid('phase_'), title: 'Starting positions', duration: 3, positions: [] }] } });
   let context = null, identity = '', record = blank(), baseline = '', diagrams = [], loaded = false, loadAttempted = false, pending = false, requestEpoch = 0, lastAttempt = null, recoveryNeeded = false;
   let selectedItem = '', frameIndex = 0, undo = [], redo = [], pointer = null, running = false, animation = 0, elapsed = 0, started = 0, renderedPositions = null;
-  let message = 'Choose a session, then open the tactics board.', messageError = false;
+  let message = 'Choose a session, then open the tactics board.', messageError = false, playbackSpeed = 1, loopPlayback = false, titleEditing = false;
   let sourceSessionId = '', sourceDiagrams = [];
   const snapshot = () => JSON.stringify({ title: record.title, content: record.content });
   baseline = snapshot();
@@ -34,7 +34,16 @@
   function mutate(fn, text) { if (!editable()) return; stopPlayback(); remember(); fn(); if (text) tell(text); render(); notifyDraft(); }
   function clear(next = blank()) { stopPlayback(); record = clone(next); record.content = clone(next.content); frameIndex = 0; selectedItem = ''; undo = []; redo = []; lastAttempt = null; recoveryNeeded = false; baseline = snapshot(); render(); notifyDraft(); }
   function discard() { stopPlayback(); const saved = JSON.parse(baseline); record.title = saved.title; record.content = saved.content; frameIndex = 0; selectedItem = ''; undo = []; redo = []; render(); notifyDraft(); }
-  window.CoachTactics = Object.freeze({ isDirty: dirty, isBusy: () => pending, discard });
+  window.CoachTactics = Object.freeze({ isDirty: dirty, isBusy: () => pending, discard,
+    getDraft: () => active() && loaded && !pending && !running ? { sessionId: context.session.id, title: record.title, diagram: clone(record.content) } : null,
+    preview: content => content?.frames?.[0] && Array.isArray(content.items) ? previewFrame(content.frames[0], content.items) : null,
+    useDraft });
+  function useDraft(value) {
+    if (!editable() || recoveryNeeded || value.sessionId !== context.session.id || value.diagram?.schemaVersion !== 1 || !Array.isArray(value.diagram.items) || !value.diagram.frames?.length) return false;
+    if (dirty() && !confirm('Replace the current unsaved diagram with this drill’s diagram?')) return false;
+    clear(); record.title = String(value.title || 'Drill diagram').slice(0, 80); record.content = clone(value.diagram); $('tactics-disclosure').open = true;
+    render(); tell('Drill diagram copied to this session draft. Save setup to keep it.'); notifyDraft(); return true;
+  }
 
   const intro = el('div', '', 'tactics-intro');
   intro.append(el('p', 'Map the setup. Show the movement.', 'tactics-kicker'), el('p', 'Place players and equipment, add the next phase, then move the pieces to show what happens next. Diagrams are shared with coaches assigned to this session.', 'small'));
@@ -56,7 +65,8 @@
   editor.id = 'tactics-editor';
   const heading = el('div', '', 'tactics-heading');
   const title = input('tactics-title'); title.maxLength = 80; title.value = record.title;
-  title.addEventListener('input', () => { if (!editable()) return; record.title = title.value; renderStatus(); $('tactics-save').disabled = recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id); notifyDraft(); });
+  title.addEventListener('input', () => { if (!editable()) return; if (!titleEditing) { remember(); titleEditing = true; } record.title = title.value; $('tactics-undo').disabled = false; renderStatus(); $('tactics-save').disabled = recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id); notifyDraft(); });
+  title.addEventListener('blur', () => { titleEditing = false; });
   const pitch = select('tactics-pitch', [['full', 'Full pitch'], ['half', 'Half pitch'], ['blank', 'Open training area']]);
   pitch.addEventListener('change', () => mutate(() => { record.content.pitch = pitch.value; }));
   heading.append(field('Setup name', title), field('Field', pitch));
@@ -78,33 +88,47 @@
   const board = svg('svg', { id: 'tactics-pitch-board', viewBox: '0 0 1000 650', role: 'group', 'aria-label': 'Tactics field. Select a piece and drag, tap a destination, or use arrow keys.', tabindex: '0' });
   canvasWrap.append(board);
   const emptyHint = el('div', 'Add a player or try the passing triangle to begin.', 'tactics-empty-hint'); emptyHint.id = 'tactics-empty-hint'; canvasWrap.append(emptyHint);
-  const help = el('p', 'Drag pieces, or select one and tap its destination. Arrow keys move a selected piece; Shift moves farther.', 'tactics-board-help');
+  const help = el('p', 'Drag, or select and tap to move. Arrows: move · Shift: farther · Ctrl/⌘ Z: undo · Delete: remove from all steps · Escape: deselect. Solid path: ball movement. Dashed path: player or equipment movement.', 'tactics-board-help');
   const side = el('div', '', 'tactics-piece-panel');
   const itemSelect = select('tactics-item', [['', 'Choose a piece']]);
   itemSelect.addEventListener('change', () => { if (!editable()) return; selectedItem = itemSelect.value; stopPlayback(); render(); });
   const labelInput = input('tactics-label'); labelInput.maxLength = 12;
-  labelInput.addEventListener('change', () => mutate(() => { const item = record.content.items.find(i => i.id === selectedItem); if (item) item.label = labelInput.value.trim(); }));
+  let labelEditing = false;
+  labelInput.addEventListener('input', () => { if (!editable()) return; const item = record.content.items.find(i => i.id === selectedItem); if (!item) return; if (!labelEditing) { remember(); labelEditing = true; } item.label = labelInput.value.trim(); draw(); editedText(); });
+  labelInput.addEventListener('blur', () => { labelEditing = false; });
   const nudge = el('div', '', 'tactics-nudge'); nudge.setAttribute('role', 'group'); nudge.setAttribute('aria-label', 'Move selected piece');
   for (const [direction, text, dx, dy] of [['up', '↑ Up', 0, -2], ['left', '← Left', -2, 0], ['right', 'Right →', 2, 0], ['down', 'Down ↓', 0, 2]]) nudge.append(button(text, 'tactics-nudge-' + direction, () => moveSelected(dx, dy)));
   const coordinate = el('p', '', 'small'); coordinate.id = 'tactics-coordinate';
   const pathToggle = input('tactics-paths', 'checkbox'); pathToggle.checked = true; pathToggle.addEventListener('change', draw);
   const pathLabel = field('Show movement paths', pathToggle); pathLabel.className = 'tactics-check';
-  side.append(field('Selected piece', itemSelect), field('Short label', labelInput), nudge, coordinate, button('Remove piece', 'tactics-remove-item', () => mutate(() => { const id = selectedItem; record.content.items = record.content.items.filter(i => i.id !== id); for (const f of record.content.frames) f.positions = f.positions.filter(p => p.id !== id); selectedItem = ''; }, 'Piece removed from every phase.')), pathLabel);
+  side.append(el('p', 'Select a piece on the field or use the list below. Drag to move; Escape clears selection.', 'tactics-selection-hint'), field('Selected piece', itemSelect), field('Short label', labelInput), nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const id = selectedItem; record.content.items = record.content.items.filter(i => i.id !== id); for (const f of record.content.frames) f.positions = f.positions.filter(p => p.id !== id); selectedItem = ''; }, 'Piece removed from every step. Undo restores it.')), pathLabel);
   boardLayout.append(canvasWrap, side);
   const phases = el('section', '', 'tactics-phases'); phases.setAttribute('aria-label', 'Movement phases');
   const phaseHeading = el('div', '', 'tactics-phase-heading'); phaseHeading.append(el('h3', 'Movement sequence'), el('span', '', 'small')); phaseHeading.lastChild.id = 'tactics-sequence-summary';
   const frameButtons = el('div', '', 'tactics-frame-list'); frameButtons.id = 'tactics-frames'; frameButtons.setAttribute('role', 'group'); frameButtons.setAttribute('aria-label', 'Choose a movement phase');
   const frameSettings = el('div', '', 'tactics-frame-settings');
-  const frameTitle = input('tactics-frame-title'); frameTitle.maxLength = 80; frameTitle.addEventListener('change', () => mutate(() => { currentFrame().title = frameTitle.value.trim() || 'Phase ' + (frameIndex + 1); }));
+  const frameTitle = input('tactics-frame-title'); frameTitle.maxLength = 80; let frameEditing = false;
+  frameTitle.addEventListener('input', () => { if (!editable()) return; if (!frameEditing) { remember(); frameEditing = true; } currentFrame().title = frameTitle.value.trim() || 'Step ' + (frameIndex + 1); const selected = $('tactics-frame-' + frameIndex); if (selected) selected.lastChild.textContent = (frameIndex + 1) + '. ' + currentFrame().title; editedText(); });
+  frameTitle.addEventListener('blur', () => { frameEditing = false; });
   const duration = input('tactics-duration', 'number'); duration.min = '.5'; duration.max = '20'; duration.step = '.5'; duration.inputMode = 'decimal';
-  duration.addEventListener('change', () => { const value = Number(duration.value); if (!Number.isFinite(value) || value < .5 || value > 20) { duration.value = String(currentFrame().duration); return tell('Choose a movement time between 0.5 and 20 seconds.', true); } mutate(() => { currentFrame().duration = value; }); });
-  frameSettings.append(field('Phase name', frameTitle), field('Seconds to next phase', duration));
+  duration.addEventListener('change', () => { if (!editable()) return; const value = Number(duration.value); if (!Number.isFinite(value) || value < .5 || value > 20) { duration.value = String(currentFrame().duration); return tell('Choose a movement time between 0.5 and 20 seconds.', true); } if (value !== currentFrame().duration) { remember(); currentFrame().duration = value; scrub.max = String(totalSeconds()); $('tactics-sequence-summary').textContent = record.content.frames.length + ' / 12 steps · ' + totalSeconds() + 's · ' + record.content.items.length + ' / 40 pieces'; editedText(); } });
+  const durationField = field('Seconds to next step', duration);
+  frameSettings.append(field('Step name', frameTitle), durationField);
   const phaseActions = el('div', '', 'tactics-toolbar');
   phaseActions.append(button('+ Next phase', 'tactics-add-frame', () => mutate(() => { if (record.content.frames.length >= 12) return tell('Use up to 12 phases in one setup.', true); const next = clone(currentFrame()); next.id = uid('phase_'); next.title = 'Phase ' + (record.content.frames.length + 1); record.content.frames.splice(frameIndex + 1, 0, next); frameIndex++; }, 'Phase copied. Move the pieces to their next positions.')), button('Remove phase', 'tactics-remove-frame', () => mutate(() => { if (record.content.frames.length <= 1) return; record.content.frames.splice(frameIndex, 1); frameIndex = Math.min(frameIndex, record.content.frames.length - 1); }, 'Phase removed.')));
   const playback = el('div', '', 'tactics-playback');
   playback.append(button('Play movement', 'tactics-play', togglePlayback, true), button('Back to start', 'tactics-reset', () => { if (!active() || pending) return; stopPlayback(); frameIndex = 0; render(); }), el('span', '', 'small'));
   playback.lastChild.id = 'tactics-playback-status'; playback.lastChild.setAttribute('aria-live', 'off');
-  phases.append(phaseHeading, frameButtons, frameSettings, phaseActions, playback);
+  phaseActions.append(button('Move step earlier', 'tactics-step-earlier', () => reorderStep(-1)), button('Move step later', 'tactics-step-later', () => reorderStep(1)));
+  const speed = select('tactics-speed', [['0.5', '0.5×'], ['1', '1×'], ['2', '2×']]); speed.value = '1';
+  speed.addEventListener('change', () => { if (running) pause(); playbackSpeed = Number(speed.value); renderPlayback(); });
+  const loop = input('tactics-loop', 'checkbox'); loop.addEventListener('change', () => { loopPlayback = loop.checked; });
+  const scrub = input('tactics-progress', 'range'); scrub.min = '0'; scrub.step = '.1'; scrub.value = '0';
+  scrub.addEventListener('input', () => seek(Number(scrub.value)));
+  const previewControls = el('div', '', 'tactics-preview-controls');
+  previewControls.append(field('Playback speed', speed), field('Loop', loop), field('Animation position (seconds)', scrub));
+  phases.append(previewControls);
+  phases.append(phaseHeading, frameButtons, frameSettings, phaseActions, previewControls, playback);
   const footer = el('div', '', 'tactics-footer');
   const editingActions = el('div', '', 'tactics-toolbar');
   editingActions.append(button('Undo', 'tactics-undo', () => { if (!editable() || !undo.length) return; stopPlayback(); redo.push(capture()); apply(undo.pop()); render(); notifyDraft(); }), button('Redo', 'tactics-redo', () => { if (!editable() || !redo.length) return; stopPlayback(); undo.push(capture()); apply(redo.pop()); render(); notifyDraft(); }), button('Passing triangle', 'tactics-preset', preset));
@@ -115,8 +139,55 @@
   const reopen = button('Open latest saved version', 'tactics-open-latest', () => { if (!editable()) return; const latest = diagrams.find(d => d.id === record.id); if (!latest || dirty() && !confirm('Open the latest saved version and discard your unsaved diagram changes?')) return; clear(latest); tell('Latest loaded version opened.'); });
   const recoveryActions = el('div', '', 'tactics-toolbar tactics-recovery-actions'); recoveryActions.append(reload, reopen);
   footer.append(editingActions, saveActions, status, recoveryActions);
-  editor.append(heading, topActions, boardLayout, help, phases, footer);
-  mount.append(intro, library, reuse, editor);
+  const workbar = el('div', '', 'tactics-workbar');
+  const undoControl = editingActions.children[0], redoControl = editingActions.children[1], playControl = playback.firstElementChild, saveControl = saveActions.firstElementChild;
+  workbar.append(heading.firstChild, undoControl, redoControl, playControl, saveControl, status);
+  const extras = el('details', '', 'tactics-compact-details'); extras.append(el('summary', 'Field, templates & export'), heading, editingActions, saveActions,
+    button('Export SVG image', 'tactics-export', exportImage), button('Print diagram', 'tactics-print', printDiagram),
+    button('Save draft as new setup', 'tactics-save-copy', () => { if (!editable() || recoveryNeeded) return; const draft = clone(record); clear(); record.title = (draft.title.slice(0, 73) + ' (copy)').slice(0, 80); record.content = draft.content; render(); tell('New unsaved copy. Save setup to keep it.'); notifyDraft(); }), intro);
+  // Preserve existing controls and IDs while bringing the board and main actions forward.
+  extras.append(help);
+  editor.append(topActions, boardLayout, phases, extras, recoveryActions);
+  mount.append(workbar, editor, library, reuse);
+  function editedText() { $('tactics-undo').disabled = !undo.length; $('tactics-redo').disabled = !redo.length; $('tactics-save').disabled = recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id); renderStatus(); notifyDraft(); }
+  function duplicatePiece() {
+    if (!selectedItem || record.content.items.length >= 40) return;
+    mutate(() => { const original = record.content.items.find(i => i.id === selectedItem), copy = { ...original, id: uid('piece_') }; record.content.items.push(copy); for (const f of record.content.frames) { const p = f.positions.find(v => v.id === original.id); f.positions.push({ ...p, id: copy.id, x: clamp(p.x + 5), y: clamp(p.y + 5) }); } selectedItem = copy.id; }, 'Piece copied into every step.');
+  }
+  function reorderStep(direction) {
+    const next = frameIndex + direction; if (next < 0 || next >= record.content.frames.length) return;
+    mutate(() => { const [frame] = record.content.frames.splice(frameIndex, 1); record.content.frames.splice(next, 0, frame); frameIndex = next; }, 'Step moved. Review the movement before saving.');
+  }
+  function totalSeconds() { return record.content.frames.slice(0, -1).reduce((sum, f) => sum + f.duration, 0); }
+  function seek(seconds) {
+    if (!active() || !loaded || pending || context.busy || record.content.frames.length < 2) return;
+    stopPlayback(); const frames = record.content.frames; frameIndex = 0;
+    while (frameIndex < frames.length - 1 && seconds >= frames[frameIndex].duration) { seconds -= frames[frameIndex].duration; frameIndex++; }
+    if (frameIndex < frames.length - 1) { elapsed = seconds * 1000; const to = frames[frameIndex + 1], fraction = seconds / currentFrame().duration; renderedPositions = currentFrame().positions.map(p => { const q = to.positions.find(v => v.id === p.id); return { id: p.id, x: p.x + (q.x - p.x) * fraction, y: p.y + (q.y - p.y) * fraction }; }); }
+    render();
+  }
+  function previewFrame(frame, items = record.content.items) {
+    const thumbnail = svg('svg', { viewBox: '0 0 1000 650', 'aria-hidden': 'true' });
+    thumbnail.append(svg('rect', { width: 1000, height: 650, fill: '#e3ebdc' }), svg('rect', { x: 25, y: 25, width: 950, height: 600, fill: 'none', stroke: '#8ea58b', 'stroke-width': 8 }));
+    for (const p of frame.positions) { const item = items.find(i => i.id === p.id); if (!item) continue; thumbnail.append(svg('circle', { cx: p.x * 10, cy: p.y * 6.5, r: 24, fill: ({ home: '#255978', away: '#a9742a', cone: '#a8552e', ball: '#fff', goal: '#536e60' })[item.kind], stroke: '#293e37', 'stroke-width': 5 })); }
+    return thumbnail;
+  }
+  function exportBoard() {
+    const copy = board.cloneNode(true); copy.setAttribute('xmlns', ns); copy.setAttribute('width', '1600'); copy.setAttribute('height', '1040');
+    copy.removeAttribute('id'); copy.removeAttribute('tabindex'); copy.removeAttribute('style');
+    for (const n of copy.querySelectorAll('.tactics-hit')) n.remove();
+    return copy;
+  }
+  function exportImage() {
+    if (!active() || !loaded || pending) return;
+    const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(exportBoard())], { type: 'image/svg+xml' }));
+    const a = el('a'); a.href = url; a.download = 'star-soccer-drill.svg'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); tell('Current board exported as an SVG image.');
+  }
+  function printDiagram() {
+    if (!active() || !loaded || pending) return;
+    const page = window.open('', '_blank'); if (!page) return tell('Allow this print window or use Export image.', true);
+    const doc = page.document; doc.title = 'Star Soccer drill'; const name = doc.createElement('h1'); name.textContent = record.title; const detail = doc.createElement('p'); detail.textContent = 'Step ' + (frameIndex + 1) + ': ' + currentFrame().title; const picture = doc.importNode(exportBoard(), true); picture.style.width = '100%'; picture.style.height = 'auto'; doc.body.append(name, detail, picture); page.focus(); page.print();
+  }
 
   function renderReuseControls() {
     const disabled = !editable() || recoveryNeeded;
@@ -164,7 +235,7 @@
   }
   function render() {
     if (!context?.profile) { mount.replaceChildren(); return; }
-    if (!mount.childElementCount) mount.append(intro, library, reuse, editor);
+    if (!mount.childElementCount) mount.append(workbar, editor, library, reuse);
     title.value = record.title; pitch.value = record.content.pitch;
     librarySelect.replaceChildren(); const unsaved = el('option', 'New unsaved setup'); unsaved.value = ''; librarySelect.append(unsaved);
     for (const d of diagrams) { const option = el('option', d.title); option.value = d.id; librarySelect.append(option); }
@@ -174,17 +245,25 @@
     if (!record.content.items.some(i => i.id === selectedItem)) selectedItem = '';
     itemSelect.value = selectedItem; labelInput.value = record.content.items.find(i => i.id === selectedItem)?.label || '';
     const position = currentFrame().positions.find(p => p.id === selectedItem); coordinate.textContent = position ? 'Position: ' + Math.round(position.x) + '% across · ' + Math.round(position.y) + '% down' : 'Select a piece to position or label it.';
-    frameButtons.replaceChildren(...record.content.frames.map((f, index) => { const b = button((index + 1) + '. ' + f.title, 'tactics-frame-' + index, () => { if (!editable()) return; stopPlayback(); frameIndex = index; render(); }); b.dataset.tacticsFrame = index; b.setAttribute('aria-pressed', String(frameIndex === index)); return b; }));
+    side.dataset.selected = String(!!selectedItem);
+    frameButtons.replaceChildren(...record.content.frames.map((f, index) => { const b = button('', 'tactics-frame-' + index, () => { if (!editable()) return; stopPlayback(); frameIndex = index; render(); }); const preview = el('span', '', 'tactics-frame-preview'); preview.append(previewFrame(f)); b.append(preview, el('span', (index + 1) + '. ' + f.title)); b.dataset.tacticsFrame = index; b.setAttribute('aria-pressed', String(frameIndex === index)); return b; }));
     frameTitle.value = currentFrame().title; duration.value = String(currentFrame().duration);
-    $('tactics-sequence-summary').textContent = record.content.frames.length + ' / 12 phases · ' + record.content.items.length + ' / 40 pieces';
+    durationField.hidden = frameIndex === record.content.frames.length - 1;
+    $('tactics-sequence-summary').textContent = record.content.frames.length + ' / 12 steps · ' + totalSeconds() + 's · ' + record.content.items.length + ' / 40 pieces';
     const disabled = !editable();
     for (const control of mount.querySelectorAll('button,input,select')) control.disabled = disabled;
     $('tactics-play').disabled = !active() || !loaded || pending || context.busy || record.content.frames.length < 2;
     $('tactics-reset').disabled = !active() || !loaded || pending || context.busy;
+    speed.disabled = loop.disabled = scrub.disabled = !active() || !loaded || pending || context.busy || record.content.frames.length < 2;
+    scrub.max = String(totalSeconds());
     $('tactics-retry').disabled = !active() || pending || context.busy;
     pathToggle.disabled = !active() || !loaded;
     labelInput.disabled = disabled || !selectedItem;
     for (const control of side.querySelectorAll('button')) control.disabled = disabled || !selectedItem;
+    $('tactics-duplicate-item').disabled = disabled || !selectedItem || record.content.items.length >= 40;
+    $('tactics-step-earlier').disabled = disabled || frameIndex === 0;
+    $('tactics-step-later').disabled = disabled || frameIndex === record.content.frames.length - 1;
+    $('tactics-save-copy').disabled = disabled || recoveryNeeded;
     $('tactics-remove-frame').disabled = disabled || record.content.frames.length <= 1;
     $('tactics-add-frame').disabled = disabled || record.content.frames.length >= 12;
     $('tactics-save').disabled = disabled || recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id);
@@ -211,14 +290,16 @@
     const defs = svg('defs'), marker = svg('marker', { id: 'tactics-arrow', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }); marker.append(svg('path', { d: 'M0 0 L10 5 L0 10z', fill: '#536e60' })); defs.append(marker); board.append(defs);
     if (pathToggle.checked && record.content.frames.length > 1) {
       const from = record.content.frames[frameIndex === 0 ? 0 : frameIndex - 1], to = record.content.frames[frameIndex === 0 ? 1 : frameIndex];
-      for (const start of from.positions) { const end = to.positions.find(p => p.id === start.id); if (!end || Math.hypot(end.x - start.x, end.y - start.y) < 1) continue; board.append(svg('line', { x1: start.x * 10, y1: start.y * 6.5, x2: end.x * 10, y2: end.y * 6.5, stroke: '#536e60', 'stroke-width': 3, 'stroke-dasharray': '9 7', 'marker-end': 'url(#tactics-arrow)', opacity: .7, 'pointer-events': 'none' })); }
+      for (const start of from.positions) { const end = to.positions.find(p => p.id === start.id); if (!end || Math.hypot(end.x - start.x, end.y - start.y) < 1) continue; const ball = record.content.items.find(i => i.id === start.id)?.kind === 'ball'; board.append(svg('line', { x1: start.x * 10, y1: start.y * 6.5, x2: end.x * 10, y2: end.y * 6.5, stroke: '#536e60', 'stroke-width': 4, 'stroke-dasharray': ball ? 'none' : '9 7', 'marker-end': 'url(#tactics-arrow)', opacity: .85, 'pointer-events': 'none' })); }
     }
     const positions = renderedPositions || currentFrame().positions;
     for (const item of record.content.items) {
       const p = positions.find(point => point.id === item.id); if (!p) continue;
       const piece = svg('g', { transform: 'translate(' + (p.x * 10) + ' ' + (p.y * 6.5) + ')', 'data-tactics-item': item.id, role: 'button', tabindex: editable() ? '0' : '-1', 'aria-label': kinds[item.kind] + (item.label ? ' ' + item.label : '') + ', position ' + Math.round(p.x) + ', ' + Math.round(p.y), 'aria-pressed': String(item.id === selectedItem), 'aria-disabled': String(!editable()) });
       const art = svg('g', { class: 'tactics-piece-art' });
-      piece.append(art); art.append(svg('circle', { r: 30, fill: 'transparent', class: 'tactics-hit' }));
+      const mobileScale = matchMedia('(max-width: 520px)').matches ? 1.5 : 1;
+      const hitRadius = Math.max(30, 22 * 1000 / Math.max(1, board.getBoundingClientRect().width || 1000) / mobileScale);
+      piece.append(art); art.append(svg('circle', { r: hitRadius, fill: 'transparent', class: 'tactics-hit' }));
       if (item.id === selectedItem) art.append(svg('circle', { r: 28, fill: 'none', stroke: '#152d42', 'stroke-width': 3, 'stroke-dasharray': '4 3', 'pointer-events': 'none' }));
       if (['home', 'away'].includes(item.kind)) art.append(svg('circle', { r: 20, fill: item.kind === 'home' ? '#255978' : '#e7c59a', stroke: item.kind === 'home' ? '#fff' : '#704e29', 'stroke-width': 2.5 }));
       if (item.kind === 'cone') art.append(svg('path', { d: 'M0 -21 L20 18 L-20 18z', fill: '#c86e37', stroke: '#7e3c20', 'stroke-width': 2 }));
@@ -252,22 +333,33 @@
     const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
     if (directions[event.key] && (selectedItem || target)) { event.preventDefault(); if (target) selectedItem = target.dataset.tacticsItem; const [x, y] = directions[event.key]; moveSelected(x * (event.shiftKey ? 5 : 1), y * (event.shiftKey ? 5 : 1)); board.focus(); }
   });
+  mount.addEventListener('keydown', event => {
+    if (!editable() || event.target.closest('input,textarea,select,[contenteditable=true]')) return;
+    let control;
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') control = event.shiftKey ? 'tactics-redo' : 'tactics-undo';
+    else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') control = 'tactics-redo';
+    else if (event.key === 'Delete' && selectedItem) control = 'tactics-remove-item';
+    else if (event.key === 'Escape' && selectedItem) { event.preventDefault(); event.stopPropagation(); selectedItem = ''; render(); board.focus(); return; }
+    if (control) { event.preventDefault(); $(control).click(); board.focus(); }
+  });
   function renderPlayback() {
     if (!$('tactics-play')) return;
     $('tactics-play').textContent = running ? 'Pause movement' : elapsed ? 'Resume movement' : 'Play movement';
     $('tactics-play').setAttribute('aria-pressed', String(running));
     $('tactics-playback-status').textContent = record.content.frames.length < 2 ? 'Add a next phase to animate movement.' : (running ? 'Playing · ' : elapsed ? 'Paused · ' : '') + 'Phase ' + (frameIndex + 1) + ' of ' + record.content.frames.length;
+    scrub.value = String(record.content.frames.slice(0, frameIndex).reduce((sum, f) => sum + f.duration, 0) + elapsed / 1000);
   }
   function tick(now) {
     if (!running) return;
-    const frames = record.content.frames, durationMs = frames[frameIndex].duration * 1000, progress = Math.min(1, (elapsed + now - started) / durationMs);
+    const frames = record.content.frames, durationMs = frames[frameIndex].duration * 1000, progress = Math.min(1, (elapsed + (now - started) * playbackSpeed) / durationMs);
     const from = frames[frameIndex], to = frames[frameIndex + 1];
     renderedPositions = from.positions.map(p => { const destination = to.positions.find(q => q.id === p.id); return { id: p.id, x: p.x + (destination.x - p.x) * progress, y: p.y + (destination.y - p.y) * progress }; });
     draw();
-    if (progress >= 1) { frameIndex++; elapsed = 0; started = now; if (frameIndex >= frames.length - 1) { stopPlayback(); render(); return; } renderPlayback(); }
+    scrub.value = String(frames.slice(0, frameIndex).reduce((sum, f) => sum + f.duration, 0) + progress * currentFrame().duration);
+    if (progress >= 1) { frameIndex++; elapsed = 0; started = now; if (frameIndex >= frames.length - 1) { if (loopPlayback) { frameIndex = 0; renderedPositions = null; } else { stopPlayback(); render(); return; } } renderPlayback(); }
     animation = requestAnimationFrame(tick);
   }
-  function pause() { if (!running) return; elapsed += performance.now() - started; stopPlayback(false); render(); }
+  function pause() { if (!running) return; elapsed += (performance.now() - started) * playbackSpeed; stopPlayback(false); render(); }
   function togglePlayback() {
     if (!active() || !loaded || pending || context.busy || record.content.frames.length < 2 || document.hidden) return;
     if (running) return pause();
@@ -333,6 +425,8 @@
   $('tactics-disclosure')?.addEventListener('toggle', event => { if (!event.currentTarget.open) pause(); else if (!loaded) load(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
   window.addEventListener('pagehide', () => stopPlayback());
+  let boardWidth = 0;
+  new ResizeObserver(() => { const width = board.getBoundingClientRect().width; if (width && width !== boardWidth) { boardWidth = width; draw(); } }).observe(board);
   render();
   window.dispatchEvent(new CustomEvent('coach:request-context'));
 })();

@@ -213,7 +213,7 @@
     button.setAttribute('aria-expanded', 'true');
     if (next === 'dates') renderDates();
     if (next === 'notes') renderNotes();
-    if (next === 'tools') { $('tactics-disclosure').open = true; $('practice-ideas').open = true; }
+    if (next === 'tools') { $('tactics-disclosure').open = true; $('practice-ideas').open = false; $('planner-drawer').querySelector('.planner-drawer-content').scrollTop = 0; }
     if (next === 'run') $('session-field-disclosure').open = true;
     $('planner-close-drawer').focus();
   }

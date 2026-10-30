@@ -75,3 +75,71 @@
 @media (max-width: 520px) { .tactics-reuse { padding-left: 12px; padding-right: 12px; } .tactics-reuse-actions button { flex: 1 1 180px; } }
 @media (prefers-reduced-motion: reduce) { #tactics-board-tools * { scroll-behavior: auto; } }
 @media print { #tactics-board-tools { display: none !important; } }
+
+/* The tactics workspace uses the tools drawer's extra room. */
+#planner-drawer[data-pane="tools"] { width: min(1440px, calc(100vw - 24px)); }
+#planner-drawer[data-pane="tools"] #tactics-board-tools :is(.tactics-library,.tactics-piece-panel,.tactics-phases,.tactics-reuse,.tactics-compact-details) { background: var(--desk-surface, #dbd5ca); border: 1px solid var(--desk-line, #b6afa2); border-radius: 10px; }
+#planner-drawer[data-pane="tools"] #tactics-board-tools button { border-radius: 8px; }
+#planner-drawer[data-pane="tools"] #tactics-board-tools :is(button.secondary,.tactics-pieces button):not([aria-pressed="true"]) { background: var(--desk-field, #e3ddd3); border-color: var(--desk-line, #b6afa2); color: var(--desk-ink, #292d33); }
+#planner-drawer[data-pane="tools"] #tactics-board-tools :is(input:not([type="checkbox"]),select) { background: var(--desk-field, #e3ddd3); border-color: var(--desk-line, #b6afa2); border-radius: 8px; }
+#planner-drawer[data-pane="tools"] .tactics-board-layout { grid-template-columns: minmax(0, 1fr) 210px; gap: 16px; }
+#planner-drawer[data-pane="tools"] .tactics-piece-panel { grid-template-columns: minmax(0, 1fr); padding: 14px; align-items: start; }
+#planner-drawer[data-pane="tools"] .tactics-piece-panel[data-selected="false"] > :not(.tactics-selection-hint):not(:has(#tactics-item)):not(.tactics-check) { display: none; }
+#planner-drawer[data-pane="tools"] .tactics-piece-panel[data-selected="true"] > .tactics-selection-hint { display: none; }
+#planner-drawer[data-pane="tools"] .tactics-selection-hint { margin: 0; color: var(--desk-muted, #4d4a45); font-size: 13px; line-height: 1.6; }
+#planner-drawer[data-pane="tools"] .tactics-workbar { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 0; margin-bottom: 14px; background: var(--desk-canvas, #ccc6bc); border-bottom: 1px solid var(--desk-line, #b6afa2); }
+#planner-drawer[data-pane="tools"] .tactics-workbar .tactics-status { flex: 1 1 180px; margin: 0; }
+#planner-drawer[data-pane="tools"] .tactics-frame-list button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; }
+#planner-drawer[data-pane="tools"] .tactics-frame-preview svg { display: block; width: 96px; height: 62px; border-radius: 6px; }
+#planner-drawer[data-pane="tools"] .tactics-preview-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0; }
+#planner-drawer[data-pane="tools"] .tactics-compact-details { padding: 0 12px; margin: 12px 0; }
+#planner-drawer[data-pane="tools"] .tactics-compact-details > summary { min-height: 44px; padding: 12px 0; cursor: pointer; font-size: 13px; font-weight: 650; }
+#planner-drawer[data-pane="tools"] .tactics-compact-details[open] { padding-bottom: 12px; }
+@media (max-width: 700px) {
+  #planner-drawer[data-pane="tools"] { width: 100%; border-radius: 0; }
+  #planner-drawer[data-pane="tools"] .planner-drawer-content { padding: 12px; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools { display: flex; flex-direction: column; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools > * { order: 2; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools > .tactics-workbar { order: 0; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools > .tactics-editor { order: 1; }
+  #planner-drawer[data-pane="tools"] .tactics-board-layout { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  #planner-drawer[data-pane="tools"] .tactics-frame-list { flex-wrap: nowrap; overflow-x: auto; padding: 3px 3px 8px; }
+  #planner-drawer[data-pane="tools"] .tactics-frame-list button { flex: 0 0 auto; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools :is(button,input:not([type="checkbox"]),select) { min-height: 44px; }
+  #planner-drawer[data-pane="tools"] :is(.tactics-library,.tactics-heading,.tactics-frame-settings) { grid-template-columns: minmax(0, 1fr); }
+}
+.tactics-workbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 0; }
+#planner-tools-pane:not([hidden]) { display:flex; flex-direction:column; }
+#planner-tools-pane > #tactics-disclosure { order:0; padding:0; border:0; background:transparent; }
+#planner-tools-pane > #tactics-disclosure[open] > summary { display:none; }
+#planner-tools-pane > #coach-drill-library { order:1; }
+#planner-tools-pane > #practice-ideas { order:2; }
+.tactics-workbar > label { flex:1 1 220px; }
+.tactics-workbar .tactics-status { flex-basis:100%; }
+.tactics-frame-preview svg { display:block; width:96px; height:62px; }
+.tactics-preview-controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.tactics-preview-controls label:last-child { flex:1 1 160px; }
+#tactics-board-tools input[type=range] { padding:0; accent-color:#536e60; }
+.tactics-compact-details { margin:14px 0; }
+.tactics-compact-details > summary { min-height:44px; padding:12px 0; cursor:pointer; }
+.tactics-compact-details > button { margin:6px 6px 0 0; }
+#planner-drawer[data-pane="tools"] #tactics-board-tools label { font-size:14px; }
+#planner-drawer[data-pane="tools"] .tactics-board-help { font-size:12px; }
+#planner-drawer[data-pane="tools"] .tactics-workbar { background:#d7d0c4; }
+#planner-drawer[data-pane="tools"] .tactics-workbar #tactics-save { background:#292e33; color:#fff; }
+#planner-drawer[data-pane="tools"] .tactics-workbar .tactics-status { flex:1 0 100%; font-size:13px; }
+#planner-drawer[data-pane="tools"] .tactics-workbar > label { margin:0; }
+#planner-drawer[data-pane="tools"] .tactics-workbar button { padding:10px 12px; font-size:13px; }
+#planner-drawer[data-pane="tools"] .tactics-piece-panel > label { margin:0; }
+#planner-drawer[data-pane="tools"] .tactics-frame-list { flex-wrap:nowrap; overflow-x:auto; }
+#planner-drawer[data-pane="tools"] .tactics-frame-list button { flex:0 0 auto; }
+@media(min-width:1100px) {
+  #planner-drawer[data-pane="tools"] .tactics-board-layout { grid-template-columns:minmax(0,min(1000px,calc((100dvh - 480px)*1.5385))) 210px; justify-content:center; }
+}
+#planner-drawer[data-pane="tools"] .tactics-frame-list [aria-pressed=true] { background:#292e33; color:#fff; }
+@media(max-width:700px) {
+  #planner-drawer[data-pane="tools"] .tactics-workbar > label { flex-basis:100%; }
+  #planner-drawer[data-pane="tools"] .tactics-piece-panel { grid-template-columns:1fr 1fr; }
+  #planner-drawer[data-pane="tools"] .tactics-selection-hint { grid-column:1/-1; }
+  #planner-drawer[data-pane="tools"] .tactics-workbar { gap:6px; margin-bottom:8px; }
+}

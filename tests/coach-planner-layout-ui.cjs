@@ -206,6 +206,8 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     await f.page.waitForFunction(() => document.getElementById('tactics-title') && !document.getElementById('tactics-title').disabled);
     assert.equal(await f.page.locator('#planner-tools-pane').isVisible(), true);
     assert.equal(await f.page.locator('#tactics-board-tools').isVisible(), true);
+    assert.equal(await f.page.locator('#practice-toolbox').isVisible(), false, 'Practice ideas stay collapsed while building');
+    await f.page.locator('#practice-ideas > summary').click();
     assert.equal(await f.page.locator('#practice-toolbox').isVisible(), true);
     assert.equal(count(f, '/diagrams/list'), 1, 'Board loads only when its pullout opens');
     await f.page.locator('#tactics-title').fill('Unsaved fictional tactic');

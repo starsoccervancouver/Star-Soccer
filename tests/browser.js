@@ -57,6 +57,13 @@
             const links=[...doc.querySelectorAll(`[role="group"][aria-label="Weekly groups with ${coach}"] a`)];
             check(links.length===days.length && links.every((link,index)=>new URL(link.href).searchParams.get('day')===days[index] && link.getBoundingClientRect().height>=44),`${coach} has readable weekly-group links at ${width}px`);
           }
+          const sidebarCards=[...doc.querySelectorAll('#coaching-team .home-cta-stack > .home-cta-card')];
+          const sidebarDestinations=['registration.html?sessionId=tuesday&type=dropin','methodology.html','camps.html#camp-weeks'];
+          check(sidebarCards.length===3 && sidebarCards.every((card,i)=>{
+            const link=card.querySelector('.home-camps-cta-button');
+            return link && link.getAttribute('href')===sidebarDestinations[i] && link.getClientRects().length && link.getBoundingClientRect().height>=44;
+          }),`Homepage at ${width}px has three usable options beside the three coaching cards`);
+          check(sidebarCards[2]?.textContent.includes('Winter') && sidebarCards[2]?.textContent.includes('Kitsilano Turf') && doc.querySelectorAll('#coaching-team .home-coach-card').length===3,`Homepage at ${width}px adds winter camps without changing coaching profiles`);
           const copy=doc.querySelector('.immersive-hero-copy').getBoundingClientRect(),actions=doc.querySelector('.hero-action-panel').getBoundingClientRect();
           check(width>900?actions.left>=copy.right:actions.top>=copy.bottom,`Homepage at ${width}px places choices to the right on desktop and below on mobile`);
         }

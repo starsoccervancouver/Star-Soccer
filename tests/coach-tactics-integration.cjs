@@ -95,7 +95,7 @@ require('./coach-fixture-fonts.cjs')(assets);
    assert(geometry.width>200,'Field remains usable at '+viewport.width+'px');
    assert(geometry.labels.every(Boolean),'Long edge labels stay within the field at '+viewport.width+'px');
    assert(geometry.phases.every(w=>w<=140),'Long phase names stay within their thumbnail');
-   if(viewport.height<600)assert.equal(geometry.sticky,'static','Landscape controls do not cover the field');
+   assert.equal(geometry.sticky,'static','Toolbar scrolls normally at every size');
    await f.page.locator('#tactics-phase-notes').click();
    const visible=await f.page.locator('#tactics-phase-notes').evaluate(n=>{const r=n.getBoundingClientRect(),bar=document.querySelector('.tactics-workbar').getBoundingClientRect();return r.top>=bar.bottom-1&&r.bottom<=innerHeight;});
    assert(visible,'Notes can be focused without hiding behind the toolbar');

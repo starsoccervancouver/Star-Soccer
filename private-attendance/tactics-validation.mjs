@@ -15,9 +15,15 @@ export function validateDiagram(content){
  if(content.schemaVersion!==1||!['full','half','blank'].includes(content.pitch)||!Array.isArray(content.items)||content.items.length>40||!Array.isArray(content.frames)||!content.frames.length||content.frames.length>12)invalid();
  const itemIds=new Set(),frameIds=new Set();
  const items=content.items.map(item=>{
-  object(item,['id','kind','label']);const id=identifier(item.id);
-  if(itemIds.has(id)||!['home','away','cone','ball','goal'].includes(item.kind))invalid();
-  itemIds.add(id);return {id,kind:item.kind,label:text(item.label,12)};
+  object(item,['id','kind','label'],['zone']);const id=identifier(item.id);
+  if(itemIds.has(id)||!['home','away','cone','ball','goal','zone'].includes(item.kind))invalid();
+  itemIds.add(id);const result={id,kind:item.kind,label:text(item.label,12)};
+  if(item.kind==='zone'){
+   const zone=object(item.zone,['shape','width','height','color']);
+   if(!['rect','ellipse'].includes(zone.shape)||!['blue','gold','green'].includes(zone.color)||typeof zone.width!=='number'||!Number.isFinite(zone.width)||zone.width<5||zone.width>90||typeof zone.height!=='number'||!Number.isFinite(zone.height)||zone.height<5||zone.height>90)invalid();
+   result.zone={shape:zone.shape,width:zone.width,height:zone.height,color:zone.color};
+  }else if(Object.hasOwn(item,'zone'))invalid();
+  return result;
  });
  const itemKinds=new Map(items.map(item=>[item.id,item.kind]));
  const frames=content.frames.map(frame=>{
@@ -25,10 +31,14 @@ export function validateDiagram(content){
   if(frameIds.has(id)||typeof frame.duration!=='number'||!Number.isFinite(frame.duration)||frame.duration<0.5||frame.duration>20||!Array.isArray(frame.positions)||frame.positions.length!==items.length)invalid();
   frameIds.add(id);const seen=new Set();
   const positions=frame.positions.map(position=>{
-   object(position,['id','x','y'],['curve','attachedTo']);const id=identifier(position.id);
+   object(position,['id','x','y'],['curve','attachedTo','trail']);const id=identifier(position.id);
    if(!itemIds.has(id)||seen.has(id))invalid();seen.add(id);
    const result={id,x:coordinate(position.x),y:coordinate(position.y)};
    if(Object.hasOwn(position,'curve'))result.curve=curve(position.curve);
+   if(Object.hasOwn(position,'trail')){
+    if(!['home','away','ball'].includes(itemKinds.get(id))||!Array.isArray(position.trail)||!position.trail.length||position.trail.length>32)invalid();
+    result.trail=position.trail.map(point=>{object(point,['x','y']);return {x:coordinate(point.x),y:coordinate(point.y)};});
+   }
    if(Object.hasOwn(position,'attachedTo')){
     const attachedTo=identifier(position.attachedTo);
     if(itemKinds.get(id)!=='ball'||!['home','away'].includes(itemKinds.get(attachedTo)))invalid();

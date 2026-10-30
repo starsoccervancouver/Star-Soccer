@@ -68,3 +68,22 @@ test('retains total encoded size limit with optional notes',async()=>{
   content.frames=Array.from({length:12},(_,i)=>({id:`phase_${i}`,title:'Phase',duration:2,notes:'界'.repeat(1000),positions:content.items.map(item=>({id:item.id,x:50,y:50,curve:50}))}));
  });
 });
+
+test('drag trajectories and sized zones round trip without changing legacy fields',async()=>{
+ const {validateDiagram}=await validator,content=diagram();
+ content.items.push({id:'zone',kind:'zone',label:'Press',zone:{shape:'ellipse',width:35,height:25,color:'gold'}});
+ content.frames[0].positions.push({id:'zone',x:50,y:50});
+ content.frames[0].positions[0].trail=[{x:30,y:10},{x:40,y:15},{x:55,y:40}];
+ assert.deepStrictEqual(validateDiagram(content),content);
+});
+
+test('rejects unbounded, malformed or equipment trajectories',async()=>{
+ for(const value of [null,{},[],Array.from({length:33},()=>({x:10,y:20})),[{x:-1,y:20}],[{x:20,y:101}],[{x:'10',y:20}],[{x:NaN,y:20}],[{x:10,y:20,html:'bad'}]])await reject(c=>{c.frames[0].positions[0].trail=value;});
+ await reject(c=>{c.frames[0].positions[3].trail=[{x:10,y:20}];});
+});
+
+test('zones require bounded dimensions and supported shape and colour',async()=>{
+ const zone={shape:'rect',width:25,height:25,color:'blue'};
+ await reject(c=>{c.items[0].zone=zone;});
+ for(const value of [undefined,null,{...zone,width:0},{...zone,width:91},{...zone,height:'20'},{...zone,height:Infinity},{...zone,shape:'script'},{...zone,color:'#fff'},{...zone,extra:true}])await reject(c=>{c.items[3]={id:'cone',kind:'zone',label:'Zone',zone:value};});
+});

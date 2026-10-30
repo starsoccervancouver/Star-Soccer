@@ -83,7 +83,7 @@ This navigation change needs no Airtable or database migration. Existing notes, 
 
 ### Planning and development improvements
 
-The library searches private saved drills, research presets and original starters together, with source, age and activity-stage filters. Presets are immutable public source data; using one creates an editable draft. Adding a drill to a session appends one timed activity without rewriting legacy supporting notes. Diagrams retain their separate tactics draft and explicit save. The 16-activity limit, recovery checks and private drill ownership still apply.
+The library searches private saved drills, research presets and original starters together, with source, age and activity-stage filters. Presets are immutable public source data; using one creates an editable draft. Adding a drill to a session appends one timed activity without rewriting legacy supporting notes. Each activity can keep an optional diagram snapshot, saved with the shared plan and shown in the field and print views. The standalone tactics board remains separate; changing it does not silently overwrite a saved activity. Complete plan content is limited to 62,000 UTF-8 bytes within the existing 64,000-byte request limit. The 16-activity limit, recovery checks and private drill ownership still apply.
 
 Player profiles support inline private notes and development goals. The existing notes API accepts optional `goal` metadata: `successMeasure`, `status` (`planned`, `in-progress`, `achieved`), `evidence` and an optional accessible saved `drillId`. Evidence is a coaching observation linked to the note's session, not proof of physical attendance. Profiles do not publish parent-facing reports.
 

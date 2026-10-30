@@ -59,9 +59,12 @@
   const sourceFilter = select('library-source-filter', [['all', 'Every source'], ['saved', 'Private saved drills'], ['preset', 'TPD presets · 10'], ['starter', 'Original starters · 10']]);
   const ageFilter = select('library-age-filter', [['', 'All suggested ages'], ['young', 'Younger · 5–9'], ['middle', 'Developing · 8–12'], ['older', 'Older · 12–14'], ['unspecified', 'Age not specified']]);
   const skillFilter = select('library-skill-filter', [['', 'Every skill focus']]), durationFilter = select('library-duration-filter', [['', 'Any duration'], ['short', 'Up to 10 minutes'], ['medium', '11–20 minutes'], ['long', 'Over 20 minutes']]);
-  filters.append(label('Find a drill', search), label('Source', sourceFilter), label('Suggested ages', ageFilter), label('Session phase', focus), label('Skill focus', skillFilter), label('Duration', durationFilter));
+  filters.append(label('Find a drill', search), label('Source', sourceFilter), label('Suggested ages', ageFilter), label('Session phase', focus));
+  const advancedFilters = node('details', '', 'library-advanced-filters'); advancedFilters.id = 'library-advanced-filters';
+  const advancedSummary = node('summary', 'More filters'), advancedGrid = node('div', '', 'library-advanced-grid');
+  advancedGrid.append(label('Skill focus', skillFilter), label('Duration', durationFilter)); advancedFilters.append(advancedSummary, advancedGrid);
   const reload = action('Load saved drills', () => load(true)); reload.id = 'library-reload';
-  filters.append(reload, newDrill); body.append(filters);
+  const toolbar = node('div', '', 'library-toolbar'); toolbar.append(advancedFilters, reload, newDrill); body.append(filters, toolbar);
   const results = node('p', '', 'small'); results.id = 'library-results'; results.setAttribute('role', 'status'); body.append(results);
   const list = node('div', '', 'library-list'); list.id = 'library-list'; body.append(list);
   const more = action('Show more drills', () => { historyLimit += 8; renderList(); }); more.id = 'library-more'; more.hidden = true; body.append(more);
@@ -187,7 +190,7 @@
     if (!canInsert() || recovery) return;
     const text = drill.title + ' (' + drill.minutes + ' min)\n' + drill.setup + (drill.coaching ? '\nCoach: ' + drill.coaching : '') + (drill.progression ? '\nAdapt: ' + drill.progression : '') + (drill.equipment ? '\nEquipment: ' + drill.equipment : '');
     const addition = { target: drill.target, text, title: drill.title, minutes: drill.minutes, diagram: drill.diagram || null };
-    emit('coach:insert-plan', addition); if (addition.inserted) notify('Activity added to your session draft. Review it and save the plan when ready.');
+    emit('coach:insert-plan', addition); if (addition.inserted) notify(drill.diagram ? 'Activity and diagram added to your plan draft. Save the shared plan when ready.' : 'Activity added to your session draft. Review it and save the plan when ready.');
   }
   function edit(drill) {
     if (locked() || recovery || !permitted(drill)) return;
@@ -231,24 +234,32 @@
     const query = search.value.trim().toLowerCase();
     const available = [...records.filter(permitted).sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)) || a.title.localeCompare(b.title)).map(drill => ({ ...drill, source: 'saved' })), ...[...catalogs.values()].flat()], priorSkill = skillFilter.value, skills = new Map(available.filter(drill => drill.skill.trim()).map(drill => [drill.skill.trim().toLowerCase(), drill.skill.trim()]));
     skillFilter.replaceChildren(...select('', [['', 'Every skill focus'], ...[...skills].sort((a, b) => a[1].localeCompare(b[1]))]).options); skillFilter.value = skills.has(priorSkill) ? priorSkill : '';
+    const extraCount = Number(!!skillFilter.value) + Number(!!durationFilter.value); advancedSummary.textContent = 'More filters' + (extraCount ? ' · ' + extraCount + ' active' : '');
     const matching = available.filter(drill => (sourceFilter.value === 'all' || sourceFilter.value === drill.source) && (!ageFilter.value || ageBand(drill) === ageFilter.value) && (focus.value === 'all' || drill.target === focus.value) && (!skillFilter.value || drill.skill.trim().toLowerCase() === skillFilter.value) && (!durationFilter.value || (durationFilter.value === 'short' ? drill.minutes <= 10 : durationFilter.value === 'medium' ? drill.minutes > 10 && drill.minutes <= 20 : drill.minutes > 20)) && (!query || [drill.title, drill.skill, drill.setup, drill.coaching, drill.progression, drill.equipment, sourceNames[drill.source]].join(' ').toLowerCase().includes(query)));
     results.textContent = Math.min(matching.length, historyLimit) + ' of ' + matching.length + ' matching drills' + (loaded ? '' : ' · Load saved drills to include your private library.');
     list.replaceChildren();
     for (const drill of matching.slice(0, historyLimit)) {
       const card = node('article', '', 'library-card' + (drill.source === 'saved' ? '' : ' library-' + drill.source)); card.dataset.drillId = drill.id; card.dataset.source = drill.source;
       const longSetup = drill.setup.length > 160;
+      const publicIdea = drill.source !== 'saved';
+      const setupSummary = publicIdea ? drill.setup.split(/\n\nSource:/)[0].replace(/^(?:Suggested )?ages[^\n]*\n/i, '').replace(/^Source setup \(paraphrased\):\s*/i, '').replace(/\s+/g, ' ').trim() : drill.setup;
+      const summaryLimit = publicIdea ? 140 : 160;
       const sourceTag = node('span', sourceNames[drill.source], 'library-source-tag');
-      card.append(sourceTag, node('h3', drill.title), node('p', [drill.skill, drill.ages && 'Ages ' + drill.ages, drill.players, drill.minutes + ' min', targets[drill.target]].filter(Boolean).join(' · '), 'small'), node('p', longSetup ? drill.setup.slice(0, 157).trimEnd() + '…' : drill.setup, 'library-instructions'));
-      if (longSetup || drill.coaching || drill.progression || drill.equipment) {
+      card.append(sourceTag, node('h3', drill.title), node('p', [drill.skill, drill.ages && 'Ages ' + drill.ages, drill.players, drill.minutes + ' min', targets[drill.target]].filter(Boolean).join(' · '), 'small'));
+      const thumbnail = previewDiagram(drill); if (thumbnail) { const preview = node('figure', '', 'library-diagram-preview'); preview.append(thumbnail); if (publicIdea) preview.append(node('figcaption', 'Original sketch · illustrative starting positions', 'small')); card.append(preview); }
+      card.append(node('p', setupSummary.length > summaryLimit ? setupSummary.slice(0, summaryLimit - 3).trimEnd() + '…' : setupSummary, 'library-instructions'));
+      if (drill.attribution) {
+        const attribution = node('p', '', 'preset-source small'), link = node('a', 'Source: ' + drill.attribution.label.split(' · ')[0]); link.href = drill.attribution.url; link.title = drill.attribution.label; link.target = '_blank'; link.rel = 'noopener noreferrer'; attribution.append(link); card.append(attribution);
+      }
+      if (publicIdea || longSetup || drill.coaching || drill.progression || drill.equipment) {
         const details = node('details', '', 'library-card-details'); details.append(node('summary', 'Drill details'));
-        if (longSetup) details.append(node('p', drill.setup, 'library-instructions'));
+        if (publicIdea || longSetup) details.append(node('p', drill.setup, 'library-instructions'));
         for (const [key, label] of [['coaching', 'Coach'], ['progression', 'Adapt'], ['equipment', 'Equipment']]) if (drill[key]) details.append(node('p', label + ': ' + drill[key], 'library-instructions'));
+        if (drill.attribution) details.append(node('p', drill.attribution.detail, 'small'));
+        if (publicIdea) details.append(node('p', drill.source === 'preset' ? 'Ages, timings and TPD prompts are coaching suggestions. Source notes are paraphrased; no endorsement implied.' : 'Original Star Soccer starting point. Adapt for the players present.', 'small'));
         card.append(details);
       }
-      if (drill.attribution) {
-        const attribution = node('p', '', 'preset-source small'), link = node('a', drill.attribution.label); link.href = drill.attribution.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; attribution.append(link, node('span', drill.attribution.detail)); card.append(attribution);
-      }
-      card.append(node('p', drill.source === 'saved' ? drill.author_email === context.profile.email ? 'Your reusable drill' : 'Shared with full-access coaches · ' + drill.author_email : drill.source === 'preset' ? 'Ages, timings and TPD prompts are coaching suggestions. Source notes are paraphrased; no endorsement implied.' : 'Original Star Soccer starting point. Adapt for the players present.', 'small'));
+      if (!publicIdea) card.append(node('p', drill.author_email === context.profile.email ? 'Your reusable drill' : 'Shared with full-access coaches · ' + drill.author_email, 'small'));
       const actions = node('div', '', 'library-actions'), add = action('Add to session', () => insert(drill)); add.dataset.insert = 'true'; add.setAttribute('aria-label', 'Add ' + drill.title + ' to session');
       actions.append(add);
       if (drill.source !== 'saved') {
@@ -263,7 +274,7 @@
         const useSession = action('Use in session', () => chooseSession(drill)); useSession.dataset.useSession = 'true';
         actions.append(useSession, change, duplicate, archive);
       }
-      const thumbnail = previewDiagram(drill); if (thumbnail) { const preview = node('figure', '', 'library-diagram-preview'); preview.append(thumbnail); if (drill.source !== 'saved') preview.append(node('figcaption', 'Original sketch · illustrative starting positions', 'small')); card.append(preview); } card.append(actions); list.append(card);
+      card.append(actions); list.append(card);
     }
     if (!matching.length) list.append(node('p', 'No drills match these filters. Try a different source, age group or session phase.', 'empty-state'));
     more.hidden = matching.length <= historyLimit; renderState();
@@ -329,7 +340,7 @@
         const saved = records.find(drill => drill.id === openId);
         if (saved) { writeEditor(saved); notify('Latest saved drill opened.'); }
         else notify('This drill is no longer available. Keep your draft as a new drill to preserve it.', true);
-      } else notify(conflict ? 'Saved drills refreshed. Open the latest saved drill or keep your draft as a new drill.' : 'Saved drills refreshed.');
+      } else if (force || conflict) notify(conflict ? 'Saved drills refreshed. Open the latest saved drill or keep your draft as a new drill.' : 'Saved drills refreshed.');
       renderList(); renderSuggestions();
     } catch (error) { if (ticket === epoch && identity === started) notify(error.message || 'Your library could not load. Try again.', true); }
     finally { if (ticket === epoch && identity === started) { loading = false; renderState(); } }
@@ -381,7 +392,7 @@
     if (nextIdentity !== identity || next?.tab !== 'library') closeDiagram();
     if (nextIdentity !== identity) {
       epoch++; writing = loading = false; records = []; loaded = false; recovery = lastAttempt = null; identity = nextIdentity; context = next;
-      disclosure.open = false; search.value = ''; focus.value = sourceFilter.value = 'all'; ageFilter.value = skillFilter.value = durationFilter.value = ''; scope.value = ''; historyLimit = 8; suggestionInputs = null; writeEditor(); notify(''); list.replaceChildren(); recommendationList.replaceChildren(); results.textContent = ''; scope.replaceChildren(); skillFilter.replaceChildren(...select('', [['', 'Every skill focus']]).options);
+      disclosure.open = advancedFilters.open = false; search.value = ''; focus.value = sourceFilter.value = 'all'; ageFilter.value = skillFilter.value = durationFilter.value = ''; scope.value = ''; historyLimit = 8; suggestionInputs = null; writeEditor(); notify(''); list.replaceChildren(); recommendationList.replaceChildren(); results.textContent = ''; scope.replaceChildren(); skillFilter.replaceChildren(...select('', [['', 'Every skill focus']]).options);
     } else context = next;
     if (!next?.profile) { mount.hidden = true; sessionAnchor.after(mount); return; }
     const root = standalone() ? $('standalone-drill-library') : sessionHome;

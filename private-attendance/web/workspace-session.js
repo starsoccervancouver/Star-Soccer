@@ -35,7 +35,7 @@
   const active = () => !!context?.profile && !!context.session && context.selected === context.session.id && context.tab === 'plan' && context.planReady && !context.busy && String(context.session.status).toLowerCase() !== 'cancelled';
   const content = () => context?.plan?.content || {};
   const hasActivities = () => Array.isArray(content().activities) && content().activities.length > 0;
-  const savedStages = () => hasActivities() ? content().activities.map((block, index) => ({ key: 'activity-' + index, title: block.title, minutes: block.duration, instructions: block.instructions, equipment: block.equipment, stage: block.stage })) : legacyStages;
+  const savedStages = () => hasActivities() ? content().activities.map((block, index) => ({ key: 'activity-' + index, title: block.title, minutes: block.duration, instructions: block.instructions, equipment: block.equipment, stage: block.stage, diagram: block.diagram })) : legacyStages;
   function recordedMinutes() {
     const session = context?.session;
     if (!session) return null;
@@ -160,6 +160,11 @@
     $('field-stage-label').textContent = stages[stageIndex].title;
     const stage = stages[stageIndex];
     $('field-stage-content').textContent = hasActivities() ? [stageLabels[stage.stage] + ' · ' + stage.minutes + ' minutes saved', stage.instructions || 'No instructions saved yet.', stage.equipment ? 'Equipment: ' + stage.equipment : ''].filter(Boolean).join('\n\n') : String(content()[stage.key] || '').trim() || 'No activity has been saved for this stage yet.';
+    const diagram = $('field-stage-diagram');
+    if (diagram && diagram.dataset.stageIndex !== String(stageIndex)) {
+      const preview = window.CoachPlanBlocks?.previewDiagram(stage.diagram, stage.title);
+      diagram.replaceChildren(...(preview ? [preview] : [])); diagram.hidden = !preview; diagram.dataset.stageIndex = String(stageIndex);
+    }
     $('field-timer-total').textContent = hasActivities() ? 'Timers start from saved activity durations. Adjustments here apply to this visit only.' : 'Adjust each stage for this visit. Timer choices do not change the saved plan.';
     renderBudgets();
     for (const [index, button] of [...dialog.querySelectorAll('[data-field-stage]')].entries()) {
@@ -212,7 +217,8 @@
     stageTitle.id = 'field-stage-label';
     const stageBody = node('p', '', 'field-stage-copy');
     stageBody.id = 'field-stage-content';
-    activity.append(stageButtons, stageTitle, stageBody);
+    const stageDiagram = node('div'); stageDiagram.id = 'field-stage-diagram';
+    activity.append(stageButtons, stageTitle, stageBody, stageDiagram);
     const timerPanel = node('section', '', 'field-timer');
     timerPanel.setAttribute('aria-label', 'Optional activity timer');
     const output = node('output');
@@ -277,7 +283,7 @@
     if (hasActivities()) {
       const total = content().activities.reduce((sum, block) => sum + block.duration, 0), slot = recordedMinutes();
       sheet.append(node('h2', 'Activity running order'), node('p', total + ' minutes planned' + (slot === null ? ' · Session length not recorded.' : ' / ' + slot + '-minute session' + (total > slot ? ' · ' + (total - slot) + ' minutes over.' : '.'))));
-      content().activities.forEach((block, index) => { const section = node('section'); section.append(node('h3', (index + 1) + '. ' + block.title + ' · ' + block.duration + ' min · ' + stageLabels[block.stage]), node('p', block.instructions || 'No instructions recorded.')); if (block.equipment) section.append(node('p', 'Equipment: ' + block.equipment)); sheet.append(section); });
+      content().activities.forEach((block, index) => { const section = node('section'); section.append(node('h3', (index + 1) + '. ' + block.title + ' · ' + block.duration + ' min · ' + stageLabels[block.stage]), node('p', block.instructions || 'No instructions recorded.')); if (block.equipment) section.append(node('p', 'Equipment: ' + block.equipment)); const diagram = window.CoachPlanBlocks?.previewDiagram(block.diagram, block.title); if (diagram) section.append(diagram); sheet.append(section); });
     }
     for (const [key, label] of [['warmup', 'Warm-up'], ['technical', 'Technical activity'], ['game', 'Game / application'], ['equipment', 'Equipment & setup']]) {
       const section = node('section');
@@ -314,7 +320,7 @@
     open.disabled = print.disabled = !active();
     actions.append(open, print);
     mount.append(actions);
-    mount.append(node('p', 'Uses the saved shared plan and roster. Tactics setups are saved separately.', 'small'));
+    mount.append(node('p', 'Uses the saved shared plan, activity diagrams and roster.', 'small'));
     if (context.session) mount.append(budget('field-time-budget-entry'));
     if (!context.planReady) mount.append(node('p', 'Choose a session and wait for its saved plan to load.', 'small'));
     else if (!hasActivities() && !['focus', 'warmup', 'technical', 'game', 'equipment'].some(key => String(content()[key] || '').trim())) mount.append(node('p', 'No preparation plan has been saved for this session yet. The field view will show the recorded roster and empty plan sections.', 'small'));

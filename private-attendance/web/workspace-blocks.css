@@ -14,6 +14,14 @@
 .plan-block-fields label{min-width:0;margin:0}
 .plan-block-fields input,.plan-block-fields select,.plan-block-fields textarea{box-sizing:border-box;width:100%;min-height:44px}
 .plan-block-wide{grid-column:1/-1}
+.plan-block-diagram{margin-top:14px;min-width:0}
+.plan-block-diagram h5{font-size:13px;margin:0 0 6px}
+.plan-block-diagram>.small{font-size:12px;margin:0 0 8px}
+.plan-block-diagram-preview{margin:8px 0 12px;max-width:420px;break-inside:avoid}
+.plan-block-diagram-preview svg{display:block;width:100%;height:auto;max-height:260px;border:1px solid var(--desk-line,#b9b0a2);border-radius:12px;background:#e3ebdc}
+.plan-block-diagram-preview figcaption{font-size:11px;line-height:1.5;margin-top:5px;color:var(--desk-muted,#615d55)}
+.plan-block-diagram-actions{display:flex;flex-wrap:wrap;gap:8px}
+.plan-block-diagram-actions button{min-height:44px;font-size:12px}
 .plan-block-budget{padding:8px 0;font-size:13px;margin:4px 0;color:var(--desk-muted,#615d55)}
 .plan-block-budget.is-over-budget{color:#704015;font-weight:650}
 .plan-block-budget[hidden],.plan-block-status:empty{display:none}

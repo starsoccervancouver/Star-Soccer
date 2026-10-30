@@ -33,7 +33,7 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
   }
   try {
     const f = await fixture(), page = f.page;
-    await page.locator('#navigation [data-tab="attendance"]').click();
+    await page.locator('#navigation [data-tab="plan"]').click();
     assert.equal(await page.locator('#planner-session-browser').isVisible(), true);
     assert.equal(await page.locator('#panel-attendance').isVisible(), false, 'Attendance starts at a training group, never a global dated roster');
     assert.equal(await page.locator('#planner-days [data-group-key]').count(), 5, 'Different Friday time slots stay separate groups'); checks++;
@@ -58,7 +58,7 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     await page.screenshot({ path: 'outputs/attendance-upcoming-week-fictional-mobile.png', fullPage: true });
     assert.equal(f.writes.length, 0); assert.deepEqual(f.errors, []); await f.context.close(); checks++;
     const coach = await fixture([sessions.find(s => s.id === rid(3))], 'coach');
-    await coach.page.locator('#navigation [data-tab="attendance"]').click();
+    await coach.page.locator('#navigation [data-tab="plan"]').click();
     assert.equal(await coach.page.locator('#planner-days [data-group-key]').count(), 1);
     await openSession(coach.page, sessions, rid(3), 'attendance');
     assert(!(await coach.page.locator('body').innerText()).includes('Historic Player'));

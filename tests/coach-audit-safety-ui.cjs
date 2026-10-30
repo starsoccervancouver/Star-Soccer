@@ -70,7 +70,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     await f.page.waitForFunction(() => document.getElementById('session').disabled);
     assert.equal(await f.page.locator('#logout').isEnabled(), false);
     assert.equal(await f.page.locator('#user-form button[type="submit"]').isEnabled(), false);
-    assert.equal(await f.page.locator('#navigation [data-tab="attendance"]').isEnabled(), false);
+    assert.equal(await f.page.locator('#navigation [data-tab="plan"]').isEnabled(), false);
     assert.equal(f.pending.length, 1);
     const assignment = f.requests.find(r => r.path.endsWith('/assign'));
     assert.equal(assignment.payload.sessionId, rid(1));

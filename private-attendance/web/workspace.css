@@ -21,9 +21,12 @@
   --desk-gold: #d5d8dd;
   --desk-blue: #d5d8dd;
   --desk-ink: #292d33;
-  --desk-muted: #626872;
-  --desk-line: #d8dce1;
-  --desk-canvas: #f3f4f5;
+  --desk-muted: #56534e;
+  --desk-line: #bfb6a8;
+  --desk-canvas: #d5cec2;
+  --desk-surface: #e4ddd1;
+  --desk-inset: #dcd4c7;
+  --desk-field: #ece6dc;
   --desk-accent: #596779;
   --desk-green: #21664e;
   --desk-red: #923f35;
@@ -2072,7 +2075,7 @@ body.planner-drawer-open .global-error { z-index: 90; }
 }
 
 /* Dedicated session workspace: a quiet canvas with deliberate exits. */
-:root { --desk-canvas: #f4f6f7; }
+:root { --desk-canvas: #d5cec2; }
 #app .card { box-shadow: 0 3px 14px #10263d05; }
 #app .page-heading h1 { letter-spacing: -.035em; }
 #app .desk-nav #navigation button { font-weight: 650; }
@@ -2247,3 +2250,32 @@ body #app .planner-workspace-actions #planner-open-notes {
 }
 body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accent); }
 .desk-nav :focus-visible, .desk-header :focus-visible, .desk-skip:focus-visible { outline-color: #d5d8dd; }
+
+/* Warm, low-glare surfaces alongside the charcoal navigation. */
+@media screen {
+  body #app .desk-main .card:not(.profile-card),
+  body #app :is(.desk-stat,.planner-session-browser,#player-note-folders),
+  body .planner-drawer-header, body .planner-drawer-content .coaching-tools-disclosure {
+    background:var(--desk-surface); border-color:var(--desk-line);
+  }
+  body #app :is(.roster-row,.note-card,.task-row,.account-row,.audit-row,.coaching-agenda-row,.development-observation,.development-attendance li),
+  body #app #planner-days button:not([aria-pressed="true"]),
+  body #app #player-note-folders button.note-folder-card,
+  body #planner-drawer :is(.note-card,.library-card,.library-suggestion,.practice-activity) {
+    background:var(--desk-inset); border-color:var(--desk-line);
+  }
+  body #app #player-note-folders button.note-folder-card[aria-pressed="true"] { background:#cfc2ae; border-color:#86745c; }
+  body #app .desk-main :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),
+  body #planner-drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+    background:var(--desk-field); border-color:#aaa193; color:var(--desk-ink);
+  }
+  body #app .desk-main :is(.privacy-message,.callout,.empty-state,.note-folder-selected,.coaching-tools-disclosure>summary,.field-saved-notice),
+  body #app .planner-plan-card .privacy-message { background:var(--desk-inset); border-color:var(--desk-line); color:#55534d; }
+  body #app .desk-main button.secondary,
+  body #app .session-workspace-tabs button:not([aria-pressed="true"]),
+  body #app .planner-workspace-actions button { background:var(--desk-field); border-color:#aaa193; color:var(--desk-ink); }
+  body #app .desk-main button.secondary:hover:not(:disabled) { background:#d3c9b9; }
+  body #app .desk-main #plan-form textarea:focus { background:var(--desk-field); border-color:#86745c; }
+  body #app .desk-main :is(.note-meta,.note-folder-kind,.note-folder-roster,.roster-row p,.task-row p,.account-row p,.audit-row p),
+  body #app #planner-days button:not([aria-pressed="true"]) span { color:var(--desk-muted); }
+}

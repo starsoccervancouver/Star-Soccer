@@ -79,10 +79,10 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
     await page.locator('#app').waitFor({ state: 'visible' });
     await page.evaluate(() => document.fonts.ready);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator('#navigation button[data-tab="attendance"]').focus();
+    await page.locator('#navigation button[data-tab="plan"]').focus();
     await page.keyboard.press('Enter');
     assert.equal(await page.locator('#panel-plan').isVisible(), true, 'Keyboard attendance entry first presents training groups');
-    assert.equal(await page.evaluate(() => document.activeElement.dataset.tab), 'attendance');
+    assert.equal(await page.evaluate(() => document.activeElement.dataset.tab), 'plan');
     await openSession(page, sessions, rid(1), 'attendance');
     checks++;
 
@@ -224,13 +224,13 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
       for (const tab of tabs) {
         if (await page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) await page.locator('#planner-home').click();
         const settingsSection = ['team', 'activity', 'legacy'].includes(tab);
-        await page.locator('#navigation button[data-tab="' + (settingsSection ? 'settings' : tab) + '"]').click();
+        await page.locator('#navigation button[data-tab="' + (settingsSection ? 'settings' : tab === 'attendance' ? 'plan' : tab) + '"]').click();
         if (settingsSection) await page.locator('#settings-navigation button[data-settings-tab="' + tab + '"]').click();
         if (['plan', 'attendance', 'notes'].includes(tab)) await openSession(page, sessions, rid(1), tab);
         await page.locator('#panel-' + tab).waitFor({ state: 'visible' });
         const overflow = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('#app *')].filter(element => { const rect = element.getBoundingClientRect(); return rect.width && (rect.right > innerWidth + 1 || rect.left < -1) && !element.closest('#navigation'); }).slice(-12).map(element => ({ tag: element.tagName, id: element.id, class: element.className, left: element.getBoundingClientRect().left, right: element.getBoundingClientRect().right, width: element.getBoundingClientRect().width })) }));
         assert(overflow.scroll <= width + 1, tab + ' must not overflow at ' + width + 'px: ' + JSON.stringify(overflow));
-        assert.equal(await page.locator('#navigation button.nav-active').getAttribute('data-tab'), settingsSection ? 'settings' : tab);
+        assert.equal(await page.locator('#navigation button.nav-active').getAttribute('data-tab'), settingsSection ? 'settings' : tab === 'attendance' ? 'plan' : tab);
         if (settingsSection) assert.equal(await page.locator('#settings-navigation button[data-settings-tab="' + tab + '"]').getAttribute('aria-current'), 'page');
         assert.equal(await page.locator('#navigation button.nav-active').getAttribute('aria-current'), 'page');
         // Inspect one current DOM snapshot: async plan readback may replace toolbox controls.

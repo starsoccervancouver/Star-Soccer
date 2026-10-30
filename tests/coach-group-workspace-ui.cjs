@@ -64,7 +64,8 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert.equal(await page.locator('#coaching-hub .coaching-agenda-row').count(), 2, 'Home lists recurring groups rather than every dated session');
     assert.equal(await page.locator('#session').isVisible(), false); assert.equal(await page.locator('#planner-date').isVisible(), false);
     const labels = await page.locator('#coaching-hub h3').allTextContents(); assert.notEqual(labels[0], labels[1], 'Distinct programs at identical weekday/time/venue remain distinguishable');
-    for (const [view, title] of [['attendance', 'Attendance'], ['notes', 'Player notes & goals']]) {
+    assert.equal(await page.locator('#navigation [data-tab="attendance"]').count(), 0, 'Attendance is available inside the session, without a redundant sidebar shortcut');
+    for (const [view, title] of [['notes', 'Player notes & goals']]) {
       await page.locator('#navigation [data-tab="' + view + '"]').click();
       assert.equal(await page.locator('#page-title').innerText(), title, 'Sidebar shortcut identifies its destination');
       assert.equal(await page.locator('#navigation [aria-current="page"]').getAttribute('data-tab'), view);

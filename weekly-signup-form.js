@@ -19,7 +19,7 @@
     info.querySelector('[data-training-info-coaches]').textContent=s.coaches.map(id=>T.catalog.coaches[id]).join(' & ');
     info.querySelector('[data-training-info-date]').textContent=T.prettyDate(dropinDate);
     info.querySelector('[data-training-info-price]').textContent=T.money(choice.price)+' CAD';
-    info.querySelector('[data-training-info-price-label]').textContent=choice.type==='pass4'?'per player · four sessions':'per player · one session';
+    info.querySelector('[data-training-info-price-label]').textContent=choice.type==='pass4'?'per player · four consecutive scheduled dates':'per player · one session';
   }
   document.querySelector('#booking-title').textContent=s.day+' training';
   document.querySelector('#booking-session').textContent=s.time+' · '+T.catalog.locations[s.location].name;
@@ -39,6 +39,7 @@
     passStart.min=T.nextDate(s);passStart.setCustomValidity('');
     const p=W.passPlan(s.id,passStartChanged?passStart.value:null);passSummary.hidden=false;
     document.querySelector('#pass-price').textContent=T.money(p.price)+' CAD · 4 sessions';
+    const saving=s.dropin*p.dates.length-p.price,savingText=document.querySelector('#pass-saving');savingText.hidden=saving<=0;savingText.textContent=saving>0?'· Save '+T.money(saving)+' vs '+p.dates.length+' drop-ins':'';
     passStart.value=p.start;passCalendar?.sync();
     document.querySelector('#pass-end').textContent=T.prettyDate(p.end);renderDates(p.dates);
     if(info){info.querySelector('[data-training-info-date-label]').textContent='Pass starts';info.querySelector('[data-training-info-date]').textContent=T.prettyDate(p.start);info.querySelector('[data-training-info-end-row]').hidden=false;info.querySelector('[data-training-info-end]').textContent=T.prettyDate(p.end);}
@@ -105,8 +106,10 @@
       const heading=document.createElement('h2');heading.textContent='Thanks — registration'+(players.length>1?'s':'')+' received';
       const message=document.createElement('p');message.textContent=pass?'Look out for your pass confirmation with all four dates and payment instructions. The coaching team checks space before confirming each player’s place.':'The coaching team will check space and email your confirmation with payment instructions and attendance buttons. Open your choice and press Confirm response to save your answer. Your place is confirmed by the team.';
       const details=document.createElement('p');details.textContent=T.money(choice.price*players.length)+' CAD requested total · '+(pass?'Expected start: '+T.prettyDate(pass.start)+' · Expected end (4th session): '+T.prettyDate(pass.end):T.prettyDate(dropinDate)+' · '+s.time);
+      const followUp=document.createElement('p');followUp.textContent='Session approaching without a confirmation? ';
+      const checkRequest=document.createElement('a');checkRequest.className='flow-text-link';checkRequest.textContent='Contact the team to check your request';checkRequest.href='mailto:'+T.catalog.email+'?subject='+encodeURIComponent('Check registration | '+familyReference)+'&body='+encodeURIComponent('Please check the confirmation for '+s.day+' training. References: '+family.players().map(p=>p.reference).join(', '));followUp.append(checkRequest);
       const back=document.createElement('a');back.href='programs.html#sessions';back.className='flow-text-link';back.textContent='Back to weekly training';
-      receipt.append(heading,message,details,resultsList(),back);receipt.tabIndex=-1;receipt.focus();document.querySelector('.registration-recovery')?.setAttribute('hidden','');return;
+      receipt.append(heading,message,details,resultsList(),followUp,back);receipt.tabIndex=-1;receipt.focus();document.querySelector('.registration-recovery')?.setAttribute('hidden','');return;
     }
     const canRetry=family.unlock();busy=!canRetry;submit.disabled=!canRetry;if(calendarTrigger)calendarTrigger.disabled=!canRetry;
     status(canRetry?'The form service did not accept this request. Your entries are still here. You can retry or email the team.':'Some requests need checking. Your entries are preserved. Email the team with the references below before sending another request; received players will not be submitted again.',true);

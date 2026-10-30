@@ -48,16 +48,22 @@
           const heroPhotos=frame.contentWindow.performance.getEntriesByType('resource').filter(r=>r.name.includes('/site-photos/home-'));
           check(heroPhotos.length===1 && heroPhotos[0].name.includes('-'+(width<=900?'800':'1600')+'.avif'),`Homepage at ${width}px downloads one local hero at the right size`);
           const programs=doc.querySelector('.hero-action-programs'),camps=doc.querySelector('.hero-action-camps');
-          check(programs && camps && programs.getAttribute('href')==='programs.html#sessions' && camps.getAttribute('href')==='camps.html',`Homepage at ${width}px keeps the two approved program and camp destinations`);
+          check(programs && camps && programs.getAttribute('href')==='programs.html?age=youth#sessions' && programs.textContent.includes('Find your child’s group') && camps.getAttribute('href')==='camps.html',`Homepage at ${width}px directs parents to youth groups and keeps the camp destination`);
           check(programs && camps && [programs,camps].every(el=>el.getClientRects().length && el.getBoundingClientRect().height>=48),`Homepage at ${width}px shows large program and camp actions`);
           check(camps && camps.textContent.includes('Register for discounted winter camps') && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with the streamlined discounted winter camp action`);
-          check(doc.querySelector('h1').textContent.includes('Soccer coaching in Vancouver.'),`Homepage at ${width}px describes the coaching service and location`);
+          check(doc.querySelector('h1').textContent.includes('Weekly soccer coaching.') && doc.querySelector('h1').textContent.includes('Ages 6–14 in Kitsilano.'),`Homepage at ${width}px describes the weekly service, ages and location`);
+          for(const [coach,days] of [['Valentinos Dinglis',['wednesday','thursday','sunday']],['Romeo Dinglis',['wednesday','friday']]]){
+            const links=[...doc.querySelectorAll(`[role="group"][aria-label="Weekly groups with ${coach}"] a`)];
+            check(links.length===days.length && links.every((link,index)=>new URL(link.href).searchParams.get('day')===days[index] && link.getBoundingClientRect().height>=44),`${coach} has readable weekly-group links at ${width}px`);
+          }
           const copy=doc.querySelector('.immersive-hero-copy').getBoundingClientRect(),actions=doc.querySelector('.hero-action-panel').getBoundingClientRect();
           check(width>900?actions.left>=copy.right:actions.top>=copy.bottom,`Homepage at ${width}px places choices to the right on desktop and below on mobile`);
         }
         if(page==='camps.html') {
           const links=[...doc.querySelectorAll('.camp-week-card .winter-camp-cta')];
-          check(links.length===2 && links.every(el=>el.getBoundingClientRect().bottom<=755 && el.getBoundingClientRect().height>=48),`Camps at ${width}px shows both registration buttons within the first 755px (${Math.round(links.at(-1).getBoundingClientRect().bottom)}px)`);
+          // Visible full-day prices and lunch details add one compact block to each card.
+          const campActionLimit=width<=700?1050:755;
+          check(links.length===2 && links[0].getBoundingClientRect().bottom<=755 && links.every(el=>el.getBoundingClientRect().bottom<=campActionLimit && el.getBoundingClientRect().height>=48),`Camps at ${width}px keeps the first registration action within 755px and both within ${campActionLimit}px (${Math.round(links.at(-1).getBoundingClientRect().bottom)}px)`);
           check(!doc.querySelector('.camp-overview') && [...doc.querySelectorAll('.camp-card-details')].every(el=>el.textContent.includes('20 players') && el.textContent.includes('noon–12:30')),`Camp cards at ${width}px include capacity and supervised lunch details`);
           check([...doc.querySelectorAll('.camp-week-card,.seasonal-feature')].every(el=>!frame.contentWindow.getComputedStyle(el,'::before').backgroundImage.includes('url(') && frame.contentWindow.getComputedStyle(el).backgroundImage==='none'),`Camp cards at ${width}px have solid surfaces without photography`);
         }
@@ -71,6 +77,7 @@
               return url.pathname.endsWith('/registration.html') && url.searchParams.get('sessionId')===card.dataset.sessionDay && url.searchParams.get('type')===['dropin','pass4'][index] && link.getClientRects().length && link.getBoundingClientRect().height>=48;
             });
           }),`Training at ${width}px shows direct drop-in and pass buttons on all four youth cards`);
+          check(youthCards.every(card=>{const session=frame.contentWindow.StarTraining.getSession(card.dataset.sessionDay);return card.querySelector('[data-pass-value]').textContent==='Save '+frame.contentWindow.StarTraining.money(session.dropin*4-session.pass4)+' vs 4 drop-ins' && card.querySelector('.schedule-price').textContent.includes('4 consecutive sessions');}),`Training at ${width}px explains each pass saving against four catalog-priced drop-ins and its consecutive-session commitment`);
           const adultCard=doc.querySelector('#sessions #adult-women.schedule-entry[data-audience="adult"][data-session-day="tuesday"][data-session-location="fen-burdett"]');
           const adultLinks=adultCard?[...adultCard.querySelectorAll('.schedule-direct-actions a')]:[];
           const adultUrl=adultLinks.length===1?new URL(adultLinks[0].href):null;
@@ -156,7 +163,7 @@
       }
     }
     let doc=await load('',320);
-    check(doc.querySelector('h1')?.textContent.includes('Soccer coaching in Vancouver.') && doc.querySelector('.site-header a[aria-label="Star Soccer home"]')?.getAttribute('href')==='/', 'Root home navigation serves the current homepage');
+    check(doc.querySelector('h1')?.textContent.includes('Weekly soccer coaching.') && doc.querySelector('.site-header a[aria-label="Star Soccer home"]')?.getAttribute('href')==='/', 'Root home navigation serves the current homepage');
     const faq=doc.querySelector('.home-parent-faq details');
     faq.querySelector('summary').click();
     check(faq.open && faq.querySelector('p').getClientRects().length && [...faq.querySelectorAll('a')].every(link=>link.getAttribute('href')) && doc.documentElement.scrollWidth<=321,'Parent FAQ opens with working program links and fits a 320px screen');
@@ -213,6 +220,19 @@
     check(frame.contentWindow.location.search.includes('age=14'),'Filter is reflected in shareable URL');
     check(doc.querySelectorAll('.schedule-next').length===4,'All four youth sessions show their next Vancouver date');
     doc.querySelector('#schedule-reset').click();
+    change(doc,'schedule-age','youth');
+    check(doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===4 && doc.querySelector('#adult-women').hidden && doc.querySelector('#schedule-results').textContent==='Showing 4 of 5 sessions','Youth age filter shows all four child groups and excludes adult women');
+    check(frame.contentWindow.location.search.includes('age=youth'),'Youth filtering is reflected in a shareable URL');
+    change(doc,'schedule-day','friday');
+    check(doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===1 && !doc.querySelector('[data-session-day="friday"]').hidden,'Youth filtering combines with the selected day');
+    change(doc,'schedule-location','fen-burdett');
+    check(!doc.querySelector('#schedule-empty').hidden && doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===0,'Incompatible youth and adult venue filters show an empty state');
+    doc=await load('programs.html?age=youth#sessions');
+    check(doc.querySelector('#schedule-age').value==='youth' && doc.querySelector('[data-filter-panel]').open && doc.querySelector('#adult-women').hidden && doc.querySelectorAll('.schedule-entry:not([hidden])').length===4,'Homepage youth destination restores the child audience and opens its filter controls');
+    frame.contentWindow.history.replaceState(null,'','programs.html?age=adult#sessions');
+    frame.contentWindow.dispatchEvent(new frame.contentWindow.PopStateEvent('popstate'));
+    check(doc.querySelector('#schedule-age').value==='adult' && !doc.querySelector('#adult-women').hidden && doc.querySelectorAll('.schedule-entry:not([hidden])').length===1,'History navigation restores adult filtering after a youth route');
+    doc.querySelector('#schedule-reset').click();
     change(doc,'schedule-age','adult');
     check(doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===1 && !doc.querySelector('#adult-women').hidden && doc.querySelector('#schedule-results').textContent==='Showing 1 of 5 sessions','Adult age filter displays only Tuesday');
     doc.querySelector('#schedule-reset').click();
@@ -257,6 +277,8 @@
     check(!form.elements.namedItem('Start date') && !form.elements.namedItem('Parent name').required && !form.elements.namedItem('Referral source').required,'Pass keeps extra context optional and the chosen start date separate');
     const passPlan=frame.contentWindow.StarWeeklySignup.passPlan('wednesday');
     check(!doc.querySelector('#quick-pass-summary').hidden && doc.querySelector('#pass-price').textContent.includes('$95') && doc.querySelector('#pass-start').value===passPlan.start && doc.querySelector('#pass-end').textContent===frame.contentWindow.StarTraining.prettyDate(passPlan.end),'Pass preview shows the approved total, upcoming start and fourth-session end');
+    check(doc.querySelector('#pass-saving').textContent==='· Save $25 vs 4 drop-ins' && doc.querySelector('[data-training-info-price-label]').textContent.includes('four consecutive scheduled dates'),'Wednesday pass explains its catalog-derived saving and scheduled-date commitment');
+    check(doc.querySelector('.booking-follow-up').textContent.includes('Session approaching without a confirmation?') && doc.querySelector('.booking-follow-up a').getAttribute('href')==='contact.html','Registration provides a contact route if the session approaches without confirmation');
     const changedStart=frame.contentWindow.StarTraining.addDays(passPlan.start,7);
     const calendarTrigger=doc.querySelector('#pass-calendar-trigger'),picker=doc.querySelector('#pass-calendar');
     calendarTrigger.click();
@@ -290,8 +312,11 @@
     check(calls===2 && form.hidden && !doc.querySelector('#receipt').hidden,'Accepted registration shows receipt and blocks duplicate submission');
     check(receivedData.get('Client reference')===firstReference && doc.querySelector('.registration-recovery').hidden,'Retries keep the same reference and hide stale recovery on acceptance');
     check(doc.querySelector('#receipt').textContent.includes('pass confirmation') && doc.querySelector('#receipt').textContent.includes('payment') && doc.querySelector('#receipt').textContent.includes('$95') && doc.querySelector('#receipt').textContent.includes('4th session'),'Pass receipt preserves price and expected dates with email/payment follow-up');
+    const confirmationHelp=new URL(doc.querySelector('#receipt a[href^="mailto:"]').href);
+    check(doc.querySelector('#receipt').textContent.includes('Session approaching without a confirmation?') && confirmationHelp.searchParams.get('body').includes(firstReference) && !confirmationHelp.href.includes('Test%20Player') && !confirmationHelp.href.includes('test%40example.invalid'),'Receipt follow-up uses the booking reference without sending personal form entries in the link');
     check(doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1,'Weekly receipt fits a narrow phone');
     doc=await load('registration.html?sessionId=friday&type=pass4',320);
+    check(doc.querySelector('#pass-saving').textContent==='· Save $20 vs 4 drop-ins','Friday pass computes its separate $20 saving from its own catalog rates');
     const rolloverWindow=frame.contentWindow,rolloverForm=doc.querySelector('#training-registration'),rolloverTraining=rolloverWindow.StarTraining,rolloverSession=rolloverTraining.getSession('friday'),originalDate=rolloverWindow.Date;
     const displayedStart=doc.querySelector('#pass-start').value,scanStart=originalDate.parse(displayedStart+'T00:00:00Z');let cutoff=null;
     for(let minute=0;minute<48*60;minute++){

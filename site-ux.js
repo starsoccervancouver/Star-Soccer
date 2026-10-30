@@ -41,7 +41,8 @@
     const update=(save=false)=>{
       let visible=0;
       rows.forEach(row=>{
-        const matchesAge=age.value==='all' || (age.value==='adult' ? row.dataset.audience==='adult' : row.dataset.audience!=='adult' && Number(age.value)>=Number(row.dataset.minAge) && Number(age.value)<=Number(row.dataset.maxAge));
+        const isAdult=row.dataset.audience==='adult';
+        const matchesAge=age.value==='all' || (age.value==='adult' ? isAdult : !isAdult && (age.value==='youth' || Number(age.value)>=Number(row.dataset.minAge) && Number(age.value)<=Number(row.dataset.maxAge)));
         const matches=matchesAge && (day.value==='all'||day.value===row.dataset.sessionDay) && (locationSelect.value==='all'||locationSelect.value===row.dataset.sessionLocation);
         row.hidden=!matches;if(matches)visible++;
       });
@@ -62,6 +63,10 @@
       const session=T.getSession(row.dataset.sessionDay);
       const date=session && T.nextDate(session);
       if(!date)return;
+      const price=row.querySelector('.schedule-price'),dropin=price?.querySelector('strong'),pass=price?.querySelector('span:not([data-pass-value])'),value=price?.querySelector('[data-pass-value]');
+      if(dropin)dropin.textContent=T.money(session.dropin)+' drop-in';
+      if(pass)pass.textContent=T.money(session.pass4)+' · 4 consecutive sessions';
+      if(value){const saving=session.dropin*4-session.pass4;value.hidden=saving<=0;value.textContent=saving>0?'Save '+T.money(saving)+' vs 4 drop-ins':'';}
       const next=document.createElement('span');next.className='schedule-next';next.textContent='Next: '+T.prettyDate(date);
       row.querySelector('.schedule-day').append(next);
 

@@ -1,4 +1,5 @@
 import {randomBytes} from 'node:crypto';
+import {createCoachResources} from './coach-resources.mjs';
 import {validateDiagram} from './tactics-validation.mjs';
 export const OWNER_EMAIL='starsoccervancouver@gmail.com';
 export class CoachError extends Error{constructor(code,status=400){super(code);this.code=code;this.status=status;}}
@@ -124,5 +125,5 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
   saveTask(actor,{id=null,title,sessionId=null,dueDate=null,status='open',expectedVersion=0}){if(sessionId)api.requireSession(actor,sessionId);title=txt(title,250);if(!['open','done'].includes(status)||dueDate!==null&&(!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)||new Date(dueDate+'T00:00:00Z').toISOString().slice(0,10)!==dueDate))deny('INVALID_TASK',400);return store.transaction(()=>{const old=id?store.get('SELECT * FROM coach_tasks WHERE id=?',id):null;if(id&&(!old||!api.full(actor)&&old.author_email!==actor.email))deny();if((old?.version||0)!==expectedVersion)deny('TASK_CHANGED',409);id=old?.id||token('task_');if(old)store.run('UPDATE coach_tasks SET title=?,due_date=?,status=?,version=version+1 WHERE id=?',title,dueDate,status,id);else store.run('INSERT INTO coach_tasks VALUES(?,?,?,?,?,?,1,?)',id,actor.email,sessionId,title,dueDate,status,stamp());audit(actor,'task-saved',id,{status});return api.tasks(actor);});},
   audit(actor){if(!api.full(actor))deny();return store.all('SELECT id,actor_email,action,target,occurred_at,detail FROM coach_audit ORDER BY occurred_at DESC LIMIT 100');},
   recordAudit:audit
- };return Object.freeze(api);
+ };Object.assign(api,createCoachResources({store,coaches:api,deny,audit,clock}));return Object.freeze(api);
 }

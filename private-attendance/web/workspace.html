@@ -29,6 +29,8 @@
 <script src="/workspace/assets/library.js" defer></script>
 <script src="/workspace/assets/folders.js" defer></script>
 <script src="/workspace/assets/profiles.js" defer></script>
+<script src="/workspace/assets/resources.js" defer></script>
+<link rel="stylesheet" href="/workspace/assets/resources.css">
 <link rel="stylesheet" href="/workspace/assets/profiles.css">
 </head>
 <body>
@@ -98,7 +100,7 @@
 <button data-tab="home" class="nav-active">Overview</button>
 <button data-tab="profiles">Player profiles</button>
 <button data-tab="plan">Training groups</button>
-<button data-tab="library">Drill library</button>
+<button data-tab="library">Coach resources</button>
 
 <button data-tab="settings" class="nav-settings">Settings &amp; profile</button>
 </nav>
@@ -162,7 +164,7 @@
 <option value="home">Overview</option>
 <option value="attendance">Attendance</option>
 <option value="profiles">Player profiles</option>
-<option value="library">Drill library</option>
+<option value="library">Coach resources</option>
 <option value="plan">Training groups</option>
 
 </select></label>
@@ -414,7 +416,17 @@
 </div>
 </section>
 <section id="panel-profiles" class="tab-panel" hidden><div id="player-profiles"></div></section>
-<section id="panel-library" class="tab-panel" hidden><div id="standalone-drill-library"></div></section>
+<section id="panel-library" class="tab-panel" hidden>
+<div id="coach-resources">
+<div class="resource-tabs" role="tablist" aria-label="Coach resources">
+<button type="button" role="tab" id="resource-tab-drills" data-resource-tab="drills" aria-controls="resource-pane-drills" aria-selected="true">Drill library</button>
+<button type="button" role="tab" id="resource-tab-inspiration" data-resource-tab="inspiration" aria-controls="resource-pane-inspiration" aria-selected="false" tabindex="-1">Inspiration</button>
+<button type="button" role="tab" id="resource-tab-guides" data-resource-tab="guides" aria-controls="resource-pane-guides" aria-selected="false" tabindex="-1">Guides &amp; kit</button>
+</div>
+<section id="resource-pane-drills" data-resource-pane="drills" role="tabpanel" aria-labelledby="resource-tab-drills"><div class="resource-intro"><h2>Drill library</h2><p>Keep your best activities ready to reuse in a session plan.</p></div><div id="standalone-drill-library"></div></section>
+<section id="resource-pane-inspiration" data-resource-pane="inspiration" role="tabpanel" aria-labelledby="resource-tab-inspiration" hidden><div class="resource-intro"><h2>Ideas worth keeping</h2><p>Save videos, articles, documents and tools, with a note about what you want to try.</p></div></section>
+<section id="resource-pane-guides" data-resource-pane="guides" role="tabpanel" aria-labelledby="resource-tab-guides" hidden><div class="resource-intro"><h2>Useful coaching references</h2><p>Copy an outline or prepare your kit before heading to the field.</p></div><div id="resource-guides" class="resource-guides"></div></section>
+</div></section>
 <section id="panel-tasks" class="tab-panel" hidden inert>
 <section class="card">
 <p class="eyebrow">Small steps, followed through</p>

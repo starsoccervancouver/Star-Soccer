@@ -97,6 +97,7 @@
   heading.append(field('Setup name', title));
   const fieldView = field('Field view', pitch); fieldView.className = 'tactics-field-view';
   const topActions = el('div', '', 'tactics-toolbar tactics-main-toolbar');
+  const equipment = el('details', '', 'tactics-equipment'), equipmentOptions = el('div', '', 'tactics-equipment-options'); equipment.id = 'tactics-equipment'; equipment.append(el('summary', 'More equipment'), equipmentOptions);
   const addGroup = el('div', '', 'tactics-pieces'); addGroup.setAttribute('role', 'group'); addGroup.setAttribute('aria-label', 'Add a piece');
   function addPiece(kind, destination) {
     if (!kinds[kind] || !editable() || record.content.items.length >= 40) return;
@@ -106,22 +107,23 @@
       record.content.items.push(item); const offset = record.content.items.length % 6;
       for (const frame of record.content.frames) { frame.positions.push({ id: item.id, ...(destination || { x: 43 + offset * 3, y: 42 + offset * 3 }) }); if (kind === 'zone') constrainZone(frame, item); }
       selectPiece(item.id);
-    }, kinds[kind] + ' added. Drag it, tap its destination, or use the position controls.');
+    }, kinds[kind] + ' added.'); equipment.open = false;
   }
-  for (const [kind, label] of Object.entries(kinds)) {
+  for (const kind of ['home', 'away', 'ball', 'cone', 'goal', 'zone']) {
+    const label = kinds[kind];
     const add = button('+ ' + label, 'tactics-add-' + kind, () => addPiece(kind));
     const icon = svg('svg', { viewBox: '-36 -32 72 64', width: 24, height: 24, 'aria-hidden': 'true' }); icon.append(pieceArtwork(kind)); add.prepend(icon);
     add.draggable = true; add.title = 'Click to add, or drag onto the field';
     add.addEventListener('dragstart', event => { if (!editable() || add.disabled) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', kind); event.dataTransfer.effectAllowed = 'copy'; });
-    add.dataset.pieceKind = kind; addGroup.append(add);
+    add.dataset.pieceKind = kind; (['goal', 'zone'].includes(kind) ? equipmentOptions : addGroup).append(add);
   }
-  topActions.append(addGroup, fieldView);
+  addGroup.append(equipment); topActions.append(addGroup, fieldView);
   const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
   for (const [mode, text] of [['place', 'Place pieces'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
   const selectionCount = el('p', '', 'tactics-selection-count'); selectionCount.id = 'tactics-selection-count';
   const multiSelect = input('tactics-multiselect', 'checkbox'), multiLabel = field('Select multiple', multiSelect); multiLabel.className = 'tactics-check';
   multiSelect.addEventListener('change', () => tell(multiSelect.checked ? 'Tap pieces to add them to the selection. Drag a selected piece to move the group.' : 'Click a piece to select it. Shift-click adds or removes pieces.'));
-  editModes.append(multiLabel); topActions.append(editModes, selectionCount);
+  topActions.append(editModes, selectionCount);
   const boardLayout = el('div', '', 'tactics-board-layout');
   const canvasWrap = el('div', '', 'tactics-canvas-wrap');
   const board = svg('svg', { id: 'tactics-pitch-board', viewBox: '-60 -60 1120 770', role: 'group', 'aria-label': 'Tactics field. Shift-click to select a group. Drag pieces or route handles; use arrow keys to move.', tabindex: '0' });
@@ -162,9 +164,10 @@
   for (const control of [zoneWidth, zoneHeight]) { control.min = '5'; control.max = '90'; control.step = '1'; }
   for (const [control, key] of [[zoneShape, 'shape'], [zoneColor, 'color'], [zoneWidth, 'width'], [zoneHeight, 'height']]) control.addEventListener('change', () => mutate(() => { const item = record.content.items.find(i => i.id === selectedItem); if (!item?.zone) return; item.zone[key] = ['width', 'height'].includes(key) ? Number(control.value) : control.value; for (const f of record.content.frames) constrainZone(f, item); }, 'Zone updated in every phase.'));
   zoneControls.append(field('Zone shape', zoneShape), field('Zone colour', zoneColor), field('Zone width', zoneWidth), field('Zone height', zoneHeight), el('p', 'Drag the zone to move it. Shape and size apply to every phase.', 'small'));
-  side.append(el('p', 'Select a piece on the field or use the list below. Drag to move; Escape clears selection.', 'tactics-selection-hint'), field('Selected piece', itemSelect), pieceLabel, carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')), pathLabel);
+  side.append(el('p', 'Select a player or object to edit it.', 'tactics-selection-hint'), field('Selected piece', itemSelect), pieceLabel, carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')), pathLabel);
   side.insertBefore(zoneControls, nudge); side.insertBefore(routeActions, nudge);
-  const advanced = el('details', '', 'tactics-advanced'); advanced.append(el('summary', 'Advanced positioning'), nudge, coordinate, bendField); side.append(advanced);
+  const advanced = el('details', '', 'tactics-advanced'); advanced.append(el('summary', 'Advanced positioning'), multiLabel, nudge, coordinate, carrierField, routeActions, bendField, pathLabel); side.append(advanced);
+  const pieceActions = el('div', '', 'tactics-piece-actions'); for (const id of ['tactics-duplicate-item', 'tactics-remove-item']) pieceActions.append(side.querySelector('#' + id)); advanced.before(pieceActions);
   const rotation = input('tactics-rotation', 'number'); rotation.min = '0'; rotation.max = '360'; rotation.step = 'any';
   rotation.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem), value = Number(rotation.value); if (p && Number.isFinite(value) && value >= 0 && value < 360) p.rotation = value; }, 'Goal direction updated for this phase.'));
   const rotationField = field('Goal direction (degrees)', rotation); side.append(rotationField);
@@ -189,6 +192,7 @@
   playback.append(button('Play movement', 'tactics-play', togglePlayback, true), button('Back to start', 'tactics-reset', () => { if (!active() || pending) return; stopPlayback(); frameIndex = 0; render(); }), el('span', '', 'small'));
   playback.lastChild.id = 'tactics-playback-status'; playback.lastChild.setAttribute('aria-live', 'off');
   phaseActions.append(button('Move step earlier', 'tactics-step-earlier', () => reorderStep(-1)), button('Move step later', 'tactics-step-later', () => reorderStep(1)));
+  const phaseOptions = el('details', '', 'tactics-phase-options'); phaseOptions.id = 'tactics-phase-options'; phaseOptions.append(el('summary', 'Phase options'), durationField, ...[...phaseActions.children].slice(1)); phaseActions.append(phaseOptions);
   const speed = select('tactics-speed', [['0.5', '0.5×'], ['1', '1×'], ['2', '2×']]); speed.value = '1';
   speed.addEventListener('change', () => { if (running) pause(); playbackSpeed = Number(speed.value); renderPlayback(); });
   const loop = input('tactics-loop', 'checkbox'); loop.addEventListener('change', () => { loopPlayback = loop.checked; });
@@ -196,7 +200,8 @@
   scrub.addEventListener('input', () => seek(Number(scrub.value)));
   const previewControls = el('div', '', 'tactics-preview-controls');
   previewControls.append(field('Playback speed', speed), field('Loop', loop), field('Animation position (seconds)', scrub));
-  phases.append(previewControls);
+  const playbackOptions = el('details', '', 'tactics-playback-options'); playbackOptions.id = 'tactics-playback-options'; playbackOptions.append(el('summary', 'Playback options'), ...[...previewControls.children].slice(0, 2));
+  previewControls.append(playbackOptions);
   phases.append(phaseHeading, frameButtons, frameSettings, field('Notes for this step', phaseNotes), phaseActions, previewControls, playback);
   const footer = el('div', '', 'tactics-footer');
   const editingActions = el('div', '', 'tactics-toolbar');
@@ -422,6 +427,9 @@
     library.hidden = reuse.hidden = recoveryActions.hidden = !!libraryBinding;
     $('tactics-archive').hidden = $('tactics-save-copy').hidden = !!libraryBinding;
     $('tactics-save').textContent = libraryBinding ? 'Save drill' : 'Save setup';
+    $('tactics-save').hidden = !!libraryBinding;
+    selectionCount.hidden = selection().length < 2;
+    phaseOptions.hidden = previewControls.hidden = playback.hidden = record.content.frames.length < 2;
     for (const mode of ['place', 'record']) $('tactics-mode-' + mode).setAttribute('aria-pressed', String(editMode === mode));
     selectionCount.textContent = selection().length > 1 ? selection().length + ' selected · drag or duplicate together' : 'Shift-click pieces to select a group';
     librarySelect.replaceChildren(); const unsaved = el('option', 'New unsaved setup'); unsaved.value = ''; librarySelect.append(unsaved);

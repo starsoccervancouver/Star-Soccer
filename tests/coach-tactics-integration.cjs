@@ -47,6 +47,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   }
 
   const enterPlan=async f=>{await openSession(f.page,sessions,rid(1),'plan');await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);};
+  const reveal=async(f,selector)=>{const ancestors=f.page.locator(selector).locator('xpath=ancestor::details[not(@open)]');while(await ancestors.count())await ancestors.first().locator('xpath=./summary').click();};
   const openBoard=async f=>{await f.page.locator('#planner-open-tools').click();await f.page.waitForFunction(()=>!document.getElementById('tactics-title').disabled);};
   const chooseDate=async(f,id)=>{if(!await f.page.locator('#planner-dates-pane').isVisible())await f.page.locator('#planner-focus-date').click();await f.page.locator('[data-session-date-id="'+id+'"]').click();};
   const count=(f,suffix)=>f.requests.filter(r=>r.path.endsWith(suffix)).length;
@@ -67,13 +68,13 @@ require('./coach-fixture-fonts.cjs')(assets);
   await f.page.setViewportSize({width:1440,height:1000});
   await f.page.locator('#tactics-add-frame').click();
   await f.page.locator('#tactics-item').selectOption('home_1');
-  await f.page.locator('.tactics-advanced > summary').click();
+  await reveal(f,'#tactics-nudge-right');
   await f.page.locator('#tactics-nudge-right').click();
   await f.page.locator('#tactics-label').fill('WideName12345');
   await f.page.locator('#tactics-pitch-board').evaluate(n=>{const p=n.createSVGPoint();p.x=40;p.y=624;const s=p.matrixTransform(n.getScreenCTM());n.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0,clientX:s.x,clientY:s.y}));});
   await f.page.locator('#tactics-add-ball').click();
   await f.page.locator('#tactics-label').fill('AttachedBall');
-  await f.page.locator('#tactics-ball-carrier').selectOption('home_1');
+  await reveal(f,'#tactics-ball-carrier'); await f.page.locator('#tactics-ball-carrier').selectOption('home_1');
   await f.page.locator('#tactics-frame-title').fill('A longer phase title that should wrap within its thumbnail without widening it');
   await f.page.locator('#tactics-phase-notes').fill('Receive, scan and turn.\nKeep the ball close before accelerating into space.');
   await f.page.locator('#tactics-title').click();

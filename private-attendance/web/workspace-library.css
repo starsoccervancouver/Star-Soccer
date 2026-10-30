@@ -8,6 +8,7 @@
 
 .library-filters>label:first-child{grid-column:1/-1}.library-source-tag{justify-self:start;font-size:.72rem;font-weight:750;line-height:1.4;border-radius:999px;padding:.3rem .65rem;background:#e8edf2;color:#36536d}.library-card figure{margin:0}.library-card .library-diagram-preview{display:flex;gap:.7rem;align-items:center}.library-card .library-diagram-preview svg{flex:0 0 150px;width:150px}.library-card figcaption{max-width:15rem;font-size:.72rem}.library-standalone .library-filters{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:800px){.library-standalone .library-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.library-standalone .library-filters{grid-template-columns:minmax(0,1fr)}.library-card .library-diagram-preview{flex-wrap:wrap}}
 /* Keep the first activities close to the library navigation. */
+.library-details-body{display:grid;gap:.9rem;padding-top:.75rem}.library-drill-details>summary{cursor:pointer;font-weight:650;min-height:44px;align-content:center}.library-editor-header{display:grid;gap:.75rem}.library-standalone .library-editor{padding:.85rem;scroll-margin-top:1rem}.library-standalone .library-editor-header{grid-template-columns:minmax(0,1fr) auto;align-items:end}.library-standalone .library-editor-header>.library-actions{justify-content:flex-end}.library-standalone .library-editor-header button{flex:0 1 auto}.library-standalone .library-drill-details{border-top:1px solid var(--desk-line,#d8e1e7);padding-top:.4rem}@media(max-width:600px){.library-standalone .library-editor-header{grid-template-columns:minmax(0,1fr)}.library-standalone .library-editor-header>.library-actions{justify-content:flex-start;gap:.4rem}.library-standalone .library-editor-header button{font-size:.8rem;padding:.6rem .8rem}}
 #resource-pane-drills>.resource-intro{display:none}
 .library-standalone .library-body{gap:.6rem}
 .library-filters,.library-standalone .library-filters{grid-template-columns:repeat(4,minmax(0,1fr));gap:.65rem}
@@ -24,3 +25,5 @@
 .library-status,#library-results{font-size:.76rem;line-height:1.4}
 @media(max-width:850px){.library-filters,.library-standalone .library-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.library-filters>label:first-child{grid-column:1/-1}.library-filters>label:last-child{grid-column:1/-1}}
 @media(max-width:560px){.library-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) auto;gap:.4rem}.library-toolbar button{padding:.5rem .6rem}.library-advanced-grid{grid-template-columns:minmax(0,1fr)}.library-standalone .library-body{gap:.5rem}}
+
+.library-editor-header>.library-status{grid-column:1/-1}

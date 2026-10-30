@@ -217,3 +217,18 @@
   #tactics-board-tools .tactics-main-toolbar { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 6px 16px; }
   #tactics-board-tools .tactics-main-toolbar > :is(.tactics-pieces,.tactics-selection-count) { grid-column: 1 / -1; }
 }
+
+/* Keep creation tools visible; reveal detailed controls only when requested. */
+#tactics-board-tools .tactics-main-toolbar .tactics-pieces { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+#tactics-board-tools :is(.tactics-equipment,.tactics-phase-options,.tactics-playback-options) > summary { min-height: 44px; padding: 10px 12px; border: 1px solid #aaa193; border-radius: 8px; background: var(--desk-field,#e3ddd3); color: var(--desk-ink,#292d33); cursor: pointer; font-size: 12px; font-weight: 650; }
+#tactics-board-tools .tactics-equipment-options { display: grid; gap: 6px; margin-top: 6px; }
+#tactics-board-tools .tactics-equipment-options button { width: 100%; }
+#tactics-board-tools :is(.tactics-phase-options,.tactics-playback-options)[open] > :not(summary) { margin-top: 8px; }
+#tactics-board-tools .tactics-piece-actions { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 6px; }
+#tactics-board-tools .tactics-piece-actions button { padding: 8px; font-size: 12px; }
+#tactics-board-tools .tactics-phase-options[open] { display: grid; gap: 6px; width: 100%; }
+#tactics-board-tools .tactics-preview-controls { display: grid; grid-template-columns: minmax(0,1fr); }
+@media(max-width:600px) {
+  #tactics-board-tools .tactics-main-toolbar .tactics-pieces { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  #tactics-board-tools .tactics-equipment { grid-column: span 2; }
+}

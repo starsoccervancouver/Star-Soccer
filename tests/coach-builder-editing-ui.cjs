@@ -43,13 +43,15 @@ const { chromium } = require('playwright');
     const page = await context.newPage(), errors = [];
     page.setDefaultTimeout(7000); page.on('pageerror', error => errors.push(error.message));
     const publish = value => page.evaluate(detail => window.dispatchEvent(new CustomEvent('coach:context', { detail })), value);
-    const fill = async (selector, value) => { await page.locator(selector).fill(value); await page.locator(selector).dispatchEvent('change'); };
+    const reveal = async selector => { const closed = page.locator(selector).locator('xpath=ancestor::details[not(@open)]'); while (await closed.count()) await closed.first().locator(':scope > summary').click(); };
+    const fill = async (selector, value) => { await reveal(selector); await page.locator(selector).fill(value); await page.locator(selector).dispatchEvent('change'); };
     const save = async () => {
       const previous = await page.evaluate(() => builderCalls.filter(row => row.operation === 'save').length);
       await page.locator('#library-save').click();
       await page.waitForFunction(previous => builderCalls.filter(row => row.operation === 'save').length === previous + 1 && !CoachLibrary.isBusy(), previous);
       assert.equal(await page.evaluate(() => CoachLibrary.isDirty()), false, 'Verified save establishes a clean combined draft');
       assert.doesNotMatch(await page.locator('#tactics-status').textContent(), /Unsaved changes/, 'Canvas shares the saved drill status');
+      assert.equal(await page.locator('.library-editor-header #library-status').count(), 1, 'Save feedback stays with the primary action');
       return page.evaluate(() => builderCalls.filter(row => row.operation === 'save').at(-1).payload);
     };
     await page.goto(origin + '/workspace'); await publish(standalone);
@@ -58,12 +60,23 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#library-diagram-editor #tactics-pitch-board').count(), 0);
     await page.locator('#library-new').click();
     await page.locator('#library-diagram-editor #tactics-pitch-board').waitFor();
+    assert.equal(await page.locator('#library-drill-details').evaluate(n => n.open), false);
+    const initialLayout = await page.evaluate(() => ({ fieldTop: document.getElementById('tactics-pitch-board').getBoundingClientRect().top, detailsTop: document.getElementById('library-drill-details').getBoundingClientRect().top }));
+    assert(initialLayout.fieldTop < 550, 'New drill opens directly on the builder');
+    assert(initialLayout.detailsTop > initialLayout.fieldTop, 'Written details are below the builder');
+    assert.equal(await page.locator('#tactics-equipment').evaluate(n => n.open), false);
+    assert.equal(await page.locator('#tactics-save').isVisible(), false, 'One visible Save drill action');
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 844 }); await page.locator('#library-new').click();
+      assert(await page.locator('#tactics-pitch-board').evaluate(n => n.getBoundingClientRect().top < 600), 'New drill shows the field near the top at ' + width + 'px');
+      assert(await page.getByLabel('Field view', { exact: true }).isVisible());
+    }
     await fill('#library-title', 'Fictional passing and finish');
     await fill('#library-setup', 'Pass through the gate and finish into the small goal.');
     await fill('#tactics-phase-notes', 'Starting cue before placing pieces.');
     assert.equal(await page.evaluate(() => CoachTactics.libraryDiagram().frames[0].notes), 'Starting cue before placing pieces.', 'Phase notes survive even before pieces are added');
     await fill('#tactics-phase-notes', '');
-    for (const kind of ['home', 'away', 'ball', 'goal']) await page.locator('#tactics-add-' + kind).click();
+    for (const kind of ['home', 'away', 'ball', 'goal']) { await reveal('#tactics-add-' + kind); await page.locator('#tactics-add-' + kind).click(); }
     assert.equal(await page.getByLabel('Piece label', { exact: true }).count(), 1);
     assert(await page.getByLabel('Field view', { exact: true }).isVisible(), 'Field choice is visible without opening export settings');
     assert.equal(await page.locator('#tactics-pitch').evaluate(n => !!n.closest('.tactics-compact-details')), false);
@@ -130,7 +143,7 @@ const { chromium } = require('playwright');
     await page.locator('[data-tactics-item="' + away + '"]').click({ modifiers: ['Shift'] });
     assert.match(await page.locator('#tactics-selection-count').textContent(), /2 selected/);
     await page.locator('#tactics-item').selectOption(home);
-    await page.locator('#tactics-multiselect').check();
+    await reveal('#tactics-multiselect'); await page.locator('#tactics-multiselect').check();
     await page.locator('[data-tactics-item="' + away + '"]').click();
     await page.locator('#tactics-multiselect').uncheck();
     assert.match(await page.locator('#tactics-selection-count').textContent(), /2 selected/, 'Group selection also works without a Shift key');
@@ -161,11 +174,12 @@ const { chromium } = require('playwright');
     assert(await page.locator('#tactics-zoom-out').isDisabled()); assert.equal(await page.locator('.tactics-pan-controls').isVisible(), false);
     assert.deepEqual(await draft(), diagramBeforeView, 'View controls never edit a drill or its recorded movement');
     await save();
+    for (const selector of ['#library-drill-details', '.tactics-advanced', '#tactics-phase-options', '#tactics-playback-options']) { const details = page.locator(selector); if (await details.evaluate(n => n.open)) await details.locator(':scope > summary').click(); }
     fs.mkdirSync('outputs', { recursive: true });
-    await page.locator('#tactics-board-tools').screenshot({ path: 'outputs/coach-builder-editor-desktop.png' });
+    await page.locator('#library-form').screenshot({ path: 'outputs/coach-builder-simplified-desktop.png' });
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-    await page.locator('#tactics-board-tools').screenshot({ path: 'outputs/coach-builder-editor-mobile.png' });
+    await page.locator('#library-form').screenshot({ path: 'outputs/coach-builder-simplified-mobile.png' });
     await page.setViewportSize({ width: 1280, height: 1050 });
 
     const session = { id: 'rec00000000000001', status: 'Scheduled', players: [] };

@@ -3,6 +3,7 @@ import {Buffer} from 'node:buffer';
 import {jwtVerify,createRemoteJWKSet,customFetch} from 'jose';
 import {email,deny} from './coach-store.mjs';
 import {validateWorkspaceOrigin} from './deployment-config.mjs';
+import {validateCoachPath} from './coach-path.mjs';
 
 const origin='https://attendance.starsoccer.ca';
 export const GOOGLE_COACH_REDIRECT=origin+'/workspace/api/auth/google/callback';
@@ -15,8 +16,8 @@ const same=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''
 const browserHash=browser=>{if(typeof browser!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(browser))deny('GOOGLE_SIGN_IN_EXPIRED',401);return hash(browser);};
 
 /** Google authenticates identity only. Existing coach_users remains the sole permission authority. */
-export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,origin='https://attendance.starsoccer.ca',fetchFn=fetch,clock=()=>Date.now(),keyResolver=null}){
- const redirect=validateWorkspaceOrigin(origin)+'/workspace/api/auth/google/callback';
+export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,origin='https://attendance.starsoccer.ca',basePath='/workspace',fetchFn=fetch,clock=()=>Date.now(),keyResolver=null}){
+ const redirect=validateWorkspaceOrigin(origin)+validateCoachPath(basePath)+'/api/auth/google/callback';
  if(typeof clientId!=='string'||!/^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$/.test(clientId)||typeof clientSecret!=='string'||clientSecret.length<10||clientSecret.length>4096)throw Error('INVALID_GOOGLE_COACH_CONFIG');
  const resolveKey=keyResolver||createRemoteJWKSet(new URL(jwksEndpoint),{[customFetch]:fetchFn,timeoutDuration:10000,cooldownDuration:30000,cacheMaxAge:3600000});
  store.run(`CREATE TABLE IF NOT EXISTS staff_google_flows(state_hash TEXT PRIMARY KEY,browser_hash TEXT NOT NULL,nonce_hash TEXT NOT NULL,verifier TEXT NOT NULL,expires_at INTEGER NOT NULL);

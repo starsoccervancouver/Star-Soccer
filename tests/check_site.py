@@ -21,6 +21,8 @@ for name,p in PAGES.items():
     for key,link in p.links:
         u=urlparse(link)
         if u.scheme or u.netloc:continue
+        # Same-origin Coach Desk is served by the private Cloudflare Worker.
+        if key=='href' and u.path=='/coachdesk' and not u.query:continue
         path=(ROOT/unquote(u.path).lstrip('/')).resolve() if u.path.startswith('/') else (p.path.parent/unquote(u.path)).resolve() if u.path else p.path
         if path.is_dir():path=path/'index.html'
         if not path.exists():errors.append(f'{name}: missing {link}')

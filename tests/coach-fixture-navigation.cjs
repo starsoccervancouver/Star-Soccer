@@ -45,7 +45,7 @@ async function openSession(page, sessions, id, view = 'attendance', options = {}
 }
 async function openFolder(page, playerId = '') {
   await openView(page, 'notes');
-  const buttons = page.locator('#note-folders-list [data-player-folder]');
+  const buttons = page.locator('#panel-notes [data-player-folder]');
   const index = await buttons.evaluateAll((nodes, id) => nodes.findIndex(node => node.dataset.playerFolder === id), playerId);
   assert(index >= 0, 'Authorized player folder must be visible');
   await buttons.nth(index).click();

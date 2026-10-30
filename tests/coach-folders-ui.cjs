@@ -30,15 +30,17 @@ const initial = { profile, session: current, sessions: [current, past, other], g
     await context.route('**/*', async route => {
       const url = new URL(route.request().url()); requests.push(url.pathname);
       if (url.origin !== origin) { errors.push('External request'); return route.abort(); }
-      if (url.pathname === '/') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/folders.css"><link rel="stylesheet" href="/library.css"><style>body{margin:20px;font-family:Arial,sans-serif}button,input,textarea,select{box-sizing:border-box}button{font:inherit}</style><script defer src="/folders.js"></script><script defer src="/library.js"></script></head><body><section id="player-note-folders"></section><section id="coach-drill-library"></section></body></html>' });
+      if (url.pathname === '/') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/folders.css"><link rel="stylesheet" href="/library.css"><style>body{margin:20px;font-family:Arial,sans-serif}button,input,textarea,select{box-sizing:border-box}button{font:inherit}</style><script defer src="/folders.js"></script><script defer src="/library.js"></script></head><body><div id="app"><section id="panel-notes"><div class="notes-workspace-layout"><aside id="player-note-folders" aria-label="Player notes"></aside><div class="notes-workspace-main"><header id="notes-workspace-heading" class="notes-workspace-heading"></header><div id="note-list"></div></div></div></section></div><section id="coach-drill-library"></section></body></html>' });
       const files = { '/folders.js': ['workspace-folders.js', 'text/javascript'], '/folders.css': ['workspace-folders.css', 'text/css'], '/library.js': ['workspace-library.js', 'text/javascript'], '/library.css': ['workspace-library.css', 'text/css'] };
       if (files[url.pathname]) return route.fulfill({ contentType: files[url.pathname][1], body: fs.readFileSync('private-attendance/web/' + files[url.pathname][0], 'utf8') });
       errors.push('Unexpected request ' + url.pathname); return route.abort();
     });
     const page = await context.newPage(); page.setDefaultTimeout(5000); page.on('pageerror', error => errors.push(error.message)); await page.goto(origin);
-    const folders = page.locator('#note-folders-list'), card = id => folders.locator('[data-player-folder="' + id + '"]');
-    assert.equal(await folders.locator('button').count(), 3, 'One group folder plus distinct players across group dates');
-    assert.match(await card('').innerText(), /2 notes/); assert.match(await card(sam.playerId).innerText(), /2 notes/); assert.match(await card(lee.playerId).innerText(), /1 note/);
+    const folders = page.locator('#note-folders-list'), card = id => page.locator('[data-player-folder="' + id + '"]');
+    assert.equal(await folders.locator('button').count(), 2, 'Sidebar contains distinct players; group notes have a separate entry');
+    assert.match(await card('').innerText(), /2 accessible notes/); assert.match(await card(sam.playerId).innerText(), /2 notes/); assert.match(await card(lee.playerId).innerText(), /1 note/);
+    assert.equal(await page.locator('#note-folder-title').innerText(), 'Group notes');
+    assert.equal(await folders.locator('[data-player-folder=""]').count(), 0, 'Group notes are separate from the player list');
     assert.doesNotMatch(await folders.innerText(), /Morgan|PRIVATE_/); assert.equal(await card('').getAttribute('aria-pressed'), 'true');
     assert.equal(await page.evaluate(() => fixtureRequests.length), 0, 'Rendering does not select or mutate a folder'); checks++;
 

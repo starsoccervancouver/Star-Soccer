@@ -95,11 +95,25 @@ require('./coach-fixture-fonts.cjs')(assets);
     await openView(page, 'plan'); assert.equal(await page.locator('#session-plan-section').isVisible(), true); assert.equal(await page.locator('#panel-attendance').isVisible(), false);
     assert.equal(await selected(), rid(1)); await openView(page, 'notes'); assert.equal(await page.locator('#panel-notes').isVisible(), true); checks++;
 
-    assert.equal(await page.locator('#note-folders-list [data-player-folder]').count(), 4, 'Group folder plus the union of its players, including former players');
+    assert.equal(await page.locator('#note-folders-list [data-player-folder]').count(), 3, 'Player sidebar includes previous players and keeps group notes separate');
     assert.doesNotMatch(await page.locator('#note-folders-list').innerText(), /Robin/);
+    assert.equal(await page.locator('#note-folder-title').innerText(), 'Group notes');
+    assert.match(await page.locator('#note-list').innerText(), /Our group is learning/);
+    const sidebar = await page.locator('#player-note-folders').boundingBox(), notesArea = await page.locator('.notes-workspace-main').boundingBox();
+    assert(sidebar.x + sidebar.width <= notesArea.x, 'Player names sit beside the dedicated notes area on desktop');
+    assert.equal(await page.locator('#note-folders-list [data-player-folder=""]').count(), 0);
     await openFolder(page, rid(101));
+    assert.equal(await page.locator('#note-folder-title').innerText(), 'Fictional Sam’s notes');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'note-folder-title');
     assert.equal(await page.locator('#note-list .note-card').count(), 2); const samHistory = await page.locator('#note-list').innerText();
     assert.match(samHistory, /SAM_GROUP_A_OLD/); assert.match(samHistory, /SAM_GROUP_A_CURRENT/); assert.doesNotMatch(samHistory, /OTHER_GROUP_PRIVATE|AVERY_GROUP/);
+    await page.locator('#note-body').fill('Keep this player note draft.');
+    await openFolder(page); assert.equal(await page.locator('#note-player').inputValue(), rid(101), 'Declining discard keeps the player selected');
+    assert.equal(await page.locator('#note-body').inputValue(), 'Keep this player note draft.');
+    await answer(true); await page.locator('#note-folders-search').fill('no matching player'); await openFolder(page);
+    assert.equal(await page.locator('#note-folder-title').innerText(), 'Group notes', 'Group notes remain reachable when the player search has no matches');
+    assert.doesNotMatch(await page.locator('#note-list').innerText(), /SAM_GROUP/);
+    await page.locator('#note-folders-search').fill(''); await openFolder(page, rid(101));
     await screenshot('coach-player-folder-desktop');
     for (const width of [390, 320]) { await page.setViewportSize({ width, height: 844 }); await screenshot('coach-player-folder-' + width); }
     await page.setViewportSize({ width: 1365, height: 950 });

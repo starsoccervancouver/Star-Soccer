@@ -37,7 +37,7 @@ export function release({deploy=false,run=command,read=path=>readFileSync(resolv
   const parity=()=>{if(run('git',['rev-parse','HEAD^{tree}'])!==run('git',['rev-parse','refs/remotes/origin/main^{tree}']))throw Error('Release source must match origin/main exactly');};
   parity();run(process.execPath,['private-attendance/cloudflare/build-assets.mjs']);clean();parity();
   if(read(configPath)!==config)throw Error('Release configuration changed during verification');
-  if(deploy)run('pnpm',['dlx','wrangler@4.46.0','deploy','--config',configPath]);
+  if(deploy)run('pnpm',['dlx','wrangler@4.46.0','deploy','--cwd','private-attendance/cloudflare','--config','wrangler.live.toml']);
   return deploy?'Deployment command completed. Verify both coach entries before closing the release.':'Release checks passed; no deployment requested.';
  });
 }

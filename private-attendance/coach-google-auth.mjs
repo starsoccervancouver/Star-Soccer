@@ -2,6 +2,7 @@ import {randomBytes,createHash,timingSafeEqual} from 'node:crypto';
 import {Buffer} from 'node:buffer';
 import {jwtVerify,createRemoteJWKSet,customFetch} from 'jose';
 import {email,deny} from './coach-store.mjs';
+import {validateWorkspaceOrigin} from './deployment-config.mjs';
 
 const origin='https://attendance.starsoccer.ca';
 export const GOOGLE_COACH_REDIRECT=origin+'/workspace/api/auth/google/callback';
@@ -14,7 +15,8 @@ const same=(a,b)=>{const x=Buffer.from(String(a||'')),y=Buffer.from(String(b||''
 const browserHash=browser=>{if(typeof browser!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(browser))deny('GOOGLE_SIGN_IN_EXPIRED',401);return hash(browser);};
 
 /** Google authenticates identity only. Existing coach_users remains the sole permission authority. */
-export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,fetchFn=fetch,clock=()=>Date.now(),keyResolver=null}){
+export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,origin='https://attendance.starsoccer.ca',fetchFn=fetch,clock=()=>Date.now(),keyResolver=null}){
+ const redirect=validateWorkspaceOrigin(origin)+'/workspace/api/auth/google/callback';
  if(typeof clientId!=='string'||!/^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$/.test(clientId)||typeof clientSecret!=='string'||clientSecret.length<10||clientSecret.length>4096)throw Error('INVALID_GOOGLE_COACH_CONFIG');
  const resolveKey=keyResolver||createRemoteJWKSet(new URL(jwksEndpoint),{[customFetch]:fetchFn,timeoutDuration:10000,cooldownDuration:30000,cacheMaxAge:3600000});
  store.run(`CREATE TABLE IF NOT EXISTS staff_google_flows(state_hash TEXT PRIMARY KEY,browser_hash TEXT NOT NULL,nonce_hash TEXT NOT NULL,verifier TEXT NOT NULL,expires_at INTEGER NOT NULL);
@@ -25,7 +27,7 @@ export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,
    store.run('DELETE FROM staff_google_flows WHERE expires_at<=?',clock());
    store.run('DELETE FROM staff_google_flows WHERE browser_hash=?',binding);
    store.run('INSERT INTO staff_google_flows VALUES(?,?,?,?,?)',hash(state),binding,hash(nonce),verifier,expires);
-   const url=new URL(authEndpoint);for(const [key,value]of Object.entries({client_id:clientId,response_type:'code',redirect_uri:GOOGLE_COACH_REDIRECT,scope:'openid email',state,nonce,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',access_type:'online',prompt:'select_account'}))url.searchParams.set(key,value);
+   const url=new URL(authEndpoint);for(const [key,value]of Object.entries({client_id:clientId,response_type:'code',redirect_uri:redirect,scope:'openid email',state,nonce,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',access_type:'online',prompt:'select_account'}))url.searchParams.set(key,value);
    return {url:url.href,state};
   },
   async finish({code,state,browser}){
@@ -33,7 +35,7 @@ export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,
    const binding=browserHash(browser),flow=store.transaction(()=>{const row=store.get('SELECT * FROM staff_google_flows WHERE state_hash=?',hash(state));if(!row||row.expires_at<=clock()||!same(row.browser_hash,binding))deny('GOOGLE_SIGN_IN_EXPIRED',401);store.run('DELETE FROM staff_google_flows WHERE state_hash=?',hash(state));return row;});
    let idToken;
    try{
-    const response=await fetchFn(tokenEndpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},redirect:'manual',signal:AbortSignal.timeout(10000),body:new URLSearchParams({code,client_id:clientId,client_secret:clientSecret,redirect_uri:GOOGLE_COACH_REDIRECT,grant_type:'authorization_code',code_verifier:flow.verifier}).toString()});
+    const response=await fetchFn(tokenEndpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},redirect:'manual',signal:AbortSignal.timeout(10000),body:new URLSearchParams({code,client_id:clientId,client_secret:clientSecret,redirect_uri:redirect,grant_type:'authorization_code',code_verifier:flow.verifier}).toString()});
     if(!response.ok){let reason='UNKNOWN';try{const d=await response.json();if(['invalid_client','invalid_grant','unauthorized_client','invalid_request','redirect_uri_mismatch'].includes(d.error))reason=d.error.toUpperCase();}catch{}console.warn('coach_google_signin_failed','GOOGLE_TOKEN_'+reason);deny('GOOGLE_SIGN_IN_FAILED',401);}
     const raw=await response.text();if(raw.length>64000)deny('GOOGLE_SIGN_IN_FAILED',401);const result=JSON.parse(raw);idToken=result.id_token;if(typeof idToken!=='string'||idToken.length>20000)deny('GOOGLE_SIGN_IN_FAILED',401);
    }catch{console.warn('coach_google_signin_failed','GOOGLE_TOKEN_NETWORK_OR_PARSE');deny('GOOGLE_SIGN_IN_FAILED',401);}

@@ -16,10 +16,21 @@ The public Star Soccer website links to `https://attendance.starsoccer.ca/worksp
 - `coach-attendance.mjs`: validated physical attendance commands.
 - `cloudflare/production-worker.mjs`: protected Worker and Durable Object integration.
 - `cloudflare/build-assets.mjs`: generates the reviewed browser and font bundle.
+- `club-config.json`: public club name, main-site link, timezone, weekday display and accent.
+
+## Reuse for another club
+
+Coach Desk now has a validated public brand configuration and a source-only export tool. Read [REUSE.md](REUSE.md) to create a disabled starter with a generic logo, fresh identity requirements and a distinct Worker name. Every club needs its own private database, roster connection, approved owner and Google sign-in client. The export excludes operating data, credentials and live configuration; it does not deploy anything. Custom deployments expose only the coach workspace, not Star Soccer’s parent emails, payment or registration workflows.
 
 ## Coaching tools
 
+The overview highlights unfinished attendance in the last 28 days, due note reviews and open follow-ups from the signed-in coach's authorized records. Note categories and review-date filters make the next action easier to find. Tasks have separate open/completed views. Expected participation never counts as coach-marked attendance.
+
+In Session planner, open **Run this session** for a saved-plan field view, an optional three-stage timer and a printable plan with the full named roster. Unsaved edits are not included. Private coaching notes, parent contacts and after-session reflections are excluded from the print sheet. The timer pauses when you leave the view or switch apps; it does not write records.
+
 The coaching-week agenda opens a dated roster or plan directly. Player development views bring together authorized coaching observations, review dates and recorded physical attendance. Unmarked attendance stays separate from an absence, and no performance rating is inferred.
+
+The preparation, scheduling and review patterns draw on official product documentation from [PlayMetrics](https://home.playmetrics.com/clubs/coaching-and-player-development), [TeamSnap](https://teams-help.teamsnap.com/article/2970-teamsnap-one-mobile-guide-staff-parents-and-players), [Spond](https://help.spond.com/app/en/articles/129730-features-in-events) and [Hudl](https://www.hudl.com/sports/soccer). Coach Desk uses its own implementation, wording and original practice activities.
 
 The practice toolbox offers original starter activities filtered by age group and skill. Adding an activity changes the editable draft only. A coach can also start from another authorized session's saved plan; this leaves the source unchanged and does not copy its reflection. The coach must review the draft and choose Save shared plan.
 

@@ -1,0 +1,7 @@
+{
+  "name": "Star Soccer",
+  "siteUrl": "https://starsoccer.ca/",
+  "timeZone": "America/Vancouver",
+  "trainingDays": [3, 4, 5, 0],
+  "accent": "#e7c59a"
+}

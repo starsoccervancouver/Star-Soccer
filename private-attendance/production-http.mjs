@@ -1,5 +1,6 @@
 import {randomBytes,createHmac,timingSafeEqual} from 'node:crypto';
 import {Buffer} from 'node:buffer';
+import {validateWorkspaceOrigin} from './deployment-config.mjs';
 const random=()=>randomBytes(32).toString('base64url');
 const equal=(a,b)=>{if(typeof a!=='string'||typeof b!=='string')return false;const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);};
 const security={
@@ -10,7 +11,8 @@ const security={
 };
 const fail=(code,status=400)=>{const e=new Error(code);e.code=code;e.status=status;throw e;};
 export function createProductionHandler({service,origin,adminKey,cookieKey,assets,refreshRoster,flush,ownerAuth=null,ownerData=null,coachBootstrap=null,legacyOwnerEnabled=true,clock=()=>Date.now()}={}){
- if(origin!=='https://attendance.starsoccer.ca'||!service||typeof refreshRoster!=='function'||typeof flush!=='function'||!assets||!adminKey||adminKey.length<43||!cookieKey||cookieKey.length<43)throw new Error('Complete private production configuration required.');
+ origin=validateWorkspaceOrigin(origin);
+ if(!service||typeof refreshRoster!=='function'||typeof flush!=='function'||!assets||!adminKey||adminKey.length<43||!cookieKey||cookieKey.length<43)throw new Error('Complete private production configuration required.');
  const sign=s=>createHmac('sha256',cookieKey).update(s).digest('base64url');
  const rates=new Map();
  function owner(request){const prefix='__Host-ss_owner=',v=request.headers.get('cookie')?.split(';').map(s=>s.trim()).find(s=>s.startsWith(prefix))?.slice(prefix.length);if(!v)return null;const p=v.split('.');if(p.length!==3||!/^[A-Za-z0-9_-]{43}$/.test(p[0])||!/^\d{13}$/.test(p[1])||+p[1]<=clock()||+p[1]>clock()+28800000||!equal(p[2],sign('owner:'+p[0]+'.'+p[1])))return null;return {csrf:sign('owner-csrf:'+v)};}

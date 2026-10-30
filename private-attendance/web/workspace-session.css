@@ -1,0 +1,74 @@
+/* Large, calm controls for the touchline. All data remains in the signed-in page. */
+.field-entry-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 6px; }
+.field-entry-actions button { min-height: 46px; }
+body.field-view-open { overflow: hidden; }
+.field-view { width: min(1120px, calc(100% - 40px)); max-height: calc(100dvh - 40px); box-sizing: border-box; padding: 30px; margin: auto; border: 1px solid var(--desk-line, #d9e2e7); border-radius: 20px; color: var(--desk-ink, #162a3b); background: var(--desk-canvas, #f7f7f3); box-shadow: 0 24px 80px #0c1c3455; overscroll-behavior: contain; }
+.field-view::backdrop { background: #0c1c34b8; }
+.field-view *, .field-view *::before, .field-view *::after { box-sizing: border-box; }
+.field-view button, .field-view input { font: inherit; }
+.field-view button { min-height: 46px; white-space: normal; overflow-wrap: anywhere; }
+.field-view p { overflow-wrap: anywhere; }
+.field-view h2 { margin: 2px 0 8px; font-size: clamp(23px, 3vw, 34px); line-height: 1.2; letter-spacing: -.025em; }
+.field-view-heading { display: flex; gap: 24px; justify-content: space-between; align-items: start; }
+.field-view-heading > div { min-width: 0; }
+.field-view-heading > button { flex: 0 0 auto; }
+.field-view-heading .small { margin: 0; }
+.field-saved-notice { margin: 20px 0; padding: 11px 14px; border: 1px solid #d5e3eb; border-radius: 9px; background: #f0f7fa; color: #365568; font-size: 12px; line-height: 1.55; }
+.field-focus { border-left: 4px solid var(--desk-accent, #bb9553); padding: 5px 0 5px 17px; margin: 22px 0 26px; }
+.field-focus p { font-size: 20px; line-height: 1.55; font-weight: 650; margin: 4px 0; white-space: pre-wrap; }
+.field-stage-grid { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; }
+.field-activity { min-width: 0; padding: 21px; border: 1px solid var(--desk-line, #d9e2e7); border-radius: 14px; background: #fff; }
+.field-stages { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 24px; }
+.field-stages button { flex: 1 1 120px; min-width: 0; padding: 10px; font-size: 12px; }
+.field-stages button.is-active { background: var(--desk-ink, #162a3b); border-color: var(--desk-ink, #162a3b); color: #fff; }
+.field-activity h3 { font-size: 22px; margin: 0 0 13px; }
+.field-stage-copy { white-space: pre-wrap; font-size: 17px; line-height: 1.8; margin: 0; }
+.field-timer { padding: 22px; border-radius: 14px; background: var(--desk-ink, #162a3b); color: #fff; min-width: 0; }
+.field-timer .eyebrow, .field-timer .small { color: #d1dce6; }
+.field-timer .small { font-size: 12px; margin: 14px 0 0; }
+.field-timer output { display: block; font-size: 54px; font-weight: 750; line-height: 1.2; letter-spacing: -.05em; font-variant-numeric: tabular-nums; margin: 12px 0 18px; }
+.field-timer label { display: block; color: #edf3f8; font-size: 12px; margin-bottom: 16px; }
+.field-timer input { width: 100%; padding: 11px 13px; min-height: 44px; border: 1px solid #becedb; border-radius: 8px; background: #fff; color: #172d40; margin-top: 6px; }
+.field-timer-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.field-timer-actions button { flex: 1 1 85px; padding: 11px; font-size: 13px; }
+.field-timer-actions .button { background: #e9ce98; border-color: #e9ce98; color: #132535; }
+.field-timer-actions .secondary { color: #fff; background: transparent; border: 1px solid #8195a8; }
+.field-equipment { margin: 24px 0; }
+.field-equipment h3 { font-size: 17px; margin: 0 0 10px; }
+.field-equipment p { white-space: pre-wrap; font-size: 15px; line-height: 1.7; }
+.field-roster { margin-bottom: 22px; border: 1px solid var(--desk-line, #d9e2e7); background: #fff; border-radius: 12px; padding: 0 16px 16px; }
+.field-roster:not([open]) { padding-bottom: 0; }
+.field-roster summary { min-height: 50px; padding: 14px 0; font-size: 14px; font-weight: 750; cursor: pointer; }
+.field-roster-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; }
+.field-roster-table th, .field-roster-table td { padding: 11px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--desk-line, #d9e2e7); overflow-wrap: anywhere; }
+.field-roster-table th { color: #536b7e; font-size: 12px; font-weight: 650; }
+.session-print-sheet { display: none; }
+@media (max-width: 760px) {
+  .field-view { width: calc(100% - 16px); max-height: calc(100dvh - 16px); padding: 19px; border-radius: 15px; }
+  .field-view-heading { gap: 16px; flex-direction: column; }
+  .field-view-heading > button { align-self: stretch; }
+  .field-stage-grid { grid-template-columns: minmax(0, 1fr); gap: 15px; }
+  .field-activity, .field-timer { padding: 17px; }
+  .field-timer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 18px; }
+  .field-timer > .eyebrow, .field-timer > .small { grid-column: 1 / -1; }
+  .field-timer output { font-size: 44px; align-self: center; margin: 0 0 13px; }
+  .field-timer label { margin: 7px 0 13px; }
+  .field-timer-actions { grid-column: 1 / -1; }
+  .field-stage-copy { font-size: 16px; }
+  .field-entry-actions > button { flex: 1 1 180px; }
+  .field-roster { padding-left: 9px; padding-right: 9px; }
+  .field-roster-table th, .field-roster-table td { padding: 10px 4px; font-size: 11px; }
+}
+@media print {
+  .field-view, #session-field-tools { display: none !important; }
+  body.printing-session-sheet > :not(#session-print-sheet) { display: none !important; }
+  body.printing-session-sheet #session-print-sheet { display: block !important; color: #000; background: #fff; font: 10pt/1.5 Arial, sans-serif; }
+  #session-print-sheet h1 { font-size: 20pt; margin: 0 0 4mm; }
+  #session-print-sheet h2 { font-size: 13pt; margin: 6mm 0 2mm; }
+  #session-print-sheet p { color: #000; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 3mm; }
+  #session-print-sheet section { break-inside: avoid; }
+  #session-print-sheet .field-roster-table { font-size: 9pt; }
+  #session-print-sheet th, #session-print-sheet td { color: #000; padding: 3mm 2mm; border: 1px solid #777; }
+  #session-print-sheet tr { break-inside: avoid; }
+  #session-print-sheet thead { display: table-header-group; }
+}

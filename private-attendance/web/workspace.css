@@ -1754,3 +1754,55 @@ button.dictation-button[aria-pressed="true"] { border-color: #a47434; color: #61
 .coaching-tools-disclosure { margin: 0 0 20px; min-width: 0; }
 .coaching-tools-disclosure > summary { min-height: 48px; padding: 12px 14px; border: 1px solid var(--desk-line); border-radius: 10px; color: #24445e; background: #f4f8fa; font-size: 14px; font-weight: 750; cursor: pointer; }
 .coaching-tools-disclosure[open] > summary { margin-bottom: 15px; border-color: #9bb8ca; }
+
+/* A working coach's dashboard: one selected session, then clear next actions. */
+.home-command-row { align-items: stretch; margin-bottom: 24px; }
+.nav-foot a[data-club-site], .return-site[data-club-site] { gap: .3em; }
+.session-spotlight {
+  position: relative; overflow: hidden; min-width: 0;
+  border: 1px solid #294054; background: var(--desk-navy-soft); color: #fff;
+}
+.session-spotlight::after {
+  content: ''; position: absolute; right: -92px; top: -85px;
+  width: 210px; height: 210px; border: 1px solid #ffffff13;
+  border-radius: 50%; pointer-events: none;
+}
+.session-spotlight .eyebrow { color: var(--desk-gold); }
+.session-spotlight h2 { color: #fff; font-size: clamp(27px,3vw,39px); letter-spacing: -.04em; margin-bottom: 10px; }
+.session-spotlight #next-details { color: #d3e0e7; }
+.session-spotlight .callout { border: 0; border-left: 2px solid var(--desk-gold); background: #ffffff09; color: #fff; }
+.session-spotlight .button { background: var(--desk-gold); border-color: var(--desk-gold); color: var(--desk-navy); }
+.session-spotlight .button:hover:not(:disabled) { background: #f2d7b4; border-color: #f2d7b4; }
+.session-spotlight .secondary { background: transparent; color: #e6edf1; border-color: #668196; }
+.session-spotlight .secondary:hover:not(:disabled) { background: #23445e; color: #fff; }
+.priorities-card { min-width: 0; }
+.priorities-card h2 { margin-bottom: 18px; }
+button.priority-action {
+  width: 100%; display: flex; align-items: center; gap: 14px; justify-content: space-between;
+  min-height: 70px; padding: 12px 0; text-align: left; background: transparent;
+  border: 0; border-bottom: 1px solid var(--desk-line); border-radius: 0; color: var(--desk-ink);
+}
+button.priority-action > span:first-child { display: grid; min-width: 0; gap: 3px; }
+button.priority-action strong { font-size: 14px; overflow-wrap: anywhere; }
+button.priority-action .small { font-size: 12px; font-weight: 500; }
+button.priority-action:hover:not(:disabled) { color: #174c6f; background: #f4f8fa; border-color: var(--desk-line); }
+.priority-arrow { font-size: 21px; font-weight: 400; flex-shrink: 0; }
+button.priority-amber .small { color: #895414; }
+.priority-info { border-left: 2px solid #ba8d49; padding-left: 12px; color: #6b4d26; font-size: 12px; }
+.note-filter-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.note-filter-row > label:first-child { flex: 1; min-width: 160px; }
+.note-filter-row .inline-check { margin: 14px 0; }
+.task-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 24px 0 14px; padding-top: 20px; border-top: 1px solid var(--desk-line); }
+.task-filters button { min-width: 70px; }
+.task-filters button[aria-pressed="true"] { background: var(--desk-navy-soft); color: #fff; border-color: var(--desk-navy-soft); }
+.task-filters .small { margin-left: auto; font-size: 12px; }
+.task-row p.task-overdue { color: #895414; font-weight: 700; }
+.task-row > div { min-width: 0; }
+.task-row strong { overflow-wrap: anywhere; }
+@media (min-width: 1100px) { .home-command-row { grid-template-columns: 1.08fr 1fr; } }
+@media (max-width: 720px) {
+  .home-command-row { gap: 14px; margin-bottom: 18px; }
+  .session-spotlight .button, .session-spotlight .secondary { margin: 8px 4px 0 0; }
+  .task-filters .small { width: 100%; margin: 4px 0; }
+  .note-filter-row { gap: 0 12px; }
+}

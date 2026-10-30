@@ -8,20 +8,23 @@
 <link rel="stylesheet" href="/assets/app.css">
 <link rel="stylesheet" href="/workspace/assets/workspace.css">
 <link rel="stylesheet" href="/workspace/assets/coaching.css">
+<link rel="stylesheet" href="/workspace/assets/session.css">
+<script src="/workspace/assets/club-config.js" defer></script>
 <script src="/workspace/assets/passkeys.js" defer>
 </script>
 <script src="/workspace/assets/workspace.js" defer>
 </script>
 <script src="/workspace/assets/dictation.js" defer></script>
 <script src="/workspace/assets/coaching.js" defer></script>
+<script src="/workspace/assets/session.js" defer></script>
 </head>
 <body>
 <a class="desk-skip" href="#desk-main">Skip to coach workspace</a>
 <div id="login" class="signin" hidden>
-<a class="return-site" href="https://starsoccer.ca/">← Star Soccer website</a>
+<a class="return-site" data-club-site href="https://starsoccer.ca/">← <span data-club-name>Star Soccer</span> website</a>
 <div class="signin-layout">
 <section class="signin-story">
-<img src="/assets/logo.svg" alt="Star Soccer Vancouver">
+<img data-club-logo src="/assets/logo.svg" alt="Star Soccer Vancouver">
 <p class="eyebrow">For the people on the touchline</p>
 <h1>Ready for a<br>great session.</h1>
 <p>Your players, session plans and coaching notes in one private workspace.</p>
@@ -37,7 +40,7 @@
 <p id="signin-copy">Use the email approved by Star Soccer and your device’s passkey.</p>
 <div id="google-signin" hidden>
 <button id="google-signin-button" class="google-signin-button" type="button">Continue with Google</button>
-<p class="small">Use the Google account approved by Star Soccer. This verifies your email only; it does not give Coach Desk access to your inbox or calendar.</p>
+<p class="small">Use the Google account approved by <span data-club-name>Star Soccer</span>. This verifies your email only; it does not give Coach Desk access to your inbox or calendar.</p>
 </div>
 <details id="passkey-options" open>
 <summary id="passkey-summary" hidden>Use an existing passkey instead</summary>
@@ -56,15 +59,15 @@
 <div id="signin-recovery" hidden>
 <button class="button confirm" id="retry-workspace" type="button">Retry opening Coach Desk</button>
 </div>
-<p id="passkey-security-copy" class="small">A passkey uses your device’s fingerprint, face or PIN. Star Soccer never receives your device PIN or biometric data.</p>
+<p id="passkey-security-copy" class="small">A passkey uses your device’s fingerprint, face or PIN. Your device PIN and biometric data stay with your device.</p>
 <p id="access-copy" class="small">New coach? Ask the owner for access. Only approved accounts can open Coach Desk.</p>
 </section>
 </div>
 </div>
 <div id="app" hidden>
 <header class="desk-header">
-<a href="https://starsoccer.ca/">
-<img src="/assets/logo.svg" alt="Star Soccer Vancouver">
+<a data-club-site href="https://starsoccer.ca/" aria-label="Club website">
+<img data-club-logo src="/assets/logo.svg" alt="Star Soccer Vancouver">
 </a>
 <div>
 <strong>Coach Desk</strong>
@@ -90,7 +93,7 @@
 <span id="role">
 </span>
 <p>Your notes stay private to you and approved full-access accounts.</p>
-<a href="https://starsoccer.ca/">Public website ↗</a>
+<a data-club-site href="https://starsoccer.ca/"><span data-club-name>Star Soccer</span> website ↗</a>
 </div>
 </aside>
 <main class="desk-main" id="desk-main" tabindex="-1" aria-busy="false">
@@ -115,10 +118,9 @@
 <section id="panel-home" class="tab-panel">
 <div class="desk-stats" id="home-stats">
 </div>
-<section id="coaching-hub" aria-label="Session briefing"></section>
-<div class="two-columns">
-<section class="card">
-<p class="eyebrow">Next up</p>
+<div class="two-columns home-command-row">
+<section class="card session-spotlight">
+<p class="eyebrow">Selected session</p>
 <h2 id="next-title">
 </h2>
 <p id="next-details">
@@ -128,13 +130,15 @@
 <button class="button" id="go-attendance">Open the roster</button>
 <button class="secondary" id="go-plan">Plan this session</button>
 </section>
-<section class="card">
+<section class="card priorities-card">
 <p class="eyebrow">Keep the week moving</p>
-<h2>Your follow-ups</h2>
+<h2>Needs your attention</h2>
+<div id="home-priorities"></div>
 <div id="home-followups">
 </div>
 </section>
 </div>
+<section id="coaching-hub" aria-label="Session briefing"></section>
 <section class="card">
 <div class="section-heading">
 <div>
@@ -213,7 +217,7 @@
 </select>
 </label>
 <button class="secondary" id="roster-search-clear" type="button" hidden>Clear search</button>
-<p class="small" id="roster-search-count" role="status" aria-live="polite" role="status">
+<p class="small" id="roster-search-count" role="status" aria-live="polite">
 </p>
 </div>
 <div id="roster">
@@ -266,6 +270,11 @@
 </div>
 <label>Find a note<input id="note-search" type="search" placeholder="Player, category or note text">
 </label>
+<div class="note-filter-row">
+<label>Category<select id="note-category-filter"><option value="all">All categories</option><option>General</option><option>Technical</option><option>Tactical</option><option>Physical</option><option>Confidence</option><option>Goal</option><option>Session review</option></select></label>
+<label class="inline-check"><input type="checkbox" id="note-review-filter"> Review due</label>
+</div>
+<p id="note-results" class="small" role="status"></p>
 <div id="note-list">
 </div>
 </section>
@@ -274,6 +283,7 @@
 <section id="panel-plan" class="tab-panel" hidden>
 <section class="card">
 <p class="privacy-message shared">Shared with coaches assigned to this session and full-access admins.</p>
+<details id="session-field-disclosure" class="coaching-tools-disclosure"><summary>Run this session</summary><section id="session-field-tools" aria-label="Saved session run sheet"></section></details>
 <p class="dictation-help small" id="plan-dictation-help"></p>
 <form id="plan-form" class="plan-grid">
 <label class="full-width">Session focus<textarea id="plan-focus" data-dictation-label="Dictate session focus" rows="2" maxlength="2000" placeholder="The one thing we want players to take away">
@@ -308,6 +318,7 @@
 <section class="card">
 <p class="eyebrow">Small steps, followed through</p>
 <h2>Tasks &amp; follow-ups</h2>
+<p class="small">Keep preparation and player follow-ups connected to the selected session.</p>
 <form id="task-form" class="task-form">
 <label>Task<input id="task-title" maxlength="250" required placeholder="Something to prepare or follow up">
 </label>
@@ -316,6 +327,7 @@
 </label>
 <button class="button" type="submit">Add task</button>
 </form>
+<div class="task-filters" role="group" aria-label="Task views"><button class="secondary" type="button" data-task-filter="open" aria-pressed="true">Open</button><button class="secondary" type="button" data-task-filter="all" aria-pressed="false">All</button><button class="secondary" type="button" data-task-filter="done" aria-pressed="false">Completed</button><span id="task-summary" class="small" role="status"></span></div>
 <div id="task-list">
 </div>
 </section>

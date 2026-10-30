@@ -1,4 +1,5 @@
 import {randomBytes,createHash} from 'node:crypto';
+import {validateWorkspaceOrigin} from './deployment-config.mjs';
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const random=()=>randomBytes(32).toString('base64url');
 const tokenPattern=/^[A-Za-z0-9_-]{43}$/;
@@ -36,10 +37,10 @@ function normalizeSnapshot(input,now,mode='demo'){
   return {id:s.id,label:text(s.label,150),startAt,endAt,location:text(s.location,200),capacity:20,status:s.status,ownerExpected:s.ownerExpected,entries};
  });return {revision:input.revision,observedAt,snapshotId,sessions};
 }
-export function createService({store,origin='http://127.0.0.1:8785',clock=()=>new Date(),rosterMaxAgeMs=15*60000,mode='demo',activation=null}={}){
+export function createService({store,origin='http://127.0.0.1:8785',approvedOrigin='https://attendance.starsoccer.ca',clock=()=>new Date(),rosterMaxAgeMs=15*60000,mode='demo',activation=null}={}){
  const live=mode==='live'&&activation?.ownerApproved===true&&activation?.exclusiveWriter===true&&activation?.draftOnly===true&&activation?.handoffEvidence?.length>0;
  if(!store||(!live&&mode!=='demo'))fail('LIVE_MODE_NOT_APPROVED',503);
- const u=new URL(origin);if(u.origin!==origin||(live?origin!=='https://attendance.starsoccer.ca':u.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(u.hostname)))fail('LIVE_MODE_NOT_APPROVED',503);
+ const u=new URL(origin);if(u.origin!==origin||(live?origin!==validateWorkspaceOrigin(approvedOrigin):u.protocol!=='http:'||!['127.0.0.1','localhost','[::1]'].includes(u.hostname)))fail('LIVE_MODE_NOT_APPROVED',503);
  if(!Number.isSafeInteger(rosterMaxAgeMs)||rosterMaxAgeMs<1000||rosterMaxAgeMs>3600000)fail('INVALID_FRESHNESS_WINDOW');
  const now=()=>{const n=clock();const value=n instanceof Date?n.getTime():ms(n);if(!Number.isFinite(value))fail('INVALID_CLOCK',503);return value;};
  const stamp=()=>new Date(now()).toISOString();

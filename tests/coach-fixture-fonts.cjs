@@ -10,9 +10,13 @@ module.exports = function addCoachFixtureFonts(assets) {
     ['/workspace/assets/dictation.js', 'workspace-dictation.js', 'text/javascript'],
     ['/workspace/assets/coaching.js', 'workspace-coaching.js', 'text/javascript'],
     ['/workspace/assets/coaching.css', 'workspace-coaching.css', 'text/css'],
+    ['/workspace/assets/session.js', 'workspace-session.js', 'text/javascript'],
+    ['/workspace/assets/session.css', 'workspace-session.css', 'text/css'],
   ]) {
     const location = path.join(__dirname, '..', 'private-attendance', 'web', file);
     if (fs.existsSync(location)) assets[url] = { body: fs.readFileSync(location, 'utf8'), type };
   }
+  const config = require('../private-attendance/club-config.json');
+  assets['/workspace/assets/club-config.js'] = { body: 'window.CoachClub=Object.freeze('+JSON.stringify(config)+');', type: 'text/javascript' };
   return assets;
 };

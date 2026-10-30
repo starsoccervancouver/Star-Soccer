@@ -15,14 +15,14 @@
     const parsed = new Date(date + 'T12:00:00Z');
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
   };
-  const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const addDays = (date, count) => {
     const result = new Date(date + 'T12:00:00Z');
     result.setUTCDate(result.getUTCDate() + count);
     return result.toISOString().slice(0, 10);
   };
   const dateLabel = date => validDate(date) ? new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(date + 'T12:00:00Z')) : 'Date not recorded';
-  const trainingDays = new Set([0, 3, 4, 5]);
+  const trainingDays = new Set(window.CoachClub?.trainingDays || [0, 3, 4, 5]);
   const empty = text => element('p', text, 'empty-state');
   let context = null;
   let playerId = '';
@@ -104,7 +104,7 @@
     target.append(agenda);
     if (!rows.length) target.append(empty('No assigned training sessions are recorded for the next seven days.'));
     const due = (context.notes || []).filter(note => validDate(note.review_date) && note.review_date <= start);
-    if (due.length) {
+    if (due.length && !$('home-priorities')) {
       const review = element('div', '', 'coaching-review-alert');
       review.append(element('strong', due.length + ' note' + (due.length === 1 ? '' : 's') + ' ready for review'), element('p', 'Based on review dates you or an approved coach recorded. Open player notes to choose the next step.', 'small'));
       if (context.selected) review.append(button('Review player notes', () => emit('coach:open-session', { sessionId: context.selected, tab: 'notes' })));
@@ -169,7 +169,7 @@
       if (note.updated_at) {
         const stamp = new Date(note.updated_at);
         if (!Number.isNaN(stamp.getTime())) {
-          const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(stamp);
+          const date = new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(stamp);
           meta.push('Saved ' + dateLabel(date));
         }
       }

@@ -1789,6 +1789,9 @@ button.priority-action:hover:not(:disabled) { color: #174c6f; background: #f4f8f
 .priority-arrow { font-size: 21px; font-weight: 400; flex-shrink: 0; }
 button.priority-amber .small { color: #895414; }
 .priority-info { border-left: 2px solid #ba8d49; padding-left: 12px; color: #6b4d26; font-size: 12px; }
+.priority-roster-details { margin-top: 12px; border-top: 1px solid var(--desk-line); }
+.priority-roster-details summary { min-height: 48px; padding: 13px 0; cursor: pointer; font-size: 14px; font-weight: 750; }
+.priority-roster-details .small { margin: 0 0 12px; font-size: 12px; }
 .note-filter-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .note-filter-row > label:first-child { flex: 1; min-width: 160px; }
 .note-filter-row .inline-check { margin: 14px 0; }

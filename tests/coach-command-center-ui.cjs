@@ -91,6 +91,7 @@ const { chromium } = require('playwright');
     } checks++;
     assert.equal(requests.filter(r => /attendance$|save$|archive$|invite$|assign$/.test(r.path)).length, 0, 'Review/navigation tools never mutate records');
     assert.deepEqual(errors, []); checks++;
+    profile.role='owner'; tasks.forEach(t=>t.status='done'); notes.forEach(n=>n.review_date='2027-01-01'); sessions.forEach(s=>s.players.forEach(p=>p.actualAttendance='Present')); sessions[0].issues=[{reason:'Parent email missing',player:'Preview Maya'}]; await page.reload(); await page.locator('#app').waitFor({state:'visible'}); await page.locator('.priority-roster-details summary').click(); assert.match(await page.locator('#home-priorities').innerText(),/Parent email missing: Preview Maya/); assert.doesNotMatch(await page.locator('#home-priorities').innerText(),/Nothing needs a follow-up/); checks++;
     await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await page.locator('#login').waitFor({ state: 'visible' });
     for (const id of ['home-priorities','task-list','note-list','session-field-tools']) assert.equal(await page.locator('#'+id).innerText(), '', 'Clears private '+id);

@@ -177,6 +177,11 @@
 #tactics-board-tools .tactics-view-controls button { padding: 8px 11px; }
 :is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-view-controls button, #tactics-board-tools .tactics-view-controls button { min-width: 44px; }
 #tactics-board-tools .tactics-view-controls { padding: 0 8px; }
+#tactics-board-tools .tactics-pan-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:6px}
+#tactics-board-tools .tactics-pan-controls[hidden]{display:none!important}
+#tactics-board-tools .tactics-zoom-value{min-width:3.2rem;text-align:center;font-size:.8rem;font-variant-numeric:tabular-nums;color:var(--desk-ink,#292d33)}
+#tactics-board-tools .tactics-view-controls button:disabled{opacity:.4;cursor:default}
+@media(max-width:560px){#tactics-board-tools .tactics-pan-controls{flex-basis:100%;margin:2px 0 0}}
 #tactics-board-tools .tactics-main-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 #tactics-board-tools .tactics-main-toolbar .tactics-pieces { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
 #tactics-board-tools .tactics-edit-modes { margin: 0; }

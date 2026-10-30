@@ -128,8 +128,25 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('[data-possession="' + home + '"]').count(), 1);
     await drag(await at(ball), [{ x: 30, y: 85 }]); assert.equal((await at(ball)).attachedTo, undefined, 'Drag ball away releases possession');
     assert.equal(await page.locator('[data-tactics-path="' + ball + '"]').getAttribute('stroke'), '#303b42');
-    await page.locator('#tactics-zoom-in').click(); assert(await page.locator('#tactics-pitch-board').evaluate(n => n.viewBox.baseVal.width < 1120));
-    await page.locator('#tactics-zoom-fit').click(); assert.equal(await page.locator('#tactics-pitch-board').evaluate(n => n.viewBox.baseVal.width), 1120);
+    const diagramBeforeView = await draft(), view = () => page.locator('#tactics-pitch-board').evaluate(n => { const v = n.viewBox.baseVal; return { x:v.x,y:v.y,width:v.width,height:v.height }; });
+    assert(await page.locator('#tactics-zoom-out').isDisabled()); assert.equal(await page.locator('#tactics-zoom-fit').isVisible(), false);
+    assert.equal(await page.locator('.tactics-pan-controls').isVisible(), false, 'No dead arrow controls when the whole field is visible');
+    assert.equal(await page.locator('#tactics-zoom-value').textContent(), '100%');
+    await page.locator('#tactics-zoom-in').click(); const zoomed = await view(); assert(zoomed.width < 1120);
+    assert(await page.locator('.tactics-pan-controls').isVisible()); assert.equal(await page.locator('#tactics-zoom-value').textContent(), '125%');
+    await page.locator('#tactics-pan-left').click(); assert((await view()).x < zoomed.x, 'Pan actually moves the visible field');
+    for (let step = 0; step < 5; step++) await page.locator('#tactics-zoom-in').click();
+    assert(await page.locator('#tactics-zoom-in').isDisabled()); assert.equal(await page.locator('#tactics-zoom-value').textContent(), '250%');
+    for (const direction of ['left','up','right','down']) {
+      const control = page.locator('#tactics-pan-' + direction); for (let step = 0; step < 20 && await control.isEnabled(); step++) await control.click();
+      assert(await control.isDisabled(), direction + ' disables at the field edge'); const bounds = await view();
+      assert(bounds.x >= -60.001 && bounds.y >= -60.001 && bounds.x + bounds.width <= 1060.001 && bounds.y + bounds.height <= 710.001, 'Panning stays inside the complete field view');
+    }
+    await page.locator('#tactics-zoom-out').click(); const wider = await view();
+    assert(wider.x + wider.width <= 1060.001 && wider.y + wider.height <= 710.001, 'Zooming out reclamps a panned viewport');
+    await page.locator('#tactics-zoom-fit').click(); assert.deepEqual(await view(), { x:-60,y:-60,width:1120,height:770 });
+    assert(await page.locator('#tactics-zoom-out').isDisabled()); assert.equal(await page.locator('.tactics-pan-controls').isVisible(), false);
+    assert.deepEqual(await draft(), diagramBeforeView, 'View controls never edit a drill or its recorded movement');
     await save();
     fs.mkdirSync('outputs', { recursive: true });
     await page.locator('#tactics-board-tools').screenshot({ path: 'outputs/coach-builder-editor-desktop.png' });

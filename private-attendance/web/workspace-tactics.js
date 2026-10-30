@@ -218,10 +218,26 @@
   phaseEditor.append(el('h3', 'Selected phase'), frameSettings, phaseNotes.parentElement, phaseActions);
   fieldColumn.append(canvasWrap, phases); inspector.append(phaseEditor, side); boardLayout.replaceChildren(fieldColumn, inspector);
   const viewControls = el('div', '', 'tactics-view-controls'); viewControls.setAttribute('aria-label', 'Field view');
-  function setView(factor = zoom, dx = 0, dy = 0) { zoom = Math.max(1, Math.min(2.5, factor)); viewCenter = zoom === 1 ? { x: 500, y: 325 } : { x: Math.max(0, Math.min(1000, viewCenter.x + dx)), y: Math.max(0, Math.min(650, viewCenter.y + dy)) }; draw(); }
-  viewControls.append(button('−', 'tactics-zoom-out', () => setView(zoom - .25)), button('Fit field', 'tactics-zoom-fit', () => setView(1)), button('+', 'tactics-zoom-in', () => setView(zoom + .25)));
-  for (const [name, text, dx, dy] of [['left', '←', -100, 0], ['up', '↑', 0, -80], ['down', '↓', 0, 80], ['right', '→', 100, 0]]) { const b = button(text, 'tactics-pan-' + name, () => setView(zoom, dx, dy)); b.setAttribute('aria-label', 'Pan field ' + name); viewControls.append(b); }
-  viewControls.children[0].setAttribute('aria-label', 'Zoom out'); viewControls.children[2].setAttribute('aria-label', 'Zoom in');
+  const panControls = el('div', '', 'tactics-pan-controls'); panControls.setAttribute('role', 'group'); panControls.setAttribute('aria-label', 'Move zoomed view');
+  const zoomValue = el('output', '100%', 'tactics-zoom-value'); zoomValue.id = 'tactics-zoom-value'; zoomValue.setAttribute('aria-label', 'Field zoom');
+  const viewBounds = () => ({ left: -60 + 560 / zoom, right: 1060 - 560 / zoom, top: -60 + 385 / zoom, bottom: 710 - 385 / zoom });
+  function updateViewControls() {
+    const locked = !editable(), bounds = viewBounds(), fit = zoom === 1, near = (a, b) => Math.abs(a - b) < .001;
+    $('tactics-zoom-out').disabled = locked || fit; $('tactics-zoom-in').disabled = locked || zoom === 2.5;
+    $('tactics-zoom-fit').hidden = fit; $('tactics-zoom-fit').disabled = locked || fit;
+    const percentage = Math.round(zoom * 100) + '%'; if (zoomValue.textContent !== percentage) zoomValue.textContent = percentage; panControls.hidden = fit;
+    for (const [direction, edge] of [['left', near(viewCenter.x, bounds.left)], ['right', near(viewCenter.x, bounds.right)], ['up', near(viewCenter.y, bounds.top)], ['down', near(viewCenter.y, bounds.bottom)]]) $('tactics-pan-' + direction).disabled = locked || fit || edge;
+  }
+  function setView(factor = zoom, dx = 0, dy = 0) {
+    if (!editable()) return;
+    zoom = Math.max(1, Math.min(2.5, factor)); const bounds = viewBounds();
+    viewCenter = { x: Math.max(bounds.left, Math.min(bounds.right, viewCenter.x + dx)), y: Math.max(bounds.top, Math.min(bounds.bottom, viewCenter.y + dy)) }; draw();
+  }
+  const zoomOut = button('−', 'tactics-zoom-out', () => setView(zoom - .25)), zoomIn = button('+', 'tactics-zoom-in', () => setView(zoom + .25)), fitField = button('Fit field', 'tactics-zoom-fit', () => { setView(1); zoomIn.focus(); });
+  zoomOut.setAttribute('aria-label', 'Zoom out'); zoomOut.title = 'Zoom out'; zoomIn.setAttribute('aria-label', 'Zoom in'); zoomIn.title = 'Zoom in'; fitField.title = 'Show the entire field';
+  viewControls.append(zoomOut, zoomValue, zoomIn, fitField); panControls.append(el('span', 'Move view', 'small'));
+  for (const [name, text, dx, dy] of [['left', '←', -100, 0], ['up', '↑', 0, -80], ['down', '↓', 0, 80], ['right', '→', 100, 0]]) { const b = button(text, 'tactics-pan-' + name, () => setView(zoom, dx, dy)); b.setAttribute('aria-label', 'Pan field ' + name); b.title = 'Move view ' + name; panControls.append(b); }
+  viewControls.append(panControls);
   pathCaption.before(viewControls);
   editor.append(topActions, boardLayout, extras, recoveryActions);
   mount.append(workbar, editor, library, reuse);
@@ -461,6 +477,7 @@
     renderStatus(); draw(); renderPlayback();
   }
   function draw() {
+    updateViewControls();
     board.setAttribute('viewBox', [viewCenter.x - 560 / zoom, viewCenter.y - 385 / zoom, 1120 / zoom, 770 / zoom].join(' '));
     board.replaceChildren();
     board.append(svg('rect', { width: 1000, height: 650, fill: '#eef2e8' }));

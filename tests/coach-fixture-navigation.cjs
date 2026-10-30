@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const focused = page => page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'));
 async function leaveGroup(page) {
+  if (await page.locator('#planner-drawer').isVisible()) await page.locator('#planner-close-drawer').click();
   if (await focused(page)) await page.locator('#planner-home').click();
   return !await focused(page);
 }
@@ -11,6 +12,7 @@ async function openView(page, view, { ready = true } = {}) {
   if (view === 'plan' && ready) await page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
 }
 async function openSession(page, sessions, id, view = 'attendance', options = {}) {
+  if (await page.locator('#planner-drawer').isVisible()) await page.locator('#planner-close-drawer').click();
   const target = sessions.find(session => session.id === id);
   assert(target, 'Fixture session must exist: ' + id);
   const key = await page.evaluate(session => CoachGroups.key(session), target);
@@ -33,10 +35,11 @@ async function openSession(page, sessions, id, view = 'attendance', options = {}
     if (!await focused(page)) return false;
   }
   if (await page.locator('#session').inputValue() !== id) {
-    if (!await page.locator('#planner-date').isVisible()) await page.locator('#planner-focus-date').click();
-    await page.locator('#planner-date').selectOption(id);
+    if (!await page.locator('#planner-dates-pane').isVisible()) await page.locator('#planner-focus-date').click();
+    await page.locator('[data-session-date-id="'+id+'"]').click();
     if (await page.locator('#session').inputValue() !== id) return false;
   }
+  if (await page.locator('#planner-drawer').isVisible()) await page.locator('#planner-close-drawer').click();
   await openView(page, view, options);
   return true;
 }

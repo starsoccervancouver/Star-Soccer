@@ -96,8 +96,8 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
         await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);
       }
       if(await current(f)===id)return;
-      if(!await f.page.locator('#planner-date').isVisible())await f.page.locator('#planner-focus-date').click();
-      await f.page.locator('#planner-date').selectOption(id);
+      if(!await f.page.locator('#planner-dates-pane').isVisible())await f.page.locator('#planner-focus-date').click();
+      await f.page.locator('[data-session-date-id="'+id+'"]').click();
     };
     const choose = async (f, id) => { await selectDate(f, id); await f.page.waitForFunction(id => document.getElementById('session').value === id && !document.getElementById('plan-focus').disabled, id); };
     const chooseDay = async (f, number) => { await f.page.locator('#planner-back').click(); await day(f, number).click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled); };
@@ -127,11 +127,11 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     assert.equal(await current(f), rid(6), 'Wednesday chooses its next active session, skipping a cancelled earlier slot');
     assert.match(await f.page.locator('#planner-focus-title').innerText(), /Wednesday/);
     assert.match(await f.page.locator('#planner-focus-detail').innerText(), /Nov|November/);
-    await choose(f, rid(8)); assert.equal(await current(f), rid(8), 'A later date can override the next-session default');
+    await f.page.locator('#planner-focus-date').click(); assert.equal(await f.page.locator('[data-session-date-id="' + rid(8) + '"]').count(), 0, 'Dates more than one week ahead stay outside the sidebar');
     await choose(f, rid(1)); assert.equal(await current(f), rid(1), 'Past sessions remain explicitly reachable');
     await chooseDay(f, 3); await f.page.waitForFunction(() => document.getElementById('session').value.endsWith('000006'));
     assert.equal(await current(f), rid(6), 'Choosing the weekday again returns to its next session');
-    assert.equal(await f.page.locator('#planner-date option[value="' + rid(5) + '"]').count(), 0, 'A cancelled date in another time slot stays outside this group');
+    assert.equal(await f.page.locator('[data-session-date-id="' + rid(5) + '"]').count(), 0, 'A cancelled date in another time slot stays outside this group');
     clean(f); checks++;
 
     const timeChoices = await f.page.evaluate(() => {

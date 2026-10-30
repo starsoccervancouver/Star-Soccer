@@ -18,16 +18,16 @@ assets['/workspace/assets/library.css']={body:'',type:'text/css'};
 (async()=>{
  const browser=await chromium.launch();let checks=0;
  try{
-  async function fixture(){
+  async function fixture(fixtureRows=rows, clock=now){
    const context=await browser.newContext({viewport:{width:1365,height:950}}),state={profile:{...profile},failedSession:null,delaySave:false},requests=[],errors=[],pending=[];
-   await context.addInitScript(now=>{const Base=Date;window.Date=class extends Base{constructor(...args){super(...(args.length?args:[now]));}static now(){return Base.parse(now);}};window.answers=[];window.prompts=[];window.contextEvents=0;window.addEventListener('coach:context',()=>contextEvents++);window.confirm=text=>{prompts.push(text);return answers.shift()===true;};},now);
+   await context.addInitScript(now=>{const Base=Date;window.Date=class extends Base{constructor(...args){super(...(args.length?args:[now]));}static now(){return Base.parse(now);}};window.answers=[];window.prompts=[];window.contextEvents=0;window.addEventListener('coach:context',()=>contextEvents++);window.confirm=text=>{prompts.push(text);return answers.shift()===true;};},clock);
    await context.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
     if(url.origin!==origin){errors.push('Unexpected external request');return route.abort();}
     if(assets[url.pathname])return route.fulfill({status:200,contentType:assets[url.pathname].type,body:assets[url.pathname].body});
     const payload=req.postData()?req.postDataJSON():undefined;requests.push({path:url.pathname,payload,method:req.method()});let value,status=200;
     if(url.pathname.endsWith('/bootstrap'))value={profile:state.profile,csrfToken:'fictional-focus-csrf',googleEnabled:true};
-    else if(url.pathname.endsWith('/desk'))value={profile:state.profile,sessions:rows,notes:[],tasks:[],observedAt:now};
+    else if(url.pathname.endsWith('/desk'))value={profile:state.profile,sessions:fixtureRows,notes:[],tasks:[],observedAt:clock};
     else if(url.pathname.endsWith('/session')){if(state.failedSession===payload.sessionId){status=503;value={error:'FICTIONAL_PLAN_LOAD',message:'Fictional unavailable plan'};}else value={plan:{session_id:payload.sessionId,version:1,content:{focus:'Saved focus for '+payload.sessionId}}};}
     else if(url.pathname.endsWith('/diagrams/list'))value={diagrams:[]};
     else if(url.pathname.endsWith('/plans/save')){if(state.delaySave)await new Promise(resolve=>pending.push(resolve));value={plan:{session_id:payload.sessionId,version:payload.expectedVersion+1,content:payload.content,updated_at:now,updated_by:profile.email}};}
@@ -73,10 +73,10 @@ assets['/workspace/assets/library.css']={body:'',type:'text/css'};
   await f.answer(false);await f.page.locator('#planner-back').click();assert.equal(await focused(f),true);assert.equal(await f.page.locator('#plan-focus').inputValue(),'Keep this focused draft');
   await f.answer(false);await f.page.locator('#planner-home').click();assert.equal(await focused(f),true);
   await f.page.locator('#planner-focus-date').click();
-  assert.deepEqual(await f.page.locator('#planner-date option').evaluateAll(options=>options.map(o=>o.value)),[rid(4),rid(3),rid(5)],'Dates belong only to the chosen group, including read-only cancellation history');
-  await f.answer(false);await f.page.locator('#planner-date').selectOption(rid(4));assert.equal(await f.page.locator('#session').inputValue(),rid(3));assert.equal(await f.page.locator('#planner-date').inputValue(),rid(3));
+  assert.deepEqual(await f.page.locator('[data-session-date-id]').evaluateAll(options=>options.map(o=>o.dataset.sessionDateId)),[rid(3),rid(5),rid(4)],'Dates belong only to the chosen group, including read-only cancellation history');
+  await f.answer(false);await f.page.locator('[data-session-date-id="'+rid(4)+'"]').click();assert.equal(await f.page.locator('#session').inputValue(),rid(3));assert.equal(await f.page.locator('[data-session-date-id][aria-current="date"]').getAttribute('data-session-date-id'),rid(3));
   assert.equal(await f.page.locator('#plan-focus').inputValue(),'Keep this focused draft');
-  await f.answer(true);await f.page.locator('#planner-back').click();assert.equal(await focused(f),false);assert.equal(await f.page.locator('#planner-workspace').isVisible(),false);assert.equal(await f.page.locator('#planner-date-options').isVisible(),false);
+  await f.page.locator('#planner-close-drawer').click();await f.answer(true);await f.page.locator('#planner-back').click();assert.equal(await focused(f),false);assert.equal(await f.page.locator('#planner-workspace').isVisible(),false);assert.equal(await f.page.locator('#planner-dates-pane').isVisible(),false);
   assert.equal(await f.page.locator('#plan-focus').inputValue(),'Saved focus for '+rid(3),'Approved Back restores the saved plan');
   assert.equal(await f.page.evaluate(()=>document.activeElement.id),'planner-chooser-title');
   checks++;
@@ -109,14 +109,14 @@ assets['/workspace/assets/library.css']={body:'',type:'text/css'};
   checks++;
 
   await f.page.locator('#planner-back').click();await focus(f,3);
-  await f.page.locator('#planner-focus-date').click();f.state.failedSession=rid(4);await f.page.locator('#planner-date').selectOption(rid(4));await f.page.locator('#plan-retry').waitFor({state:'visible'});
+  await f.page.locator('#planner-focus-date').click();f.state.failedSession=rid(4);await f.page.locator('[data-session-date-id="'+rid(4)+'"]').click();await f.page.locator('#plan-retry').waitFor({state:'visible'});
   assert.equal(await focused(f),true);assert.equal(await f.page.locator('#plan-focus').isDisabled(),true);assert.equal(await f.page.locator('#plan-focus').inputValue(),'');
   f.state.failedSession=null;await f.page.locator('#plan-retry').click();await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);assert.equal(await f.page.locator('#plan-focus').inputValue(),'Saved focus for '+rid(4));
   checks++;
 
   await f.page.locator('#planner-focus-date').click();
-  assert.match(await f.page.locator('#planner-date option[value="'+rid(5)+'"]').innerText(),/Cancelled \(read only\)/);
-  await f.page.locator('#planner-date').selectOption(rid(5));
+  assert.match(await f.page.locator('[data-session-date-id="'+rid(5)+'"]').innerText(),/Cancelled · Read only/);
+  await f.page.locator('[data-session-date-id="'+rid(5)+'"]').click();
   await f.page.waitForFunction(()=>document.getElementById('session').value.endsWith('000005'));
   assert.equal(await focused(f),true,'Cancelled records remain readable inside the group');
   assert.match(await f.page.locator('#planner-focus-detail').innerText(),/Cancelled · Read only/);
@@ -125,7 +125,7 @@ assets['/workspace/assets/library.css']={body:'',type:'text/css'};
   assert.equal(await f.page.locator('#planner-note-body').isDisabled(),true);
   assert.equal(await f.page.locator('#planner-notes-player').isDisabled(),false,'Private history folders remain readable');
   await f.page.locator('#planner-close-drawer').click();
-  await f.page.locator('#planner-focus-date').click();await f.page.locator('#planner-date').selectOption(rid(4));await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);
+  await f.page.locator('#planner-focus-date').click();await f.page.locator('[data-session-date-id="'+rid(4)+'"]').click();await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);
   checks++;
 
   for(const width of [1365,390,320]){
@@ -138,6 +138,27 @@ assets['/workspace/assets/library.css']={body:'',type:'text/css'};
   await f.page.locator('#planner-home').click();await f.page.locator('#logout').click();await f.page.locator('#login').waitFor({state:'visible'});
   assert.equal(await focused(f),false);assert.equal(await f.page.locator('#planner-focus-title').innerText(),'');assert.equal(await f.page.locator('#planner-focus-detail').innerText(),'');assert.equal(await f.page.locator('#plan-focus').inputValue(),'');
   assert.equal(await f.page.locator('#planner-workspace').isVisible(),false);clean(f);await f.context.close();checks++;
+  // Vancouver is still Oct 31 here; the seven-day window crosses the DST change.
+  const history=Array.from({length:25},(_,i)=>{const d=new Date('2020-01-04T12:00:00Z');d.setUTCDate(d.getUTCDate()+i*7);return row(100+i,d.toISOString().slice(0,10),'Completed');});
+  const dates=await fixture([row(10,'2026-10-31'),row(11,'2026-11-07'),row(12,'2026-11-14'),...history], '2026-11-01T06:30:00Z');
+  await enterChooser(dates);await focus(dates,6);await dates.page.locator('#planner-focus-date').click();
+  assert.equal(await dates.page.locator('#planner-date').count(),0,'No middle dropdown remains');
+  assert.equal(await dates.page.locator('#planner-drawer-title').innerText(),'View other sessions');
+  assert.equal(await dates.page.locator('#planner-dates-month').getAttribute('max'),'2026-11');
+  assert.deepEqual(await dates.page.locator('#planner-dates-upcoming button').evaluateAll(nodes=>nodes.map(n=>n.dataset.sessionDateId)),[rid(10),rid(11)],'Includes today and day seven in club time; excludes later dates');
+  assert.equal(await dates.page.locator('#planner-dates-past button').count(),20);
+  assert.equal(await dates.page.locator('#app').evaluate(el=>el.inert),true);
+  await dates.page.locator('#planner-dates-more').click();assert.equal(await dates.page.locator('#planner-dates-past button').count(),25,'All older recorded sessions can be reached');
+  assert.equal(await dates.page.locator('#planner-dates-more').isVisible(),false);
+  await dates.page.locator('#planner-dates-month').fill('2020-01');assert.equal(await dates.page.locator('#planner-dates-past button').count(),4,'Month filter reaches years-old records');
+  await dates.page.locator('#planner-dates-clear').click();assert.equal(await dates.page.locator('#planner-dates-month').inputValue(),'');
+  await dates.page.locator('#planner-close-drawer').focus();await dates.page.keyboard.press('Shift+Tab');assert.equal(await dates.page.evaluate(()=>document.activeElement.id),'planner-dates-more','Focus stays inside the sidebar');
+  await dates.page.keyboard.press('Tab');assert.equal(await dates.page.evaluate(()=>document.activeElement.id),'planner-close-drawer');
+  for(const width of [1365,390,320]){await dates.page.setViewportSize({width,height:900});assert(await dates.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));const box=await dates.page.locator('#planner-drawer').boundingBox();assert(box.x>=0&&box.x+box.width<=width+1);}
+  await dates.page.keyboard.press('Escape');assert.equal(await dates.page.locator('#planner-drawer').isVisible(),false);assert.equal(await dates.page.evaluate(()=>document.activeElement.id),'planner-focus-date');
+  await dates.page.locator('#planner-focus-date').click();await dates.page.locator('#planner-dates-month').fill('2020-01');await dates.page.locator('[data-session-date-id="'+rid(100)+'"]').click();assert.equal(await dates.page.locator('#session').inputValue(),rid(100),'An archived date opens the same guarded workspace');
+  assert.equal(dates.requests.filter(r=>/\/(?:plans\/save|notes\/save|attendance)$/.test(r.path)).length,0);
+  clean(dates);await dates.context.close();checks++;
   console.log('Coach focus planner: '+checks+' grouped chooser, guarded navigation, drawers, recovery, mobile and privacy checks passed. Fictional data only.');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

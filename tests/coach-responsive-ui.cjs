@@ -101,7 +101,7 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
     assert.equal(await page.locator('#plan-focus').inputValue(), 'Unsaved fictional session plan', 'Changing session visibility must preserve the current planner draft');
     assert.equal(await page.locator('#plan-state').isVisible(), true);
     assert.equal(requests.filter(request => request.path.endsWith('/session')).length, planReads, 'Changing visibility must not refetch over an unsaved plan');
-    await page.locator('#planner-focus-date').click();
+    await page.locator('#planner-close-drawer').click();
     checks++;
 
     page.once('dialog', dialog => dialog.dismiss());

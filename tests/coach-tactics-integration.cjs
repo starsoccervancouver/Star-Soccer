@@ -48,7 +48,7 @@ require('./coach-fixture-fonts.cjs')(assets);
 
   const enterPlan=async f=>{await openSession(f.page,sessions,rid(1),'plan');await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);};
   const openBoard=async f=>{await f.page.locator('#planner-open-tools').click();await f.page.waitForFunction(()=>!document.getElementById('tactics-title').disabled);};
-  const chooseDate=async(f,id)=>{if(!await f.page.locator('#planner-date').isVisible())await f.page.locator('#planner-focus-date').click();await f.page.locator('#planner-date').selectOption(id);};
+  const chooseDate=async(f,id)=>{if(!await f.page.locator('#planner-dates-pane').isVisible())await f.page.locator('#planner-focus-date').click();await f.page.locator('[data-session-date-id="'+id+'"]').click();};
   const count=(f,suffix)=>f.requests.filter(r=>r.path.endsWith(suffix)).length;
   const beginBridgeList=async f=>{
    const waiting=f.page.waitForRequest(request=>new URL(request.url()).pathname.endsWith('/diagrams/list'));
@@ -75,6 +75,7 @@ require('./coach-fixture-fonts.cjs')(assets);
    assert.equal(await f.page.locator('#tactics-title').inputValue(),'Unsaved fictional tactics');
    assert.equal(await f.page.locator('#session').inputValue(),rid(1));
    assert.equal(await f.page.locator('#panel-plan').isVisible(),true);
+   if(await f.page.locator('#planner-drawer').isVisible())await f.page.locator('#planner-close-drawer').click();
   }
   assert.equal(await f.page.evaluate(()=>fixtureConfirmPrompts.length),promptBefore+3);
   assert.equal(count(f,'/refresh'),0);assert.equal(count(f,'/logout'),0);assert.equal(count(f,'/diagrams/save'),0);
@@ -85,7 +86,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   await f.page.locator('#tactics-save').click();await saveRequested;
   await f.page.waitForFunction(()=>document.getElementById('session').disabled);
   for(const id of ['session','refresh','logout','plan-focus','tactics-title','tactics-save'])assert.equal(await f.page.locator('#'+id).isDisabled(),true,id+' locks during save');
-  for(const tab of ['home','attendance','notes','tasks'])assert.equal(await f.page.locator('#navigation button[data-tab="'+tab+'"]').isDisabled(),true);
+  for(const tab of ['home','plan','notes','tasks'])assert.equal(await f.page.locator('#navigation button[data-tab="'+tab+'"]').isDisabled(),true);
   const payload=f.requests.find(r=>r.path.endsWith('/diagrams/save'));
   assert.equal(payload.headers['x-csrf-token'],'fictional-tactics-csrf');assert.equal(payload.method,'POST');
   assert.equal(payload.payload.sessionId,rid(1));assert.equal(payload.payload.id,saved().id);assert.equal(payload.payload.expectedVersion,1);assert.equal(payload.payload.title,'Unsaved fictional tactics');assert.deepEqual(payload.payload.content,board());

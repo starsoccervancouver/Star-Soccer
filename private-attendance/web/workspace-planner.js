@@ -45,7 +45,7 @@
     })).sort((a, b) => Number(inProgress(b)) - Number(inProgress(a)))[0] || null;
   };
   let context = null, identity = '', pane = '', opener = null, noteSaving = false, uncertain = false;
-  let historyLimit = 10, focusedSession = '', focusEpoch = 0;
+  let historyLimit = 10, dateLimit = 20, focusedSession = '', focusEpoch = 0;
   const dirty = () => !!$('planner-note-body')?.value.trim();
   const busy = () => noteSaving;
   function resetDraft() {
@@ -64,8 +64,34 @@
   const groupTarget = group => nextSession(group.sessions) || sortSessions(group.sessions.filter(row => row && /^\d{4}-\d{2}-\d{2}$/.test(row.date || '') && row.date <= localNow().date && String(row.status).toLowerCase() !== 'cancelled')).at(-1) || sortSessions(group.sessions.filter(row => /^\d{4}-\d{2}-\d{2}$/.test(row?.date || '') && String(row.status).toLowerCase() === 'cancelled')).at(-1) || null;
 
   function closeDatePicker() {
-    $('planner-date-options').hidden = true;
+    if (pane === 'dates') closeDrawer(true);
     for (const id of ['planner-other-date', 'planner-focus-date']) $(id).setAttribute('aria-expanded', 'false');
+  }
+  function renderDates() {
+    const today = localNow().date, end = new Date(today + 'T12:00:00Z');
+    end.setUTCDate(end.getUTCDate() + 7);
+    const cutoff = end.toISOString().slice(0, 10), month = $('planner-dates-month').value;
+    $('planner-dates-month').max = cutoff.slice(0, 7);
+    $('planner-dates-detail').textContent = 'Dates through ' + label(cutoff) + '. All available past sessions are accessible.';
+    const rows = sortSessions((selectedGroup()?.sessions || []).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s.date || '') && s.date <= cutoff && (!month || s.date.startsWith(month))));
+    const upcoming = rows.filter(s => s.date >= today), past = rows.filter(s => s.date < today).reverse();
+    const row = session => {
+      const button = make('button', '', 'planner-date-row'), selected = session.id === current()?.id;
+      button.type = 'button'; button.dataset.sessionDateId = session.id; button.disabled = locked();
+      if (selected) button.setAttribute('aria-current', 'date');
+      button.append(make('strong', label(session.date) + ', ' + session.date.slice(0, 4)), make('span', [session.time, session.location].filter(Boolean).join(' · '), 'planner-date-meta'));
+      const status = String(session.status).toLowerCase();
+      const detail = [selected ? 'Selected' : '', status === 'cancelled' ? 'Cancelled · Read only' : status === 'completed' ? 'Completed' : ''].filter(Boolean).join(' · ');
+      if (detail) button.append(make('span', detail, 'planner-date-state'));
+      button.addEventListener('click', () => requestSession(session.id));
+      return button;
+    };
+    $('planner-dates-upcoming').replaceChildren(...(upcoming.length ? upcoming.map(row) : [make('p', 'No sessions in the next seven days' + (month ? ' for this month.' : '.'), 'planner-dates-empty')]));
+    $('planner-dates-past').replaceChildren(...(past.length ? past.slice(0, dateLimit).map(row) : [make('p', 'No past sessions' + (month ? ' for this month.' : ' available.'), 'planner-dates-empty')]));
+    $('planner-dates-more').hidden = past.length <= dateLimit;
+    $('planner-dates-count').textContent = past.length > dateLimit ? 'Showing ' + dateLimit + ' of ' + past.length + ' past sessions.' : past.length + ' past session' + (past.length === 1 ? '' : 's') + '.';
+    for (const id of ['planner-dates-month', 'planner-dates-clear', 'planner-dates-more']) $(id).disabled = locked();
+    $('planner-dates-clear').hidden = !month;
   }
   function renderFocus() {
     const selected = current(), active = !!focusedSession && focusedSession === selected?.id && context?.tab === 'plan' && !!context?.profile;
@@ -125,11 +151,7 @@
     $('planner-session-detail').textContent = selected ? [label(selected.date), selected.time, selected.location].filter(Boolean).join(' · ') : 'No assigned training group.';
     const next = group && nextSession(group.sessions);
     $('planner-session-mode').textContent = selected ? inProgress(selected) ? 'In progress' : next?.id === selected.id ? 'Next session for this group' : 'Selected date' : 'No session selected';
-    const dates = sortSessions(group?.sessions || []);
-    $('planner-date').replaceChildren(...dates.map(s => { const option = make('option', label(s.date) + ' · ' + s.time + ' · ' + s.location + (String(s.status).toLowerCase() === 'cancelled' ? ' · Cancelled (read only)' : '')); option.value = s.id; return option; }));
-    if (!selected) { const option = make('option', 'Choose a session'); option.value = ''; $('planner-date').prepend(option); }
-    $('planner-date').value = selected?.id || '';
-    for (const id of ['planner-other-date', 'planner-date']) $(id).disabled = locked() || !dates.length;
+    renderDates();
     $('planner-open-selected').disabled = locked() || !selected;
     for (const id of ['planner-open-notes', 'planner-open-tools', 'planner-open-run']) $(id).disabled = locked() || !selected;
     if (readOnly()) for (const id of ['planner-open-tools', 'planner-open-run']) $(id).disabled = true;
@@ -173,20 +195,21 @@
     $('planner-drawer').hidden = true; $('planner-drawer-backdrop').hidden = true;
     $('app').inert = false; document.body.classList.remove('planner-drawer-open');
     for (const id of ['tactics-disclosure', 'practice-ideas', 'session-field-disclosure']) if ($(id)) $(id).open = false;
-    for (const id of ['planner-open-notes', 'planner-open-tools', 'planner-open-run']) $(id)?.setAttribute('aria-expanded', 'false');
+    for (const id of ['planner-open-notes', 'planner-open-tools', 'planner-open-run', 'planner-focus-date', 'planner-other-date']) $(id)?.setAttribute('aria-expanded', 'false');
     if (wasOpen) document.dispatchEvent(new Event('coach:dictation-stop'));
     document.dispatchEvent(new Event('coach:dictation-state'));
     if (!force && opener?.isConnected && !opener.disabled) opener.focus();
   }
   function openDrawer(next, button) {
-    if (unavailable() || locked() || readOnly() && next !== 'notes') return;
+    if (unavailable() || locked() || readOnly() && !['notes', 'dates'].includes(next)) return;
     pane = next; opener = button;
     $('planner-drawer').dataset.pane = next;
-    $('planner-drawer-title').textContent = ({ notes: 'Group & player notes', tools: 'Drills & tactics', run: 'Run this session' })[next];
-    for (const name of ['notes', 'tools', 'run']) $('planner-' + name + '-pane').hidden = name !== next;
+    $('planner-drawer-title').textContent = ({ dates: 'View other sessions', notes: 'Group & player notes', tools: 'Drills & tactics', run: 'Run this session' })[next];
+    for (const name of ['dates', 'notes', 'tools', 'run']) $('planner-' + name + '-pane').hidden = name !== next;
     $('planner-drawer').hidden = false; $('planner-drawer-backdrop').hidden = false;
     $('app').inert = true; document.body.classList.add('planner-drawer-open');
     button.setAttribute('aria-expanded', 'true');
+    if (next === 'dates') renderDates();
     if (next === 'notes') renderNotes();
     if (next === 'tools') { $('tactics-disclosure').open = true; $('practice-ideas').open = true; }
     if (next === 'run') $('session-field-disclosure').open = true;
@@ -213,21 +236,21 @@
     }
   }
 
-  function toggleDatePicker() {
+  function toggleDatePicker(event) {
     if (locked() || !focusedSession || focusedSession !== current()?.id || context?.tab !== 'plan') return;
-    const open = $('planner-date-options').hidden;
-    $('planner-date-options').hidden = !open;
-    for (const id of ['planner-other-date', 'planner-focus-date']) $(id).setAttribute('aria-expanded', String(open));
-    if (open) $('planner-date').focus();
+    if (pane === 'dates') closeDrawer();
+    else openDrawer('dates', event.currentTarget);
   }
   $('planner-other-date').addEventListener('click', toggleDatePicker);
   $('planner-focus-date').addEventListener('click', toggleDatePicker);
   $('planner-back').addEventListener('click', () => requestExit('sessions'));
   $('planner-home').addEventListener('click', () => requestExit('home'));
   $('planner-open-selected').addEventListener('click', () => requestSession(current()?.id));
-  $('planner-date').addEventListener('change', () => {
-    requestSession($('planner-date').value);
-    renderDays();
+  $('planner-dates-month').addEventListener('input', () => { dateLimit = 20; renderDates(); });
+  $('planner-dates-clear').addEventListener('click', () => { $('planner-dates-month').value = ''; dateLimit = 20; renderDates(); $('planner-dates-month').focus(); });
+  $('planner-dates-more').addEventListener('click', () => {
+    const previous = dateLimit; dateLimit += 20; renderDates();
+    $('planner-dates-past').querySelectorAll('button')[previous]?.focus();
   });
   for (const name of ['notes', 'tools', 'run']) $('planner-open-' + name).addEventListener('click', event => openDrawer(name, event.currentTarget));
   $('planner-close-drawer').addEventListener('click', () => closeDrawer());
@@ -256,13 +279,14 @@
   window.addEventListener('coach:context', event => {
     const next = event.detail || null, nextIdentity = next?.profile ? [next.profile.email, next.profile.role, next.profile.sessionVersion, next.session?.id || ''].join(':') : '';
     if (identity !== nextIdentity) {
+      dateLimit = 20; $('planner-dates-month').value = '';
       closeDrawer(true); resetDraft(); historyLimit = 10; $('planner-notes-search').value = ''; $('planner-notes-results').textContent = ''; $('planner-notes-more').hidden = true; $('planner-notes-player').replaceChildren(); $('planner-notes-player').dataset.previous = '';
     }
     identity = nextIdentity; context = next;
     if (!next?.profile) {
       focusedSession = ''; focusEpoch++; closeDatePicker(); renderFocus();
       closeDrawer(true); resetDraft();
-      for (const id of ['planner-days', 'planner-session-title', 'planner-session-detail', 'planner-session-mode', 'planner-date', 'planner-notes-list']) $(id).replaceChildren();
+      for (const id of ['planner-days', 'planner-session-title', 'planner-session-detail', 'planner-session-mode', 'planner-dates-upcoming', 'planner-dates-past', 'planner-dates-detail', 'planner-dates-count', 'planner-notes-list']) $(id).replaceChildren();
       return;
     }
     if (next.tab !== 'plan') { focusedSession = ''; focusEpoch++; closeDatePicker(); closeDrawer(true); }

@@ -62,7 +62,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     await page.goto(origin + '/workspace'); await page.locator('#app').waitFor({ state: 'visible' });
 
     assert.equal(await page.locator('#coaching-hub .coaching-agenda-row').count(), 2, 'Home lists recurring groups rather than every dated session');
-    assert.equal(await page.locator('#session').isVisible(), false); assert.equal(await page.locator('#planner-date').isVisible(), false);
+    assert.equal(await page.locator('#session').isVisible(), false); assert.equal(await page.locator('#planner-dates-pane').isVisible(), false);
     const labels = await page.locator('#coaching-hub h3').allTextContents(); assert.notEqual(labels[0], labels[1], 'Distinct programs at identical weekday/time/venue remain distinguishable');
     assert.equal(await page.locator('#navigation [data-tab="attendance"]').count(), 0, 'Attendance is available inside the session, without a redundant sidebar shortcut');
     for (const [view, title] of [['notes', 'Player notes & goals']]) {
@@ -81,7 +81,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     } checks++;
     await page.locator('#navigation [data-tab="plan"]').click();
     assert.equal(await page.locator('#planner-days [data-group-key]').count(), 2); assert.equal(await page.locator('#session-workspace-tabs').isVisible(), false);
-    assert.equal(await page.locator('#planner-date').isVisible(), false); assert.equal(await page.locator('#session-toolbar').isVisible(), false);
+    assert.equal(await page.locator('#planner-dates-pane').isVisible(), false); assert.equal(await page.locator('#session-toolbar').isVisible(), false);
     await screenshot('coach-groups-desktop');
     for (const width of [390, 320]) { await page.setViewportSize({ width, height: 844 }); await screenshot('coach-groups-' + width); }
     await page.setViewportSize({ width: 1365, height: 950 }); checks++;
@@ -89,9 +89,9 @@ require('./coach-fixture-fonts.cjs')(assets);
     await openSession(page, sessions, rid(1), 'attendance'); assert.equal(await selected(), rid(1));
     assert.equal(await page.locator('#panel-attendance').isVisible(), true); assert.equal(await page.locator('#panel-notes').isVisible(), false);
     await page.locator('#planner-focus-date').click();
-    const dates = await page.locator('#planner-date option').evaluateAll(nodes => nodes.map(node => node.value));
+    const dates = await page.locator('[data-session-date-id]').evaluateAll(nodes => nodes.map(node => node.dataset.sessionDateId));
     assert.deepEqual(dates.slice().sort(), [rid(1), rid(2), rid(3)].sort(), 'Date chooser is limited to the selected verified group');
-    await page.locator('#planner-focus-date').click();
+    await page.locator('#planner-close-drawer').click();
     await openView(page, 'plan'); assert.equal(await page.locator('#session-plan-section').isVisible(), true); assert.equal(await page.locator('#panel-attendance').isVisible(), false);
     assert.equal(await selected(), rid(1)); await openView(page, 'notes'); assert.equal(await page.locator('#panel-notes').isVisible(), true); checks++;
 
@@ -145,7 +145,7 @@ require('./coach-fixture-fonts.cjs')(assets);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'No horizontal overflow at ' + width);
       const tabs = page.locator('#session-workspace-tabs'); assert.equal(await tabs.isVisible(), true); await openView(page, 'attendance'); await openView(page, 'notes');
       assert.equal(await page.locator('#note-folders-list [data-player-folder]').first().isVisible(), true);
-      await leaveGroup(page); await page.locator('#navigation [data-tab="plan"]').click(); assert.equal(await page.locator('#planner-days [data-group-key]').count(), 2); assert.equal(await page.locator('#planner-date').isVisible(), false);
+      await leaveGroup(page); await page.locator('#navigation [data-tab="plan"]').click(); assert.equal(await page.locator('#planner-days [data-group-key]').count(), 2); assert.equal(await page.locator('#planner-dates-pane').isVisible(), false);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'Chooser fits at ' + width);
       await openSession(page, sessions, rid(1), 'notes'); await openFolder(page, rid(101));
     } checks++;

@@ -40,7 +40,7 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     await openSession(page, sessions, rid(1), 'attendance');
     assert.equal(await page.locator('#session-toolbar').isVisible(), false);
     await page.locator('#planner-focus-date').click();
-    const dates = await page.locator('#planner-date option').evaluateAll(options => options.filter(o => o.value).map(o => o.value));
+    const dates = await page.locator('[data-session-date-id]').evaluateAll(options => options.map(o => o.dataset.sessionDateId));
     assert.deepEqual(new Set(dates), new Set([rid(8), rid(6), rid(1)]));
     assert(!dates.includes(rid(3)), 'Only dates from the Wednesday group are offered'); checks++;
     await openSession(page, sessions, rid(6), 'attendance'); await page.locator('#roster').getByText('Historic Player', { exact: true }).waitFor();
@@ -51,7 +51,7 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     await openSession(page, sessions, rid(1), 'attendance'); assert(!(await page.locator('#roster').innerText()).includes('Historic Player')); checks++;
     await openSession(page, sessions, rid(3), 'attendance'); await page.locator('#roster').getByText('Fixture Player 3', { exact: true }).waitFor();
     await page.locator('#planner-focus-date').click();
-    assert.deepEqual(new Set(await page.locator('#planner-date option').evaluateAll(options => options.filter(o => o.value).map(o => o.value))), new Set([rid(3), rid(9)]));
+    assert.deepEqual(new Set(await page.locator('[data-session-date-id]').evaluateAll(options => options.map(o => o.dataset.sessionDateId))), new Set([rid(3)]));
     await openSession(page, sessions, rid(4), 'attendance'); await page.locator('#roster').getByText('Fixture Player 4', { exact: true }).waitFor(); checks++;
     await openSession(page, sessions, rid(2), 'attendance'); assert.match(await page.locator('#roster').innerText(), /No named players|No players/); checks++;
     await page.setViewportSize({ width: 390, height: 844 }); assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -62,7 +62,7 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     assert.equal(await coach.page.locator('#planner-days [data-group-key]').count(), 1);
     await openSession(coach.page, sessions, rid(3), 'attendance');
     assert(!(await coach.page.locator('body').innerText()).includes('Historic Player'));
-    await coach.page.locator('#planner-focus-date').click(); assert.equal(await coach.page.locator('#planner-date option').count(), 1);
+    await coach.page.locator('#planner-focus-date').click(); assert.equal(await coach.page.locator('[data-session-date-id]').count(), 1);
     assert.equal(coach.writes.length, 0); assert.deepEqual(coach.errors, []); await coach.context.close(); checks++;
     const pendingRows = [session(2,'2026-12-31','4:00 PM',[player(2)]),session(3,'2027-01-01','4:00 PM',[player(3)])];
     const pending = await fixture(pendingRows, 'owner', true);

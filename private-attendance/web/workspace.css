@@ -1943,8 +1943,6 @@ body[data-desk-reduced-motion="true"] *, body[data-desk-reduced-motion="true"] *
 #app .planner-days button[aria-pressed="true"] { border-color: var(--desk-navy-soft); color: #fff; background: var(--desk-navy-soft); box-shadow: 0 3px 9px #10263d16; }
 .planner-days button[aria-pressed="true"] span { color: #c4d6e2; }
 #app .planner-days button:disabled { background: #f4f5f4; opacity: .62; }
-.planner-date-options { margin-top: 18px; padding: 16px 18px; border: 1px solid #dce5e9; border-radius: 14px; background: #f5f8f9; }
-.planner-date-options label { margin: 0; max-width: 720px; font-size: 13px; }
 .planner-session-summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-width: 0; margin-top: 22px; padding: 20px 0; border-top: 1px solid #e5e9e9; }
 .planner-session-summary > div { min-width: 0; }
 .planner-session-mode { display: inline-block; margin-bottom: 6px; color: #866130; font-size: 11px; font-weight: 750; line-height: 1.5; letter-spacing: .04em; }
@@ -2044,7 +2042,6 @@ body.planner-drawer-open .global-error { z-index: 90; }
   #app .planner-days button { min-height: 78px; padding: 10px 12px; gap: 3px; }
   .planner-days button strong { font-size: 14px; }
   .planner-days button span { font-size: 11px; }
-  .planner-date-options { margin-top: 12px; padding: 12px; }
   .planner-session-summary { margin-top: 13px; padding: 13px 0; }
   .planner-session-summary h2 { margin-bottom: 4px; font-size: 22px; }
   .planner-session-summary p { font-size: 12px; }
@@ -2085,7 +2082,7 @@ body.planner-drawer-open .global-error { z-index: 90; }
 .planner-days { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 #app .planner-days button { min-height: 112px; padding: 17px; background: #fafbfc; }
 .planner-session-summary > button { flex: 0 0 auto; }
-.planner-focus-bar, .planner-workspace, #planner-date-options { width: 100%; max-width: 1260px; margin-right: auto; margin-left: auto; }
+.planner-focus-bar, .planner-workspace { width: 100%; max-width: 1260px; margin-right: auto; margin-left: auto; }
 .planner-focus-bar { position: static; display: block; padding: 0; border: 0; color: var(--desk-ink); background: transparent; box-shadow: none; }
 .planner-focus-bar[hidden], .planner-workspace[hidden], .planner-session-browser[hidden] { display: none; }
 .planner-focus-exits { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
@@ -2149,9 +2146,10 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
 
 /* A group is the entry point; dates and work stay inside its workspace. */
 #session-toolbar[hidden], .session-spotlight[hidden], .attendance-browser[hidden], .planner-session-summary[hidden], #planner-other-date[hidden], #session-plan-section[hidden], .session-workspace-pane[hidden], #planner-save[hidden] { display:none !important; }
-.session-workspace-tabs { display:flex; align-items:stretch; flex-wrap:wrap; gap:8px; padding:20px 0; }
-#app .session-workspace-tabs button { min-height:46px; padding:11px 20px; border:1px solid var(--desk-line); border-radius:14px; color:var(--desk-ink); background:#fff; font:650 14px/1.4 Manrope,system-ui,sans-serif; box-shadow:none; }
-#app .session-workspace-tabs button[aria-pressed="true"] { background:var(--desk-ink); color:#fff; border-color:var(--desk-ink); }
+.session-workspace-tabs { display:flex; align-items:stretch; gap:20px; margin:0 0 24px; padding:0; border-bottom:1px solid var(--desk-line); }
+#app .session-workspace-tabs button { min-height:48px; padding:12px 2px; border:0; border-bottom:3px solid transparent; border-radius:0; color:var(--desk-muted); background:transparent; font:650 14px/1.4 Manrope,system-ui,sans-serif; box-shadow:none; }
+#app .session-workspace-tabs button[aria-pressed="true"] { background:transparent; color:var(--desk-ink); border-bottom-color:var(--desk-ink); }
+#app .session-workspace-tabs button:hover { background:var(--desk-inset); color:var(--desk-ink); }
 .session-workspace-pane { min-width:0; }
 .session-workspace-pane > .card { border-radius:20px; }
 #panel-notes > .two-columns { align-items:start; }
@@ -2165,8 +2163,8 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
 #app .home-command-row > .card { width:100%; }
 #app #planner-workspace .planner-workspace-actions { padding-top:0; }
 @media(max-width:600px) {
- .session-workspace-tabs { gap:6px; padding:18px 0; }
- #app .session-workspace-tabs button { flex:1 1 28%; min-width:0; padding:10px 8px; font-size:12px; border-radius:12px; }
+ .session-workspace-tabs { gap:12px; margin-bottom:18px; }
+ #app .session-workspace-tabs button { flex:1 1 28%; min-width:0; padding:10px 2px; font-size:12px; }
  #panel-notes #player-note-folders { padding:16px; }
  #app #planner-days { grid-template-columns:1fr; gap:10px; }
  #app #planner-days button { min-height:110px; padding:16px; }
@@ -2272,7 +2270,6 @@ body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accen
   body #app .desk-main :is(.privacy-message,.callout,.empty-state,.note-folder-selected,.coaching-tools-disclosure>summary,.field-saved-notice),
   body #app .planner-plan-card .privacy-message { background:var(--desk-inset); border-color:var(--desk-line); color:#55534d; }
   body #app .desk-main button.secondary,
-  body #app .session-workspace-tabs button:not([aria-pressed="true"]),
   body #app .planner-workspace-actions button { background:var(--desk-field); border-color:#aaa193; color:var(--desk-ink); }
   body #app .desk-main button.secondary:hover:not(:disabled) { background:#d3c9b9; }
   body #app .desk-main #plan-form textarea:focus { background:var(--desk-field); border-color:#86745c; }
@@ -2310,4 +2307,27 @@ body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accen
   .desk-nav { border-bottom-color:transparent; box-shadow:none; }
   body.planner-focus-mode .desk-layout { padding:8px; }
   body.planner-focus-mode #app .desk-main { min-height:calc(100dvh - 16px); border-radius:22px; }
+}
+
+/* Session dates stay in a quiet, keyboard-accessible sidebar. */
+.planner-drawer[data-pane="dates"] { background:var(--desk-surface); border-radius:0; }
+.planner-drawer[data-pane="dates"] .planner-drawer-header { border-radius:0; }
+#planner-dates-detail { margin:0 0 20px; line-height:1.6; }
+.planner-dates-filter { display:flex; align-items:end; flex-wrap:wrap; gap:10px; margin-bottom:28px; }
+.planner-dates-filter label { flex:1 1 180px; margin:0; font-size:13px; }
+.planner-dates-filter input { min-width:0; min-height:44px; }
+#planner-dates-pane h3 { margin:26px 0 8px; color:var(--desk-muted); font-size:13px; font-weight:700; }
+.planner-date-list { border-top:1px solid var(--desk-line); }
+#planner-dates-pane .planner-date-row { display:flex; flex-direction:column; align-items:flex-start; width:100%; min-height:76px; margin:0; padding:15px 12px; gap:5px; border:0; border-bottom:1px solid var(--desk-line); border-left:3px solid transparent; border-radius:0; text-align:left; color:var(--desk-ink); background:var(--desk-surface); box-shadow:none; white-space:normal; }
+#planner-dates-pane .planner-date-row:hover:not(:disabled) { background:var(--desk-field); }
+#planner-dates-pane .planner-date-row[aria-current="date"] { background:var(--desk-inset); border-left-color:var(--desk-ink); }
+.planner-date-row strong { font-size:14px; line-height:1.5; }
+.planner-date-meta { color:var(--desk-muted); font-size:12px; line-height:1.6; font-weight:400; }
+.planner-date-state { color:var(--desk-ink); font-size:12px; line-height:1.5; font-weight:650; }
+.planner-dates-empty { margin:0; padding:16px 0; color:var(--desk-muted); font-size:13px; line-height:1.6; }
+#planner-dates-more { width:100%; min-height:44px; }
+@media (max-width:600px) {
+ .planner-drawer[data-pane="dates"] { width:100%; }
+ .planner-drawer[data-pane="dates"] .planner-drawer-header { padding:18px; }
+ .planner-drawer[data-pane="dates"] .planner-drawer-content { padding:18px; }
 }

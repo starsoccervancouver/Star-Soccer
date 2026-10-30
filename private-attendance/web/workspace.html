@@ -218,15 +218,15 @@
 <section id="panel-plan" class="tab-panel" hidden>
 <header id="planner-focus-bar" class="planner-focus-bar" hidden>
 <nav class="planner-focus-exits" aria-label="Leave session workspace"><button id="planner-back" class="secondary" type="button"><span aria-hidden="true">←</span> Back to groups</button><button id="planner-home" class="secondary" type="button">Home</button></nav>
-<div class="planner-focus-heading"><div><p class="eyebrow">Training group</p><h1 id="planner-focus-title" tabindex="-1"></h1><p id="planner-focus-detail" class="small"></p></div><div class="planner-focus-controls"><button id="planner-focus-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-date-options">Change date</button><button id="planner-save" type="submit" form="plan-form" disabled>Save plan</button></div></div>
+<div class="planner-focus-heading"><div><p class="eyebrow">Training group</p><h1 id="planner-focus-title" tabindex="-1"></h1><p id="planner-focus-detail" class="small"></p></div><div class="planner-focus-controls"><button id="planner-focus-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-drawer">View other sessions</button><button id="planner-save" type="submit" form="plan-form" disabled>Save plan</button></div></div>
 </header>
 <section id="planner-session-browser" class="planner-session-browser" aria-label="Choose a planning session">
-<div class="planner-day-heading"><div><p class="eyebrow">Start with a day</p><h2 id="planner-chooser-title" tabindex="-1">Choose a training group</h2></div><button hidden id="planner-other-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-date-options">Choose another date</button></div>
+<div class="planner-day-heading"><div><p class="eyebrow">Start with a day</p><h2 id="planner-chooser-title" tabindex="-1">Choose a training group</h2></div><button hidden id="planner-other-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-drawer">View other sessions</button></div>
 <p class="planner-chooser-intro">Choose a recurring group first. Its dates, attendance, plans and individual player notes stay together.</p>
 <div id="planner-days" class="planner-days" role="group" aria-label="Training days"></div>
 <div class="planner-session-summary" hidden><div><span id="planner-session-mode" class="planner-session-mode"></span><h2 id="planner-session-title">Choose a training day</h2><p id="planner-session-detail" class="small"></p></div><button id="planner-open-selected" type="button">Plan this session <span aria-hidden="true">→</span></button></div>
 </section>
-<div id="planner-date-options" class="planner-date-options" hidden><label>Session date<select id="planner-date"></select></label></div>
+
 <div id="planner-workspace" class="planner-workspace" hidden>
 <nav id="session-workspace-tabs" class="session-workspace-tabs" aria-label="This session"><button type="button" data-session-view="attendance">Attendance</button><button type="button" data-session-view="plan">Session plan</button><button type="button" data-session-view="notes">Player &amp; group notes</button></nav>
 <section id="panel-attendance" class="session-workspace-pane" hidden>
@@ -489,8 +489,18 @@
 </div>
 <div id="planner-drawer-backdrop" class="planner-drawer-backdrop" hidden></div>
 <aside id="planner-drawer" class="planner-drawer" role="dialog" aria-modal="true" aria-labelledby="planner-drawer-title" data-pane="notes" tabindex="-1" hidden>
-<header class="planner-drawer-header"><div><p class="eyebrow">Session workspace</p><h2 id="planner-drawer-title">Group &amp; player notes</h2></div><button id="planner-close-drawer" class="secondary" type="button" aria-label="Close session tools">Close <span aria-hidden="true">×</span></button></header>
+<header class="planner-drawer-header"><div><p class="eyebrow">Session workspace</p><h2 id="planner-drawer-title">Group &amp; player notes</h2></div><button id="planner-close-drawer" class="secondary" type="button" aria-label="Close sidebar">Close <span aria-hidden="true">×</span></button></header>
 <div class="planner-drawer-content">
+<section id="planner-dates-pane" hidden>
+<p id="planner-dates-detail" class="small"></p>
+<div class="planner-dates-filter"><label for="planner-dates-month">Find a month<input id="planner-dates-month" type="month"></label><button id="planner-dates-clear" type="button" class="secondary" hidden>Clear filter</button></div>
+<h3>Upcoming</h3>
+<div id="planner-dates-upcoming" class="planner-date-list"></div>
+<h3>Past sessions</h3>
+<div id="planner-dates-past" class="planner-date-list"></div>
+<p id="planner-dates-count" class="small" role="status"></p>
+<button id="planner-dates-more" type="button" class="secondary" hidden>Show older sessions</button>
+</section>
 <section id="planner-notes-pane" hidden>
 <p class="planner-notes-privacy">Private to the note’s author and approved full-access accounts.</p>
 <label class="planner-folder-picker">Open a notes folder<select id="planner-notes-player"><option value="">Group notes</option></select></label>

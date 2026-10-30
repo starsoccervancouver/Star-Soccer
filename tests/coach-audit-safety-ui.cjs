@@ -143,7 +143,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert.equal(f.pendingPlans.length, 1);
     assert.equal(await f.page.locator('#plan-focus').inputValue(), '');
     await f.page.locator('#planner-focus-date').click();
-    if (!await f.page.locator('#planner-date').isVisible()) await f.page.locator('#planner-focus-date').click();
+    if (!await f.page.locator('#planner-dates-pane').isVisible()) await f.page.locator('#planner-focus-date').click();
     assert.equal(f.requests.filter(r => r.path.endsWith('/session') && r.payload.sessionId === rid(3)).length, 1, 'Reopening the same loading plan does not create competing requests');
     await openSession(f.page, sessions, rid(2), 'plan');
     await f.page.waitForFunction(id => !document.getElementById('plan-focus').disabled && document.getElementById('plan-focus').value.includes(id), rid(2));

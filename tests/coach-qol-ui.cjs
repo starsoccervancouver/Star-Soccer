@@ -150,6 +150,7 @@ const { chromium } = require('playwright');
     assert.equal(await clear.isVisible(), true);
     checks++;
 
+    await page.getByRole('button', { name: 'Settings & profile', exact: true }).click();
     await page.getByRole('button', { name: 'Team & access', exact: true }).click();
     await page.locator('#user-list .account-row').first().waitFor();
     const signinLinks = page.getByRole('button', { name: 'Copy sign-in link', exact: true });

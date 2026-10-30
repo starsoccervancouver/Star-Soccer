@@ -39,3 +39,5 @@ jobs:
         run: |
           node tests/coach-tactics-ui.cjs
           node tests/coach-tactics-integration.cjs
+      - name: Check coach settings, account views and browser preferences
+        run: node tests/coach-settings-ui.cjs

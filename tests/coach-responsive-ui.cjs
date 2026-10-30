@@ -214,16 +214,19 @@ const addFonts = require('./coach-fixture-fonts.cjs');
     assert.match(type.heading, /Instrument/);
     assert(type.faces.filter(face => /Manrope|Instrument/.test(face.family) && face.status === 'loaded').length >= 2, 'Brand fonts load from isolated first-party fixtures');
     checks++;
-    const tabs = ['home', 'attendance', 'notes', 'plan', 'tasks', 'team', 'activity', 'legacy'];
+    const tabs = ['home', 'attendance', 'notes', 'plan', 'tasks', 'settings', 'team', 'activity', 'legacy'];
     for (const width of [320, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       for (const tab of tabs) {
-        await page.locator('#navigation button[data-tab="' + tab + '"]').click();
+        const settingsSection = ['team', 'activity', 'legacy'].includes(tab);
+        await page.locator('#navigation button[data-tab="' + (settingsSection ? 'settings' : tab) + '"]').click();
+        if (settingsSection) await page.locator('#settings-navigation button[data-settings-tab="' + tab + '"]').click();
         await page.locator('#panel-' + tab).waitFor({ state: 'visible' });
         if (tab === 'plan') await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
         const overflow = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('#app *')].filter(element => { const rect = element.getBoundingClientRect(); return rect.width && (rect.right > innerWidth + 1 || rect.left < -1) && !element.closest('#navigation'); }).slice(-12).map(element => ({ tag: element.tagName, id: element.id, class: element.className, left: element.getBoundingClientRect().left, right: element.getBoundingClientRect().right, width: element.getBoundingClientRect().width })) }));
         assert(overflow.scroll <= width + 1, tab + ' must not overflow at ' + width + 'px: ' + JSON.stringify(overflow));
-        assert.equal(await page.locator('#navigation button.nav-active').getAttribute('data-tab'), tab);
+        assert.equal(await page.locator('#navigation button.nav-active').getAttribute('data-tab'), settingsSection ? 'settings' : tab);
+        if (settingsSection) assert.equal(await page.locator('#settings-navigation button[data-settings-tab="' + tab + '"]').getAttribute('aria-current'), 'page');
         assert.equal(await page.locator('#navigation button.nav-active').getAttribute('aria-current'), 'page');
         // Inspect one current DOM snapshot: async plan readback may replace toolbox controls.
         const smallButtons = await page.evaluate(() => [...document.querySelectorAll('#app button')].filter(button => button.getClientRects().length && getComputedStyle(button).visibility !== 'hidden').filter(button => button.getBoundingClientRect().height < 43.5).map(button => ({ text: button.textContent, height: button.getBoundingClientRect().height })));

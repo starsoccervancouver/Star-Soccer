@@ -72,9 +72,11 @@
 <img data-club-logo src="/assets/logo.svg" alt="Star Soccer Vancouver">
 </a>
 <div>
+<button id="open-profile" class="profile-entry" type="button" aria-label="Open profile and settings">
 <strong>Coach Desk</strong>
 <span id="identity">
 </span>
+</button>
 </div>
 <button class="secondary" id="logout">Sign out</button>
 </header>
@@ -87,9 +89,7 @@
 <button data-tab="notes">Player notes &amp; goals</button>
 <button data-tab="plan">Session planner</button>
 <button data-tab="tasks">Tasks &amp; follow-ups</button>
-<button data-tab="team" data-owner hidden>Team &amp; access</button>
-<button data-tab="activity" data-full hidden>Activity log</button>
-<button data-tab="legacy" data-full hidden>Existing Airtable notes</button>
+<button data-tab="settings" class="nav-settings">Settings &amp; profile</button>
 </nav>
 <div class="nav-foot">
 <span id="role">
@@ -108,6 +108,12 @@
 <button class="secondary" id="refresh">Refresh roster</button>
 </div>
 <p class="desk-loading" id="desk-loading" role="status" hidden>Refreshing your roster…</p>
+<nav id="settings-navigation" class="settings-navigation" aria-label="Settings sections" hidden>
+<button type="button" data-settings-tab="settings">Profile &amp; preferences</button>
+<button type="button" data-settings-tab="team" data-owner hidden>Team &amp; access</button>
+<button type="button" data-settings-tab="activity" data-full hidden>Activity log</button>
+<button type="button" data-settings-tab="legacy" data-full hidden>Existing records</button>
+</nav>
 <div class="session-toolbar" id="session-toolbar">
 <label>Session<select id="session">
 </select>
@@ -117,6 +123,56 @@
 <span id="freshness" class="small">
 </span>
 </div>
+<section id="panel-settings" class="tab-panel" hidden>
+<div class="settings-grid">
+<section class="card profile-card" aria-labelledby="profile-name">
+<div class="profile-heading">
+<span class="profile-avatar" id="profile-avatar" aria-hidden="true"></span>
+<div>
+<p class="eyebrow">Your coaching account</p>
+<h2 id="profile-name"></h2>
+<p id="profile-email" class="profile-email"></p>
+</div>
+</div>
+<p class="profile-role" id="profile-role"></p>
+<dl class="profile-details">
+<div><dt>What you can access</dt><dd id="profile-scope"></dd></div>
+<div><dt>Sign-in options</dt><dd id="profile-signin"></dd></div>
+</dl>
+<p class="profile-help">Account details and access are managed by the club owner. Your display preferences below never change your permissions.</p>
+<button type="button" class="secondary" id="copy-workspace-link">Copy Coach Desk link</button>
+</section>
+<section class="card preferences-card" aria-labelledby="preferences-title">
+<p class="eyebrow">Make it yours</p>
+<h2 id="preferences-title">Workspace preferences</h2>
+<p class="small">Saved only in this browser. No player records or account permissions are stored here.</p>
+<form id="preferences-form">
+<label>Open Coach Desk to<select id="preference-start">
+<option value="home">Overview</option>
+<option value="attendance">Attendance</option>
+<option value="notes">Player notes &amp; goals</option>
+<option value="plan">Session planner</option>
+<option value="tasks">Tasks &amp; follow-ups</option>
+</select></label>
+<label>Layout spacing<select id="preference-density">
+<option value="comfortable">Comfortable</option>
+<option value="compact">Compact</option>
+</select></label>
+<label class="preference-check"><input id="preference-motion" type="checkbox"><span><strong>Reduce interface motion</strong><span>Keep navigation and interface transitions still. Drill playback remains available when you choose Play.</span></span></label>
+<button type="button" class="secondary" id="reset-preferences">Restore display defaults</button>
+</form>
+<p id="preferences-status" class="preferences-status" role="status" aria-live="polite"></p>
+</section>
+<section class="card settings-guide" aria-labelledby="settings-guide-title">
+<div><p class="eyebrow">Private by design</p><h2 id="settings-guide-title">A workspace for your team</h2></div>
+<div class="settings-guide-grid">
+<div><h3>Your coaching notes</h3><p>Personal notes are visible to their author and approved full-access accounts. Session plans and tactics are shared with coaches assigned to that session.</p></div>
+<div><h3>Team administration</h3><p>The owner manages accounts and session assignments in Team &amp; access. Full-access accounts can review the activity log and existing coaching records.</p></div>
+<div><h3>Attendance stays separate</h3><p>Parent replies help prepare sessions. Physical attendance is recorded separately by a coach; changing a display preference never changes a player record.</p></div>
+</div>
+</section>
+</div>
+</section>
 <section id="panel-home" class="tab-panel">
 <div class="desk-stats" id="home-stats">
 </div>

@@ -44,3 +44,9 @@ The session planner includes a private 2D tactics board. Coaches can place gener
 The existing private SQLite store adds the `coach_diagrams` table and session index with `CREATE IF NOT EXISTS` on startup. No existing tables or rows are replaced, no Airtable fields change, and no Cloudflare namespace migration is required. Save/archive operations are audited and use expected versions to reject conflicting edits. Session text plans and diagrams save independently. Unsaved boards and undo history stay in memory and clear on sign-out; nothing is saved to browser storage.
 
 The source-only export includes the board, strict data validator, backend routes and isolated tests. Other clubs receive their own empty store, branding, approved accounts and session assignments. There are no third-party tactics libraries, licensed drill templates, parent messages or additional credentials.
+
+## Profile and workspace preferences
+
+Settings & profile groups account details, Team & access, the activity log and existing coaching records. Owner/admin/coach permissions remain enforced by the same server routes. Only the owner can manage accounts; activity and legacy records remain restricted to full-access users.
+
+The starting view, layout spacing and reduced interface motion are optional browser preferences. Only these three validated presentation choices are saved under `coach-desk-display-v1`; no names, emails, player data or permissions are written to browser storage. Preferences apply to that browser and can be restored to defaults. Profiles show existing account details rather than providing a second permission editor.

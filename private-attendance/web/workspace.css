@@ -1884,6 +1884,10 @@ button.profile-entry > span { display: block; max-width: 100%; }
 .profile-card #copy-workspace-link { border-color: #7790a2; color: #edf4f8; background: transparent; }
 .profile-card #copy-workspace-link:hover:not(:disabled) { border-color: var(--desk-gold); color: #fff; background: #ffffff0b; }
 .preferences-card > .small { margin-bottom: 22px; font-size: 13px; }
+.preference-help { display:block; margin-top:7px; color:var(--desk-muted); font-size:12px; font-weight:400; line-height:1.6; }
+.preference-preview { margin:0 0 24px; padding:16px; border:1px solid var(--desk-line); border-radius:10px; background:var(--desk-field); }
+.preference-preview p { margin:0 0 6px; color:var(--desk-ink); font-size:15px; font-weight:650; }
+.preference-preview .small { color:var(--desk-muted); }
 #preferences-form label:not(.preference-check) { display: block; margin-bottom: 19px; color: var(--desk-muted); font-size: 13px; font-weight: 650; }
 #preferences-form select { width: 100%; min-height: 48px; margin-top: 7px; padding: 11px 12px; border: 1px solid #b9c7d0; border-radius: 9px; color: var(--desk-ink); background: #fff; font-size: 14px; }
 #preferences-form .preference-check { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; margin: 3px 0 23px; padding: 16px; border: 1px solid #d9e3e8; border-radius: 11px; background: #f4f7f8; cursor: pointer; }
@@ -1897,13 +1901,9 @@ button.profile-entry > span { display: block; max-width: 100%; }
 .settings-guide-grid > div { min-width: 0; padding-top: 18px; border-top: 1px solid var(--desk-line); }
 .settings-guide-grid h3 { margin: 0 0 9px; font-size: 14px; }
 .settings-guide-grid p { margin: 0; color: var(--desk-muted); font-size: 12px; line-height: 1.8; }
-body[data-desk-density="compact"] .desk-main { padding-top: 24px; }
-body[data-desk-density="compact"] .page-heading { margin-bottom: 18px; }
-body[data-desk-density="compact"] .card { padding: 20px; margin-bottom: 16px; }
-body[data-desk-density="compact"] .settings-grid > .card { margin-bottom: 0; }
-body[data-desk-density="compact"] .settings-grid, body[data-desk-density="compact"] .two-columns { gap: 16px; }
-body[data-desk-density="compact"] .note-card, body[data-desk-density="compact"] .task-row, body[data-desk-density="compact"] .audit-row { padding-top: 12px; padding-bottom: 12px; }
-body[data-desk-reduced-motion="true"] *, body[data-desk-reduced-motion="true"] *::before, body[data-desk-reduced-motion="true"] *::after { scroll-behavior: auto !important; transition-duration: 0s !important; animation-duration: 0s !important; animation-iteration-count: 1 !important; }
+/* A reading preference must override the component-specific fixed text sizes. */
+body[data-desk-text-size="large"] #app .desk-main :is(p,label,button,.small,.optional,.note-folder-count,.note-folder-roster) { font-size:15px !important; }
+body[data-desk-text-size="large"] #app .desk-main :is(input,select,textarea,.note-body,.roster-row h3,.note-folder-card strong,.preference-preview p) { font-size:18px !important; }
 @media (max-width: 1100px) { .settings-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 900px) { .desk-nav #navigation .nav-settings { margin-top: 0; border-top-color: transparent; border-radius: 9px; } }
 @media (max-width: 720px) {

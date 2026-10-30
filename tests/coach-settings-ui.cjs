@@ -38,6 +38,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         else if (path.endsWith('/audit') && role !== 'coach') value = { events: [{ id: 'fictional-event', action: 'plan-updated', actor_email: state.profile.email, occurred_at: now, detail: '{}' }] };
         else if (path.endsWith('/legacy-notes') && role !== 'coach') value = { notes: [] };
         else if (path.endsWith('/diagrams/list')) value = { diagrams: [] };
+        else if (path.endsWith('/drills/list')) value = { drills: [] };
         else if (path.endsWith('/refresh')) value = { profile: state.profile, sessions, observedAt: now };
         else if (path.endsWith('/logout')) { state.profile = null; value = { signedOut: true }; }
         else { errors.push('Unexpected fixture action: ' + request.method() + ' ' + path); return route.fulfill({ status: 403, contentType: 'application/json', body: '{"error":"FICTIONAL_FORBIDDEN"}' }); }
@@ -85,28 +86,54 @@ require('./coach-fixture-fonts.cjs')(assets);
       assert.deepEqual(f.errors, []); checks++; await f.context.close();
     }
 
-    const p = await fixture(); await p.page.locator('#open-profile').click();
-    assert.equal(await p.page.locator('#panel-settings').isVisible(), true);
-    await p.page.locator('#preference-density').selectOption('compact'); await p.page.locator('#preference-motion').check(); await p.page.locator('#preference-start').selectOption('plan');
+    const p = await fixture();
+    assert.equal(await p.page.locator('#home-notes,#go-notes').count(), 0, 'Overview no longer includes the recent-notes widget');
+    await p.page.locator('#open-profile').click();
+    assert.equal(await p.page.locator('#preference-density,#preference-motion').count(), 0);
+    const normalSize = await p.page.locator('.preference-preview p').evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+    await p.page.locator('#preference-text-size').selectOption('large');
+    assert(await p.page.locator('.preference-preview p').evaluate(el => parseFloat(getComputedStyle(el).fontSize)) > normalSize, 'Reading size changes rendered text immediately');
+    assert.equal(await p.page.locator('#note-body').evaluate(el => getComputedStyle(el).fontSize), '18px', 'The preference changes the actual note editor');
+    await p.page.locator('#preference-session-view').selectOption('calendar');
+    await p.page.locator('#preference-start').selectOption('plan');
     const stored = await p.page.evaluate(key => JSON.parse(localStorage.getItem(key)), key);
-    assert.equal(stored.start, 'plan'); assert.equal(stored.density, 'compact'); assert.equal(stored.reduceMotion, true);
-    assert.deepEqual(Object.keys(stored).sort(), ['density', 'reduceMotion', 'start']);
-    assert.equal(await p.page.locator('body').getAttribute('data-desk-density'), 'compact');
-    assert.equal(await p.page.locator('body').getAttribute('data-desk-reduced-motion'), 'true');
-    assert.equal(p.requests.filter(r => r.method === 'POST').length, 0, 'Changing preferences makes no remote writes');
+    assert.deepEqual(stored, { start: 'plan', textSize: 'large', sessionView: 'calendar' });
+    assert.equal(p.requests.filter(r => r.method === 'POST').length, 0, 'Preferences do not make remote writes');
+    await p.page.locator('#navigation [data-tab="home"]').click();
+    assert.equal(await p.page.locator('#coaching-hub').getAttribute('data-coach-view'), 'calendar');
+    assert.equal(await p.page.locator('#coaching-hub .coach-calendar').isVisible(), true);
+    await p.page.locator('#navigation [data-tab="plan"]').click();
+    assert.equal(await p.page.locator('#planner-session-browser').getAttribute('data-coach-view'), 'calendar');
     await p.page.reload(); await p.page.locator('#panel-plan').waitFor({ state: 'visible' });
-    assert.equal(await p.page.locator('body').getAttribute('data-desk-density'), 'compact'); checks++;
-    await p.page.locator('#open-profile').click(); await p.page.locator('#reset-preferences').click();
-    assert.equal(await p.page.locator('#preference-start').inputValue(), 'home'); assert.equal(await p.page.locator('#preference-density').inputValue(), 'comfortable'); assert.equal(await p.page.locator('#preference-motion').isChecked(), false);
+    assert.equal(await p.page.locator('#planner-session-browser').getAttribute('data-coach-view'), 'calendar');
+    assert.equal(await p.page.locator('#note-body').evaluate(el => getComputedStyle(el).fontSize), '18px'); checks++;
+    await clickSettings(p); await p.page.locator('#preference-session-view').selectOption('list');
+    await p.page.locator('#navigation [data-tab="home"]').click(); assert.equal(await p.page.locator('#coaching-hub').getAttribute('data-coach-view'), 'list');
+    await p.page.locator('#navigation [data-tab="plan"]').click(); assert.equal(await p.page.locator('#planner-session-browser').getAttribute('data-coach-view'), 'list');
+    await clickSettings(p); await p.page.locator('#reset-preferences').click();
+    assert.equal(await p.page.locator('#preference-start').inputValue(), 'home');
+    assert.equal(await p.page.locator('#preference-text-size').inputValue(), 'standard');
+    assert.equal(await p.page.locator('#preference-session-view').inputValue(), 'grid');
+    assert.equal(await p.page.locator('#planner-session-browser').getAttribute('data-coach-view'), 'grid');
+    assert.equal(await p.page.locator('.preference-preview p').evaluate(el => parseFloat(getComputedStyle(el).fontSize)), normalSize);
+    assert.equal(await p.page.evaluate(key => localStorage.getItem(key), key), null);
     await p.page.locator('#copy-workspace-link').click(); assert.equal(await p.page.evaluate(() => fixtureCopied), origin + '/workspace');
     await p.page.reload(); await p.page.locator('#panel-home').waitFor({ state: 'visible' }); assert.deepEqual(p.errors, []); checks++;
-    await p.context.close();
-
-    for (const stored of ['{broken', JSON.stringify({ start: 'team', density: 'anything', reduceMotion: 'yes', owner: true })]) {
-      const bad = await fixture({ role: 'coach', stored }); assert.equal(await bad.page.locator('#panel-home').isVisible(), true);
-      await clickSettings(bad); assert.equal(await bad.page.locator('#preference-density').inputValue(), 'comfortable'); assert.equal(await bad.page.locator('#preference-motion').isChecked(), false); assert.deepEqual(bad.errors, []); await bad.context.close();
+    for (const start of ['profiles', 'library']) {
+      await clickSettings(p); await p.page.locator('#preference-start').selectOption(start);
+      await p.page.reload(); await p.page.locator('#panel-' + start).waitFor({ state: 'visible' });
     }
-    const blocked = await fixture({ deniedStorage: true }); await clickSettings(blocked); await blocked.page.locator('#preference-density').selectOption('compact'); assert.deepEqual(blocked.errors, []); await blocked.context.close(); checks++;
+    assert.deepEqual(p.errors, []); checks++; await p.context.close();
+
+    for (const stored of ['{broken', JSON.stringify({ start: 'team', textSize: 'anything', sessionView: 'all', owner: true })]) {
+      const bad = await fixture({ role: 'coach', stored }); assert.equal(await bad.page.locator('#panel-home').isVisible(), true);
+      await clickSettings(bad); assert.equal(await bad.page.locator('#preference-text-size').inputValue(), 'standard'); assert.equal(await bad.page.locator('#preference-session-view').inputValue(), 'grid'); assert.deepEqual(bad.errors, []); await bad.context.close();
+    }
+    const legacy = await fixture({ stored: JSON.stringify({start:'attendance',density:'compact',reduceMotion:true}) });
+    assert.equal(await legacy.page.locator('#panel-plan').isVisible(), true, 'Old attendance startup setting migrates to Training groups');
+    await clickSettings(legacy); assert.equal(await legacy.page.locator('#preference-start').inputValue(), 'plan'); assert.equal(await legacy.page.locator('#preference-text-size').inputValue(), 'standard'); assert.deepEqual(legacy.errors, []); await legacy.context.close();
+    const blocked = await fixture({ deniedStorage: true }); await clickSettings(blocked); await blocked.page.locator('#preference-text-size').selectOption('large');
+    assert.equal(await blocked.page.locator('#note-body').evaluate(el => getComputedStyle(el).fontSize), '18px'); assert.match(await blocked.page.locator('#preferences-status').innerText(), /Applied for this visit/); assert.deepEqual(blocked.errors, []); await blocked.context.close(); checks++;
 
     const d = await fixture(); await openSession(d.page, sessions, rid(1), 'plan'); await d.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
     await d.page.locator('#plan-focus').fill('Fictional unsaved plan'); await d.answer(false); await clickSettings(d);
@@ -117,10 +144,11 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert.equal(await d.page.locator('#panel-plan').isVisible(), true); assert.equal(await d.page.locator('#tactics-title').inputValue(), 'Fictional unsaved drill');
     await d.answer(true); await clickSettings(d); assert.equal(await d.page.locator('#panel-settings').isVisible(), true); assert.deepEqual(d.errors, []); checks++;
 
+    await d.page.locator('#preference-text-size').selectOption('large');
     for (const width of [1365, 390, 320]) {
       await d.page.setViewportSize({ width, height: 950 });
       assert(await d.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No horizontal overflow at ' + width);
-      for (const id of ['open-profile', 'preference-start', 'preference-density', 'reset-preferences', 'copy-workspace-link']) {
+      for (const id of ['open-profile', 'preference-start', 'preference-text-size', 'preference-session-view', 'reset-preferences', 'copy-workspace-link']) {
         const box = await d.page.locator('#' + id).boundingBox(); assert(box && box.height >= 43, id + ' retains a touch target at ' + width);
       }
     }

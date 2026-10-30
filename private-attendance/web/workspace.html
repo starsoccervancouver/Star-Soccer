@@ -158,21 +158,25 @@
 <section class="card preferences-card" aria-labelledby="preferences-title">
 <p class="eyebrow">Make it yours</p>
 <h2 id="preferences-title">Workspace preferences</h2>
-<p class="small">Saved only in this browser. No player records or account permissions are stored here.</p>
+<p class="small">Choose how you read and browse Coach Desk. Saved in this browser.</p>
 <form id="preferences-form">
 <label>Open Coach Desk to<select id="preference-start">
 <option value="home">Overview</option>
-<option value="attendance">Attendance</option>
 <option value="profiles">Player profiles</option>
 <option value="library">Coach resources</option>
 <option value="plan">Training groups</option>
 
-</select></label>
-<label>Layout spacing<select id="preference-density">
-<option value="comfortable">Comfortable</option>
-<option value="compact">Compact</option>
-</select></label>
-<label class="preference-check"><input id="preference-motion" type="checkbox"><span><strong>Reduce interface motion</strong><span>Keep navigation and interface transitions still. Drill playback remains available when you choose Play.</span></span></label>
+</select><span class="preference-help">Your starting page the next time you open Coach Desk.</span></label>
+<label>Reading size<select id="preference-text-size">
+<option value="standard">Standard</option>
+<option value="large">Larger</option>
+</select><span class="preference-help">Changes note text, player names and form fields immediately.</span></label>
+<div class="preference-preview" aria-label="Reading size preview"><p>Session notes and player names</p><span class="small">Use the size that is easiest to read on your device.</span></div>
+<label>Default session view<select id="preference-session-view">
+<option value="grid">Group cards</option>
+<option value="list">List</option>
+<option value="calendar">Calendar</option>
+</select><span class="preference-help">Applies to Overview and Training groups. You can still switch views there.</span></label>
 <button type="button" class="secondary" id="reset-preferences">Restore display defaults</button>
 </form>
 <p id="preferences-status" class="preferences-status" role="status" aria-live="polite"></p>
@@ -211,17 +215,6 @@
 </section>
 </div>
 <section id="coaching-hub" aria-label="Session briefing"></section>
-<section class="card">
-<div class="section-heading">
-<div>
-<p class="eyebrow">A quick coaching recap</p>
-<h2>Recent notes</h2>
-</div>
-<button class="secondary" id="go-notes">Add a note</button>
-</div>
-<div id="home-notes">
-</div>
-</section>
 </section>
 <section id="panel-plan" class="tab-panel" hidden>
 <header id="planner-focus-bar" class="planner-focus-bar" hidden>

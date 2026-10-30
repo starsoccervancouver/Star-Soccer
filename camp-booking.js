@@ -44,8 +44,11 @@
       const q=C.quote({...value(),age:C.catalog.minAge});summary.querySelector('[data-camp-price]').textContent=T.money(q.price*playerCount)+' CAD';form.querySelector('[data-camp-total]').textContent=T.money(q.price*playerCount)+' CAD';
       const alternative=C.packageAlternative({...value(),age:C.catalog.minAge});
       if(alternative){saving.hidden=false;savingText.textContent='Save '+T.money(alternative.savings)+' per player with the full-week package: '+T.money(alternative.price)+' CAD for all five days'+(C.getWeek(week).freeDate?', including Christmas Friday.':'.');}
-      form.querySelector('[data-camp-standard]').textContent=q.standardPrice===null?'':T.money(q.standardPrice*playerCount);
-      form.querySelector('[data-camp-saving]').textContent=q.standardPrice===null?'':T.money(q.savings*playerCount);
+      const comparisonPrice=q.separatePrice??q.standardPrice,packageSaving=comparisonPrice===null?0:comparisonPrice-q.price;
+      form.querySelector('[data-camp-comparison]').textContent=q.separatePrice===null?'':'Booked separately';
+      form.querySelector('[data-camp-standard]').setAttribute('aria-label',q.separatePrice===null?'Standard package price':'Morning and afternoon weekly packages booked separately');
+      form.querySelector('[data-camp-standard]').textContent=comparisonPrice===null?'':T.money(comparisonPrice*playerCount);
+      form.querySelector('[data-camp-saving]').textContent=comparisonPrice===null?'':T.money(packageSaving*playerCount);
       form.querySelector('[data-camp-discount]').hidden=dropin;
       const info=document.querySelector('[data-camp-info]');
       if(info){
@@ -53,7 +56,7 @@
         info.querySelector('[data-camp-info-time]').textContent=q.time;
         info.querySelector('[data-camp-info-price]').textContent=T.money(q.price*playerCount)+' CAD';
         info.querySelector('[data-camp-info-package]').textContent=q.label+(playerCount>1?' · '+playerCount+' players':'');
-        info.querySelector('[data-camp-info-savings]').textContent=dropin?q.sessions.filter(s=>s.date!==C.getWeek(week).freeDate).length+' paid sessions × $60'+(q.dates.includes(C.getWeek(week).freeDate)?' · Christmas Friday free':''):'Standard '+T.money(q.standardPrice*playerCount)+' · Save '+T.money(q.savings*playerCount);
+        info.querySelector('[data-camp-info-savings]').textContent=dropin?q.sessions.filter(s=>s.date!==C.getWeek(week).freeDate).length+' paid sessions × $60'+(q.dates.includes(C.getWeek(week).freeDate)?' · Christmas Friday free':''):(q.separatePrice===null?'Standard ':'Morning + afternoon separately: ')+T.money(comparisonPrice*playerCount)+' · Save '+T.money(packageSaving*playerCount);
         info.querySelector('[data-camp-info-lunch]').textContent=q.lunch?'Supervised lunch included from noon–12:30. Bring a packed lunch.':'Supervised lunch is included when booking both daily sessions.';
       }
       summary.querySelector('[data-camp-time]').textContent=q.time;

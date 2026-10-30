@@ -33,9 +33,9 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg
         return new Response(JSON.stringify({success:outcome!=='reject'}),{status:200,headers:{'content-type':'application/json'}});
       };
     });
-    async function pageFor(query=''){
+    async function pageFor(query='',week='christmas'){
       const page=await context.newPage();page.on('pageerror',error=>{throw error;});
-      await page.goto(origin+'/christmas-camp-registration.html'+query);
+      await page.goto(origin+'/'+(week==='boxing'?'boxing':'christmas')+'-camp-registration.html'+query);
       await page.locator('.family-add-player').waitFor();return page;
     }
     async function fill(page,siblings=false){
@@ -49,6 +49,23 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg
     const requestData=page=>page.evaluate(()=>window.fixtureRequests);
     async function failStatus(page,pattern){await page.locator('#camp-status').filter({hasText:pattern}).waitFor();}
     async function check(label,fn){await fn();checks++;console.log('PASS '+label);}
+
+    await check('full-day incentives reach family totals, requests and receipts for both weeks',async()=>{
+      for(const [week,price,separate,saving] of [['christmas',340,400,60],['boxing',315,370,55]]){
+        const page=await pageFor('?slot=both',week);await fill(page,true);
+        assert.equal(await page.locator('[data-camp-total]').textContent(),'$'+price*2+' CAD');
+        assert.equal(await page.locator('[data-camp-standard]').textContent(),'$'+separate*2);
+        assert.equal(await page.locator('[data-camp-saving]').textContent(),'$'+saving*2);
+        assert.match(await page.locator('[data-camp-info-savings]').textContent(),/Morning \+ afternoon separately/);
+        assert.match(await page.locator('[data-camp-info-lunch]').textContent(),/Supervised lunch included/);
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+        await submit(page);await page.locator('#camp-receipt').waitFor({state:'visible'});
+        const requests=await requestData(page);assert.equal(requests.length,2);
+        assert(requests.every(r=>r['Price CAD']===String(price)&&r['Camp slot']==='both'&&r['Camp session keys'].split('; ').length===10));
+        assert((await page.locator('.camp-receipt-details').textContent()).includes('Total for all players: $'+price*2+' CAD'));
+        await page.close();
+      }
+    });
 
     await check('two siblings retain one family reference and separate canonical per-player requests',async()=>{
       const page=await pageFor();await fill(page,true);
@@ -100,10 +117,10 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg
         for(const date of ['2026-12-21','2026-12-22','2026-12-23','2026-12-24'])await page.locator('[name="Camp days"][value="'+date+'"]').check();
         assert.equal(await page.locator('[data-camp-total]').textContent(),slot==='am'?'$240 CAD':'$480 CAD');
         assert.equal(await page.locator('.camp-package-saving').isVisible(),true);
-        assert.match(await page.locator('.camp-package-saving').textContent(),slot==='am'?/Save \$40 per player/:/Save \$80 per player/);
+        assert.match(await page.locator('.camp-package-saving').textContent(),slot==='am'?/Save \$40 per player/:/Save \$140 per player/);
         await page.locator('.camp-package-saving button').click();
         assert.equal(await page.locator('[name="Booking option"][value="week"]').isChecked(),true);
-        assert.equal(await page.locator('[data-camp-total]').textContent(),slot==='am'?'$200 CAD':'$400 CAD');
+        assert.equal(await page.locator('[data-camp-total]').textContent(),slot==='am'?'$200 CAD':'$340 CAD');
         assert.equal(await page.locator('#camp-dates li').count(),5);assert.match(await page.locator('#camp-dates').textContent(),/Dec 25/);
         await fill(page);await submit(page);await page.locator('#camp-receipt').waitFor({state:'visible'});
         const [request]=await requestData(page);assert.equal(request['Camp slot'],slot);assert.equal(request['Camp booking kind'],'week');assert.equal(request['Covered dates'].split(', ').length,5);

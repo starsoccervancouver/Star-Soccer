@@ -4,14 +4,16 @@ const choice=(patch={})=>C.quote({week:'christmas',kind:'week',slot:'am',age:5,.
 test('approved camp dates, ages, capacity and paid four-day Christmas price',()=>{
  assert.equal(choice().price,200);assert.deepEqual(choice().dates,['2026-12-21','2026-12-22','2026-12-23','2026-12-24','2026-12-25']);
  assert.equal(choice().weekName,'Winter Camp — Week 1');assert.equal(choice().standardPrice,250);assert.equal(choice().savings,50);
- assert.equal(choice({age:14,slot:'both'}).price,400);assert.equal(choice({slot:'both'}).sessions.length,10);assert.equal(C.catalog.capacity,20);
+ assert.equal(choice({age:14,slot:'both'}).price,340);assert.equal(choice({slot:'both'}).sessions.length,10);assert.equal(C.catalog.capacity,20);
+ assert.equal(choice({slot:'both'}).separatePrice,400);assert.equal(choice({slot:'both'}).separatePrice-choice({slot:'both'}).price,60);assert.equal(choice().separatePrice,null);
  for(const age of [4,15,5.5,'5.5','x'])assert.throws(()=>choice({age}),/ages/);
 });
 test('Boxing Week uses the approved $185 weekly package and includes lunch for both slots',()=>{
  const q=choice({week:'boxing'});assert.equal(q.price,185);assert.equal(q.dates.length*3,15);assert.equal(q.dates[4],'2027-01-01');
  assert.equal(q.weekName,'Winter Camp — Week 2');assert.equal(q.standardPrice,250);assert.equal(q.savings,65);
- const both=choice({week:'boxing',slot:'both'});assert.equal(both.price,370);assert.equal(both.lunch,true);assert.equal(both.sessions.length,10);assert.equal(choice({slot:'pm'}).lunch,false);
- assert.equal(both.standardPrice,500);assert.equal(both.savings,130);
+ const both=choice({week:'boxing',slot:'both'});assert.equal(both.price,315);assert.equal(both.lunch,true);assert.equal(both.sessions.length,10);assert.equal(choice({slot:'pm'}).lunch,false);
+ assert.equal(both.standardPrice,500);assert.equal(both.savings,185);assert.equal(both.separatePrice,370);assert.equal(both.separatePrice-both.price,55);
+ assert.match(C.confirmation(both,'SS-CAMP-ABCDEF12','Test Player').body,/Full-day saving: \$55 CAD/);
 });
 test('drop-ins are $60 per three-hour slot, Christmas Friday is free including both slots',()=>{
  assert.equal(choice({kind:'dropin',date:'2026-12-22'}).price,60);assert.equal(choice({kind:'dropin',slot:'both',date:'2026-12-22'}).price,120);
@@ -41,7 +43,7 @@ test('cheaper full-week recommendation is optional and only offered before the w
  const input={week:'christmas',kind:'dropin',slot:'am',age:8,dates:['2026-12-21','2026-12-22','2026-12-23','2026-12-24']};
  assert.equal(C.packageAlternative(input,now).price,200);
  assert.equal(C.packageAlternative(input,now).savings,40);
- assert.equal(C.packageAlternative({...input,slot:'both'},now).savings,80);
+ assert.equal(C.packageAlternative({...input,slot:'both'},now).savings,140);
  assert.equal(C.packageAlternative({...input,dates:['2026-12-25']},now),null);
  assert.equal(C.packageAlternative({...input,kind:'week'},now),null);
  assert.equal(C.packageAlternative({...input,week:'boxing',dates:['2026-12-29','2026-12-30','2026-12-31','2027-01-01']},new Date('2026-12-29T15:00:00Z')),null);

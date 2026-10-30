@@ -31,9 +31,13 @@ export function validateDiagram(content){
   if(frameIds.has(id)||typeof frame.duration!=='number'||!Number.isFinite(frame.duration)||frame.duration<0.5||frame.duration>20||!Array.isArray(frame.positions)||frame.positions.length!==items.length)invalid();
   frameIds.add(id);const seen=new Set();
   const positions=frame.positions.map(position=>{
-   object(position,['id','x','y'],['curve','attachedTo','trail']);const id=identifier(position.id);
+   object(position,['id','x','y'],['curve','attachedTo','trail','rotation']);const id=identifier(position.id);
    if(!itemIds.has(id)||seen.has(id))invalid();seen.add(id);
    const result={id,x:coordinate(position.x),y:coordinate(position.y)};
+   if(Object.hasOwn(position,'rotation')){
+    if(itemKinds.get(id)!=='goal'||typeof position.rotation!=='number'||!Number.isFinite(position.rotation)||position.rotation<0||position.rotation>=360)invalid();
+    result.rotation=position.rotation;
+   }
    if(Object.hasOwn(position,'curve'))result.curve=curve(position.curve);
    if(Object.hasOwn(position,'trail')){
     if(!['home','away','ball'].includes(itemKinds.get(id))||!Array.isArray(position.trail)||!position.trail.length||position.trail.length>32)invalid();

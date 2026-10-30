@@ -32,7 +32,7 @@
 .tactics-pieces [data-piece-kind=cone] { color: #7f3d21; }
 .tactics-board-layout { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 16px; align-items: start; }
 .tactics-canvas-wrap { min-width: 0; position: relative; overflow: hidden; border-radius: 13px; border: 1px solid #a8bba1; background: #e6eddf; box-shadow: inset 0 0 0 4px #ffffff45; }
-#tactics-pitch-board { display: block; width: 100%; height: auto; max-height: 60dvh; touch-action: none; user-select: none; -webkit-user-select: none; }
+#tactics-pitch-board { display: block; width: 100%; height: auto; max-height: none; aspect-ratio: 1120 / 770; touch-action: none; user-select: none; -webkit-user-select: none; }
 #tactics-pitch-board:focus-visible { outline: 3px solid #316b89; outline-offset: -4px; }
 #tactics-pitch-board [data-tactics-item] { cursor: grab; }
 #tactics-pitch-board [data-tactics-item]:active { cursor: grabbing; }
@@ -152,4 +152,55 @@
   #planner-drawer[data-pane="tools"] .tactics-selection-hint { grid-column:1/-1; }
   #planner-drawer[data-pane="tools"] .tactics-workbar { gap:6px; margin-bottom:8px; }
   #planner-drawer[data-pane="tools"] .tactics-piece-panel > :has(#tactics-curve), #planner-drawer[data-pane="tools"] .tactics-piece-panel > :has(#tactics-ball-carrier) { grid-column:1/-1; }
+}
+
+/* Keep the field and its phases together in either editor location. */
+#library-diagram-editor { min-width: 0; max-width: 100%; }
+#tactics-board-tools, #tactics-board-tools * { box-sizing: border-box; }
+#tactics-board-tools :is(.tactics-editor,.tactics-field-column,.tactics-inspector,.tactics-phase-editor,.tactics-board-layout,.tactics-workbar,label,details) { min-width: 0; max-width: 100%; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools { display: block; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-board-layout { grid-template-columns: minmax(0, 7fr) minmax(0, 3fr); gap: 16px; align-items: start; }
+#tactics-board-tools :is(.tactics-field-column,.tactics-inspector) { display: grid; gap: 12px; align-content: start; }
+#tactics-board-tools .tactics-canvas-wrap { border-color: #8c9983; border-radius: 10px; box-shadow: none; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools :is(.tactics-phase-editor,.tactics-piece-panel,.tactics-phases,.tactics-library) { padding: 14px; border: 1px solid #aaa193; border-radius: 10px; background: var(--desk-surface, #dbd5ca); }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-phases { background: var(--desk-inset, #d2cabc); }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-piece-panel { grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+#tactics-board-tools .tactics-phase-editor { display: grid; gap: 12px; }
+#tactics-board-tools .tactics-phase-editor :is(h3,label,.tactics-toolbar) { margin: 0; }
+#tactics-board-tools .tactics-phase-editor h3 { font-size: 16px; line-height: 1.4; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-frame-settings { grid-template-columns: minmax(0, 1fr); gap: 10px; margin: 0; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-workbar { position: static; gap: 8px; padding: 6px 0 12px; margin: 0 0 12px; }
+#tactics-board-tools :is(.tactics-edit-modes,.tactics-view-controls) { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; margin: 10px 0; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools button { min-width: 0; max-width: 100%; min-height: 44px; border-radius: 8px; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools :is(button.secondary,.tactics-edit-modes button,.tactics-view-controls button):not([aria-pressed="true"]) { background: var(--desk-field, #e3ddd3); border-color: #9d9486; color: var(--desk-ink, #292d33); }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-edit-modes button[aria-pressed="true"] { background: #3c4046; border-color: #3c4046; color: #fff; }
+#tactics-board-tools .tactics-view-controls button { padding: 8px 11px; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-view-controls button, #tactics-board-tools .tactics-view-controls button { min-width: 44px; }
+#tactics-board-tools .tactics-view-controls { padding: 0 8px; }
+#tactics-board-tools .tactics-main-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+#tactics-board-tools .tactics-main-toolbar .tactics-pieces { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+#tactics-board-tools .tactics-edit-modes { margin: 0; }
+#tactics-pitch-board [data-route-handle] { cursor: move; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools :is(input:not([type="checkbox"]),select,textarea) { min-width: 0; border-radius: 8px; background: var(--desk-field, #e3ddd3); border-color: #aaa193; }
+#tactics-board-tools .tactics-advanced { grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid var(--desk-line, #b6afa2); }
+#tactics-board-tools .tactics-advanced > summary { min-height: 44px; padding: 10px 0; cursor: pointer; font-size: 13px; font-weight: 650; }
+#tactics-board-tools .tactics-advanced[open] > :not(summary) { margin-top: 8px; }
+#tactics-board-tools .tactics-selection-count { margin: 0; font-size: 12px; line-height: 1.5; color: var(--desk-muted, #4d4a45); overflow-wrap: anywhere; }
+#library-diagram-editor .tactics-piece-panel[data-selected="false"] > :not(.tactics-selection-hint):not(:has(#tactics-item)):not(.tactics-check) { display: none; }
+#library-diagram-editor .tactics-piece-panel[data-selected="true"] > .tactics-selection-hint { display: none; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-frame-list { flex-wrap: nowrap; overflow-x: auto; gap: 8px; padding: 3px 3px 8px; margin-bottom: 8px; }
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-frame-list button { display: flex; flex: 0 0 120px; flex-direction: column; align-items: center; gap: 6px; padding: 8px; }
+#tactics-board-tools .tactics-preview-controls { gap: 8px; margin: 8px 0; }
+#tactics-board-tools .tactics-preview-controls > * { min-width: 0; max-width: 100%; }
+#tactics-board-tools .tactics-playback { gap: 8px; padding-top: 10px; }
+#tactics-board-tools .tactics-board-help { margin: 8px 0 12px; }
+@media (max-width: 1000px) {
+  :is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-board-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+}
+@media (max-width: 520px) {
+  #tactics-board-tools .tactics-main-toolbar .tactics-pieces { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  :is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools :is(.tactics-phase-editor,.tactics-piece-panel,.tactics-phases,.tactics-library) { padding: 10px; }
+  #tactics-board-tools .tactics-edit-modes button { flex: 1 1 110px; padding: 8px; }
+  #tactics-board-tools .tactics-workbar > label { flex-basis: 100%; }
+  #tactics-board-tools .tactics-preview-controls > label { flex-basis: 100%; }
 }

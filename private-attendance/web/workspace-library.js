@@ -11,6 +11,9 @@
   let context = null, identity = '', epoch = 0, records = [], loaded = false, loading = false, writing = false;
   const catalogs = new Map(), sourceNames = { saved: 'Private saved drill', preset: 'TPD preset', starter: 'Original starter' };
   let record = blank(), baseline = '', recovery = null, conflict = false, lastAttempt = null, historyLimit = 8, suggestionInputs = null;
+  let diagramOpen = false, diagramEpoch = 0;
+  let sessionChoice = null, pendingUse = null;
+  const accountKey = value => value?.profile ? [value.profile.email, value.profile.role, value.profile.sessionVersion].join(':') : '';
   const permitted = drill => context?.profile && (['owner', 'admin'].includes(context.profile.role) || drill.author_email === context.profile.email);
   const standalone = () => context?.tab === 'library';
   const ready = () => !!context?.profile && ['plan', 'library'].includes(context.tab);
@@ -25,16 +28,27 @@
   function action(text, handler, cls = 'secondary') { const b = node('button', text, cls); b.type = 'button'; b.addEventListener('click', handler); return b; }
   function label(text, control) { const el = node('label', text); el.htmlFor = control.id; el.append(control); return el; }
   function select(id, entries) { const el = node('select'); el.id = id; entries.forEach(([value, text]) => { const option = node('option', text); option.value = value; el.append(option); }); return el; }
-  function writeEditor(next = blank()) {
+  function closeDiagram() { diagramOpen = false; diagramEpoch++; window.CoachTactics?.closeLibrary?.(); }
+  function openDiagram(reload = false) {
+    if (!standalone() || editor.hidden || diagramOpen && !reload || !window.CoachTactics?.openLibrary) return;
+    const ticket = ++diagramEpoch; diagramOpen = true;
+    window.CoachTactics.openLibrary({ host: diagramEditor, diagram: clone(record.diagram || null), title: record.title,
+      onChange: diagram => { if (ticket !== diagramEpoch || !standalone() || locked() || recovery) return; record.diagram = diagram ? clone(diagram) : null; renderState(); },
+      onSave: () => { if (ticket === diagramEpoch && standalone()) editor.requestSubmit(); }
+    });
+    window.CoachTactics.setLibraryLocked?.(locked() || !!recovery, locked() || !!recovery || conflict);
+  }
+  function writeEditor(next = blank(), preserveDiagram = false) {
     record = clone(next); for (const key of fields) $('library-' + key).value = record[key] ?? '';
     baseline = fingerprint(values()); recovery = null; conflict = false; lastAttempt = null;
     $('library-editor-title').textContent = record.id ? 'Edit reusable drill' : 'Create a reusable drill';
+    if (diagramOpen && !preserveDiagram) openDiagram(true);
     renderState();
   }
-  function discard() { if (writing) return; writeEditor(); if (standalone()) editor.hidden = true; notify(''); }
+  function discard() { if (writing) return; closeDiagram(); writeEditor(); if (standalone()) editor.hidden = true; notify(''); }
   window.CoachLibrary = Object.freeze({ isDirty: dirty, isBusy: () => writing, discard, registerCatalog, createDiagram });
 
-  const newDrill = action('New drill', () => { if (locked() || recovery) return; if (dirty() && !confirm('Start a new drill and discard this draft?')) return; writeEditor(); editor.hidden = false; $('library-title').focus(); }, 'button'); newDrill.id = 'library-new';
+  const newDrill = action('New drill', () => { if (locked() || recovery) return; if (dirty() && !confirm('Start a new drill and discard this draft?')) return; writeEditor(); editor.hidden = false; openDiagram(); $('library-title').focus(); }, 'button'); newDrill.id = 'library-new';
   const disclosure = node('details', '', 'coaching-tools-disclosure library-disclosure'); disclosure.id = 'library-disclosure';
   disclosure.append(node('summary', 'Drill library · saved, TPD presets & starters'));
   const body = node('div', '', 'library-body');
@@ -51,6 +65,23 @@
   const results = node('p', '', 'small'); results.id = 'library-results'; results.setAttribute('role', 'status'); body.append(results);
   const list = node('div', '', 'library-list'); list.id = 'library-list'; body.append(list);
   const more = action('Show more drills', () => { historyLimit += 8; renderList(); }); more.id = 'library-more'; more.hidden = true; body.append(more);
+  const sessionPicker = node('section', '', 'library-capture'); sessionPicker.id = 'library-session-picker'; sessionPicker.hidden = true;
+  const sessionChoiceTitle = node('p', '', 'small'), sessionSelect = select('library-session-choice', [['', 'Choose a session']]);
+  const openSession = action('Open session & add drill', () => {
+    if (locked() || recovery || !sessionChoice || pendingUse) return;
+    if (dirty()) return notify('Save or clear your drill draft first', true);
+    const chosen = (context.sessions || []).find(session => session.id === sessionSelect.value && session.status !== 'Cancelled');
+    if (!chosen) return notify('Choose an available session first.', true);
+    const attempt = { drill: clone(sessionChoice), sessionId: chosen.id, account: accountKey(context), fromSession: context.session?.id || '', accepted: false, inFlight: false };
+    pendingUse = attempt;
+    emit('coach:open-session', { sessionId: chosen.id, tab: 'plan', resolve: accepted => {
+      if (pendingUse !== attempt) return;
+      if (!accepted) { pendingUse = null; notify('The session could not be opened. Your saved drill is unchanged.', true); renderState(); return; }
+      attempt.accepted = true; finishSessionUse();
+    } });
+  }); openSession.id = 'library-open-session';
+  sessionSelect.addEventListener('change', () => { pendingUse = null; renderState(); });
+  sessionPicker.append(sessionChoiceTitle, label('Session', sessionSelect), openSession); body.append(sessionPicker);
   const suggestions = node('section', '', 'library-suggestions'); suggestions.setAttribute('aria-labelledby', 'library-suggestions-title');
   const suggestionTitle = node('h3', 'Ideas from your coaching notes'); suggestionTitle.id = 'library-suggestions-title';
   suggestions.append(suggestionTitle, node('p', 'Simple keyword matches in notes you can access for this group or selected player. These are starting points to review, not assessments. Notes are not sent to an AI service or copied into the shared plan.', 'small'));
@@ -73,6 +104,7 @@
   const attachDiagram = action('Attach current tactics board', () => { if (locked() || recovery) return; const draft = window.CoachTactics?.getDraft(); if (!draft || draft.sessionId !== context.session?.id) return notify('Open the tactics board in a session first, then attach it here.', true); record.diagram = clone(draft.diagram); renderState(); notify('Diagram attached to this drill draft. Save drill to keep both together.'); }); attachDiagram.id = 'library-attach-diagram';
   const removeDiagram = action('Remove attached diagram', () => { if (locked() || recovery) return; record.diagram = null; renderState(); }); removeDiagram.id = 'library-remove-diagram';
   diagramBox.append(node('h4', 'Drill diagram'), diagramPreview, diagramStatus, attachDiagram, removeDiagram); editor.append(diagramBox);
+  const diagramEditor = node('section', '', 'library-diagram-editor'); diagramEditor.id = 'library-diagram-editor'; editor.append(diagramEditor);
   const cancel = action('Clear draft', () => { if (locked()) return; if (dirty() && !confirm('Discard this unsaved drill?')) return; discard(); }); cancel.id = 'library-cancel';
   const retry = action('Retry same save', () => { if (recovery && !locked()) persist(recovery); }); retry.id = 'library-retry'; retry.hidden = true;
   const latest = action('Open latest saved drill', () => { if (locked() || recovery || !conflict) return; if (dirty() && !confirm('Discard your unsaved changes and open the latest saved drill?')) return; load(true, record.id); }); latest.id = 'library-open-latest';
@@ -95,16 +127,20 @@
   disclosure.addEventListener('toggle', () => { if (disclosure.open && ready() && !loaded && !loading) load(); });
   editor.addEventListener('submit', event => {
     event.preventDefault(); if (locked() || recovery || conflict || !editor.reportValidity()) return;
+    if (diagramOpen && window.CoachTactics?.libraryDiagram) record.diagram = clone(window.CoachTactics.libraryDiagram());
     const draft = values(), signature = fingerprint(draft);
-    const payload = { id: record.id, ...draft, diagram: record.diagram || null, expectedVersion: record.version || 0 };
+    const payload = { id: record.id, ...draft, expectedVersion: record.version || 0 };
     if (!record.id) payload.requestId = lastAttempt?.signature === signature ? lastAttempt.payload.requestId : crypto.randomUUID();
     lastAttempt = { signature, payload }; persist({ operation: 'save', payload });
   });
   function renderState() {
+    if (diagramOpen) window.CoachTactics?.setLibraryTitle?.($('library-title').value);
+    diagramBox.hidden = standalone(); diagramEditor.hidden = !standalone();
     diagramPreview.replaceChildren(); const thumbnail = window.CoachTactics?.preview(record.diagram); if (thumbnail) diagramPreview.append(thumbnail);
     diagramStatus.textContent = record.diagram ? 'Attached · ' + record.diagram.frames.length + ' steps. Changes to the tactics board do not change this saved copy.' : 'No diagram attached.';
     attachDiagram.hidden = standalone(); attachDiagram.disabled = removeDiagram.disabled = locked() || !!recovery; removeDiagram.hidden = !record.diagram;
-    for (const field of editor.querySelectorAll('input,select,textarea')) field.disabled = locked() || !!recovery;
+    for (const field of editor.querySelectorAll('input,select,textarea')) if (!diagramEditor.contains(field)) field.disabled = locked() || !!recovery;
+    if (diagramOpen) window.CoachTactics?.setLibraryLocked?.(locked() || !!recovery, locked() || !!recovery || conflict);
     save.disabled = locked() || !!recovery || conflict; cancel.disabled = locked(); retry.disabled = locked();
     latest.hidden = keepCopy.hidden = !conflict; latest.disabled = keepCopy.disabled = locked() || !!recovery;
     cancel.hidden = !record.id && !dirty(); retry.hidden = !recovery; retry.textContent = recovery?.operation === 'archive' ? 'Retry same archive' : 'Retry same save';
@@ -115,8 +151,37 @@
     reload.textContent = loading ? 'Loading…' : loaded ? 'Refresh saved drills' : 'Load saved drills';
     save.textContent = writing ? 'Saving…' : record.id ? 'Save changes' : 'Save drill';
     for (const el of list.querySelectorAll('button')) { el.disabled = locked() || !!recovery || (el.dataset.insert === 'true' && !canInsert()); if (el.dataset.insert === 'true') el.hidden = standalone(); }
+    for (const el of list.querySelectorAll('[data-use-session]')) el.hidden = !standalone();
+    sessionPicker.hidden = !standalone() || !sessionChoice;
+    sessionSelect.disabled = locked() || !!pendingUse; openSession.disabled = locked() || !!recovery || !!pendingUse || !sessionSelect.value;
     for (const el of recommendationList.querySelectorAll('button')) el.disabled = !canInsert() || !!recovery;
     emit('coach:library-state', { starterEnabled:ready() && !locked() && !recovery, insertEnabled:canInsert() && !recovery, loaded, count:records.length });
+    finishSessionUse();
+  }
+  async function finishSessionUse() {
+    const attempt = pendingUse;
+    if (!attempt || !attempt.accepted || attempt.inFlight || accountKey(context) !== attempt.account || context?.tab !== 'plan' || context.session?.id !== attempt.sessionId || !canInsert()) return;
+    attempt.inFlight = true;
+    try {
+      const prepared = await window.CoachTactics?.prepareSession?.(attempt.sessionId);
+      if (pendingUse !== attempt || accountKey(context) !== attempt.account || context?.tab !== 'plan' || context.session?.id !== attempt.sessionId) return;
+      pendingUse = null; sessionChoice = null;
+      if (prepared && canInsert()) insert(attempt.drill);
+      else notify('The session is not ready. Open your saved drill again to add it.', true);
+    } catch (error) {
+      if (pendingUse === attempt) { pendingUse = null; notify('The session could not be prepared. Your saved drill is unchanged.', true); }
+    }
+  }
+  function chooseSession(drill) {
+    if (!standalone() || locked() || recovery || !permitted(drill)) return;
+    if (dirty()) return notify('Save or clear your drill draft first', true);
+    pendingUse = null; sessionChoice = clone(drill);
+    sessionChoiceTitle.textContent = 'Use “' + drill.title + '” in a session';
+    const available = (context.sessions || []).filter(session => session.status !== 'Cancelled');
+    sessionSelect.replaceChildren(...select('', [['', 'Choose a session'], ...available.map(session => [session.id, [session.date, session.time, session.location].filter(Boolean).join(' · ') || 'Session'])]).options);
+    sessionSelect.value = ''; renderState();
+    if (!available.length) notify('There are no available sessions to add this drill to.', true);
+    else sessionSelect.focus();
   }
   function insert(drill) {
     if (!canInsert() || recovery) return;
@@ -127,11 +192,11 @@
   function edit(drill) {
     if (locked() || recovery || !permitted(drill)) return;
     if (dirty() && !confirm('Edit this drill and discard the current unsaved drill?')) return;
-    writeEditor(drill); editor.hidden = false; notify(''); $('library-title').focus();
+    writeEditor(drill); editor.hidden = false; openDiagram(); notify(''); $('library-title').focus();
   }
   function copyDraft(drill) {
     writeEditor({ ...blank(), ...Object.fromEntries(fields.map(key => [key, drill[key]])), title: drill.title.slice(0, 73) + ' (copy)', diagram: drill.diagram || null });
-    baseline = fingerprint(blank()); editor.hidden = false; renderState();
+    baseline = fingerprint(blank()); editor.hidden = false; openDiagram(); renderState();
     notify('Unsaved drill copy. Review it and choose Save drill to keep it.'); $('library-title').focus();
   }
   function registerCatalog(source, drills) {
@@ -195,7 +260,8 @@
           if (confirm('Archive this reusable drill? Saved session plans will stay unchanged.')) persist({ operation: 'archive', payload: { id: drill.id, expectedVersion: drill.version } });
         });
         const duplicate = action('Duplicate drill', () => { if (locked() || recovery || !permitted(drill)) return; if (dirty() && !confirm('Discard your current unsaved drill and make a copy?')) return; copyDraft(drill); });
-        actions.append(change, duplicate, archive);
+        const useSession = action('Use in session', () => chooseSession(drill)); useSession.dataset.useSession = 'true';
+        actions.append(useSession, change, duplicate, archive);
       }
       const thumbnail = previewDiagram(drill); if (thumbnail) { const preview = node('figure', '', 'library-diagram-preview'); preview.append(thumbnail); if (drill.source !== 'saved') preview.append(node('figcaption', 'Original sketch · illustrative starting positions', 'small')); card.append(preview); } card.append(actions); list.append(card);
     }
@@ -276,7 +342,7 @@
       const result = await request(attempt.operation, clone(attempt.payload)); if (ticket !== epoch || identity !== started) return;
       if (attempt.operation === 'save') {
         const saved = validateRows([result.drill])[0]; if (!matchesSaved(saved, attempt.payload)) throw Error('The save could not be verified. Refresh the library before changing this draft.');
-        records = [saved, ...records.filter(drill => drill.id !== saved.id)]; writeEditor(saved); if (standalone()) editor.hidden = true; notify('Reusable drill saved. Session plans stay unchanged until you add it.');
+        records = [saved, ...records.filter(drill => drill.id !== saved.id)]; writeEditor(saved, true); notify('Reusable drill saved. Session plans stay unchanged until you add it.');
       } else {
         if (result.saved !== true) throw Error('The archive could not be verified.');
         records = records.filter(drill => drill.id !== attempt.payload.id); if (record.id === attempt.payload.id) writeEditor(); notify('Drill archived. Previously saved plans stay unchanged.');
@@ -303,11 +369,16 @@
     if (!draft.title || !draft.setup) return;
     if (catalogIdea && drill.diagram) draft.diagram = clone(drill.diagram);
     if (dirty() && !confirm('Replace your unsaved drill with this practice idea?')) return;
-    writeEditor(draft); baseline = fingerprint(blank()); disclosure.open = true; editor.hidden = false; renderState();
+    if (drill.diagram) draft.diagram = clone(drill.diagram);
+    writeEditor(draft); baseline = fingerprint(blank()); disclosure.open = true; editor.hidden = false; openDiagram(); renderState();
     notify('Practice idea copied to a new drill draft. Review it and choose Save drill to keep it.'); $('library-title').focus();
   });
   window.addEventListener('coach:context', event => {
     const next = event.detail, nextIdentity = next?.profile ? [next.profile.email, next.profile.role, next.profile.sessionVersion, next.session?.id || ''].join(':') : '';
+    if (pendingUse && (accountKey(next) !== pendingUse.account || !['library', 'plan'].includes(next?.tab) || pendingUse.navigated && next.tab !== 'plan' || ![pendingUse.fromSession, pendingUse.sessionId].includes(next.session?.id || '') || next.tab === 'plan' && next.session?.id !== pendingUse.sessionId)) pendingUse = null;
+    if (pendingUse && next.tab === 'plan' && next.session?.id === pendingUse.sessionId) pendingUse.navigated = true;
+    if (nextIdentity !== identity || next?.tab !== 'library') sessionChoice = null;
+    if (nextIdentity !== identity || next?.tab !== 'library') closeDiagram();
     if (nextIdentity !== identity) {
       epoch++; writing = loading = false; records = []; loaded = false; recovery = lastAttempt = null; identity = nextIdentity; context = next;
       disclosure.open = false; search.value = ''; focus.value = sourceFilter.value = 'all'; ageFilter.value = skillFilter.value = durationFilter.value = ''; scope.value = ''; historyLimit = 8; suggestionInputs = null; writeEditor(); notify(''); list.replaceChildren(); recommendationList.replaceChildren(); results.textContent = ''; scope.replaceChildren(); skillFilter.replaceChildren(...select('', [['', 'Every skill focus']]).options);
@@ -318,6 +389,7 @@
       if (standalone()) root.append(mount); else sessionAnchor.after(mount);
       editor.hidden = standalone() && !dirty();
       if (standalone()) results.before(editor); else body.append(editor);
+      if (standalone() && !editor.hidden) openDiagram();
       disclosure.open = standalone();
     }
     disclosure.querySelector('summary').hidden = standalone();

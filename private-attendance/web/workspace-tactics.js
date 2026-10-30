@@ -18,28 +18,53 @@
   let selectedItem = '', frameIndex = 0, undo = [], redo = [], pointer = null, running = false, animation = 0, elapsed = 0, started = 0, renderedPositions = null;
   let message = 'Choose a session, then open the tactics board.', messageError = false, playbackSpeed = 1, loopPlayback = false, titleEditing = false;
   let sourceSessionId = '', sourceDiagrams = [];
+  let libraryBinding = null, sessionDraft = null, libraryLocked = false, librarySaveBlocked = false;
+  let currentLoad = null;
+  let editMode = 'record', selectedIds = new Set(), zoom = 1, viewCenter = { x: 500, y: 325 };
+  const homeAnchor = document.createComment('session tactics editor'); mount.before(homeAnchor);
+  const selection = () => [...new Set([selectedItem, ...selectedIds])].filter(id => record.content.items.some(i => i.id === id));
+  function selectPiece(id, additive = false) { if (!additive) selectedIds.clear(); else if (selectedIds.has(id)) { selectedIds.delete(id); selectedItem = [...selectedIds].at(-1) || ''; return; } selectedItem = id; if (id) selectedIds.add(id); }
   const snapshot = () => JSON.stringify({ title: record.title, content: record.content });
   baseline = snapshot();
-  const dirty = () => !!identity && snapshot() !== baseline;
-  const active = () => !!context?.profile && !!context?.session && context.selected === context.session.id && context.tab === 'plan' && context.session.status !== 'Cancelled';
-  const editable = () => active() && loaded && !pending && !context.busy && !running;
+  const dirty = () => !libraryBinding && !!identity && snapshot() !== baseline;
+  const active = () => !!context?.profile && (libraryBinding ? context.tab === 'library' : !!context?.session && context.selected === context.session.id && context.tab === 'plan' && context.session.status !== 'Cancelled');
+  const editable = () => active() && loaded && !pending && !context.busy && !running && !libraryLocked;
   const currentFrame = () => record.content.frames[frameIndex];
-  const capture = () => ({ title: record.title, content: clone(record.content), frameIndex, selectedItem });
-  const apply = value => { record.title = value.title; record.content = clone(value.content); frameIndex = value.frameIndex; selectedItem = value.selectedItem; };
+  const capture = () => ({ title: record.title, content: clone(record.content), frameIndex, selectedItem, selectedIds: selection() });
+  const apply = value => { record.title = value.title; record.content = clone(value.content); frameIndex = value.frameIndex; selectedItem = value.selectedItem; selectedIds = new Set(value.selectedIds || []); };
   const remember = () => { undo.push(capture()); if (undo.length > 30) undo.shift(); redo = []; };
-  const notifyDraft = () => window.dispatchEvent(new Event('coach:tactics-dirty'));
+  const libraryDiagram = () => libraryBinding && (record.content.items.length || record.content.frames.length > 1 || record.content.frames.some(f => f.notes || f.title !== 'Starting positions') || record.content.pitch !== 'full') ? clone(record.content) : null;
+  const notifyDraft = () => { if (libraryBinding) { libraryBinding.onChange?.(libraryDiagram()); renderStatus(); } window.dispatchEvent(new Event('coach:tactics-dirty')); };
   function tell(text, error = false) { message = text; messageError = error; renderStatus(); }
   function request(operation, payload) { return new Promise((resolve, reject) => window.dispatchEvent(new CustomEvent('coach:tactics-request', { detail: { operation, payload, resolve, reject } }))); }
   function stopPlayback(reset = true) { running = false; cancelAnimationFrame(animation); animation = 0; if (reset) { elapsed = 0; renderedPositions = null; } renderPlayback(); }
   function mutate(fn, text) { if (!editable()) return; stopPlayback(); remember(); fn(); if (text) tell(text); render(); notifyDraft(); }
-  function clear(next = blank()) { stopPlayback(); record = clone(next); record.content = clone(next.content); frameIndex = 0; selectedItem = ''; undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; lastAttempt = null; recoveryNeeded = false; baseline = snapshot(); render(); notifyDraft(); }
-  function discard() { stopPlayback(); const saved = JSON.parse(baseline); record.title = saved.title; record.content = saved.content; frameIndex = 0; selectedItem = ''; undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; render(); notifyDraft(); }
+  function clear(next = blank()) { stopPlayback(); record = clone(next); record.content = clone(next.content); frameIndex = 0; selectedItem = ''; selectedIds.clear(); undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; lastAttempt = null; recoveryNeeded = false; baseline = snapshot(); render(); notifyDraft(); }
+  function discard() { stopPlayback(); const saved = JSON.parse(baseline); record.title = saved.title; record.content = saved.content; frameIndex = 0; selectedItem = ''; selectedIds.clear(); undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; render(); notifyDraft(); }
+  function openLibrary(binding) {
+    if (!binding?.host || pending) return false;
+    stopPlayback();
+    if (!libraryBinding) sessionDraft = { record: clone(record), baseline, frameIndex, selectedItem, selectedIds: selection(), undo: clone(undo), redo: clone(redo), loaded, loadAttempted, lastAttempt, recoveryNeeded, message, messageError, identity };
+    libraryBinding = binding; libraryLocked = librarySaveBlocked = false; binding.host.append(mount);
+    record = { ...blank(), title: binding.title || 'Drill diagram' }; if (binding.diagram) record.content = clone(binding.diagram);
+    baseline = snapshot(); frameIndex = 0; selectPiece(''); undo = []; redo = []; loaded = true; recoveryNeeded = false; lastAttempt = null;
+    zoom = 1; viewCenter = { x: 500, y: 325 }; tell('Diagram and phase notes save with this drill.'); render(); return true;
+  }
+  function closeLibrary() {
+    if (!libraryBinding) return;
+    stopPlayback(); pointer = null; libraryBinding = null; libraryLocked = librarySaveBlocked = false; homeAnchor.after(mount);
+    if (sessionDraft) { ({ record, baseline, frameIndex, selectedItem, undo, redo, loaded, loadAttempted, lastAttempt, recoveryNeeded, message, messageError } = sessionDraft); selectedIds = new Set(sessionDraft.selectedIds); }
+    sessionDraft = null; render();
+  }
   window.CoachTactics = Object.freeze({ isDirty: dirty, isBusy: () => pending, discard,
-    getDraft: () => active() && loaded && !pending && !running ? { sessionId: context.session.id, title: record.title, diagram: clone(record.content) } : null,
+    prepareSession: async sessionId => { if (libraryBinding || !active() || context.session.id !== sessionId) return false; if (pending && currentLoad) await currentLoad; if (!active() || context.session.id !== sessionId) return false; if (!loaded) await load(); return active() && context.session.id === sessionId && loaded && !pending; },
+    openLibrary, closeLibrary, libraryDiagram, setLibraryLocked: (value, saveBlocked = value) => { if (libraryBinding && (libraryLocked !== !!value || librarySaveBlocked !== !!saveBlocked)) { libraryLocked = !!value; librarySaveBlocked = !!saveBlocked; if (libraryLocked) stopPlayback(); render(); } },
+    setLibraryTitle: value => { if (libraryBinding) { record.title = String(value || 'Drill diagram').slice(0, 80); renderStatus(); } },
+    getDraft: () => !libraryBinding && active() && loaded && !pending && !running ? { sessionId: context.session.id, title: record.title, diagram: clone(record.content) } : null,
     preview: content => content?.frames?.[0] && Array.isArray(content.items) ? previewFrame(content.frames[0], content.items) : null,
     useDraft });
   function useDraft(value) {
-    if (!editable() || recoveryNeeded || value.sessionId !== context.session.id || value.diagram?.schemaVersion !== 1 || !Array.isArray(value.diagram.items) || !value.diagram.frames?.length) return false;
+    if (libraryBinding || !editable() || recoveryNeeded || value.sessionId !== context.session.id || value.diagram?.schemaVersion !== 1 || !Array.isArray(value.diagram.items) || !value.diagram.frames?.length) return false;
     if (dirty() && !confirm('Replace the current unsaved diagram with this drill’s diagram?')) return false;
     clear(); record.title = String(value.title || 'Drill diagram').slice(0, 80); record.content = clone(value.diagram); $('tactics-disclosure').open = true;
     render(); tell('Drill diagram copied to this session draft. Save setup to keep it.'); notifyDraft(); return true;
@@ -70,7 +95,7 @@
   const pitch = select('tactics-pitch', [['full', 'Full pitch'], ['half', 'Half pitch'], ['blank', 'Open training area']]);
   pitch.addEventListener('change', () => mutate(() => { record.content.pitch = pitch.value; }));
   heading.append(field('Setup name', title), field('Field', pitch));
-  const topActions = el('div', '', 'tactics-toolbar');
+  const topActions = el('div', '', 'tactics-toolbar tactics-main-toolbar');
   const addGroup = el('div', '', 'tactics-pieces'); addGroup.setAttribute('role', 'group'); addGroup.setAttribute('aria-label', 'Add a piece');
   function addPiece(kind, destination) {
     if (!kinds[kind] || !editable() || record.content.items.length >= 40) return;
@@ -79,7 +104,7 @@
       if (kind === 'zone') { item.label = 'Zone'; item.zone = { shape: 'rect', width: 25, height: 25, color: 'blue' }; }
       record.content.items.push(item); const offset = record.content.items.length % 6;
       for (const frame of record.content.frames) { frame.positions.push({ id: item.id, ...(destination || { x: 43 + offset * 3, y: 42 + offset * 3 }) }); if (kind === 'zone') constrainZone(frame, item); }
-      selectedItem = item.id;
+      selectPiece(item.id);
     }, kinds[kind] + ' added. Drag it, tap its destination, or use the position controls.');
   }
   for (const [kind, label] of Object.entries(kinds)) {
@@ -90,16 +115,22 @@
     add.dataset.pieceKind = kind; addGroup.append(add);
   }
   topActions.append(addGroup);
+  const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
+  for (const [mode, text] of [['place', 'Place pieces'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
+  const selectionCount = el('p', '', 'tactics-selection-count'); selectionCount.id = 'tactics-selection-count';
+  const multiSelect = input('tactics-multiselect', 'checkbox'), multiLabel = field('Select multiple', multiSelect); multiLabel.className = 'tactics-check';
+  multiSelect.addEventListener('change', () => tell(multiSelect.checked ? 'Tap pieces to add them to the selection. Drag a selected piece to move the group.' : 'Click a piece to select it. Shift-click adds or removes pieces.'));
+  editModes.append(multiLabel); topActions.append(editModes, selectionCount);
   const boardLayout = el('div', '', 'tactics-board-layout');
   const canvasWrap = el('div', '', 'tactics-canvas-wrap');
-  const board = svg('svg', { id: 'tactics-pitch-board', viewBox: '-120 -100 1240 870', role: 'group', 'aria-label': 'Tactics field. Select a piece and drag, tap a destination, or use arrow keys.', tabindex: '0' });
+  const board = svg('svg', { id: 'tactics-pitch-board', viewBox: '-60 -60 1120 770', role: 'group', 'aria-label': 'Tactics field. Shift-click to select a group. Drag pieces or route handles; use arrow keys to move.', tabindex: '0' });
   canvasWrap.append(board);
   const pathCaption = el('p', '', 'tactics-path-caption'); pathCaption.id = 'tactics-path-caption';
   const emptyHint = el('div', 'Add a player or try the passing triangle to begin.', 'tactics-empty-hint'); emptyHint.id = 'tactics-empty-hint'; canvasWrap.append(emptyHint);
   const help = el('p', 'Place the starting pieces, add a next phase, then drag players and balls along their route. The full drag is recorded, including curves. Paths show movement into the selected phase; during playback they show the next movement. Dashed: player. Solid: ball. Equipment and zones have no paths. Drag an attached ball to release it. Arrows: move · Shift: farther · Ctrl/⌘ Z: undo · Delete: remove from all steps · Escape: deselect.', 'tactics-board-help');
   const side = el('div', '', 'tactics-piece-panel');
   const itemSelect = select('tactics-item', [['', 'Choose a piece']]);
-  itemSelect.addEventListener('change', () => { if (!editable()) return; selectedItem = itemSelect.value; stopPlayback(); render(); });
+  itemSelect.addEventListener('change', () => { if (!editable()) return; selectPiece(itemSelect.value); stopPlayback(); render(); });
   const labelInput = input('tactics-label'); labelInput.maxLength = 12;
   let labelEditing = false;
   labelInput.addEventListener('input', () => { if (!editable()) return; const item = record.content.items.find(i => i.id === selectedItem); if (!item) return; if (!labelEditing) { remember(); labelEditing = true; } item.label = labelInput.value.trim(); draw(); editedText(); });
@@ -119,7 +150,7 @@
   bend.addEventListener('change', () => mutate(() => { const transition = shownTransition(); if (!transition) return; const p = transition.from.positions.find(p => p.id === selectedItem), q = transition.to.positions.find(p => p.id === selectedItem); if (!p || !q) return; delete q.trail; const value = Number(bend.value); if (value) p.curve = value; else delete p.curve; }, 'Recorded route replaced with a simple bend. Undo restores it.'));
   const bendField = field('Simple bend · replaces dragged route', bend); bendField.append(bendValue);
   const straighten = button('Straighten path', 'tactics-straighten', () => mutate(() => { const transition = shownTransition(); if (!transition) return; delete transition.from.positions.find(p => p.id === selectedItem).curve; delete transition.to.positions.find(p => p.id === selectedItem).trail; }, 'Path straightened. Undo restores the recorded route.'));
-  const redrawRoute = button('Redraw route', 'tactics-redraw-route', () => mutate(() => { const transition = shownTransition(); if (!transition || !selectedItem) return; const start = positionIn(transition.from, selectedItem); delete transition.from.positions.find(p => p.id === selectedItem).curve; delete transition.to.positions.find(p => p.id === selectedItem).trail; frameIndex = transition.index + 1; placePiece(currentFrame(), selectedItem, { x: start.x, y: start.y }); }, 'Back at the start of this movement. Drag the piece along its new route.'));
+  const redrawRoute = button('Redraw route', 'tactics-redraw-route', () => mutate(() => { const transition = shownTransition(); if (!transition || !selectedItem) return; const start = positionIn(transition.from, selectedItem); delete transition.from.positions.find(p => p.id === selectedItem).curve; delete transition.to.positions.find(p => p.id === selectedItem).trail; frameIndex = transition.index + 1; editMode = 'record'; placePiece(currentFrame(), selectedItem, { x: start.x, y: start.y }); }, 'Back at the start of this movement. Drag the piece along its new route.'));
   redrawRoute.title = 'Start this movement again from the previous phase';
   const routeActions = el('div', '', 'tactics-route-actions'); routeActions.append(redrawRoute, straighten);
   const zoneControls = el('div', '', 'tactics-zone-controls');
@@ -129,8 +160,12 @@
   for (const control of [zoneWidth, zoneHeight]) { control.min = '5'; control.max = '90'; control.step = '1'; }
   for (const [control, key] of [[zoneShape, 'shape'], [zoneColor, 'color'], [zoneWidth, 'width'], [zoneHeight, 'height']]) control.addEventListener('change', () => mutate(() => { const item = record.content.items.find(i => i.id === selectedItem); if (!item?.zone) return; item.zone[key] = ['width', 'height'].includes(key) ? Number(control.value) : control.value; for (const f of record.content.frames) constrainZone(f, item); }, 'Zone updated in every phase.'));
   zoneControls.append(field('Zone shape', zoneShape), field('Zone colour', zoneColor), field('Zone width', zoneWidth), field('Zone height', zoneHeight), el('p', 'Drag the zone to move it. Shape and size apply to every phase.', 'small'));
-  side.append(el('p', 'Select a piece on the field or use the list below. Drag to move; Escape clears selection.', 'tactics-selection-hint'), field('Selected piece', itemSelect), field('Short label', labelInput), carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const id = selectedItem; for (const f of record.content.frames) { for (const p of f.positions) if (p.attachedTo === id) detachBall(f, p); f.positions = f.positions.filter(p => p.id !== id); } record.content.items = record.content.items.filter(i => i.id !== id); selectedItem = ''; }, 'Piece removed from every step. Undo restores it.')), pathLabel);
+  side.append(el('p', 'Select a piece on the field or use the list below. Drag to move; Escape clears selection.', 'tactics-selection-hint'), field('Selected piece', itemSelect), field('Short label', labelInput), carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')), pathLabel);
   side.insertBefore(zoneControls, nudge); side.insertBefore(routeActions, nudge);
+  const advanced = el('details', '', 'tactics-advanced'); advanced.append(el('summary', 'Advanced positioning'), nudge, coordinate, bendField); side.append(advanced);
+  const rotation = input('tactics-rotation', 'number'); rotation.min = '0'; rotation.max = '360'; rotation.step = 'any';
+  rotation.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem), value = Number(rotation.value); if (p && Number.isFinite(value) && value >= 0 && value < 360) p.rotation = value; }, 'Goal direction updated for this phase.'));
+  const rotationField = field('Goal direction (degrees)', rotation); side.append(rotationField);
   canvasWrap.append(pathCaption); boardLayout.append(canvasWrap, side);
   const phases = el('section', '', 'tactics-phases'); phases.setAttribute('aria-label', 'Movement phases');
   const phaseHeading = el('div', '', 'tactics-phase-heading'); phaseHeading.append(el('h3', 'Movement sequence'), el('span', '', 'small')); phaseHeading.lastChild.id = 'tactics-sequence-summary';
@@ -142,12 +177,12 @@
   const phaseNotes = el('textarea'); phaseNotes.id = 'tactics-phase-notes'; phaseNotes.rows = 3; phaseNotes.maxLength = 1000; phaseNotes.placeholder = 'Coaching cues, instructions, or what happens in this step…'; let notesEditing = false;
   phaseNotes.addEventListener('input', () => { if (!editable()) return; if (!notesEditing) { remember(); notesEditing = true; } if (phaseNotes.value) currentFrame().notes = phaseNotes.value; else delete currentFrame().notes; editedText(); });
   phaseNotes.addEventListener('blur', () => { notesEditing = false; });
-  const duration = input('tactics-duration', 'number'); duration.min = '.5'; duration.max = '20'; duration.step = '.5'; duration.inputMode = 'decimal';
+  const duration = input('tactics-duration', 'number'); duration.min = '.5'; duration.max = '20'; duration.step = 'any'; duration.inputMode = 'decimal';
   duration.addEventListener('change', () => { if (!editable()) return; const value = Number(duration.value); if (!Number.isFinite(value) || value < .5 || value > 20) { duration.value = String(currentFrame().duration); return tell('Choose a movement time between 0.5 and 20 seconds.', true); } if (value !== currentFrame().duration) { remember(); currentFrame().duration = value; scrub.max = String(totalSeconds()); $('tactics-sequence-summary').textContent = record.content.frames.length + ' / 12 steps · ' + totalSeconds() + 's · ' + record.content.items.length + ' / 40 pieces'; editedText(); } });
   const durationField = field('Seconds to next step', duration);
   frameSettings.append(field('Step name', frameTitle), durationField);
   const phaseActions = el('div', '', 'tactics-toolbar');
-  phaseActions.append(button('+ Next phase', 'tactics-add-frame', () => mutate(() => { if (record.content.frames.length >= 12) return tell('Use up to 12 phases in one setup.', true); const next = clone(currentFrame()); next.id = uid('phase_'); next.title = 'Phase ' + (record.content.frames.length + 1); for (const p of next.positions) delete p.trail; record.content.frames.splice(frameIndex + 1, 0, next); frameIndex++; }, 'Phase copied. Drag players and balls along the route you want to record.')), button('Remove phase', 'tactics-remove-frame', () => mutate(() => { if (record.content.frames.length <= 1) return; record.content.frames.splice(frameIndex, 1); frameIndex = Math.min(frameIndex, record.content.frames.length - 1); }, 'Phase removed.')));
+  phaseActions.append(button('+ Next phase', 'tactics-add-frame', () => mutate(() => { if (record.content.frames.length >= 12) return tell('Use up to 12 phases in one setup.', true); const next = clone(currentFrame()); next.id = uid('phase_'); next.title = 'Phase ' + (record.content.frames.length + 1); for (const p of next.positions) delete p.trail; record.content.frames.splice(frameIndex + 1, 0, next); frameIndex++; editMode = 'record'; }, 'Phase copied. Drag players and balls along the route you want to record.')), button('Remove phase', 'tactics-remove-frame', () => mutate(() => { if (record.content.frames.length <= 1) return; record.content.frames.splice(frameIndex, 1); frameIndex = Math.min(frameIndex, record.content.frames.length - 1); }, 'Phase removed.')));
   const playback = el('div', '', 'tactics-playback');
   playback.append(button('Play movement', 'tactics-play', togglePlayback, true), button('Back to start', 'tactics-reset', () => { if (!active() || pending) return; stopPlayback(); frameIndex = 0; render(); }), el('span', '', 'small'));
   playback.lastChild.id = 'tactics-playback-status'; playback.lastChild.setAttribute('aria-live', 'off');
@@ -179,12 +214,27 @@
     button('Save draft as new setup', 'tactics-save-copy', () => { if (!editable() || recoveryNeeded) return; const draft = clone(record); clear(); record.title = (draft.title.slice(0, 73) + ' (copy)').slice(0, 80); record.content = draft.content; render(); tell('New unsaved copy. Save setup to keep it.'); notifyDraft(); }), intro);
   // Preserve existing controls and IDs while bringing the board and main actions forward.
   extras.append(help);
-  editor.append(topActions, boardLayout, phases, extras, recoveryActions);
+  const fieldColumn = el('div', '', 'tactics-field-column'), inspector = el('aside', '', 'tactics-inspector'), phaseEditor = el('section', '', 'tactics-phase-editor');
+  phaseEditor.append(el('h3', 'Selected phase'), frameSettings, phaseNotes.parentElement, phaseActions);
+  fieldColumn.append(canvasWrap, phases); inspector.append(phaseEditor, side); boardLayout.replaceChildren(fieldColumn, inspector);
+  const viewControls = el('div', '', 'tactics-view-controls'); viewControls.setAttribute('aria-label', 'Field view');
+  function setView(factor = zoom, dx = 0, dy = 0) { zoom = Math.max(1, Math.min(2.5, factor)); viewCenter = zoom === 1 ? { x: 500, y: 325 } : { x: Math.max(0, Math.min(1000, viewCenter.x + dx)), y: Math.max(0, Math.min(650, viewCenter.y + dy)) }; draw(); }
+  viewControls.append(button('−', 'tactics-zoom-out', () => setView(zoom - .25)), button('Fit field', 'tactics-zoom-fit', () => setView(1)), button('+', 'tactics-zoom-in', () => setView(zoom + .25)));
+  for (const [name, text, dx, dy] of [['left', '←', -100, 0], ['up', '↑', 0, -80], ['down', '↓', 0, 80], ['right', '→', 100, 0]]) { const b = button(text, 'tactics-pan-' + name, () => setView(zoom, dx, dy)); b.setAttribute('aria-label', 'Pan field ' + name); viewControls.append(b); }
+  viewControls.children[0].setAttribute('aria-label', 'Zoom out'); viewControls.children[2].setAttribute('aria-label', 'Zoom in');
+  pathCaption.before(viewControls);
+  editor.append(topActions, boardLayout, extras, recoveryActions);
   mount.append(workbar, editor, library, reuse);
   function editedText() { $('tactics-undo').disabled = !undo.length; $('tactics-redo').disabled = !redo.length; $('tactics-save').disabled = recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id); renderStatus(); notifyDraft(); }
   function duplicatePiece() {
-    if (!selectedItem || record.content.items.length >= 40) return;
-    mutate(() => { const original = record.content.items.find(i => i.id === selectedItem), copy = { ...clone(original), id: uid('piece_') }; record.content.items.push(copy); for (const f of record.content.frames) { const p = f.positions.find(v => v.id === original.id), at = positionIn(f, original.id), next = { ...p, id: copy.id, x: clamp(at.x + 5), y: clamp(at.y + 5) }; delete next.attachedTo; if (next.trail) next.trail = next.trail.map(p => ({ x: clamp(p.x + 5), y: clamp(p.y + 5) })); f.positions.push(next); if (copy.zone) constrainZone(f, copy); } selectedItem = copy.id; }, 'Piece copied into every step. A copied ball starts free.');
+    const ids = selection(); if (!ids.length || record.content.items.length + ids.length > 40) return;
+    mutate(() => {
+      const copies = new Map(ids.map(id => [id, uid('piece_')]));
+      for (const id of ids) { const original = record.content.items.find(i => i.id === id), copy = { ...clone(original), id: copies.get(id) }; record.content.items.push(copy);
+        for (const f of record.content.frames) { const p = f.positions.find(v => v.id === id), at = positionIn(f, id), next = { ...clone(p), id: copy.id, x: clamp(at.x + 5), y: clamp(at.y + 5) }; if (copies.has(p.attachedTo)) next.attachedTo = copies.get(p.attachedTo); else delete next.attachedTo; if (next.trail) next.trail = next.trail.map(p => ({ x: clamp(p.x + 5), y: clamp(p.y + 5) })); f.positions.push(next); if (copy.zone) constrainZone(f, copy); }
+      }
+      selectedIds = new Set(copies.values()); selectedItem = [...selectedIds].at(-1);
+    }, 'Selection copied into every phase. Possession within the copied group is preserved.');
   }
   function reorderStep(direction) {
     const next = frameIndex + direction; if (next < 0 || next >= record.content.frames.length) return;
@@ -220,11 +270,11 @@
     return split ? [...simplifyRoute(points.slice(0, split + 1), tolerance).slice(0, -1), ...simplifyRoute(points.slice(split), tolerance)] : [a, b];
   }
   function boundedRoute(points, limit = 34) { let reduced = simplifyRoute(points), tolerance = .35; while (reduced.length > limit) { tolerance *= 1.5; reduced = simplifyRoute(points, tolerance); } return reduced; }
-  function saveDraggedRoute(points) {
+  function saveDraggedRoute(points, id = selectedItem) {
     const reduced = boundedRoute(points);
-    const p = currentFrame().positions.find(p => p.id === selectedItem); if (!p) return;
+    const p = currentFrame().positions.find(p => p.id === id); if (!p) return;
     if (reduced.length > 2) p.trail = reduced.slice(1, -1).map(p => ({ x: p.x, y: p.y })); else delete p.trail;
-    if (frameIndex) delete record.content.frames[frameIndex - 1].positions.find(p => p.id === selectedItem).curve;
+    if (frameIndex) delete record.content.frames[frameIndex - 1].positions.find(p => p.id === id).curve;
   }
   // Paths and playback use one route, including captured drags and legacy bends.
   function curveControl(start, end, bend = 0) {
@@ -265,7 +315,7 @@
   function zoneArtwork(item, p, preview = false) {
     const width = item.zone.width * 10, height = item.zone.height * 6.5, color = { blue: '#426f9b', gold: '#956b20', green: '#397561' }[item.zone.color];
     const group = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ')', 'data-zone': item.id });
-    if (!preview) { group.dataset.tacticsItem = item.id; group.setAttribute('role', 'button'); group.setAttribute('tabindex', editable() ? '0' : '-1'); group.setAttribute('aria-label', 'Zone ' + item.label); group.setAttribute('aria-pressed', String(selectedItem === item.id)); }
+    if (!preview) { group.dataset.tacticsItem = item.id; group.setAttribute('role', 'button'); group.setAttribute('tabindex', editable() ? '0' : '-1'); group.setAttribute('aria-label', 'Zone ' + item.label); group.setAttribute('aria-pressed', String(selection().includes(item.id))); }
     const attrs = { fill: color, 'fill-opacity': .13, stroke: color, 'stroke-width': selectedItem === item.id && !preview ? 3 : 2, 'stroke-dasharray': '7 5', 'vector-effect': 'non-scaling-stroke' };
     group.append(item.zone.shape === 'ellipse' ? svg('ellipse', { rx: width / 2, ry: height / 2, ...attrs }) : svg('rect', { x: -width / 2, y: -height / 2, width, height, rx: 5, ...attrs }));
     if (item.label && !preview) { const font = Math.max(15, 11 / Math.max(.01, board.getScreenCTM()?.a || 1)); group.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-family': 'Arial,sans-serif', 'font-size': font, 'font-weight': 700, fill: color, 'pointer-events': 'none' }, item.label)); }
@@ -281,13 +331,14 @@
   function previewFrame(frame, items = record.content.items) {
     const thumbnail = svg('svg', { viewBox: '0 0 1000 650', 'aria-hidden': 'true' });
     thumbnail.append(svg('rect', { width: 1000, height: 650, fill: '#e3ebdc' }), svg('rect', { x: 25, y: 25, width: 950, height: 600, fill: 'none', stroke: '#8ea58b', 'stroke-width': 8 }));
-    for (const item of [...items].sort((a, b) => (b.kind === 'zone') - (a.kind === 'zone'))) { const p = positionIn(frame, item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1.6)' }); symbol.append(pieceArtwork(item.kind)); thumbnail.append(symbol); } }
+    for (const item of [...items].sort((a, b) => (b.kind === 'zone') - (a.kind === 'zone'))) { const p = positionIn(frame, item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1.6)' }); const graphic = pieceArtwork(item.kind); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (frame.positions.find(v => v.id === item.id).rotation || 0) + ')'); symbol.append(graphic); thumbnail.append(symbol); } }
     return thumbnail;
   }
   function exportBoard() {
     const copy = board.cloneNode(true); copy.setAttribute('xmlns', ns); copy.setAttribute('width', '1600'); copy.setAttribute('height', '1040');
     copy.removeAttribute('id'); copy.removeAttribute('tabindex'); copy.removeAttribute('style');
-    for (const n of copy.querySelectorAll('.tactics-hit')) n.remove();
+    copy.setAttribute('viewBox', '-60 -60 1120 770');
+    for (const n of copy.querySelectorAll('.tactics-hit,[data-route-handle]')) n.remove();
     copy.prepend(svg('desc', {}, currentFrame().title + (currentFrame().notes ? '\n' + currentFrame().notes : ''))); return copy;
   }
   function exportImage() {
@@ -342,13 +393,19 @@
   }
 
   function renderStatus() {
-    status.textContent = (dirty() ? 'Unsaved changes · ' : '') + message;
+    status.textContent = ((libraryBinding ? window.CoachLibrary?.isDirty() : dirty()) ? 'Unsaved changes · ' : '') + message;
     status.classList.toggle('tactics-error', messageError);
   }
   function render() {
     if (!context?.profile) { mount.replaceChildren(); return; }
     if (!mount.childElementCount) mount.append(workbar, editor, library, reuse);
     title.value = record.title; pitch.value = record.content.pitch;
+    workbar.firstElementChild.hidden = !!libraryBinding;
+    library.hidden = reuse.hidden = recoveryActions.hidden = !!libraryBinding;
+    $('tactics-archive').hidden = $('tactics-save-copy').hidden = !!libraryBinding;
+    $('tactics-save').textContent = libraryBinding ? 'Save drill' : 'Save setup';
+    for (const mode of ['place', 'record']) $('tactics-mode-' + mode).setAttribute('aria-pressed', String(editMode === mode));
+    selectionCount.textContent = selection().length > 1 ? selection().length + ' selected · drag or duplicate together' : 'Shift-click pieces to select a group';
     librarySelect.replaceChildren(); const unsaved = el('option', 'New unsaved setup'); unsaved.value = ''; librarySelect.append(unsaved);
     for (const d of diagrams) { const option = el('option', d.title); option.value = d.id; librarySelect.append(option); }
     librarySelect.value = record.id || '';
@@ -358,6 +415,7 @@
     itemSelect.value = selectedItem; labelInput.value = record.content.items.find(i => i.id === selectedItem)?.label || '';
     const position = currentFrame().positions.find(p => p.id === selectedItem); coordinate.textContent = position ? 'Position: ' + Math.round(position.x) + '% across · ' + Math.round(position.y) + '% down' : 'Select a piece to position or label it.';
     const selectedKind = record.content.items.find(i => i.id === selectedItem)?.kind;
+    rotationField.hidden = selectedKind !== 'goal'; rotation.value = String(position?.rotation || 0);
     carrier.replaceChildren(); const free = el('option', 'Free ball'); free.value = ''; carrier.append(free);
     for (const player of record.content.items.filter(i => ['home', 'away'].includes(i.kind))) { const option = el('option', kinds[player.kind] + ' ' + player.label); option.value = player.id; carrier.append(option); }
     carrier.value = position?.attachedTo || ''; carrierField.hidden = selectedKind !== 'ball'; detach.hidden = !position?.attachedTo;
@@ -384,13 +442,15 @@
     pathToggle.disabled = !active() || !loaded;
     labelInput.disabled = disabled || !selectedItem;
     for (const control of side.querySelectorAll('button')) control.disabled = disabled || !selectedItem;
-    $('tactics-duplicate-item').disabled = disabled || !selectedItem || record.content.items.length >= 40;
+    $('tactics-duplicate-item').disabled = disabled || !selectedItem || record.content.items.length + selection().length > 40;
+    $('tactics-duplicate-item').textContent = selection().length > 1 ? 'Duplicate selection' : 'Duplicate piece';
     $('tactics-step-earlier').disabled = disabled || frameIndex === 0;
     $('tactics-step-later').disabled = disabled || frameIndex === record.content.frames.length - 1;
     $('tactics-save-copy').disabled = disabled || recoveryNeeded;
     $('tactics-remove-frame').disabled = disabled || record.content.frames.length <= 1;
     $('tactics-add-frame').disabled = disabled || record.content.frames.length >= 12;
     $('tactics-save').disabled = disabled || recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id);
+    if (libraryBinding) $('tactics-save').disabled = librarySaveBlocked || !active() || running;
     $('tactics-archive').disabled = disabled || !record.id;
     reopen.hidden = !record.id; reopen.disabled = disabled || !record.id || !diagrams.some(d => d.id === record.id);
     $('tactics-undo').disabled = disabled || !undo.length; $('tactics-redo').disabled = disabled || !redo.length;
@@ -401,6 +461,7 @@
     renderStatus(); draw(); renderPlayback();
   }
   function draw() {
+    board.setAttribute('viewBox', [viewCenter.x - 560 / zoom, viewCenter.y - 385 / zoom, 1120 / zoom, 770 / zoom].join(' '));
     board.replaceChildren();
     board.append(svg('rect', { width: 1000, height: 650, fill: '#eef2e8' }));
     for (let i = 0; i < 10; i += 2) board.append(svg('rect', { x: i * 100, width: 100, height: 650, fill: '#e3ebdc' }));
@@ -413,7 +474,7 @@
     board.append(lines);
     for (const item of record.content.items.filter(i => i.kind === 'zone')) { const p = renderedPositions?.find(p => p.id === item.id) || positionIn(currentFrame(), item.id); board.append(zoneArtwork(item, p)); }
     const defs = svg('defs');
-    for (const [kind, color] of [['player', '#355d79'], ['ball', '#94621d']]) { const marker = svg('marker', { id: 'tactics-arrow-' + kind, viewBox: '0 0 10 10', refX: 24, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto' }); marker.append(svg('path', { d: 'M0 0 L10 5 L0 10z', fill: color })); defs.append(marker); }
+    for (const [kind, color] of [['home', '#355d79'], ['away', '#92651c'], ['ball', '#303b42']]) { const marker = svg('marker', { id: 'tactics-arrow-' + kind, viewBox: '0 0 10 10', refX: 24, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto' }); marker.append(svg('path', { d: 'M0 0 L10 5 L0 10z', fill: color })); defs.append(marker); }
     board.append(defs);
     const transition = shownTransition();
     pathCaption.textContent = transition ? 'Movement: ' + transition.from.title + ' → ' + transition.to.title + ' · Dashed: player · Solid: ball' : 'Starting positions · Add a next phase, then drag players and balls to record their route.';
@@ -423,24 +484,26 @@
         if (!['home', 'away', 'ball'].includes(item.kind)) continue;
         const points = routePoints(from, to, item.id), length = points.slice(1).reduce((sum, p, i) => sum + routeDistance(points[i], p), 0); if (length < .3) continue;
         const scale = Math.max(.01, board.getScreenCTM()?.a || 1);
-        board.append(svg('path', { d: points.map((p, i) => (i ? 'L ' : 'M ') + p.x * 10 + ' ' + p.y * 6.5).join(' '), 'data-tactics-path': item.id, fill: 'none', stroke: item.kind === 'ball' ? '#94621d' : '#355d79', 'stroke-width': 2.5 / scale, 'stroke-dasharray': item.kind === 'ball' ? 'none' : (7 / scale) + ' ' + (5 / scale), 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'marker-end': length * 10 * scale > 35 ? 'url(#tactics-arrow-' + (item.kind === 'ball' ? 'ball' : 'player') + ')' : 'none', 'pointer-events': 'none' }));
+        board.append(svg('path', { d: points.map((p, i) => (i ? 'L ' : 'M ') + p.x * 10 + ' ' + p.y * 6.5).join(' '), 'data-tactics-path': item.id, fill: 'none', stroke: { home: '#355d79', away: '#92651c', ball: '#303b42' }[item.kind], opacity: selectedItem && !selection().includes(item.id) ? .28 : 1, 'stroke-width': 2.5 / scale, 'stroke-dasharray': item.kind === 'ball' ? 'none' : (7 / scale) + ' ' + (5 / scale), 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'marker-end': length * 10 * scale > 35 ? 'url(#tactics-arrow-' + item.kind + ')' : 'none', 'pointer-events': 'none' }));
       }
     }
+    drawRouteHandles(transition);
     const positions = renderedPositions || currentFrame().positions;
     for (const item of record.content.items) {
       if (item.kind === 'zone') continue;
       const p = renderedPositions ? positions.find(point => point.id === item.id) : positionIn(currentFrame(), item.id); if (!p) continue;
-      const piece = svg('g', { transform: 'translate(' + (p.x * 10) + ' ' + (p.y * 6.5) + ')', 'data-tactics-item': item.id, role: 'button', tabindex: editable() ? '0' : '-1', 'aria-label': kinds[item.kind] + (item.label ? ' ' + item.label : '') + ', position ' + Math.round(p.x) + ', ' + Math.round(p.y), 'aria-pressed': String(item.id === selectedItem), 'aria-disabled': String(!editable()) });
+      const piece = svg('g', { transform: 'translate(' + (p.x * 10) + ' ' + (p.y * 6.5) + ')', 'data-tactics-item': item.id, role: 'button', tabindex: editable() ? '0' : '-1', 'aria-label': kinds[item.kind] + (item.label ? ' ' + item.label : '') + ', position ' + Math.round(p.x) + ', ' + Math.round(p.y), 'aria-pressed': String(selection().includes(item.id)), 'aria-disabled': String(!editable()) });
       const screenScale = Math.max(.01, board.getScreenCTM()?.a || 1), artScale = Math.max(1, .85 / screenScale);
       const art = svg('g', { class: 'tactics-piece-art', transform: 'scale(' + artScale + ')' });
       const hitRadius = Math.max(26, 22 / screenScale / artScale);
       piece.append(art); art.append(svg('circle', { r: hitRadius, fill: 'transparent', class: 'tactics-hit' }));
-      if (item.id === selectedItem) art.append(svg('circle', { r: 28, fill: 'none', stroke: '#152d42', 'stroke-width': 3, 'stroke-dasharray': '4 3', 'pointer-events': 'none' }));
-      art.append(pieceArtwork(item.kind));
+      if (selection().includes(item.id)) art.append(svg('circle', { r: 28, fill: 'none', stroke: '#152d42', 'stroke-width': 3, 'stroke-dasharray': '4 3', 'pointer-events': 'none' }));
+      const graphic = pieceArtwork(item.kind); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (currentFrame().positions.find(v => v.id === item.id).rotation || 0) + ')'); art.append(graphic);
+      if (['home', 'away'].includes(item.kind) && currentFrame().positions.some(v => v.attachedTo === item.id)) art.append(svg('circle', { cx: 22, cy: -23, r: 7, fill: '#fffdf7', stroke: '#203742', 'stroke-width': 2, 'data-possession': item.id }));
       if (item.label) {
         const inside = ['home', 'away'].includes(item.kind) && item.label.length <= 3, width = Math.max(34, item.label.length * 8 + 12);
-        const labelX = inside ? 0 : Math.max((-116 - p.x * 10) / artScale + width / 2, Math.min(0, (1116 - p.x * 10) / artScale - width / 2));
-        const labelY = p.y * 6.5 + 47 * artScale > 766 ? -47 : 27;
+        const labelX = inside ? 0 : Math.max((-56 - p.x * 10) / artScale + width / 2, Math.min(0, (1056 - p.x * 10) / artScale - width / 2));
+        const labelY = p.y * 6.5 + 47 * artScale > 706 ? -47 : 27;
         if (!inside) art.append(svg('rect', { x: labelX - width / 2, y: labelY, width, height: 20, rx: 5, fill: '#f6f4ec', 'pointer-events': 'none' }));
         art.append(svg('text', { x: labelX, y: inside ? 5 : labelY + 14, 'text-anchor': 'middle', 'font-family': 'Arial,sans-serif', 'font-size': inside ? 16 : 12, 'font-weight': 700, fill: inside && item.kind === 'home' ? '#fff' : '#173044', 'pointer-events': 'none' }, item.label));
       }
@@ -448,36 +511,100 @@
     }
   }
   const clamp = v => Math.max(4, Math.min(96, Math.round(v * 10) / 10));
-  function moveSelected(dx, dy) { mutate(() => { if (!selectedItem) return; const p = positionIn(currentFrame(), selectedItem); placePiece(currentFrame(), selectedItem, { x: clamp(p.x + dx), y: clamp(p.y + dy) }); }); }
+  function moveSelected(dx, dy) { mutate(() => { const ids = selection(), before = capture(); if (editMode === 'place') shiftLayout(ids, dx, dy, before); else for (const id of ids) { const p = positionIn(currentFrame(), id); if (currentFrame().positions.find(p => p.id === id).attachedTo && ids.includes(currentFrame().positions.find(p => p.id === id).attachedTo)) continue; placePiece(currentFrame(), id, { x: clamp(p.x + dx), y: clamp(p.y + dy) }); } }); }
   function point(event) { const p = board.createSVGPoint(); p.x = event.clientX; p.y = event.clientY; const matrix = board.getScreenCTM(); if (!matrix) return null; const next = p.matrixTransform(matrix.inverse()); return { x: clamp(next.x / 10), y: clamp(next.y / 6.5) }; }
   board.addEventListener('dragover', event => { if (editable() && event.dataTransfer.types.includes('application/x-coach-piece')) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } });
   board.addEventListener('drop', event => { if (!editable()) return; const kind = event.dataTransfer.getData('application/x-coach-piece'), destination = point(event); if (!kinds[kind] || !destination) return; event.preventDefault(); addPiece(kind, destination); });
+  function routeHandles(transition) {
+    const item = record.content.items.find(i => i.id === selectedItem);
+    if (!transition || !item || !['home', 'away', 'ball'].includes(item.kind)) return [];
+    const p = transition.from.positions.find(p => p.id === item.id), q = transition.to.positions.find(p => p.id === item.id);
+    if (p.attachedTo && p.attachedTo === q.attachedTo) return [];
+    if (q.trail?.length) return q.trail.map(p => ({ ...p }));
+    const points = routePoints(transition.from, transition.to, selectedItem);
+    if (routeDistance(points[0], points.at(-1)) < .3) return [];
+    return points.length === 2 ? [{ x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 }] : points.filter((p, i) => i > 0 && i < points.length - 1 && i % 4 === 0);
+  }
+  function drawRouteHandles(transition) {
+    if (!editable() || !pathToggle.checked || editMode !== 'record') return;
+    const radius = 6 / Math.max(.01, board.getScreenCTM()?.a || 1);
+    routeHandles(transition).forEach((p, index) => board.append(svg('circle', { cx: p.x * 10, cy: p.y * 6.5, r: radius, fill: '#fffdf7', stroke: '#253b4b', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', 'data-route-handle': index, tabindex: 0, role: 'button', 'aria-label': 'Route point ' + (index + 1) + '. Drag or use arrow keys to bend movement.' })));
+  }
+  function updateRouteHandle(index, destination, handles = routeHandles(shownTransition())) {
+    const transition = shownTransition(); if (!transition || !handles[index]) return;
+    handles[index] = destination; transition.to.positions.find(p => p.id === selectedItem).trail = handles;
+    delete transition.from.positions.find(p => p.id === selectedItem).curve;
+  }
+  function shiftLayout(ids, dx, dy, before) {
+    for (let index = 0; index < record.content.frames.length; index++) {
+      const frame = record.content.frames[index], source = before.content.frames[index];
+      for (const id of ids) {
+        const original = source.positions.find(p => p.id === id), p = frame.positions.find(p => p.id === id);
+        if (original.attachedTo && ids.includes(original.attachedTo)) continue;
+        const at = positionIn(source, id); placePiece(frame, id, { x: clamp(at.x + dx), y: clamp(at.y + dy) });
+        if (original.trail) p.trail = original.trail.map(v => ({ x: clamp(v.x + dx), y: clamp(v.y + dy) }));
+      }
+    }
+  }
   board.addEventListener('pointerdown', event => {
     if (!editable() || event.button !== 0) return;
+    const handle = event.target.closest('[data-route-handle]');
+    if (handle) { pointer = { id: event.pointerId, before: capture(), moved: false, handle: Number(handle.dataset.routeHandle), handles: routeHandles(shownTransition()) }; board.setPointerCapture(event.pointerId); event.preventDefault(); return; }
     const target = event.target.closest('[data-tactics-item]');
-    if (target) { selectedItem = target.dataset.tacticsItem; stopPlayback(); const item = record.content.items.find(i => i.id === selectedItem); pointer = { id: event.pointerId, before: capture(), moved: false, points: frameIndex > 0 && ['home', 'away', 'ball'].includes(item.kind) ? [...routePoints(record.content.frames[frameIndex - 1], currentFrame(), selectedItem)].map(p => ({ x: p.x, y: p.y })) : null }; board.setPointerCapture(event.pointerId); event.preventDefault(); render(); }
-    else if (selectedItem) { const destination = point(event); if (destination) mutate(() => placePiece(currentFrame(), selectedItem, destination)); }
+    if (target) {
+      const id = target.dataset.tacticsItem;
+      if (event.shiftKey) { selectPiece(id, true); render(); return; }
+      if (multiSelect.checked && !selection().includes(id)) { selectPiece(id, true); render(); return; }
+      if (!selection().includes(id)) selectPiece(id); else selectedItem = id;
+      stopPlayback();
+      const ids = selection(), routes = {};
+      if (editMode === 'record' && frameIndex > 0) for (const id of ids) if (['home', 'away', 'ball'].includes(record.content.items.find(i => i.id === id).kind)) routes[id] = routePoints(record.content.frames[frameIndex - 1], currentFrame(), id).map(p => ({ x: p.x, y: p.y }));
+      pointer = { id: event.pointerId, before: capture(), moved: false, start: point(event), ids, routes };
+      board.setPointerCapture(event.pointerId); event.preventDefault(); render();
+    } else if (selectedItem) { const destination = point(event), start = positionIn(currentFrame(), selectedItem); if (destination) moveSelected(destination.x - start.x, destination.y - start.y); }
   });
-  board.addEventListener('pointermove', event => {
+  function dragPointer(event) {
     if (!pointer || pointer.id !== event.pointerId || !editable()) return;
-    const destination = point(event), p = currentFrame().positions.find(p => p.id === selectedItem); if (!destination || !p || p.x === destination.x && p.y === destination.y) return;
+    const destination = point(event); if (!destination) return;
+    if (pointer.handle === undefined && routeDistance(pointer.start, destination) < .2 && !pointer.moved) return;
     if (!pointer.moved) { undo.push(pointer.before); if (undo.length > 30) undo.shift(); redo = []; pointer.moved = true; }
-    if (pointer.points) {
-      const samples = event.getCoalescedEvents?.() || [];
-      for (const sample of [...samples, event]) { const p = point(sample); if (p && routeDistance(pointer.points.at(-1), p) >= .25) pointer.points.push(p); }
-      if (pointer.points.length > 256) pointer.points = boundedRoute(pointer.points, 128);
+    if (pointer.handle !== undefined) { updateRouteHandle(pointer.handle, destination, pointer.handles); draw(); renderStatus(); notifyDraft(); return; }
+    const dx = destination.x - pointer.start.x, dy = destination.y - pointer.start.y;
+    if (editMode === 'place') shiftLayout(pointer.ids, dx, dy, pointer.before);
+    else for (const id of pointer.ids) {
+      const original = pointer.before.content.frames[frameIndex], at = positionIn(original, id), p = original.positions.find(p => p.id === id);
+      if (p.attachedTo && pointer.ids.includes(p.attachedTo)) continue;
+      const next = { x: clamp(at.x + dx), y: clamp(at.y + dy) }; placePiece(currentFrame(), id, next);
+      const points = pointer.routes[id];
+      if (points) {
+        for (const sample of [...(event.getCoalescedEvents?.() || []), event]) { const pos = point(sample); if (!pos) continue; const nextSample = { x: clamp(at.x + pos.x - pointer.start.x), y: clamp(at.y + pos.y - pointer.start.y) }; if (routeDistance(points.at(-1), nextSample) >= .25) points.push(nextSample); }
+        if (points.length > 256) pointer.routes[id] = boundedRoute(points, 128);
+        saveDraggedRoute([...pointer.routes[id], next], id);
+      }
     }
-    placePiece(currentFrame(), selectedItem, destination);
-    if (pointer.points) { const points = [...pointer.points]; if (routeDistance(points.at(-1), destination) > 0) points.push(destination); saveDraggedRoute(points); }
     draw(); renderStatus(); notifyDraft();
-  });
-  const endPointer = event => { if (!pointer) return; if (pointer.moved && event.type === 'pointerup') { const destination = point(event); if (destination) { placePiece(currentFrame(), selectedItem, destination); if (pointer.points) saveDraggedRoute([...pointer.points, destination]); } } pointer = null; render(); notifyDraft(); };
+  }
+  board.addEventListener('pointermove', dragPointer);
+  const endPointer = event => {
+    if (!pointer) return;
+    if (pointer.moved && event.type === 'pointerup') {
+      dragPointer(event);
+      if (pointer.handle === undefined && pointer.ids.length === 1 && record.content.items.find(i => i.id === selectedItem)?.kind === 'ball') {
+        const p = currentFrame().positions.find(p => p.id === selectedItem);
+        const target = record.content.items.filter(i => ['home', 'away'].includes(i.kind)).map(i => ({ id: i.id, distance: routeDistance(p, positionIn(currentFrame(), i.id)) })).filter(i => i.distance <= 7).sort((a, b) => a.distance - b.distance)[0];
+        if (target) { p.attachedTo = target.id; Object.assign(p, positionIn(currentFrame(), p.id)); tell('Ball attached to the player. Drag the ball away to release it.'); } else tell('Ball released. Its recorded route is kept.');
+      }
+    }
+    pointer = null; render(); notifyDraft();
+  };
   board.addEventListener('pointerup', endPointer); board.addEventListener('pointercancel', endPointer); board.addEventListener('lostpointercapture', endPointer);
   board.addEventListener('keydown', event => {
     if (!editable()) return;
     const target = event.target.closest('[data-tactics-item]');
-    if (target && ['Enter', ' '].includes(event.key)) { event.preventDefault(); selectedItem = target.dataset.tacticsItem; render(); board.focus(); return; }
+    if (target && ['Enter', ' '].includes(event.key)) { event.preventDefault(); selectPiece(target.dataset.tacticsItem, event.shiftKey); render(); board.focus(); return; }
+    const handle = event.target.closest('[data-route-handle]');
     const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    if (handle && directions[event.key]) { event.preventDefault(); const index = Number(handle.dataset.routeHandle), p = routeHandles(shownTransition())[index], [dx, dy] = directions[event.key]; mutate(() => updateRouteHandle(index, { x: clamp(p.x + dx), y: clamp(p.y + dy) })); board.querySelector('[data-route-handle=\"' + index + '\"]')?.focus(); return; }
     if (directions[event.key] && (selectedItem || target)) { event.preventDefault(); if (target) selectedItem = target.dataset.tacticsItem; const [x, y] = directions[event.key]; moveSelected(x * (event.shiftKey ? 5 : 1), y * (event.shiftKey ? 5 : 1)); board.focus(); }
   });
   mount.addEventListener('keydown', event => {
@@ -486,7 +613,7 @@
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') control = event.shiftKey ? 'tactics-redo' : 'tactics-undo';
     else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') control = 'tactics-redo';
     else if (event.key === 'Delete' && selectedItem) control = 'tactics-remove-item';
-    else if (event.key === 'Escape' && selectedItem) { event.preventDefault(); event.stopPropagation(); selectedItem = ''; render(); board.focus(); return; }
+    else if (event.key === 'Escape' && selectedItem) { event.preventDefault(); event.stopPropagation(); selectPiece(''); render(); board.focus(); return; }
     if (control) { event.preventDefault(); $(control).click(); board.focus(); }
   });
   function renderPlayback() {
@@ -529,7 +656,8 @@
       frameIndex = 0; selectedItem = '';
     }, 'Example loaded into your unsaved diagram. Adapt the positions, then save it for this session.');
   }
-  async function load() {
+  function load() { if (pending) return currentLoad; currentLoad = loadSession(); return currentLoad; }
+  async function loadSession() {
     if (!active() || pending || context.busy || !$('tactics-disclosure')?.open) return;
     const ticket = ++requestEpoch, sessionId = context.session.id, startedIdentity = identity, wasLoaded = loaded;
     pending = true; loadAttempted = true; tell('Loading this session’s setups…'); render();
@@ -548,6 +676,7 @@
     finally { if (ticket === requestEpoch && identity === startedIdentity) { pending = false; render(); } }
   }
   async function save() {
+    if (libraryBinding) { if (!librarySaveBlocked) libraryBinding.onSave?.(); return; }
     if (!editable() || recoveryNeeded || !record.title.trim()) return;
     stopPlayback(); const ticket = requestEpoch, startedIdentity = identity, payload = { id: record.id, sessionId: context.session.id, title: record.title.trim(), content: clone(record.content), expectedVersion: record.version };
     pending = true; lastAttempt = clone(payload); tell('Saving setup…'); render();
@@ -565,6 +694,8 @@
   }
   window.addEventListener('coach:context', event => {
     const next = event.detail || null, nextIdentity = next?.profile && next.session ? [next.profile.email, next.profile.role, next.profile.sessionVersion, next.session.id].join(':') : '';
+    if (libraryBinding && (next?.tab !== 'library' || next?.profile?.email !== context?.profile?.email || next?.profile?.sessionVersion !== context?.profile?.sessionVersion || next?.profile?.role !== context?.profile?.role)) closeLibrary();
+    if (libraryBinding) { context = next; if (next.busy) stopPlayback(); render(); return; }
     const changed = identity !== nextIdentity;
     if (changed || !next || next.busy || next.tab !== 'plan') { pause(); pointer = null; }
     context = next;

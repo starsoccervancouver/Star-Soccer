@@ -67,6 +67,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   await f.page.setViewportSize({width:1440,height:1000});
   await f.page.locator('#tactics-add-frame').click();
   await f.page.locator('#tactics-item').selectOption('home_1');
+  await f.page.locator('.tactics-advanced > summary').click();
   await f.page.locator('#tactics-nudge-right').click();
   await f.page.locator('#tactics-label').fill('WideName12345');
   await f.page.locator('#tactics-pitch-board').evaluate(n=>{const p=n.createSVGPoint();p.x=40;p.y=624;const s=p.matrixTransform(n.getScreenCTM());n.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0,clientX:s.x,clientY:s.y}));});

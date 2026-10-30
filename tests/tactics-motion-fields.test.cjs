@@ -87,3 +87,27 @@ test('zones require bounded dimensions and supported shape and colour',async()=>
  await reject(c=>{c.items[0].zone=zone;});
  for(const value of [undefined,null,{...zone,width:0},{...zone,width:91},{...zone,height:'20'},{...zone,height:Infinity},{...zone,shape:'script'},{...zone,color:'#fff'},{...zone,extra:true}])await reject(c=>{c.items[3]={id:'cone',kind:'zone',label:'Zone',zone:value};});
 });
+
+test('optional goal rotation round trips exactly within schema version 1',async()=>{
+ const {validateDiagram}=await validator,content=diagram();
+ content.items.push({id:'goal',kind:'goal',label:''});
+ content.frames[0].positions.push({id:'goal',x:50,y:10});
+ assert.deepStrictEqual(validateDiagram(content),content);
+ for(const rotation of [0,-0,0.001,90,180,359.999]){
+  content.frames[0].positions[4].rotation=rotation;
+  assert.deepStrictEqual(validateDiagram(content),content);
+ }
+});
+
+test('rejects invalid goal rotations and rotation on every other item kind',async()=>{
+ for(const rotation of [-0.001,360,361,NaN,Infinity,-Infinity,null,undefined,'90',true,{},[]]){
+  await reject(content=>{
+   content.items[3].kind='goal';content.frames[0].positions[3].rotation=rotation;
+  });
+ }
+ for(const index of [0,1,2,3])await reject(content=>{content.frames[0].positions[index].rotation=90;});
+ await reject(content=>{
+  content.items[3]={id:'cone',kind:'zone',label:'',zone:{shape:'rect',width:25,height:25,color:'blue'}};
+  content.frames[0].positions[3].rotation=90;
+ });
+});

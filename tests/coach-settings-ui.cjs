@@ -46,7 +46,7 @@ require('./coach-fixture-fonts.cjs')(assets);
       await page.goto(origin + '/workspace' + hash); await page.locator('#app').waitFor({ state: 'visible' });
       return { page, context, state, requests, errors, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
     }
-    const clickSettings = f => f.page.locator('#navigation [data-tab="settings"]').click();
+    const clickSettings = async f => { if (await f.page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) { await f.page.locator('#planner-home').click(); if (await f.page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) return; } await f.page.locator('#navigation [data-tab="settings"]').click(); };
     const section = (f, name) => f.page.locator('#settings-navigation [data-settings-tab="' + name + '"]');
     const count = (f, suffix) => f.requests.filter(r => r.path.endsWith(suffix)).length;
 
@@ -107,14 +107,14 @@ require('./coach-fixture-fonts.cjs')(assets);
     }
     const blocked = await fixture({ deniedStorage: true }); await clickSettings(blocked); await blocked.page.locator('#preference-density').selectOption('compact'); assert.deepEqual(blocked.errors, []); await blocked.context.close(); checks++;
 
-    const d = await fixture(); await d.page.locator('#navigation [data-tab="plan"]').click(); await d.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
-    await d.page.locator('#plan-focus').fill('Fictional unsaved plan'); await d.answer(false); await d.page.locator('#open-profile').click();
+    const d = await fixture(); await d.page.locator('#navigation [data-tab="plan"]').click(); await d.page.locator('#planner-open-selected').click(); await d.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
+    await d.page.locator('#plan-focus').fill('Fictional unsaved plan'); await d.answer(false); await clickSettings(d);
     assert.equal(await d.page.locator('#panel-plan').isVisible(), true); assert.equal(await d.page.locator('#plan-focus').inputValue(), 'Fictional unsaved plan');
     await d.answer(true); await clickSettings(d); assert.equal(await d.page.locator('#panel-settings').isVisible(), true);
-    await d.page.locator('#navigation [data-tab="plan"]').click(); await d.page.locator('#planner-open-tools').click(); await d.page.waitForFunction(() => !document.getElementById('tactics-title').disabled);
+    await d.page.locator('#navigation [data-tab="plan"]').click(); await d.page.locator('#planner-open-selected').click(); await d.page.locator('#planner-open-tools').click(); await d.page.waitForFunction(() => !document.getElementById('tactics-title').disabled);
     await d.page.locator('#tactics-title').fill('Fictional unsaved drill'); await d.page.locator('#planner-close-drawer').click(); await d.answer(false); await clickSettings(d);
     assert.equal(await d.page.locator('#panel-plan').isVisible(), true); assert.equal(await d.page.locator('#tactics-title').inputValue(), 'Fictional unsaved drill');
-    await d.answer(true); await d.page.locator('#open-profile').click(); assert.equal(await d.page.locator('#panel-settings').isVisible(), true); assert.deepEqual(d.errors, []); checks++;
+    await d.answer(true); await clickSettings(d); assert.equal(await d.page.locator('#panel-settings').isVisible(), true); assert.deepEqual(d.errors, []); checks++;
 
     for (const width of [1365, 390, 320]) {
       await d.page.setViewportSize({ width, height: 950 });

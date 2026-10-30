@@ -7,6 +7,17 @@ export const email=v=>{if(typeof v!=='string'||v.length>254||!/^[A-Z0-9.!#$%&'*+
 const rid=(v,nullable=false)=>{if(nullable&&v===null)return null;if(typeof v!=='string'||!/^rec[A-Za-z0-9]{14}$/.test(v))deny('INVALID_RECORD',400);return v;};
 const txt=(v,max=6000)=>{if(typeof v!=='string'||!v.trim()||v.length>max||/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(v))deny('INVALID_TEXT',400);return v.trim();};
 const token=prefix=>prefix+randomBytes(20).toString('base64url');
+const drillId=value=>{if(typeof value!=='string'||!/^drill_[A-Za-z0-9_-]{27}$/.test(value))deny('INVALID_DRILL',400);return value;};
+const drillText=(value,max,required=false,singleLine=false)=>{
+ if(typeof value!=='string'||value.length>max||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value)||singleLine&&/[\r\n\t]/.test(value)||required&&!value.trim())deny('INVALID_DRILL',400);
+ return value.trim();
+};
+const drillFields=({title,skill='',minutes,target,setup,coaching='',progression='',equipment='',diagram=null})=>{
+ if(!Number.isSafeInteger(minutes)||minutes<1||minutes>120||!['warmup','technical','game'].includes(target))deny('INVALID_DRILL',400);
+ return {title:drillText(title,80,true,true),skill:drillText(skill,80,false,true),minutes,target,setup:drillText(setup,2000,true),coaching:drillText(coaching,2000),progression:drillText(progression,2000),equipment:drillText(equipment,2000),diagram:diagram===null?null:validateDiagram(diagram)};
+};
+const drillRow=row=>{if(!row)return null;const {archived,...value}=row;return {...value,diagram:row.diagram===null?null:JSON.parse(row.diagram)};};
+const drillSnapshot=value=>JSON.stringify(Object.fromEntries(['title','skill','minutes','target','setup','coaching','progression','equipment','diagram'].map(key=>[key,value[key]])));
 export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star Soccer Owner',clock=()=>new Date()}){
  ownerEmail=email(ownerEmail);ownerName=txt(ownerName,100);
  store.run(`CREATE TABLE IF NOT EXISTS coach_users(email TEXT PRIMARY KEY,name TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN('owner','admin','coach')),active INTEGER NOT NULL DEFAULT 1,session_version INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL);
@@ -15,6 +26,8 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
  CREATE TABLE IF NOT EXISTS coach_plans(session_id TEXT PRIMARY KEY,content TEXT NOT NULL,updated_by TEXT NOT NULL,updated_at TEXT NOT NULL,version INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_diagrams(id TEXT PRIMARY KEY,session_id TEXT NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,created_by TEXT NOT NULL,updated_by TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,version INTEGER NOT NULL,archived INTEGER NOT NULL DEFAULT 0);
  CREATE INDEX IF NOT EXISTS coach_diagrams_session ON coach_diagrams(session_id,archived);
+ CREATE TABLE IF NOT EXISTS coach_drills(id TEXT PRIMARY KEY,author_email TEXT NOT NULL REFERENCES coach_users(email),request_id TEXT NOT NULL,title TEXT NOT NULL,skill TEXT NOT NULL,minutes INTEGER NOT NULL CHECK(minutes BETWEEN 1 AND 120),target TEXT NOT NULL CHECK(target IN('warmup','technical','game')),setup TEXT NOT NULL,coaching TEXT NOT NULL,progression TEXT NOT NULL,equipment TEXT NOT NULL,diagram TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,updated_by TEXT NOT NULL REFERENCES coach_users(email),version INTEGER NOT NULL,archived INTEGER NOT NULL DEFAULT 0,UNIQUE(author_email,request_id));
+ CREATE INDEX IF NOT EXISTS coach_drills_author ON coach_drills(author_email,archived,updated_at);
  CREATE TABLE IF NOT EXISTS coach_tasks(id TEXT PRIMARY KEY,author_email TEXT NOT NULL,session_id TEXT,title TEXT NOT NULL,due_date TEXT,status TEXT NOT NULL,version INTEGER NOT NULL,created_at TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_audit(id TEXT PRIMARY KEY,actor_email TEXT NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,occurred_at TEXT NOT NULL,detail TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_attendance_commands(id TEXT PRIMARY KEY,actor_email TEXT NOT NULL,session_id TEXT NOT NULL,attendance_id TEXT NOT NULL,payload TEXT NOT NULL,state TEXT NOT NULL,created_at TEXT NOT NULL);`);
@@ -40,6 +53,45 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
   plan(actor,sessionId){api.requireSession(actor,sessionId);const p=store.get('SELECT * FROM coach_plans WHERE session_id=?',sessionId);return p?{...p,content:JSON.parse(p.content)}:{session_id:sessionId,version:0,content:{}};},
   savePlan(actor,{sessionId,content,expectedVersion}){api.requireSession(actor,sessionId);if(!content||typeof content!=='object'||Array.isArray(content)||Object.keys(content).some(k=>!['focus','warmup','technical','game','equipment','reflection'].includes(k))||Object.values(content).some(v=>typeof v!=='string'||v.length>2000||/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(v)))deny('INVALID_PLAN',400);return store.transaction(()=>{const old=api.plan(actor,sessionId);if(old.version!==expectedVersion)deny('PLAN_CHANGED',409);store.run('INSERT INTO coach_plans VALUES(?,?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET content=excluded.content,updated_by=excluded.updated_by,updated_at=excluded.updated_at,version=excluded.version',sessionId,JSON.stringify(content),actor.email,stamp(),old.version+1);audit(actor,'plan-updated',sessionId,{version:old.version+1});return api.plan(actor,sessionId);});},
   tasks(actor){const full=api.full(actor);return store.all('SELECT * FROM coach_tasks ORDER BY status,due_date,created_at').filter(t=>full||t.author_email===actor.email);},
+  drills(actor){
+   const fresh=api.actor(actor.email),full=['owner','admin'].includes(fresh.role);
+   return store.all('SELECT * FROM coach_drills WHERE archived=0'+(full?'':' AND author_email=?')+' ORDER BY updated_at DESC,id',...(full?[]:[fresh.email])).map(drillRow);
+  },
+  saveDrill(actor,{id=null,requestId,expectedVersion=0,...input}){
+   const fresh=api.actor(actor.email),full=['owner','admin'].includes(fresh.role),fields=drillFields(input);
+   if(!Number.isSafeInteger(expectedVersion)||expectedVersion<0)deny('INVALID_DRILL',400);
+   if(id!==null){drillId(id);if(requestId!==undefined&&requestId!==null)deny('INVALID_DRILL',400);}
+   else if(typeof requestId!=='string'||!/^[A-Za-z0-9_-]{16,100}$/.test(requestId))deny('INVALID_DRILL',400);
+   return store.transaction(()=>{
+    const old=id?store.get('SELECT * FROM coach_drills WHERE id=?',id):store.get('SELECT * FROM coach_drills WHERE author_email=? AND request_id=?',fresh.email,requestId);
+    if(id&&(!old||!full&&old.author_email!==fresh.email))deny();
+    if(old?.archived)deny('DRILL_ARCHIVED',409);
+    if(!id&&old){
+     if(expectedVersion!==0||old.version!==1)deny('DRILL_CHANGED',409);
+     if(drillSnapshot(drillRow(old))!==drillSnapshot(fields))deny('DRILL_REQUEST_REUSED',409);
+     return drillRow(old); // Exact retry of a verified create, never a second record or audit event.
+    }
+    if((old?.version||0)!==expectedVersion)deny('DRILL_CHANGED',409);
+    if(!old&&store.get('SELECT COUNT(*) AS count FROM coach_drills WHERE author_email=? AND archived=0',fresh.email).count>=200)deny('DRILL_LIMIT',409);
+    const at=stamp(),diagram=fields.diagram===null?null:JSON.stringify(fields.diagram);
+    if(old)store.run('UPDATE coach_drills SET title=?,skill=?,minutes=?,target=?,setup=?,coaching=?,progression=?,equipment=?,diagram=?,updated_by=?,updated_at=?,version=version+1 WHERE id=?',fields.title,fields.skill,fields.minutes,fields.target,fields.setup,fields.coaching,fields.progression,fields.equipment,diagram,fresh.email,at,id);
+    else{id=token('drill_');store.run('INSERT INTO coach_drills(id,author_email,request_id,title,skill,minutes,target,setup,coaching,progression,equipment,diagram,created_at,updated_at,updated_by,version,archived) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,0)',id,fresh.email,requestId,fields.title,fields.skill,fields.minutes,fields.target,fields.setup,fields.coaching,fields.progression,fields.equipment,diagram,at,at,fresh.email);}
+    audit(fresh,old?'drill-updated':'drill-created',id,{author:old?.author_email||fresh.email,version:(old?.version||0)+1});
+    return drillRow(store.get('SELECT * FROM coach_drills WHERE id=?',id));
+   });
+  },
+  archiveDrill(actor,{id,expectedVersion}){
+   const fresh=api.actor(actor.email),full=['owner','admin'].includes(fresh.role);drillId(id);
+   if(!Number.isSafeInteger(expectedVersion)||expectedVersion<1)deny('INVALID_DRILL',400);
+   return store.transaction(()=>{
+    const old=store.get('SELECT * FROM coach_drills WHERE id=?',id);
+    if(!old||!full&&old.author_email!==fresh.email)deny();
+    if(old.archived){if(old.version===expectedVersion+1)return {saved:true};deny('DRILL_ARCHIVED',409);}
+    if(old.version!==expectedVersion)deny('DRILL_CHANGED',409);
+    store.run('UPDATE coach_drills SET archived=1,updated_by=?,updated_at=?,version=version+1 WHERE id=?',fresh.email,stamp(),id);
+    audit(fresh,'drill-archived',id,{author:old.author_email,version:old.version+1});return {saved:true};
+   });
+  },
   diagrams(actor,sessionId){api.requireSession(actor,sessionId);return store.all('SELECT id,session_id,title,content,created_by,updated_by,created_at,updated_at,version FROM coach_diagrams WHERE session_id=? AND archived=0 ORDER BY updated_at DESC,id',sessionId).map(row=>({...row,content:JSON.parse(row.content)}));},
   saveDiagram(actor,{id=null,sessionId,title,content,expectedVersion=0}){
    api.requireSession(actor,sessionId);title=txt(title,80);content=validateDiagram(content);

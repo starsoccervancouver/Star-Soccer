@@ -72,10 +72,10 @@ const { chromium } = require('playwright');
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
     await page.locator('#plan-focus').fill('Unsaved fixture plan');
     page.once('dialog', d => d.dismiss());
-    await page.getByRole('button', { name: 'Overview', exact: true }).click();
+    await page.locator('#planner-home').click();
     assert.equal(await page.locator('#panel-plan').isVisible(), true);
     assert.equal(await page.locator('#plan-focus').inputValue(), 'Unsaved fixture plan');
-    page.once('dialog', d => d.accept()); await page.getByRole('button', { name: 'Overview', exact: true }).click(); checks++;
+    page.once('dialog', d => d.accept()); await page.locator('#planner-home').click(); checks++;
     fs.mkdirSync('outputs', { recursive: true });
     await page.locator('#page-title').focus(); await page.evaluate(() => window.scrollTo(0,0));
     await page.screenshot({ path: 'outputs/coach-command-center-desktop.png', fullPage: true });
@@ -84,8 +84,9 @@ const { chromium } = require('playwright');
     for (const width of [320,390,768]) {
       await page.setViewportSize({ width, height: 844 });
       for (const tab of ['home','notes','tasks','plan']) {
+        if (await page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) await page.locator('#planner-home').click();
         await page.locator('#navigation [data-tab="'+tab+'"]').click();
-        if (tab === 'plan') await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
+        if (tab === 'plan') { await page.locator('#planner-open-selected').click(); await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled); }
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'No overflow: ' + tab + ' at ' + width);
       }
     } checks++;

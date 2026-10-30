@@ -162,6 +162,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
 
     // Planner voice controls are field-specific and one microphone session may be active at a time.
     await page.locator('#navigation button[data-tab="plan"]').click();
+    await page.locator('#planner-open-selected').click();
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
     const focusButton = page.locator('#dictation-plan-focus'), warmupButton = page.locator('#dictation-plan-warmup');
     await focusButton.click();
@@ -177,7 +178,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     checks++;
 
     await page.evaluate(() => fixtureSpeech.capture(7));
-    await page.locator('#planner-other-date').click();
+    await page.locator('#planner-focus-date').click();
     page.once('dialog', dialog => dialog.accept());
     await page.locator('#planner-date').selectOption(rid(2));
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled && document.querySelector('#plan-focus').value === 'Other session focus');
@@ -188,6 +189,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
 
     await focusButton.click();
     await page.evaluate(() => fixtureSpeech.capture(8));
+    await page.locator('#planner-home').click();
     await page.locator('#navigation button[data-tab="notes"]').click();
     await page.evaluate(() => fixtureSpeech.emitLate(8, [{ text: 'Speech after tab switch.', final: true }]));
     assert.equal(await page.locator('#plan-focus').inputValue(), 'Other session focus');

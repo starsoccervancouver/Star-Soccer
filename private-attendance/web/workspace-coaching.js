@@ -235,8 +235,9 @@
       const text = drill.title + ' (' + drill.minutes + ' min starting point)\n' + drill.setup + '\nCoach: ' + drill.coaching + '\nAdapt: ' + drill.progression;
       const add = button('Add to ' + names[drill.target], () => emit('coach:insert-plan', { target: drill.target, text }));
       const equipment = button('Add equipment', () => emit('coach:insert-plan', { target: 'equipment', text: drill.equipment }));
-      add.disabled = equipment.disabled = locked;
-      actions.append(add, equipment);
+      const save = button('Save to drill archive', () => emit('coach:library-prefill', { sessionId: context.selected, drill: { title: drill.title, skill: drill.skill, minutes: drill.minutes, target: drill.target, setup: drill.setup, coaching: drill.coaching, progression: drill.progression, equipment: drill.equipment } }));
+      add.disabled = equipment.disabled = save.disabled = locked;
+      actions.append(add, equipment, save);
       card.append(actions);
       activities.append(card);
     }

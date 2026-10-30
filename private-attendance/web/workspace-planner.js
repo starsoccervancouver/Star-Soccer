@@ -45,7 +45,7 @@
     })).sort((a, b) => Number(inProgress(b)) - Number(inProgress(a)))[0] || null;
   };
   let context = null, identity = '', pane = '', opener = null, noteSaving = false, uncertain = false;
-  let historyLimit = 10;
+  let historyLimit = 10, focusedSession = '', focusEpoch = 0;
   const dirty = () => !!$('planner-note-body')?.value.trim();
   const busy = () => noteSaving;
   function resetDraft() {
@@ -53,11 +53,51 @@
     if ($('planner-note-status')) $('planner-note-status').textContent = '';
     uncertain = false;
   }
-  window.CoachPlanner = Object.freeze({ nextSession, isDirty: dirty, isBusy: busy, discard: resetDraft });
+  window.CoachPlanner = Object.freeze({ nextSession, isDirty: dirty, isBusy: busy, discard: resetDraft, focusSession, exitFocus, isFocused: () => !!focusedSession && focusedSession === context?.selected && context?.tab === 'plan' });
   const current = () => context?.session;
   const unavailable = () => !context?.profile || !current() || context.tab !== 'plan';
   const locked = () => !!context?.busy || noteSaving;
   const sameGroup = (a, b) => a && b && weekday(a.date) === weekday(b.date) && String(a.time || '').trim() === String(b.time || '').trim() && String(a.location || '').trim() === String(b.location || '').trim();
+
+  function closeDatePicker() {
+    $('planner-date-options').hidden = true;
+    for (const id of ['planner-other-date', 'planner-focus-date']) $(id).setAttribute('aria-expanded', 'false');
+  }
+  function renderFocus() {
+    const selected = current(), active = !!focusedSession && focusedSession === selected?.id && context?.tab === 'plan' && !!context?.profile;
+    document.body.classList.toggle('planner-focus-mode', active);
+    $('planner-focus-bar').hidden = !active;
+    $('planner-session-browser').hidden = active;
+    $('planner-workspace').hidden = !active;
+    $('planner-focus-title').textContent = active ? label(selected.date) : '';
+    $('planner-focus-detail').textContent = active ? [selected.time, selected.location].filter(Boolean).join(' · ') : '';
+    for (const id of ['planner-back', 'planner-home', 'planner-focus-date']) $(id).disabled = locked();
+    $('planner-save').disabled = !active || locked() || !context?.planReady;
+    $('planner-save').textContent = context?.planDirty ? 'Save changes' : 'Save plan';
+    document.dispatchEvent(new Event('coach:dictation-state'));
+  }
+  function focusSession(sessionId) {
+    if (!context?.profile || context.tab !== 'plan' || current()?.id !== sessionId || current().status === 'Cancelled') return false;
+    const newlyFocused = focusedSession !== sessionId || !$('planner-workspace').getClientRects().length;
+    focusedSession = sessionId; closeDatePicker(); renderFocus();
+    if (newlyFocused) {
+      const ticket = ++focusEpoch;
+      requestAnimationFrame(() => { if (ticket !== focusEpoch || focusedSession !== sessionId || context?.tab !== 'plan') return; $('planner-focus-title').focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'instant' }); });
+    }
+    return true;
+  }
+  function exitFocus() {
+    focusedSession = ''; focusEpoch++; closeDrawer(true); closeDatePicker(); renderFocus();
+    if (context?.profile && context.tab === 'plan') { $('planner-chooser-title').focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'instant' }); }
+  }
+  function requestSession(sessionId) {
+    if (!sessionId || locked()) return;
+    emit('coach:open-session', { sessionId, tab: 'plan', resolve: accepted => { if (accepted) focusSession(sessionId); } });
+  }
+  function requestExit(destination) {
+    if (locked()) return;
+    emit('coach:planner-navigate', { destination, resolve: accepted => { if (accepted) exitFocus(); } });
+  }
 
   function renderDays() {
     const rows = context?.sessions || [], selected = current();
@@ -69,7 +109,7 @@
       button.disabled = locked() || !next;
       button.append(make('strong', ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]), make('span', next ? label(next.date).split(', ').slice(1).join(', ') || next.date : 'No upcoming session'));
       if (next) button.append(make('span', (inProgress(next) ? 'In progress · ' : '') + (next.time || 'Time to confirm'), 'planner-day-time'));
-      button.addEventListener('click', () => { if (next && !locked()) emit('coach:open-session', { sessionId: next.id, tab: 'plan' }); });
+      button.addEventListener('click', () => { if (next) requestSession(next.id); });
       return button;
     }));
     $('planner-session-title').textContent = selected ? label(selected.date) : 'Choose a training day';
@@ -81,7 +121,9 @@
     if (!selected) { const option = make('option', 'Choose a session'); option.value = ''; $('planner-date').prepend(option); }
     $('planner-date').value = selected?.id || '';
     for (const id of ['planner-other-date', 'planner-date']) $(id).disabled = locked() || !dates.length;
+    $('planner-open-selected').disabled = locked() || !selected || selected.status === 'Cancelled';
     for (const id of ['planner-open-notes', 'planner-open-tools', 'planner-open-run']) $(id).disabled = locked() || !selected;
+    renderFocus();
   }
 
   function renderNotes() {
@@ -159,13 +201,19 @@
     }
   }
 
-  $('planner-other-date').addEventListener('click', () => {
+  function toggleDatePicker() {
     const open = $('planner-date-options').hidden;
-    $('planner-date-options').hidden = !open; $('planner-other-date').setAttribute('aria-expanded', String(open));
+    $('planner-date-options').hidden = !open;
+    for (const id of ['planner-other-date', 'planner-focus-date']) $(id).setAttribute('aria-expanded', String(open));
     if (open) $('planner-date').focus();
-  });
+  }
+  $('planner-other-date').addEventListener('click', toggleDatePicker);
+  $('planner-focus-date').addEventListener('click', toggleDatePicker);
+  $('planner-back').addEventListener('click', () => requestExit('sessions'));
+  $('planner-home').addEventListener('click', () => requestExit('home'));
+  $('planner-open-selected').addEventListener('click', () => requestSession(current()?.id));
   $('planner-date').addEventListener('change', () => {
-    if (!locked()) emit('coach:open-session', { sessionId: $('planner-date').value, tab: 'plan' });
+    requestSession($('planner-date').value);
     renderDays();
   });
   for (const name of ['notes', 'tools', 'run']) $('planner-open-' + name).addEventListener('click', event => openDrawer(name, event.currentTarget));
@@ -199,11 +247,12 @@
     }
     identity = nextIdentity; context = next;
     if (!next?.profile) {
+      focusedSession = ''; focusEpoch++; closeDatePicker(); renderFocus();
       closeDrawer(true); resetDraft();
       for (const id of ['planner-days', 'planner-session-title', 'planner-session-detail', 'planner-session-mode', 'planner-date', 'planner-notes-list']) $(id).replaceChildren();
       return;
     }
-    if (next.tab !== 'plan') closeDrawer(true);
+    if (next.tab !== 'plan') { focusedSession = ''; focusEpoch++; closeDatePicker(); closeDrawer(true); }
     renderDays();
     if (pane === 'notes') renderNotes();
   });

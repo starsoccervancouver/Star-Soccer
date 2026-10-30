@@ -45,9 +45,9 @@ require('./coach-fixture-fonts.cjs')(assets);
    return {context,page,state,requests,errors,pending,answer:value=>page.evaluate(value=>fixtureConfirmAnswers.push(value),value),release:(path,mode='success')=>{const index=pending.findIndex(item=>item.path.endsWith(path));assert(index>=0,'Expected pending '+path);pending.splice(index,1)[0].resolve(mode);}};
   }
 
-  const enterPlan=async f=>{await f.page.locator('#navigation button[data-tab="plan"]').click();await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);};
+  const enterPlan=async f=>{await f.page.locator('#navigation button[data-tab="plan"]').click();await f.page.locator('#planner-open-selected').click();await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);};
   const openBoard=async f=>{await f.page.locator('#planner-open-tools').click();await f.page.waitForFunction(()=>!document.getElementById('tactics-title').disabled);};
-  const chooseDate=async(f,id)=>{if(!await f.page.locator('#planner-date').isVisible())await f.page.locator('#planner-other-date').click();await f.page.locator('#planner-date').selectOption(id);};
+  const chooseDate=async(f,id)=>{if(!await f.page.locator('#planner-date').isVisible())await f.page.locator('#planner-focus-date').click();await f.page.locator('#planner-date').selectOption(id);};
   const count=(f,suffix)=>f.requests.filter(r=>r.path.endsWith(suffix)).length;
   const beginBridgeList=async f=>{
    const waiting=f.page.waitForRequest(request=>new URL(request.url()).pathname.endsWith('/diagrams/list'));
@@ -69,13 +69,13 @@ require('./coach-fixture-fonts.cjs')(assets);
   assert.equal(await f.page.evaluate(()=>CoachTactics.isDirty()),true);
   await f.page.locator('#planner-close-drawer').click();
   const promptBefore=await f.page.evaluate(()=>fixtureConfirmPrompts.length);
-  for(const action of [()=>f.page.locator('#navigation button[data-tab="home"]').click(),()=>chooseDate(f,rid(2)),()=>f.page.locator('#refresh').click(),()=>f.page.locator('#logout').click()]){
+  for(const action of [()=>f.page.locator('#planner-home').click(),()=>chooseDate(f,rid(2)),()=>f.page.locator('#planner-back').click()]){
    await f.answer(false);await action();
    assert.equal(await f.page.locator('#tactics-title').inputValue(),'Unsaved fictional tactics');
    assert.equal(await f.page.locator('#session').inputValue(),rid(1));
    assert.equal(await f.page.locator('#panel-plan').isVisible(),true);
   }
-  assert.equal(await f.page.evaluate(()=>fixtureConfirmPrompts.length),promptBefore+4);
+  assert.equal(await f.page.evaluate(()=>fixtureConfirmPrompts.length),promptBefore+3);
   assert.equal(count(f,'/refresh'),0);assert.equal(count(f,'/logout'),0);assert.equal(count(f,'/diagrams/save'),0);
   checks++;
 

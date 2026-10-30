@@ -2069,3 +2069,76 @@ body.planner-drawer-open .global-error { z-index: 90; }
   .task-row-actions button { flex: 1 1 auto; }
   #task-form #task-cancel { width: 100%; }
 }
+
+/* Dedicated session workspace: a quiet canvas with deliberate exits. */
+:root { --desk-canvas: #f4f6f7; }
+#app .card { box-shadow: 0 3px 14px #10263d05; }
+#app .page-heading h1 { letter-spacing: -.035em; }
+#app .desk-nav #navigation button { font-weight: 650; }
+#app .desk-nav #navigation button.nav-active { box-shadow: inset 3px 0 0 var(--desk-gold); }
+.planner-session-browser { padding: 26px 26px 0; }
+.planner-chooser-intro { max-width: 58ch; margin: -3px 0 22px; color: var(--desk-muted); font-size: 14px; }
+.planner-days { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+#app .planner-days button { min-height: 112px; padding: 17px; background: #fafbfc; }
+.planner-session-summary > button { flex: 0 0 auto; }
+.planner-focus-bar, .planner-workspace, #planner-date-options { width: 100%; max-width: 1260px; margin-right: auto; margin-left: auto; }
+.planner-focus-bar { position: static; display: block; padding: 0; border: 0; color: var(--desk-ink); background: transparent; box-shadow: none; }
+.planner-focus-bar[hidden], .planner-workspace[hidden], .planner-session-browser[hidden] { display: none; }
+.planner-focus-exits { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
+#app .planner-focus-exits button { min-height: 44px; padding: 9px 15px; font-size: 13px; }
+#app .planner-focus-exits #planner-home { margin-left: auto; }
+.planner-focus-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-bottom: 22px; border-bottom: 1px solid var(--desk-line); }
+.planner-focus-heading > div { min-width: 0; }
+.planner-focus-heading .eyebrow { margin: 0 0 8px; font-size: 10px; }
+#app .planner-focus-heading h1 { margin: 0; font-size: clamp(27px, 3vw, 40px); line-height: 1.2; font-weight: 750; letter-spacing: -.04em; }
+.planner-focus-heading .small { margin: 9px 0 0; font-size: 14px; }
+.planner-focus-controls { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; gap: 10px; }
+.planner-focus-controls > button { flex-shrink: 0; font-size: 13px; }
+body.planner-focus-mode { background: var(--desk-canvas); }
+body.planner-focus-mode .desk-header,
+body.planner-focus-mode .desk-nav,
+body.planner-focus-mode .desk-main > .page-heading { display: none; }
+body.planner-focus-mode .desk-layout { display: block; width: 100%; max-width: none; min-height: 100vh; min-height: 100dvh; margin: 0; }
+body.planner-focus-mode #app .desk-main { width: 100%; max-width: none; min-height: 100vh; min-height: 100dvh; padding: 24px clamp(18px, 4vw, 68px) 46px; }
+body.planner-focus-mode .planner-workspace-actions { padding: 22px 0; margin: 0; gap: 12px; }
+body.planner-focus-mode #app .planner-workspace-actions button { min-height: 48px; padding: 12px 20px; border-radius: 16px; background: #fff; font-size: 13px; box-shadow: none; }
+body.planner-focus-mode #app .planner-workspace-actions #planner-open-notes { background: #fffaf2; }
+body.planner-focus-mode .planner-plan-card { padding: clamp(22px, 3vw, 38px); border-color: #dbe3e8; border-radius: 22px; box-shadow: 0 6px 24px #10263d06; }
+body.planner-focus-mode .planner-plan-heading h2 { font-size: 23px; letter-spacing: -.025em; }
+body.planner-focus-mode .planner-plan-card .privacy-message { margin-top: 16px; background: #faf7f0; }
+body.planner-focus-mode .plan-grid { column-gap: 26px; row-gap: 6px; }
+body.planner-focus-mode .planner-plan-card #plan-form label { font-size: 13px; font-weight: 700; }
+body.planner-focus-mode .planner-plan-card #plan-form textarea { padding: 14px 16px; border-color: #cbd6dd; font-size: 16px; line-height: 1.6; background: #fbfcfd; }
+body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-color: #759bb3; background: #fff; }
+.planner-save-row { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; padding-top: 20px; margin-top: 6px; border-top: 1px solid var(--desk-line); }
+.planner-save-row .form-state { margin: 0; }
+.planner-save-row #plan-updated { font-size: 12px; }
+.planner-drawer-backdrop { backdrop-filter: none; }
+@media (max-width: 700px) {
+  .planner-session-browser { padding: 20px 18px 0; }
+  .planner-day-heading > div { display: block; }
+  .planner-chooser-intro { margin-bottom: 18px; font-size: 13px; }
+  .planner-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #app .planner-days button { min-height: 102px; padding: 14px; }
+  .planner-session-summary { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .planner-session-summary > button { width: 100%; }
+  body.planner-focus-mode #app .desk-main { padding: 16px 16px 30px; }
+  .planner-focus-exits { margin-bottom: 22px; }
+  .planner-focus-heading { align-items: flex-start; flex-direction: column; gap: 14px; padding-bottom: 18px; }
+  .planner-focus-heading .small { max-width: 38ch; font-size: 13px; }
+  .planner-focus-controls { width: 100%; gap: 8px; }
+  .planner-focus-controls > button { flex: 1; }
+  #app .planner-focus-heading h1 { font-size: 28px; }
+  body.planner-focus-mode .planner-workspace-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 17px 0; }
+  body.planner-focus-mode #app .planner-workspace-actions button { min-width: 0; padding: 11px 13px; font-size: 12px; border-radius: 14px; }
+  body.planner-focus-mode #planner-open-notes { grid-column: 1 / -1; }
+  body.planner-focus-mode .planner-plan-card { padding: 20px 16px; border-radius: 18px; }
+  body.planner-focus-mode .planner-plan-heading h2 { font-size: 20px; }
+  body.planner-focus-mode .planner-plan-heading .eyebrow { display: none; }
+  body.planner-focus-mode .planner-plan-card .privacy-message { margin: 12px 0 10px; padding: 8px 10px; font-size: 11px; line-height: 1.5; }
+  body.planner-focus-mode .planner-plan-card .dictation-help { margin: 0 0 15px; font-size: 11px; line-height: 1.5; }
+  .planner-save-row > button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .planner-focus-mode *, .planner-focus-mode *::before, .planner-focus-mode *::after { scroll-behavior: auto !important; }
+}

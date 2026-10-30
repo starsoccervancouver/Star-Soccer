@@ -104,6 +104,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     checks++;
 
     await f.page.locator('#navigation [data-tab="plan"]').click();
+    await f.page.locator('#planner-open-selected').click();
     await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
     assert.equal(await f.page.locator('#session').inputValue(), rid(1), 'Planner prioritizes the session currently underway');
     assert.match(await f.page.locator('#planner-session-mode').innerText(), /in progress|happening now/i);
@@ -111,7 +112,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     checks++;
 
     f.state.failPlan = rid(2);
-    await f.page.locator('#planner-other-date').click();
+    await f.page.locator('#planner-focus-date').click();
     await f.page.locator('#planner-date').selectOption(rid(2));
     await f.page.locator('#plan-retry').waitFor({ state: 'visible' });
     assert.equal(await f.page.locator('#plan-focus').inputValue(), '', 'A failed target plan must not retain another session’s text');
@@ -139,11 +140,13 @@ require('./coach-fixture-fonts.cjs')(assets);
     checks++;
 
     f.state.delayPlan = rid(3);
+    if (!await f.page.locator('#planner-date').isVisible()) await f.page.locator('#planner-focus-date').click();
     await f.page.locator('#planner-date').selectOption(rid(3));
     await f.page.waitForFunction(() => document.getElementById('plan-focus').disabled);
     assert.equal(f.pendingPlans.length, 1);
     assert.equal(await f.page.locator('#plan-focus').inputValue(), '');
-    await f.page.locator('#navigation [data-tab="plan"]').click();
+    await f.page.locator('#planner-focus-date').click();
+    if (!await f.page.locator('#planner-date').isVisible()) await f.page.locator('#planner-focus-date').click();
     assert.equal(f.requests.filter(r => r.path.endsWith('/session') && r.payload.sessionId === rid(3)).length, 1, 'Reopening the same loading plan does not create competing requests');
     await f.page.locator('#planner-date').selectOption(rid(2));
     await f.page.waitForFunction(id => !document.getElementById('plan-focus').disabled && document.getElementById('plan-focus').value.includes(id), rid(2));
@@ -156,10 +159,11 @@ require('./coach-fixture-fonts.cjs')(assets);
     checks++;
 
     f.state.delayPlan = rid(1);
+    if (!await f.page.locator('#planner-date').isVisible()) await f.page.locator('#planner-focus-date').click();
     await f.page.locator('#planner-date').selectOption(rid(1));
     await f.page.waitForFunction(() => document.getElementById('plan-focus').disabled);
     assert.equal(f.pendingPlans.length, 1);
-    await f.page.locator('#logout').click(); await f.page.locator('#login').waitFor({ state: 'visible' });
+    await f.page.locator('#planner-home').click(); await f.page.locator('#logout').click(); await f.page.locator('#login').waitFor({ state: 'visible' });
     const signedOutResponse = f.page.waitForResponse(response => response.url().endsWith('/session') && response.request().postDataJSON().sessionId === rid(1));
     f.pendingPlans.shift()(); await signedOutResponse;
     await f.page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));

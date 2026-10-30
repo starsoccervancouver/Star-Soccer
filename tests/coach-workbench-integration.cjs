@@ -124,6 +124,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     assert.equal(JSON.stringify(sourcePlan), sourceSnapshot, 'The source plan remains unchanged');
     checks++;
 
+    await page.locator('#planner-home').click();
     await page.locator('#navigation button[data-tab="notes"]').click();
     assert.equal(await page.locator('#player-history-panel').getAttribute('open'), null, 'Player history starts collapsed so the note editor stays prominent');
     await page.locator('#player-history-panel > summary').click();
@@ -152,6 +153,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     checks++;
 
     await page.locator('#navigation button[data-tab="plan"]').click();
+    await page.locator('#planner-open-selected').click();
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
     assert.equal(await page.locator('#planner-drawer').isVisible(), false, 'Optional tools remain tucked away on returning to the planner');
     await page.setViewportSize({ width: 1440, height: 1000 });

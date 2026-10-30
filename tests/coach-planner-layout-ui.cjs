@@ -79,11 +79,13 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
       await page.goto(origin + '/workspace' + hash); await page.locator('#app').waitFor({ state: 'visible' });
       return { page, context, requests, errors, state, pending, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
     }
-    const enter = async f => { await f.page.locator('#navigation [data-tab="plan"]').click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled); };
+    const enter = async f => { await f.page.locator('#navigation [data-tab="plan"]').click(); await f.page.locator('#planner-open-selected').click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled); };
     const count = (f, suffix) => f.requests.filter(r => r.path.endsWith(suffix)).length;
     const current = f => f.page.locator('#session').inputValue();
     const day = (f, number) => f.page.locator('#planner-days [data-weekday="' + number + '"]');
-    const choose = async (f, id) => { if (!await f.page.locator('#planner-date').isVisible()) await f.page.locator('#planner-other-date').click(); await f.page.locator('#planner-date').selectOption(id); await f.page.waitForFunction(id => document.getElementById('session').value === id && !document.getElementById('plan-focus').disabled, id); };
+    const selectDate = async (f, id) => { if (!await f.page.locator('#planner-date').isVisible()) await f.page.locator('#planner-focus-date').click(); await f.page.locator('#planner-date').selectOption(id); };
+    const choose = async (f, id) => { await selectDate(f, id); await f.page.waitForFunction(id => document.getElementById('session').value === id && !document.getElementById('plan-focus').disabled, id); };
+    const chooseDay = async (f, number) => { await f.page.locator('#planner-back').click(); await day(f, number).click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled); };
     const clean = f => assert.deepEqual(f.errors, []);
 
     const f = await fixture(); await enter(f);
@@ -106,12 +108,12 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     });
     assert.deepEqual(currentSelection, ['ongoing', 'future', 'future', 'future', 'ongoing', 'future'], 'An active session remains reachable until its end, without reopening ended or cancelled sessions');
     checks++;
-    await day(f, 3).click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
+    await chooseDay(f, 3);
     assert.equal(await current(f), rid(6), 'Wednesday chooses its next active session, skipping a cancelled earlier slot');
     assert.match(await f.page.locator('#planner-session-title').innerText(), /Nov|November/);
     await choose(f, rid(8)); assert.equal(await current(f), rid(8), 'A later date can override the next-session default');
     await choose(f, rid(1)); assert.equal(await current(f), rid(1), 'Past sessions remain explicitly reachable');
-    await day(f, 3).click(); await f.page.waitForFunction(() => document.getElementById('session').value.endsWith('000006'));
+    await chooseDay(f, 3); await f.page.waitForFunction(() => document.getElementById('session').value.endsWith('000006'));
     assert.equal(await current(f), rid(6), 'Choosing the weekday again returns to its next session');
     assert.equal(await f.page.locator('#planner-date option[value="' + rid(5) + '"]').isEnabled().catch(() => false), false, 'Cancelled sessions cannot be selected');
     clean(f); checks++;
@@ -136,6 +138,7 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     for (const startup of [{ savedStart: 'plan' }, { hash: '#view=plan' }]) {
       const initial = await fixture({ ...startup, rows: [sessions[7], sessions[1], sessions[2]] });
       await initial.page.locator('#panel-plan').waitFor({ state: 'visible' });
+      await initial.page.locator('#planner-open-selected').click();
       await initial.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
       assert.equal(await current(initial), rid(2), 'Direct planner entry chooses the next session, not the first unsorted roster row');
       assert.equal(await initial.page.locator('#session-toolbar').isVisible(), false);
@@ -157,13 +160,13 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     await f.page.locator('#planner-close-drawer').click();
     assert.equal(await f.page.locator('#plan-focus').inputValue(), 'Fictional focus to preserve while reading notes');
     assert.equal(await f.page.locator('#planner-open-notes').evaluate(el => el === document.activeElement), true, 'Closing returns focus to the drawer opener');
-    await f.answer(false); await day(f, 5).click();
+    await f.answer(false); await selectDate(f, rid(3));
     assert.equal(await current(f), rid(6)); assert.equal(await f.page.locator('#plan-focus').inputValue(), 'Fictional focus to preserve while reading notes');
-    await f.answer(true); await day(f, 5).click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
+    await f.answer(true); await choose(f, rid(3));
     assert.equal(await current(f), rid(3)); assert.equal(await f.page.locator('#plan-focus').inputValue(), '');
     clean(f); checks++;
 
-    await day(f, 3).click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
+    await chooseDay(f, 3);
     await f.page.locator('#planner-open-notes').click(); await f.page.locator('#planner-notes-player').selectOption(sam.playerId);
     await f.page.locator('#planner-note-body').fill('Fictional personal observation from the planning drawer.');
     f.state.noteMode = 'delay'; const submitted = f.page.waitForRequest(r => new URL(r.url()).pathname.endsWith('/notes/save'));
@@ -190,10 +193,10 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     assert.equal(count(f, '/diagrams/list'), 1, 'Board loads only when its pullout opens');
     await f.page.locator('#tactics-title').fill('Unsaved fictional tactic');
     await f.page.locator('#planner-close-drawer').click();
-    await f.answer(false); await day(f, 5).click();
+    await f.answer(false); await selectDate(f, rid(3));
     assert.equal(await current(f), rid(6), 'Tactics drafts protect day changes even with the pullout closed');
     await f.page.locator('#planner-open-tools').click(); assert.equal(await f.page.locator('#tactics-title').inputValue(), 'Unsaved fictional tactic');
-    await f.page.locator('#planner-close-drawer').click(); await f.answer(true); await day(f, 5).click();
+    await f.page.locator('#planner-close-drawer').click(); await f.answer(true); await selectDate(f, rid(3));
     await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
     assert.equal(await current(f), rid(3)); clean(f); checks++;
 
@@ -209,7 +212,7 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     for (const width of [1365, 390, 320]) {
       await f.page.setViewportSize({ width, height: 950 });
       assert(await f.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Planner does not overflow at ' + width);
-      for (const id of ['planner-other-date', 'planner-open-notes', 'planner-open-tools', 'planner-open-run']) { const box = await f.page.locator('#' + id).boundingBox(); assert(box && box.height >= 43, id + ' touch target at ' + width); }
+      for (const id of ['planner-focus-date', 'planner-open-notes', 'planner-open-tools', 'planner-open-run']) { const box = await f.page.locator('#' + id).boundingBox(); assert(box && box.height >= 43, id + ' touch target at ' + width); }
       await f.page.locator('#planner-open-notes').click();
       assert(await f.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Notes drawer does not overflow at ' + width);
       const box = await f.page.locator('#planner-drawer').boundingBox(); assert(box && box.x >= -1 && box.x + box.width <= width + 1, 'Drawer fits at ' + width);
@@ -223,7 +226,7 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     await f.page.setViewportSize({ width: 1365, height: 950 }); await f.page.evaluate(() => scrollTo(0, 0)); fs.mkdirSync('outputs', { recursive: true }); await f.page.screenshot({ path: 'outputs/coach-planner-desktop.png', fullPage: true });
     await f.page.setViewportSize({ width: 390, height: 950 }); await f.page.evaluate(() => scrollTo(0, 0)); await f.page.screenshot({ path: 'outputs/coach-planner-mobile.png', fullPage: true });
     clean(f); checks++;
-    await f.page.locator('#logout').click(); await f.page.locator('#login').waitFor({ state: 'visible' });
+    await f.page.locator('#planner-home').click(); await f.page.locator('#logout').click(); await f.page.locator('#login').waitFor({ state: 'visible' });
     assert.equal(await f.page.locator('#planner-drawer').isVisible(), false); assert.equal((await f.page.locator('#planner-notes-list').textContent()).trim(), '');
     assert.equal((await f.page.locator('#planner-note-body').inputValue()).trim(), ''); clean(f); checks++;
     await f.context.close();
@@ -236,10 +239,10 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
 
     const draft = await fixture(); await enter(draft); await draft.page.locator('#planner-open-notes').click();
     await draft.page.locator('#planner-note-body').fill('Fictional unsaved group note'); await draft.page.locator('#planner-close-drawer').click();
-    await draft.answer(false); await day(draft, 5).click();
+    await draft.answer(false); await selectDate(draft, rid(3));
     assert.equal(await current(draft), rid(2), 'An unsaved drawer note protects its original session');
     await draft.page.locator('#planner-open-notes').click(); assert.equal(await draft.page.locator('#planner-note-body').inputValue(), 'Fictional unsaved group note');
-    await draft.page.locator('#planner-close-drawer').click(); await draft.answer(true); await day(draft, 5).click();
+    await draft.page.locator('#planner-close-drawer').click(); await draft.answer(true); await selectDate(draft, rid(3));
     await draft.page.waitForFunction(() => document.getElementById('session').value.endsWith('000003'));
     await draft.page.locator('#planner-open-notes').click(); assert.equal(await draft.page.locator('#planner-note-body').inputValue(), '', 'Confirmed discard cannot attach the old note to a new group');
     assert.equal(count(draft, '/notes/save'), 0); clean(draft); await draft.context.close(); checks++;

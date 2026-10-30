@@ -53,7 +53,7 @@
           check(programs && camps && [programs,camps].every(el=>el.getClientRects().length && el.getBoundingClientRect().height>=48),`Homepage at ${width}px shows large program and camp actions`);
           check(camps && camps.textContent.includes('Register for discounted winter camps') && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with the streamlined discounted winter camp action`);
           check(doc.querySelector('h1').textContent.includes('Weekly soccer coaching.') && doc.querySelector('h1').textContent.includes('Ages 6–14 in Kitsilano.'),`Homepage at ${width}px describes the weekly service, ages and location`);
-          for(const [coach,days] of [['Valentinos Dinglis',['wednesday','thursday','sunday']],['Romeo Dinglis',['wednesday','friday']]]){
+          for(const [coach,days] of [['Valentinos Dinglis',['tuesday','wednesday','thursday','sunday']],['Romeo Dinglis',['wednesday','friday']]]){
             const links=[...doc.querySelectorAll(`[role="group"][aria-label="Weekly groups with ${coach}"] a`)];
             check(links.length===days.length && links.every((link,index)=>new URL(link.href).searchParams.get('day')===days[index] && link.getBoundingClientRect().height>=44),`${coach} has readable weekly-group links at ${width}px`);
           }

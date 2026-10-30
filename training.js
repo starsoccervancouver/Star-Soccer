@@ -14,7 +14,7 @@
       'fen-burdett': {name: 'Fen Burdett Stadium', locality: 'North Vancouver', mapQuery: 'Fen Burdett Stadium 1648 Jones Avenue North Vancouver'}
     },
     sessions: [
-      {id:'tuesday',day:'Tuesday',weekday:2,time:'9:30–11:00 AM',startMinutes:570,minAge:null,maxAge:null,ageLabel:'Women’s soccer',audience:'women',location:'fen-burdett',coaches:[],dropin:20,pass4:null,active:true,excludedDates:[]},
+      {id:'tuesday',day:'Tuesday',weekday:2,time:'9:30–11:00 AM',startMinutes:570,minAge:null,maxAge:null,ageLabel:'Women’s soccer',audience:'women',location:'fen-burdett',coaches:['valentinos'],dropin:20,pass4:null,active:true,excludedDates:[]},
       {id:'wednesday',day:'Wednesday',weekday:3,time:'3:45–5:15 PM',startMinutes:945,minAge:9,maxAge:14,location:'connaught',coaches:['valentinos','romeo'],dropin:30,pass4:95,active:true,excludedDates:[]},
       {id:'thursday',day:'Thursday',weekday:4,time:'4:30–5:30 PM',startMinutes:990,minAge:6,maxAge:9,location:'connaught',coaches:['valentinos'],dropin:25,pass4:80,active:true,excludedDates:[]},
       {id:'friday',day:'Friday',weekday:5,time:'3:45–5:00 PM',startMinutes:945,minAge:6,maxAge:12,location:'connaught',coaches:['romeo'],dropin:25,pass4:80,active:true,excludedDates:[]},

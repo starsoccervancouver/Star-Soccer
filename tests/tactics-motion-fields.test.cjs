@@ -14,6 +14,15 @@ const reject=async mutate=>{
  assert.throws(()=>validateDiagram(content),{code:'INVALID_DIAGRAM',status:400});
 };
 
+test('supported field views round trip exactly in schema version 1',async()=>{
+ const {validateDiagram}=await validator;
+ for(const pitch of ['full','half','blank','facing-goal','away-from-goal']){
+  const content=diagram();content.pitch=pitch;
+  assert.deepStrictEqual(validateDiagram(content),content);
+ }
+ for(const pitch of ['unknown','facing_goal','away-from-goal ',null,undefined,1,{},[]])await reject(content=>{content.pitch=pitch;});
+});
+
 test('legacy diagrams retain exact output shape and label/title trimming',async()=>{
  const {validateDiagram}=await validator,content=diagram(),expected=diagram();
  content.items[0].label=' 1 ';content.frames[0].title=' First phase ';

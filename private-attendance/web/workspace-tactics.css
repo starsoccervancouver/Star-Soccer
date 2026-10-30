@@ -209,3 +209,11 @@
   #tactics-board-tools .tactics-workbar > label { flex-basis: 100%; }
   #tactics-board-tools .tactics-preview-controls > label { flex-basis: 100%; }
 }
+
+#tactics-board-tools .tactics-field-view { display: grid; grid-template-columns: auto minmax(0, 250px); align-items: center; justify-content: start; gap: 10px; margin: 4px 0; }
+#tactics-board-tools .tactics-field-view select { margin: 0; }
+
+@media (min-width: 1001px) {
+  #tactics-board-tools .tactics-main-toolbar { grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 6px 16px; }
+  #tactics-board-tools .tactics-main-toolbar > :is(.tactics-pieces,.tactics-selection-count) { grid-column: 1 / -1; }
+}

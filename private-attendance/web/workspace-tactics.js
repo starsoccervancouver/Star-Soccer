@@ -61,7 +61,7 @@
     openLibrary, closeLibrary, libraryDiagram, setLibraryLocked: (value, saveBlocked = value) => { if (libraryBinding && (libraryLocked !== !!value || librarySaveBlocked !== !!saveBlocked)) { libraryLocked = !!value; librarySaveBlocked = !!saveBlocked; if (libraryLocked) stopPlayback(); render(); } },
     setLibraryTitle: value => { if (libraryBinding) { record.title = String(value || 'Drill diagram').slice(0, 80); renderStatus(); } },
     getDraft: () => !libraryBinding && active() && loaded && !pending && !running ? { sessionId: context.session.id, title: record.title, diagram: clone(record.content) } : null,
-    preview: content => content?.frames?.[0] && Array.isArray(content.items) ? previewFrame(content.frames[0], content.items) : null,
+    preview: content => content?.frames?.[0] && Array.isArray(content.items) ? previewFrame(content.frames[0], content.items, content.pitch) : null,
     useDraft });
   function useDraft(value) {
     if (libraryBinding || !editable() || recoveryNeeded || value.sessionId !== context.session.id || value.diagram?.schemaVersion !== 1 || !Array.isArray(value.diagram.items) || !value.diagram.frames?.length) return false;
@@ -92,9 +92,10 @@
   const title = input('tactics-title'); title.maxLength = 80; title.value = record.title;
   title.addEventListener('input', () => { if (!editable()) return; if (!titleEditing) { remember(); titleEditing = true; } record.title = title.value; $('tactics-undo').disabled = false; renderStatus(); $('tactics-save').disabled = recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id); notifyDraft(); });
   title.addEventListener('blur', () => { titleEditing = false; });
-  const pitch = select('tactics-pitch', [['full', 'Full pitch'], ['half', 'Half pitch'], ['blank', 'Open training area']]);
+  const pitch = select('tactics-pitch', [['full', 'Full field'], ['half', 'Half field'], ['facing-goal', 'Facing goal'], ['away-from-goal', 'Away from goal'], ['blank', 'Blank training area']]);
   pitch.addEventListener('change', () => mutate(() => { record.content.pitch = pitch.value; }));
-  heading.append(field('Setup name', title), field('Field', pitch));
+  heading.append(field('Setup name', title));
+  const fieldView = field('Field view', pitch); fieldView.className = 'tactics-field-view';
   const topActions = el('div', '', 'tactics-toolbar tactics-main-toolbar');
   const addGroup = el('div', '', 'tactics-pieces'); addGroup.setAttribute('role', 'group'); addGroup.setAttribute('aria-label', 'Add a piece');
   function addPiece(kind, destination) {
@@ -114,7 +115,7 @@
     add.addEventListener('dragstart', event => { if (!editable() || add.disabled) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', kind); event.dataTransfer.effectAllowed = 'copy'; });
     add.dataset.pieceKind = kind; addGroup.append(add);
   }
-  topActions.append(addGroup);
+  topActions.append(addGroup, fieldView);
   const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
   for (const [mode, text] of [['place', 'Place pieces'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
   const selectionCount = el('p', '', 'tactics-selection-count'); selectionCount.id = 'tactics-selection-count';
@@ -132,6 +133,7 @@
   const itemSelect = select('tactics-item', [['', 'Choose a piece']]);
   itemSelect.addEventListener('change', () => { if (!editable()) return; selectPiece(itemSelect.value); stopPlayback(); render(); });
   const labelInput = input('tactics-label'); labelInput.maxLength = 12;
+  const pieceLabel = field('Shirt label', labelInput);
   let labelEditing = false;
   labelInput.addEventListener('input', () => { if (!editable()) return; const item = record.content.items.find(i => i.id === selectedItem); if (!item) return; if (!labelEditing) { remember(); labelEditing = true; } item.label = labelInput.value.trim(); draw(); editedText(); });
   labelInput.addEventListener('blur', () => { labelEditing = false; });
@@ -160,7 +162,7 @@
   for (const control of [zoneWidth, zoneHeight]) { control.min = '5'; control.max = '90'; control.step = '1'; }
   for (const [control, key] of [[zoneShape, 'shape'], [zoneColor, 'color'], [zoneWidth, 'width'], [zoneHeight, 'height']]) control.addEventListener('change', () => mutate(() => { const item = record.content.items.find(i => i.id === selectedItem); if (!item?.zone) return; item.zone[key] = ['width', 'height'].includes(key) ? Number(control.value) : control.value; for (const f of record.content.frames) constrainZone(f, item); }, 'Zone updated in every phase.'));
   zoneControls.append(field('Zone shape', zoneShape), field('Zone colour', zoneColor), field('Zone width', zoneWidth), field('Zone height', zoneHeight), el('p', 'Drag the zone to move it. Shape and size apply to every phase.', 'small'));
-  side.append(el('p', 'Select a piece on the field or use the list below. Drag to move; Escape clears selection.', 'tactics-selection-hint'), field('Selected piece', itemSelect), field('Short label', labelInput), carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')), pathLabel);
+  side.append(el('p', 'Select a piece on the field or use the list below. Drag to move; Escape clears selection.', 'tactics-selection-hint'), field('Selected piece', itemSelect), pieceLabel, carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')), pathLabel);
   side.insertBefore(zoneControls, nudge); side.insertBefore(routeActions, nudge);
   const advanced = el('details', '', 'tactics-advanced'); advanced.append(el('summary', 'Advanced positioning'), nudge, coordinate, bendField); side.append(advanced);
   const rotation = input('tactics-rotation', 'number'); rotation.min = '0'; rotation.max = '360'; rotation.step = 'any';
@@ -209,7 +211,7 @@
   const workbar = el('div', '', 'tactics-workbar');
   const undoControl = editingActions.children[0], redoControl = editingActions.children[1], playControl = playback.firstElementChild, saveControl = saveActions.firstElementChild;
   workbar.append(heading.firstChild, undoControl, redoControl, playControl, saveControl, status);
-  const extras = el('details', '', 'tactics-compact-details'); extras.append(el('summary', 'Field, templates & export'), heading, editingActions, saveActions,
+  const extras = el('details', '', 'tactics-compact-details'); extras.append(el('summary', 'Templates & export'), heading, editingActions, saveActions,
     button('Export SVG image', 'tactics-export', exportImage), button('Print diagram', 'tactics-print', printDiagram),
     button('Save draft as new setup', 'tactics-save-copy', () => { if (!editable() || recoveryNeeded) return; const draft = clone(record); clear(); record.title = (draft.title.slice(0, 73) + ' (copy)').slice(0, 80); record.content = draft.content; render(); tell('New unsaved copy. Save setup to keep it.'); notifyDraft(); }), intro);
   // Preserve existing controls and IDs while bringing the board and main actions forward.
@@ -344,9 +346,9 @@
     if (frameIndex < frames.length - 1) { elapsed = seconds * 1000; renderedPositions = motionPositions(currentFrame(), frames[frameIndex + 1], seconds / currentFrame().duration); }
     render();
   }
-  function previewFrame(frame, items = record.content.items) {
+  function previewFrame(frame, items = record.content.items, view = record.content.pitch) {
     const thumbnail = svg('svg', { viewBox: '0 0 1000 650', 'aria-hidden': 'true' });
-    thumbnail.append(svg('rect', { width: 1000, height: 650, fill: '#e3ebdc' }), svg('rect', { x: 25, y: 25, width: 950, height: 600, fill: 'none', stroke: '#8ea58b', 'stroke-width': 8 }));
+    thumbnail.append(fieldArtwork(view));
     for (const item of [...items].sort((a, b) => (b.kind === 'zone') - (a.kind === 'zone'))) { const p = positionIn(frame, item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1.6)' }); const graphic = pieceArtwork(item.kind); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (frame.positions.find(v => v.id === item.id).rotation || 0) + ')'); symbol.append(graphic); thumbnail.append(symbol); } }
     return thumbnail;
   }
@@ -431,6 +433,7 @@
     itemSelect.value = selectedItem; labelInput.value = record.content.items.find(i => i.id === selectedItem)?.label || '';
     const position = currentFrame().positions.find(p => p.id === selectedItem); coordinate.textContent = position ? 'Position: ' + Math.round(position.x) + '% across · ' + Math.round(position.y) + '% down' : 'Select a piece to position or label it.';
     const selectedKind = record.content.items.find(i => i.id === selectedItem)?.kind;
+    pieceLabel.firstChild.textContent = ['home', 'away'].includes(selectedKind) ? 'Shirt label' : 'Piece label';
     rotationField.hidden = selectedKind !== 'goal'; rotation.value = String(position?.rotation || 0);
     carrier.replaceChildren(); const free = el('option', 'Free ball'); free.value = ''; carrier.append(free);
     for (const player of record.content.items.filter(i => ['home', 'away'].includes(i.kind))) { const option = el('option', kinds[player.kind] + ' ' + player.label); option.value = player.id; carrier.append(option); }
@@ -476,19 +479,29 @@
     renderReuse();
     renderStatus(); draw(); renderPlayback();
   }
+  function fieldArtwork(view) {
+    const art = svg('g', { 'data-field-view': view, 'pointer-events': 'none' });
+    art.append(svg('rect', { width: 1000, height: 650, fill: '#eef2e8' }));
+    if (view !== 'blank') for (let i = 0; i < 10; i += 2) art.append(svg('rect', { x: i * 100, width: 100, height: 650, fill: '#e3ebdc' }));
+    const lines = svg('g', { fill: 'none', stroke: '#8ea58b', 'stroke-width': 2.5, 'pointer-events': 'none' });
+    if (view !== 'blank') {
+      lines.append(svg('rect', { x: 25, y: 25, width: 950, height: 600, rx: 2 }));
+      if (view === 'full') lines.append(svg('line', { x1: 500, y1: 25, x2: 500, y2: 625 }), svg('circle', { cx: 500, cy: 325, r: 80 }), svg('circle', { cx: 500, cy: 325, r: 3, fill: '#8ea58b' }), svg('rect', { x: 25, y: 175, width: 150, height: 300 }), svg('rect', { x: 825, y: 175, width: 150, height: 300 }), svg('rect', { x: 25, y: 250, width: 55, height: 150 }), svg('rect', { x: 920, y: 250, width: 55, height: 150 }));
+      else if (view === 'half') lines.append(svg('rect', { x: 25, y: 145, width: 220, height: 360 }), svg('rect', { x: 25, y: 235, width: 85, height: 180 }), svg('path', { d: 'M 975 245 A80 80 0 0 0 975 405' }));
+      else {
+        const end = svg('g', { 'data-field-goal': view === 'facing-goal' ? 'top' : 'bottom', transform: view === 'away-from-goal' ? 'translate(0 650) scale(1 -1)' : '' });
+        end.append(svg('rect', { x: 280, y: 25, width: 440, height: 200 }), svg('rect', { x: 390, y: 25, width: 220, height: 75 }), svg('circle', { cx: 500, cy: 180, r: 3, fill: '#8ea58b' }), svg('path', { d: 'M434 225 A80 80 0 0 0 566 225 M420 625 A80 80 0 0 1 580 625' }), svg('rect', { x: 440, y: 7, width: 120, height: 18, fill: '#f5f7ef', stroke: '#677b67' }), svg('path', { d: 'M460 7 V25 M480 7 V25 M500 7 V25 M520 7 V25 M540 7 V25 M440 16 H560', 'stroke-width': 1 }));
+        lines.append(end);
+      }
+    }
+    art.append(lines);
+    return art;
+  }
   function draw() {
     updateViewControls();
     board.setAttribute('viewBox', [viewCenter.x - 560 / zoom, viewCenter.y - 385 / zoom, 1120 / zoom, 770 / zoom].join(' '));
     board.replaceChildren();
-    board.append(svg('rect', { width: 1000, height: 650, fill: '#eef2e8' }));
-    for (let i = 0; i < 10; i += 2) board.append(svg('rect', { x: i * 100, width: 100, height: 650, fill: '#e3ebdc' }));
-    const lines = svg('g', { fill: 'none', stroke: '#8ea58b', 'stroke-width': 2.5, 'pointer-events': 'none' });
-    if (record.content.pitch !== 'blank') {
-      lines.append(svg('rect', { x: 25, y: 25, width: 950, height: 600, rx: 2 }));
-      if (record.content.pitch === 'full') lines.append(svg('line', { x1: 500, y1: 25, x2: 500, y2: 625 }), svg('circle', { cx: 500, cy: 325, r: 80 }), svg('circle', { cx: 500, cy: 325, r: 3, fill: '#8ea58b' }), svg('rect', { x: 25, y: 175, width: 150, height: 300 }), svg('rect', { x: 825, y: 175, width: 150, height: 300 }), svg('rect', { x: 25, y: 250, width: 55, height: 150 }), svg('rect', { x: 920, y: 250, width: 55, height: 150 }));
-      else lines.append(svg('rect', { x: 25, y: 145, width: 220, height: 360 }), svg('rect', { x: 25, y: 235, width: 85, height: 180 }), svg('path', { d: 'M 975 245 A80 80 0 0 0 975 405' }));
-    }
-    board.append(lines);
+    board.append(fieldArtwork(record.content.pitch));
     for (const item of record.content.items.filter(i => i.kind === 'zone')) { const p = renderedPositions?.find(p => p.id === item.id) || positionIn(currentFrame(), item.id); board.append(zoneArtwork(item, p)); }
     const defs = svg('defs');
     for (const [kind, color] of [['home', '#355d79'], ['away', '#92651c'], ['ball', '#303b42']]) { const marker = svg('marker', { id: 'tactics-arrow-' + kind, viewBox: '0 0 10 10', refX: 24, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto' }); marker.append(svg('path', { d: 'M0 0 L10 5 L0 10z', fill: color })); defs.append(marker); }

@@ -64,6 +64,17 @@ const { chromium } = require('playwright');
     assert.equal(await page.evaluate(() => CoachTactics.libraryDiagram().frames[0].notes), 'Starting cue before placing pieces.', 'Phase notes survive even before pieces are added');
     await fill('#tactics-phase-notes', '');
     for (const kind of ['home', 'away', 'ball', 'goal']) await page.locator('#tactics-add-' + kind).click();
+    assert.equal(await page.getByLabel('Piece label', { exact: true }).count(), 1);
+    assert(await page.getByLabel('Field view', { exact: true }).isVisible(), 'Field choice is visible without opening export settings');
+    assert.equal(await page.locator('#tactics-pitch').evaluate(n => !!n.closest('.tactics-compact-details')), false);
+    const positionsBeforeView = await page.evaluate(() => CoachTactics.libraryDiagram().frames[0].positions);
+    for (const view of ['full', 'half', 'facing-goal', 'away-from-goal', 'blank']) {
+      await page.locator('#tactics-pitch').selectOption(view);
+      assert.equal(await page.locator('#tactics-pitch-board [data-field-view]').getAttribute('data-field-view'), view);
+      assert.deepEqual(await page.evaluate(() => CoachTactics.libraryDiagram().frames[0].positions), positionsBeforeView, 'Changing the field preserves placed pieces');
+      if (view.includes('goal')) assert.equal(await page.locator('#tactics-pitch-board [data-field-goal]').getAttribute('data-field-goal'), view === 'facing-goal' ? 'top' : 'bottom');
+    }
+    await page.locator('#tactics-pitch').selectOption('facing-goal');
     await fill('#tactics-rotation', '90');
     await page.locator('#tactics-add-frame').click();
     await fill('#tactics-frame-title', 'Finish');
@@ -73,6 +84,7 @@ const { chromium } = require('playwright');
     assert.equal(first.title, 'Fictional passing and finish');
     assert.equal(first.setup, 'Pass through the gate and finish into the small goal.');
     assert.equal(first.diagram.schemaVersion, 1);
+    assert.equal(first.diagram.pitch, 'facing-goal', 'Field orientation saves with the drill');
     assert.deepEqual(first.diagram.items.map(item => item.kind), ['home', 'away', 'ball', 'goal']);
     assert.equal(first.diagram.frames.length, 2);
     assert.equal(first.diagram.frames[1].notes, 'Look up before the final pass.');
@@ -97,6 +109,7 @@ const { chromium } = require('playwright');
     const screen = point => page.locator('#tactics-pitch-board').evaluate((board, point) => { const p = board.createSVGPoint(); p.x = point.x * 10; p.y = point.y * 6.5; const next = p.matrixTransform(board.getScreenCTM()); return { x: next.x, y: next.y }; }, point);
     const drag = async (start, points) => { await page.locator('#tactics-pitch-board').scrollIntoViewIfNeeded(); const p = await screen(start); await page.mouse.move(p.x, p.y); await page.mouse.down(); for (const point of points) { const q = await screen(point); await page.mouse.move(q.x, q.y, { steps: 6 }); } await page.mouse.up(); };
     await page.locator('#tactics-item').selectOption(home);
+    assert.equal(await page.getByLabel('Shirt label', { exact: true }).count(), 1);
     await drag(await at(home), [{ x: 40, y: 25 }, { x: 60, y: 18 }, { x: 78, y: 34 }]);
     const recorded = await at(home); assert(recorded.trail?.length >= 2, 'Curved drag retains intermediate trajectory');
     assert.equal(await page.locator('[data-tactics-path="' + home + '"]').getAttribute('stroke'), '#355d79');
@@ -165,6 +178,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#tactics-phase-notes').inputValue(), second.diagram.frames[1].notes);
     assert.deepEqual(await page.evaluate(() => CoachTactics.libraryDiagram()), await page.evaluate(() => builderRecords[0].diagram));
     assert.equal(await page.evaluate(() => CoachLibrary.isDirty()), false);
+    assert.equal(await page.locator('#tactics-pitch').inputValue(), 'facing-goal', 'Reopened drill restores the field orientation');
     // Choosing a saved drill must wait for the selected session and never write a session automatically.
     await publish({ ...standalone, sessions: [session, { ...session, id: 'cancelled-session', status: 'Cancelled' }] });
     await page.evaluate(({ profile, session }) => {

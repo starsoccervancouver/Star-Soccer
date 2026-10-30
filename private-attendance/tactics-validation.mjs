@@ -12,7 +12,7 @@ const curve=value=>{if(typeof value!=='number'||!Number.isFinite(value)||value< 
 
 export function validateDiagram(content){
  object(content,['schemaVersion','pitch','items','frames']);
- if(content.schemaVersion!==1||!['full','half','blank'].includes(content.pitch)||!Array.isArray(content.items)||content.items.length>40||!Array.isArray(content.frames)||!content.frames.length||content.frames.length>12)invalid();
+ if(content.schemaVersion!==1||!['full','half','blank','facing-goal','away-from-goal'].includes(content.pitch)||!Array.isArray(content.items)||content.items.length>40||!Array.isArray(content.frames)||!content.frames.length||content.frames.length>12)invalid();
  const itemIds=new Set(),frameIds=new Set();
  const items=content.items.map(item=>{
   object(item,['id','kind','label'],['zone']);const id=identifier(item.id);

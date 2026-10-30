@@ -2279,3 +2279,35 @@ body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accen
   body #app .desk-main :is(.note-meta,.note-folder-kind,.note-folder-roster,.roster-row p,.task-row p,.account-row p,.audit-row p),
   body #app #planner-days button:not([aria-pressed="true"]) span { color:var(--desk-muted); }
 }
+
+/* Rounded working canvas with a soft transition into the charcoal shell. */
+@media screen {
+  .desk-header { background:linear-gradient(110deg,#27292d,#343536); border-bottom-color:transparent; }
+  .desk-layout { background:transparent; }
+  .desk-nav { background:linear-gradient(180deg,#27292d,#323335); border-right-color:transparent; }
+  #app .desk-main {
+    width:calc(100% - 18px); margin:12px 18px 22px 0; border:1px solid #e9e0d044; border-radius:30px;
+    background:radial-gradient(ellipse at 0 0,#bbb7af66,transparent 55%),linear-gradient(140deg,#d1cbbf,#ddd5c8 55%,#c9c5bc);
+    box-shadow:0 14px 40px #16181b26,inset 0 1px 0 #fff6;
+  }
+  body #app .desk-main .card:not(.profile-card),
+  body #app :is(.planner-session-browser,#player-note-folders) {
+    border-radius:23px; border-color:#bfb6a88c;
+    background:linear-gradient(135deg,#eae3d7ed,#e0d8cce8 65%,#d9d2c7e8);
+    box-shadow:0 6px 22px #34312b08,inset 0 1px 0 #fff5;
+  }
+  body #app :is(.roster-row,.note-card,.task-row,.account-row,.audit-row),
+  body #app .coaching-agenda-row:not(.is-current) {
+    background:linear-gradient(125deg,#e0d8cbd9,#d6cfc3d9); border-color:#b9b0a278; border-radius:18px;
+  }
+  body #app #planner-days button:not([aria-pressed="true"]) { background:linear-gradient(125deg,#dfd7cb,#d3ccc0); }
+  body.planner-focus-mode { background:#303235; }
+  body.planner-focus-mode .desk-layout { padding:12px; background:transparent; }
+  body.planner-focus-mode #app .desk-main { width:100%; min-height:calc(100dvh - 24px); margin:0; border-radius:28px; }
+}
+@media screen and (max-width:900px) {
+  #app .desk-main { width:calc(100% - 16px); margin:8px 8px 16px; border-radius:24px; padding-right:18px; padding-left:18px; }
+  .desk-nav { border-bottom-color:transparent; box-shadow:none; }
+  body.planner-focus-mode .desk-layout { padding:8px; }
+  body.planner-focus-mode #app .desk-main { min-height:calc(100dvh - 16px); border-radius:22px; }
+}

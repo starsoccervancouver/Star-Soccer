@@ -230,6 +230,7 @@
     womenForm.requestSubmit();womenForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(womenCalls===2 && womenForm.hidden && !doc.querySelector('#receipt').hidden && doc.querySelector('#receipt h2').textContent.includes('received') && doc.querySelector('#receipt').textContent.includes('will check space') && doc.querySelector('#receipt').textContent.includes('$20 CAD requested total') && !/registration confirmed|marked present|payment received/i.test(doc.querySelector('#receipt').textContent),'Tuesday form acceptance acknowledges receipt pending coaching-team confirmation and blocks duplicate submissions');
     check(doc.documentElement.scrollWidth<=321,'Tuesday receipt fits a narrow phone');
+    check(!doc.querySelector('.count-feed-note') && !doc.querySelector('#booking-dates .session-capacity'),'Women’s registration does not attach the unrelated youth availability feed');
     doc=await load('registration.html?sessionId=tuesday&type=pass4',320);
     check(doc.querySelector('#training-registration').hidden && !doc.querySelector('#registration-status').hidden,'Tuesday rejects an unsupported four-session pass link');
     doc=await load('programs.html?age=14&day=sunday&source=test#sessions');

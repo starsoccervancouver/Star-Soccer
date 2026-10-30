@@ -43,6 +43,9 @@
   // Only youth groups use the public youth booking feed. The adult estimate remains coach-reported.
   const rows=[...document.querySelectorAll('.schedule-entry[data-session-day]:not([data-audience="adult"])')],preview=document.querySelector('#booking-dates');
   if(!T || (!rows.length && !preview))return;
+  // Women's drop-ins use the same registration form, but this published feed
+  // contains youth sessions only. Their place is checked by the coaching team.
+  if(preview&&T.getSession(new URLSearchParams(location.search).get('sessionId'))?.audience==='women')return;
   let records=null,busy=false,checkedAt='';
   function renderCount(element,record,session,date) {
     element.replaceChildren();

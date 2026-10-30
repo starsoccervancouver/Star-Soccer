@@ -6,6 +6,15 @@ const groups=require('../private-attendance/web/workspace-groups.js');
 const rid=n=>'rec'+String(n).padStart(14,'0');
 const row=(n,date,extra={})=>({id:rid(n),date,time:'4:00–5:00 PM',location:'Fictional West Field',programId:rid(100),status:'Scheduled',...extra});
 
+test('winter camps have two browsing groups across days and slots, without merging records',()=>{
+ const sessions=[row(1,'2026-12-21',{label:'Christmas AM'}),row(2,'2026-12-22',{label:'Christmas PM',time:'12:30–3:30 PM'}),row(3,'2026-12-28',{label:'Boxing Week AM'}),row(4,'2027-01-01',{label:'Winter Camp Week 2'})];
+ const result=groups.groups(sessions);assert.equal(result.length,2);assert.deepEqual(result.map(g=>g.label),['Winter Camp — Week 1','Winter Camp — Week 2']);
+ assert.deepEqual(result.map(g=>g.sessionIds),[[rid(1),rid(2)],[rid(3),rid(4)]]);assert.equal(groups.sameGroup(sessions[0],sessions[1]),false);
+ assert.equal(groups.groups([row(5,'2026-12-23',{label:'Wednesday training'})])[0].kind,undefined);
+ assert.equal(groups.groups([row(6,'2027-12-21',{label:'Winter Camp'})])[0].kind,undefined);
+ assert.equal(groups.groups([row(7,'2026-12-23',{players:[{kind:'camp'}]})])[0].kind,'camp');
+});
+
 test('verified recurring programs use actual weekday, slot and venue identity',()=>{
  const a=row(1,'2026-10-29'),b=row(2,'2026-11-05');
  assert.equal(groups.key(a),groups.key(b));assert(groups.sameGroup(a,b));

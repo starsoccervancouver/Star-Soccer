@@ -95,9 +95,9 @@
     focusedSession = ''; focusEpoch++; closeDrawer(true); closeDatePicker(); renderFocus(); emit('coach:focus-changed', { focused: false, sessionId: null });
     if (context?.profile && context.tab === 'plan') { $('planner-chooser-title').focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'instant' }); }
   }
-  function requestSession(sessionId) {
+  function requestSession(sessionId, chooseDate = false) {
     if (!sessionId || locked()) return;
-    emit('coach:open-session', { sessionId, tab: 'plan', resolve: accepted => { if (accepted) focusSession(sessionId); } });
+    emit('coach:open-session', { sessionId, tab: 'plan', resolve: accepted => { if (accepted) { focusSession(sessionId); if (chooseDate) $('planner-focus-date').click(); } } });
   }
   function requestExit(destination) {
     if (locked()) return;
@@ -109,16 +109,18 @@
     const groups = window.CoachGroups?.groups(rows) || [], group = selectedGroup();
     $('planner-other-date').hidden = true;
     document.querySelector('.planner-session-summary').hidden = true;
-    $('planner-days').replaceChildren(...groups.map(item => {
+    const cards = groups.map(item => {
       const next = groupTarget(item), button = make('button', '', 'planner-day');
       button.type = 'button'; button.dataset.weekday = String(item.weekday ?? ''); button.dataset.groupKey = item.key;
       button.setAttribute('aria-pressed', String(item.key === group?.key));
       button.disabled = locked() || !next;
-      button.append(make('strong', item.label), make('span', item.verified ? 'Attendance, plans and player notes' : 'Separate dates · no shared group history'));
+      button.append(make('strong', item.label), make('span', item.kind === 'camp' ? 'Choose a day and morning or afternoon session' : item.verified ? 'Attendance, plans and player notes' : 'Separate dates · no shared group history'));
       button.append(make('span', next ? inProgress(next) ? 'In progress' : nextSession(item.sessions) ? 'Open upcoming session' : 'Open recorded dates' : 'No available dates', 'planner-day-time'));
-      button.addEventListener('click', () => { if (next) requestSession(next.id); });
+      button.addEventListener('click', () => { if (next) requestSession(next.id, item.kind === 'camp'); });
       return button;
-    }), ...(!groups.length ? [make('p', 'No assigned training groups yet.', 'empty-state')] : []));
+    });
+    const regular = cards.filter((_, index) => groups[index].kind !== 'camp'), camps = cards.filter((_, index) => groups[index].kind === 'camp');
+    $('planner-days').replaceChildren(...regular, ...(camps.length ? [make('h3', 'Camps', 'coach-camps-heading'), ...camps] : []), ...(!groups.length ? [make('p', 'No assigned training groups yet.', 'empty-state')] : []));
     $('planner-session-title').textContent = selected ? window.CoachGroups.label(group || selected) : 'Choose a training group';
     $('planner-session-detail').textContent = selected ? [label(selected.date), selected.time, selected.location].filter(Boolean).join(' · ') : 'No assigned training group.';
     const next = group && nextSession(group.sessions);

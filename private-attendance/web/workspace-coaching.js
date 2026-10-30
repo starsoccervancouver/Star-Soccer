@@ -84,6 +84,9 @@
     const start = today(), groups = authorizedGroups();
     heading(target, 'Your training groups', 'Choose a group', 'Open the group to prepare a session, check attendance or find a player’s notes.');
     const agenda = element('div', '', 'coaching-agenda');
+    const camps = element('section', '', 'coach-camps-section'); camps.setAttribute('aria-label', 'Camps');
+    camps.append(element('h3', 'Camps', 'coach-camps-heading'));
+    const campCards = element('div', '', 'coaching-agenda'); camps.append(campCards);
     for (const group of groups) {
       const members = group.sessions.filter(session => validDate(session.date) && session.status !== 'Cancelled');
       const next = window.CoachPlanner?.nextSession ? window.CoachPlanner.nextSession(members) : members.find(session => session.date >= start);
@@ -94,13 +97,14 @@
       details.append(element('h3', group.label));
       details.append(element('p', session ? (next ? 'Next session: ' : 'Most recent session: ') + dateLabel(session.date) : 'No active session recorded', 'small'));
       const actions = element('div', '', 'coaching-inline-actions');
-      const open = button('Open group', () => { if (session) emit('coach:open-session', { sessionId: session.id, tab: 'plan', workspaceView: 'attendance' }); }, { primary: true, label: 'Open group: ' + group.label });
+      const open = button(group.kind === 'camp' ? 'Choose camp day' : 'Open group', () => { if (session) emit('coach:open-session', { sessionId: session.id, tab: 'plan', workspaceView: 'attendance', resolve: accepted => { if (accepted && group.kind === 'camp') $('planner-focus-date').click(); } }); }, { primary: true, label: 'Open group: ' + group.label });
       if (!session) open.disabled = true;
       actions.append(open);
       row.append(details, actions);
-      agenda.append(row);
+      (group.kind === 'camp' ? campCards : agenda).append(row);
     }
     target.append(agenda);
+    if (campCards.children.length) target.append(camps);
     if (!groups.length) target.append(empty('No assigned training groups are available.'));
     const due = (context.notes || []).filter(note => validDate(note.review_date) && note.review_date <= start);
     if (due.length && !$('home-priorities')) {

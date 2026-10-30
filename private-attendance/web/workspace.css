@@ -2177,3 +2177,5 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
 #app #player-note-folders button.note-folder-card { border-radius:16px; justify-content:flex-start; align-items:flex-start; padding:16px; min-height:132px; font-weight:400; }
 #app #player-note-folders button.note-folder-card strong { font-size:15px; line-height:1.45; font-weight:700; }
 #app #player-note-folders button.note-folder-card[aria-pressed="true"] { color:var(--desk-ink); background:#faf4eb; }
+.coach-camps-heading { grid-column:1 / -1; margin:18px 0 0; font-size:18px; }
+.coach-camps-section { margin-top:24px; padding-top:8px; border-top:1px solid var(--desk-line); }

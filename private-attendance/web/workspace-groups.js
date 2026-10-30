@@ -11,6 +11,15 @@
   const venueKey = value => text(value).toLowerCase();
   const timeKey = value => text(value).toLowerCase().replace(/[–—−]/g, '-').replace(/\s+/g, '');
   const recordId = value => typeof value === 'string' && /^rec[A-Za-z0-9]{14}$/.test(value);
+  // Navigation only: a camp week never establishes shared attendance or note history.
+  const winterWeeks = [
+    { week: 1, start: '2026-12-21', end: '2026-12-25' },
+    { week: 2, start: '2026-12-28', end: '2027-01-01' },
+  ];
+  function campWeek(session) {
+    const camp = /\b(winter\s+camp|christmas|boxing)\b/i.test(text(session?.label)) || session?.players?.some(player => player.kind === 'camp');
+    return camp ? winterWeeks.find(week => session.date >= week.start && session.date <= week.end) : null;
+  }
   function weekday(session) {
     const date = session?.date;
     if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
@@ -19,6 +28,9 @@
   }
   function identity(session) {
     if (!session || !text(session.id)) return null;
+    const camp = campWeek(session);
+    if (camp && weekday(session) !== null) return { key: JSON.stringify(['winter-camp', camp.start]), kind: 'camp', week: camp.week, start: camp.start, end: camp.end,
+      weekday: null, day: 'Camps', time: '', location: '', programId: null, verified: false };
     const day = weekday(session), time = timeKey(session.time), location = venueKey(session.location);
     const verified = recordId(session.programId) && day !== null && !!time && !!location;
     return { key: JSON.stringify([verified ? 'program' : 'other', verified ? session.programId : null, day, time, location]),
@@ -35,6 +47,7 @@
     if (Array.isArray(value?.sessionIds) && typeof value.label === 'string') return value.label;
     const group = identity(value);
     if (!group) return 'Choose a group';
+    if (group.kind === 'camp') return 'Winter Camp — Week ' + group.week;
     return [group.day, group.time || 'Time to confirm', group.location || 'Venue to confirm', group.verified ? '' : 'Other sessions'].filter(Boolean).join(' · ');
   }
   const compareSessions = (a, b) => text(a.date).localeCompare(text(b.date)) || timeKey(a.time).localeCompare(timeKey(b.time)) || text(a.id).localeCompare(text(b.id));

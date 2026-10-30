@@ -32,7 +32,9 @@ jobs:
       - name: Install browser for responsive and form checks
         run: pnpm exec playwright install --with-deps chromium
       - name: Check responsive pages, navigation, filters and mocked submissions
-        run: node tests/browser.cjs
+        run: |
+          node tests/browser.cjs
+          node tests/camp-audit-ui.cjs
       - name: Check private tactics editor, animation and session safety with fictional data
         run: |
           node tests/coach-tactics-ui.cjs

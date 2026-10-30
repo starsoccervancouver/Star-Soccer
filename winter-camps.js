@@ -28,6 +28,14 @@
       label:kind==='week'?'Five-day '+(slot==='both'?'morning + afternoon package':slots[0].name.toLowerCase()+' package'):(free?'Free Christmas Friday': 'Drop-in · '+covered.length+(covered.length===1?' day':' days'))+' · '+(slot==='both'?'morning + afternoon':slots[0].name),
       time:slot==='both'?'9 AM–noon & 12:30–3:30 PM':slots[0].time,lunch:slot==='both',location:catalog.location});
   }
+  // Only recommend a full week when every date is still bookable.
+  function packageAlternative(input,now=new Date()){
+    const current=quote(input,now);
+    if(current.kind!=='dropin')return null;
+    let weekly;try{weekly=quote({...input,kind:'week'},now);}catch{return null;}
+    if(current.price<=weekly.price)return null;
+    return Object.freeze({price:weekly.price,savings:current.price-weekly.price,dates:weekly.dates,label:weekly.label});
+  }
   function confirmation(q,reference,name){
     name=String(name||'').trim();
     if(!['week','dropin'].includes(q.kind)||!getWeek(q.week)||!/^SS-CAMP-[A-Z0-9-]{6,40}$/.test(reference)||!name||name.length>100||/[\r\n\x00-\x1f]/.test(name))throw new Error('Invalid camp confirmation.');
@@ -43,6 +51,6 @@
       '', 'See you on the field!','Star Soccer','starsoccervancouver@gmail.com','Reference: '+reference
     ].filter((line,i,all)=>line!==''||all[i-1]!=='').join('\n')};
   }
-  const api=Object.freeze({catalog,getWeek,dates,selectedSlots,quote,confirmation});root.StarWinterCamps=api;
+  const api=Object.freeze({catalog,getWeek,dates,selectedSlots,quote,packageAlternative,confirmation});root.StarWinterCamps=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

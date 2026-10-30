@@ -82,7 +82,8 @@
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
           // The approved private form and 44px stepper rows stack on narrow phones.
-          const limit=page.includes('kind=dropin')?850:doc.body.classList.contains('private-registration')?740:(width<=420 && numeric.length?850:740);
+          // Passes now show all four dated availability rows beside submit.
+          const limit=page.startsWith('registration.html') && page.includes('type=pass4')?(width<=420?950:850):page.includes('kind=dropin')?850:doc.body.classList.contains('private-registration')?740:(width<=420 && numeric.length?850:740);
           check(submit.getBoundingClientRect().bottom<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
           if(doc.body.classList.contains('private-registration')){
             doc.querySelector('[name="Training format"][value="smallgroup"]').click();
@@ -101,7 +102,7 @@
             check(total.getBoundingClientRect().right<=width && [...doc.querySelectorAll('.camp-day')].every(el=>el.getBoundingClientRect().width>=44 && el.getBoundingClientRect().height>=44),`Camp drop-in at ${width}px keeps the total readable and every day touch-friendly`);
           }
           const more=doc.querySelector('[data-optional-fields]');
-          check(doc.querySelectorAll('form details').length===1 && !more.open && more.querySelector('summary').textContent==='Tell us more (optional)' && more.nextElementSibling.matches('[type="submit"]') && !more.querySelector('[required]'),`${page} at ${width}px has one optional Tell us more directly before registration`);
+          check(doc.querySelectorAll('form details').length===1 && !more.open && more.querySelector('summary').textContent==='Tell us more (optional)' && (more.nextElementSibling.matches('[type="submit"]') || (page.startsWith('registration.html') && more.nextElementSibling.id==='booking-dates' && doc.querySelector('#booking-dates').nextElementSibling.id==='family-total' && doc.querySelector('#family-total').nextElementSibling.matches('[type="submit"]'))) && !more.querySelector('[required]'),`${page} at ${width}px keeps optional details before the final date/total and registration controls`);
           const panel=doc.querySelector('.quick-panel').getBoundingClientRect(),info=doc.querySelector('.registration-info').getBoundingClientRect();
           check(info.width>0,`${page} at ${width}px shows its information card`);
           if(width>=900)check(panel.width>info.width*1.5 && info.left>=panel.right,`${page} at ${width}px gives the registration form more space beside the info card`);
@@ -192,13 +193,13 @@
     check(doc.querySelector('[data-session-day="friday"] .session-capacity').textContent==='3/20 players · 17 places remaining','Schedule shows the dated ledger count');
     check(doc.querySelector('[data-session-day="thursday"] .session-capacity').textContent==='0/20 players · 20 places remaining','Recorded zero is shown as zero');
     check(!doc.querySelector('.count-refresh') && doc.documentElement.dataset.countsState==='ready','Counts load automatically without a refresh button');
-    check(!doc.querySelector('.count-feed-note'),'Training page keeps session counts without the ledger-status message');
+    check(doc.querySelector('.count-feed-note'),'Training page shows count freshness and availability guidance');
     frame.contentWindow.fetch=async()=>{throw new TypeError('Offline');};
     doc.dispatchEvent(new frame.contentWindow.Event('visibilitychange'));
     for(let i=0;i<100 && doc.documentElement.dataset.countsState==='loading';i++)await new Promise(resolve=>setTimeout(resolve,10));
-    check([...doc.querySelectorAll('.session-capacity')].every(el=>el.textContent==='Capacity 20 · Count unavailable'),'Failed refresh removes old counts and never substitutes zero');
+    check([...doc.querySelectorAll('.session-capacity')].every(el=>el.textContent.includes('Contact us for availability') && el.querySelector('a[href^="mailto:"]')),'Failed refresh removes old counts and never substitutes zero');
     doc=await load('registration.html?sessionId=friday&type=dropin',320);
-    check(![...doc.querySelectorAll('input[type="date"]')].some(el=>el.getClientRects().length) && !doc.querySelector('.count-feed-note') && !doc.querySelector('[data-optional-fields]').open,'Weekly registration keeps the date picker and optional questions out of the initial flow');
+    check(![...doc.querySelectorAll('input[type="date"]')].some(el=>el.getClientRects().length) && doc.querySelector('#booking-dates li').dataset.sessionDate===frame.contentWindow.StarTraining.nextDate(frame.contentWindow.StarTraining.getSession('friday')) && !doc.querySelector('[data-optional-fields]').open,'Weekly drop-in shows the upcoming date beside submission while extra questions stay optional');
     check([...doc.querySelector('form').querySelectorAll('[required]')].map(el=>el.name).sort().join(',')==='Experience,Player age,Player name,email','Weekly registration requires exactly child, age, email and experience');
     check(doc.querySelector('[data-training-info-option]').textContent==='Friday · Drop-in' && doc.querySelector('[data-training-info-price]').textContent==='$25 CAD' && doc.querySelector('[data-training-info-venue]').textContent==='Connaught Park','Drop-in information card follows the selected session and approved price');
     doc=await load('programs.html?age=14&day=sunday&source=test#sessions');
@@ -290,6 +291,51 @@
     check(receivedData.get('Client reference')===firstReference && doc.querySelector('.registration-recovery').hidden,'Retries keep the same reference and hide stale recovery on acceptance');
     check(doc.querySelector('#receipt').textContent.includes('pass confirmation') && doc.querySelector('#receipt').textContent.includes('payment') && doc.querySelector('#receipt').textContent.includes('$95') && doc.querySelector('#receipt').textContent.includes('4th session'),'Pass receipt preserves price and expected dates with email/payment follow-up');
     check(doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1,'Weekly receipt fits a narrow phone');
+    doc=await load('registration.html?sessionId=friday&type=pass4',320);
+    const rolloverWindow=frame.contentWindow,rolloverForm=doc.querySelector('#training-registration'),rolloverTraining=rolloverWindow.StarTraining,rolloverSession=rolloverTraining.getSession('friday'),originalDate=rolloverWindow.Date;
+    const displayedStart=doc.querySelector('#pass-start').value,scanStart=originalDate.parse(displayedStart+'T00:00:00Z');let cutoff=null;
+    for(let minute=0;minute<48*60;minute++){
+      const instant=scanStart+minute*60000,clock=rolloverTraining.localClock(new originalDate(instant));
+      if(clock.date===displayedStart&&clock.minutes===rolloverSession.startMinutes){cutoff=instant;break;}
+    }
+    if(cutoff===null)throw new Error('Could not locate Vancouver session cutoff for rollover test');
+    let controlledNow=cutoff-60000;
+    rolloverWindow.Date=class extends originalDate{constructor(...args){super(...(args.length?args:[controlledNow]));}static now(){return controlledNow;}};
+    check(rolloverTraining.nextDate(rolloverSession)===displayedStart,'Controlled clock starts before the displayed pass start cutoff');
+    for(const [name,value] of [['email','rollover@example.invalid'],['Player name','Test Player'],['Player age','8'],['Experience','new']])rolloverForm.elements.namedItem(name).value=value;
+    let rolloverCalls=0,rolloverPayload;rolloverWindow.fetch=async(url,options)=>{rolloverCalls++;rolloverPayload=options.body;return {ok:true,json:async()=>({success:true})};};
+    controlledNow=cutoff;
+    rolloverForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
+    const updatedStart=rolloverTraining.nextDate(rolloverSession),updatedPlan=rolloverWindow.StarWeeklySignup.passPlan('friday');
+    check(rolloverCalls===0 && !rolloverForm.hidden && updatedStart!==displayedStart && doc.querySelector('#pass-start').value===updatedStart && doc.querySelector('#registration-status').textContent.includes('Review the four updated dates'),'Crossing the default pass cutoff updates dates and requires review without sending a request');
+    check([...doc.querySelectorAll('#booking-dates li')].map(el=>el.dataset.sessionDate).join(', ')===updatedPlan.dates.join(', ') && doc.querySelector('#pass-end').textContent===rolloverTraining.prettyDate(updatedPlan.end),'All four visible pass dates and the fourth-session end update after rollover');
+    rolloverForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
+    check(rolloverCalls===1 && rolloverForm.hidden && rolloverPayload.get('Pass start date')===updatedStart && rolloverPayload.get('Covered dates')===updatedPlan.dates.join(', '),'A second deliberate submission sends the reviewed four-date pass exactly once');
+    rolloverWindow.Date=originalDate;
+    doc=await load('registration.html?sessionId=friday&type=dropin',320);
+    const siblingForm=doc.querySelector('#training-registration'),siblingWindow=frame.contentWindow;
+    for(const [name,value] of [['email','family@example.invalid'],['Player name','Alex Example'],['Player age','8'],['Experience','new']])siblingForm.elements.namedItem(name).value=value;
+    doc.querySelector('.family-add-player').click();
+    const extra=doc.querySelector('.family-player');
+    extra.querySelector('[data-player-field="name"]').value='Alex Example';extra.querySelector('[data-player-field="age"]').value='9';extra.querySelector('select').value='some';
+    siblingForm.dispatchEvent(new siblingWindow.Event('submit',{bubbles:true,cancelable:true}));
+    check(!extra.querySelector('[data-player-field="name"]').validity.valid,'Duplicate sibling names are rejected to keep player identities separate');
+    siblingForm.elements.namedItem('Player name').value='Sam Example';siblingForm.elements.namedItem('Player name').dispatchEvent(new siblingWindow.Event('input',{bubbles:true}));
+    check(extra.querySelector('[data-player-field="name"]').validity.valid,'Editing the first player clears stale duplicate-name errors on a sibling');
+    check(doc.querySelector('#family-total').textContent.includes('$50') && doc.documentElement.scrollWidth<=321,'Sibling form shows the two-player total and fits a narrow phone');
+    const siblingPayloads=[];siblingWindow.fetch=async(url,options)=>{siblingPayloads.push(options.body);return {ok:true,json:async()=>({success:true})};};
+    siblingForm.requestSubmit();siblingForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,50));
+    check(siblingPayloads.length===2 && siblingPayloads[0].get('Player name')==='Sam Example' && siblingPayloads[1].get('Player name')==='Alex Example' && siblingPayloads[1].get('Experience')==='Some experience','One family action sends exactly one canonical registration per child');
+    check(siblingPayloads[0].get('Client reference')!==siblingPayloads[1].get('Client reference') && siblingPayloads[0].get('Family reference')===siblingPayloads[1].get('Family reference') && siblingPayloads.every(p=>p.get('Price CAD')==='25'&&p.get('Family requested total CAD')==='50'),'Sibling requests retain unique references, a shared family reference and independent prices');
+    check(siblingForm.hidden && doc.querySelector('#receipt').textContent.includes('Sam Example') && doc.querySelector('#receipt').textContent.includes('Alex Example'),'Successful family receipt names each received request without claiming reserved places');
+    doc=await load('registration.html?sessionId=friday&type=dropin',320);
+    const partialForm=doc.querySelector('#training-registration'),partialWindow=frame.contentWindow;
+    for(const [name,value] of [['email','family@example.invalid'],['Player name','Alex Example'],['Player age','8'],['Experience','new']])partialForm.elements.namedItem(name).value=value;
+    doc.querySelector('.family-add-player').click();const partialExtra=doc.querySelector('.family-player');partialExtra.querySelector('[data-player-field="name"]').value='Sam Example';partialExtra.querySelector('[data-player-field="age"]').value='9';partialExtra.querySelector('select').value='some';
+    let partialCalls=0;partialWindow.fetch=async()=>{partialCalls++;if(partialCalls===2)throw new TypeError('Offline');return {ok:true,json:async()=>({success:true})};};
+    partialForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,50));
+    check(partialCalls===2 && partialForm.querySelector('[type="submit"]').disabled && partialForm.elements.namedItem('email').disabled && doc.querySelector('#receipt').hidden,'Partial family acceptance freezes the form and prevents resending the received child');
+    check(doc.querySelector('.registration-recovery').textContent.includes('Alex Example — request received') && doc.querySelector('.registration-recovery').textContent.includes('Sam Example — receipt not confirmed'),'Partial family submission reports each child’s actual submission state');
     doc=await load('program-private-small-group.html?coach=romeo');
     check(doc.querySelector('[name="Preferred coach"]').value==='romeo','Coach preference survives the inquiry link');
     check(doc.querySelector('[name="Referral source"]') && !doc.querySelector('[name="Referral source"]').required,'Private inquiry also offers optional referral source');
@@ -298,7 +344,7 @@
     let stepperSubmits=0;doc.querySelector('#private-inquiry').addEventListener('submit',()=>stepperSubmits++);
     check(players.value==='1' && minus.disabled,'Private player control starts at one with decrement disabled');
     const singleAge=doc.querySelector('[name="Youngest age"]'),hiddenOldest=doc.querySelector('[name="Oldest age"]');
-    check(singleAge.value==='5' && singleAge.min==='5' && hiddenOldest.disabled && !hiddenOldest.required && !hiddenOldest.getClientRects().length && doc.querySelector('#private-age-label').textContent==='Player age','One player starts at age five and shows only one required age ticker');
+    check(singleAge.value==='' && !singleAge.checkValidity() && singleAge.min==='5' && hiddenOldest.disabled && !hiddenOldest.required && !hiddenOldest.getClientRects().length && doc.querySelector('#private-age-label').textContent==='Player age','One player requires an explicit age and shows only one required age ticker');
     singleAge.value='4';singleAge.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));
     check(!singleAge.checkValidity(),'The player age cannot be below five');
     singleAge.value='5';singleAge.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));

@@ -327,3 +327,8 @@ body.home-landing .home-parent-faq details p{padding:0 4px 12px;line-height:1.75
 @media(max-width:600px){body.home-landing .immersive-hero-overlay{padding:30px 20px 36px}body.home-landing .immersive-hero-stage{gap:20px}body.home-landing .hero-action-label{display:none}body.home-landing a.hero-action{min-height:108px;padding:18px 20px}body.home-landing a.hero-action-camps{min-height:128px}body.home-landing .hero-action-title{font-size:1.35rem}body.home-landing .immersive-hero h1{font-size:clamp(2.4rem,9vw,3.25rem);max-width:19ch;margin:10px 0 14px}body.home-landing .immersive-hero-lead{font-size:.9rem;line-height:1.6}}
 @media(prefers-reduced-motion:reduce){body.home-landing a.hero-action{transition:none}body.home-landing a.hero-action:hover{transform:none}}
 @media(max-width:900px){body.home-landing a.hero-action{-webkit-backdrop-filter:none;backdrop-filter:none}}
+
+/* Adult players have a direct route without competing with the main booking cards. */
+body.home-landing .hero-women-link{display:flex;align-items:center;min-height:44px;padding:8px 4px;color:#e5f1fc;font-size:.92rem;font-weight:700;text-underline-offset:4px}
+body.home-landing .hero-women-link:hover{color:#f9d593}
+body.home-landing .hero-women-link:focus-visible{outline:3px solid #f9d593;outline-offset:4px;border-radius:4px}

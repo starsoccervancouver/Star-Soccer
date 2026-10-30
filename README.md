@@ -1,5 +1,7 @@
 # Star-Soccer
 
+See [BOOKING_AUDIT.md](BOOKING_AUDIT.md) for the October 29 booking, sibling-registration, privacy and measurement changes, including the boundaries of live confirmation verification.
+
 ## Website optimization — 21 October 2026
 
 - Maintained pages load one generated `site.min.css` instead of three stylesheets. Editable sources remain in `styles.css`, `audit-fixes.css`, and `restoration.css`; the build removes unused selectors and minifies without changing source order. Runtime menu, error, receipt, focus and disclosure styles are preserved.

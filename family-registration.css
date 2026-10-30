@@ -1,0 +1,26 @@
+body.quick-flow .family-players{display:grid;gap:14px;min-width:0}
+body.quick-flow .family-player{display:grid;gap:12px;min-width:0;margin:0;padding:14px;border:1px solid #617d95;border-radius:10px}
+body.quick-flow .family-player legend{padding:0 5px;font-size:.85rem;font-weight:700;color:#f0cb80}
+body.quick-flow .family-add-player{width:100%;min-height:46px;margin:0}
+body.quick-flow .family-remove-player{justify-self:start;min-height:44px;padding:8px 0;border:0;background:transparent;color:#c0d3e4;font:inherit;cursor:pointer}
+body.quick-flow .family-help{margin:0;font-size:.76rem;line-height:1.5;color:#c0d3e4}
+body.quick-flow .booking-submit-dates{display:grid;gap:6px;margin:0;padding:12px 14px;border:1px solid #617d95;border-radius:9px;list-style:none;font-size:.85rem;line-height:1.5}
+body.quick-flow .family-result{margin:10px 0;padding-left:20px;font-size:.85rem;line-height:1.6}
+body.quick-flow .family-player :disabled{opacity:.7}
+/* Keep the single-player path concise; sibling details appear when needed. */
+body.quick-flow .family-players:empty{display:none}
+body.quick-flow .family-players:empty+.family-add-player+.family-help{display:none}
+body.quick-flow form .family-add-player{min-height:44px;padding:8px 12px;line-height:1.3}
+body.quick-flow #family-total[hidden]{display:none}
+body.quick-flow #family-total{margin:0}
+body.quick-flow .booking-submit-dates{gap:6px;padding:10px 12px;font-size:.8rem;line-height:1.4}
+body.quick-flow .booking-submit-dates li{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);column-gap:10px;align-items:start}
+body.quick-flow .booking-submit-dates .session-capacity{font-size:.76rem;line-height:1.4}
+body.quick-flow #training-registration .count-feed-note{margin:0;padding:10px 12px}
+body.quick-flow #training-registration .count-feed-note p{font-size:.76rem;line-height:1.5;margin:0}
+body.quick-flow #training-registration .count-feed-note p+p{margin-top:6px}
+@media(max-width:540px){
+  body.quick-flow .booking-submit-dates{padding:8px 10px;font-size:.76rem;gap:6px}
+  body.quick-flow .booking-submit-dates .session-capacity{font-size:.72rem;line-height:1.35}
+  body.quick-flow .family-player{padding:12px;gap:10px}
+}

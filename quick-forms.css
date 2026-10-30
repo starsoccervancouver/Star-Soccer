@@ -137,3 +137,26 @@ body.quick-flow .camp-day:has(:checked){border-color:#b2e3f6;background:#1b4058}
 body.quick-flow .camp-day:has(:disabled){opacity:.5;cursor:default}
 body.quick-flow :is(.camp-day,.camp-booking-options label):focus-within{outline:2px solid #b2e3f6;outline-offset:2px}
 @media(max-width:540px){body.quick-flow .camp-day-grid{gap:4px}body.quick-flow .camp-booking-options label{padding:10px 6px;font-size:.76rem}}
+
+/* Give families a clear, optional switch when a package costs less. */
+body.quick-flow .camp-package-saving{padding:14px;border:1px solid #b2e3f6;border-radius:10px;background:#1b4058;color:#e2f3fb}
+body.quick-flow .camp-package-saving[hidden]{display:none}
+body.quick-flow .camp-package-saving p{margin:0 0 10px;font-size:.85rem;line-height:1.6}
+body.quick-flow .camp-package-saving button{white-space:normal;min-height:44px}
+
+/* Compact new booking controls while retaining 44px actions and 16px inputs. */
+@media(max-width:540px){
+  body.quick-flow :is(#training-registration,#camp-registration){gap:8px}
+  body.quick-flow .quick-pass-summary{padding:8px 10px;margin-bottom:10px}
+  body.quick-flow .quick-pass-summary>p{display:none}
+  body.quick-flow .pass-start-label{grid-template-columns:auto minmax(0,1fr);gap:6px;margin-top:4px}
+  body.quick-flow .pass-start-label>small{display:none}
+  body.quick-flow .pass-start-label .pass-calendar-trigger{grid-column:2;padding:8px 10px;font-size:.8rem;gap:8px}
+  body.quick-flow #camp-registration .quick-session-row{grid-template-columns:minmax(0,1fr) 92px;gap:8px}
+  body.quick-flow #camp-registration .quick-session-row .quick-total small{display:block;margin-left:0}
+  body.quick-flow #camp-registration .camp-booking-options legend{margin-bottom:6px}
+  body.quick-flow #camp-registration .camp-day-picker>p{font-size:.74rem;line-height:1.4}
+  body.quick-flow #camp-registration .camp-day-picker legend{margin-bottom:5px}
+  body.quick-flow #camp-registration{gap:7px}
+  body.quick-flow #camp-registration .camp-day{min-height:86px;padding-block:4px;gap:3px}
+}

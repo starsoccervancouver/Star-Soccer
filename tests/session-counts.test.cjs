@@ -8,7 +8,7 @@ const row=(players=3,status='Planning')=>['2026-10-23','friday',players,20,statu
 test('zero is a recorded count, missing dates remain unknown',()=>{
   const counts=C.parse(payload([row(0)]));
   assert.equal(C.describe(counts.get('friday:2026-10-23')),'0/20 players · 20 places remaining');
-  assert.equal(C.describe(counts.get('friday:2026-10-30')),'Capacity 20 · Count unavailable');
+  assert.equal(C.describe(counts.get('friday:2026-10-30')),'Contact us for availability');
   assert.equal(T.catalog.groupCapacity,20);
 });
 test('full, over-capacity and cancelled dates never advertise available places',()=>{

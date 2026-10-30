@@ -36,3 +36,13 @@ test('multiple drop-in days are sorted, priced by paid daily slots and explicitl
  for(const dates of [[],['2026-12-21','2026-12-21'],['2026-12-26'],['2027-01-01'],'2026-12-21'])assert.throws(()=>choice({kind:'dropin',dates}));
  assert.throws(()=>C.quote({week:'christmas',kind:'dropin',dates:['2026-12-21','2026-12-23'],slot:'am',age:8},new Date('2026-12-21T16:00:00Z')),/started/);
 });
+
+test('cheaper full-week recommendation is optional and only offered before the week starts',()=>{
+ const input={week:'christmas',kind:'dropin',slot:'am',age:8,dates:['2026-12-21','2026-12-22','2026-12-23','2026-12-24']};
+ assert.equal(C.packageAlternative(input,now).price,200);
+ assert.equal(C.packageAlternative(input,now).savings,40);
+ assert.equal(C.packageAlternative({...input,slot:'both'},now).savings,80);
+ assert.equal(C.packageAlternative({...input,dates:['2026-12-25']},now),null);
+ assert.equal(C.packageAlternative({...input,kind:'week'},now),null);
+ assert.equal(C.packageAlternative({...input,week:'boxing',dates:['2026-12-29','2026-12-30','2026-12-31','2027-01-01']},new Date('2026-12-29T15:00:00Z')),null);
+});

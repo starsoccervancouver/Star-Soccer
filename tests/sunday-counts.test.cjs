@@ -8,5 +8,5 @@ test('Sunday counts follow the current ledger export, including declines to zero
   const record=C.parse('google.visualization.Query.setResponse('+JSON.stringify(data)+');').get('sunday:2026-11-01');
   assert.equal(record.players,players);assert.ok(C.describe(record).startsWith(players+'/20 players'));
  }
- assert.equal(C.describe(undefined),'Capacity 20 · Count unavailable');
+ assert.equal(C.describe(undefined),'Contact us for availability');
 });

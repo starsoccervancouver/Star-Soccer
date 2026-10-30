@@ -27,7 +27,7 @@
     return {subject:`Star Soccer registration confirmed | ${s.day} | ${reference}`,body:[
       `Thank you, ${name} — you’re registered!`,
       '',`Next session:\n${s.day} training · ${T.prettyDate(date)}\n${s.time}\n${T.catalog.locations[s.location].name} · Vancouver time`,
-      '',`Attendance:\nPlease RSVP Yes, No or Maybe in your Google Calendar invitation. We’re expecting ${name} unless you decline.`,
+      '',`Attendance:\nUse the attendance buttons in this confirmation email, then press Confirm response to save your answer for ${name}.`,
       '',`${name}’s session total is ${T.money(s.dropin)} CAD.`,
       '',T.paymentInstructions(),
       '',`This confirms the next session only; arrange future drop-ins with the team.`,
@@ -52,7 +52,6 @@
       `Thank you, ${name} — your four-session pass is ${updated?'updated':'confirmed'}!`,
       '',`Your pass:\n${name}’s four-session pass comes to ${T.money(p.price)} CAD.\nStart: ${T.prettyDate(p.start)}\nEnd (4th session): ${T.prettyDate(p.end)}\n${s.time} · ${T.catalog.locations[s.location].name} · Vancouver time`,
       '',`Your four dates:\n${p.dates.map(T.prettyDate).join('\n')}`,
-      ...(p.upcoming?['',`Attendance:\nPlease RSVP Yes, No or Maybe in your Google Calendar invitation for ${T.prettyDate(p.start)}. We’re expecting you unless you decline. Declining this date does not cancel your pass.`]:[]),
       '',T.paymentInstructions(),
       '',`See you on the field!`,`Star Soccer`,T.catalog.email,`Reference: ${reference}`
     ].join('\n')};

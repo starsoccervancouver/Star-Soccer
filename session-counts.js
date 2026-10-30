@@ -29,7 +29,7 @@
     return records;
   }
   function describe(record) {
-    if(!record)return 'Capacity '+T.catalog.groupCapacity+' · Count unavailable';
+    if(!record)return 'Contact us for availability';
     const count=record.players+'/'+record.capacity+' players';
     if(record.status==='Cancelled')return count+' · Cancelled';
     if(record.status==='Completed')return count+' · Completed';
@@ -43,47 +43,66 @@
   // Only youth groups use the public youth booking feed. The adult estimate remains coach-reported.
   const rows=[...document.querySelectorAll('.schedule-entry[data-session-day]:not([data-audience="adult"])')],preview=document.querySelector('#booking-dates');
   if(!T || (!rows.length && !preview))return;
-  let records=null,busy=false;
+  let records=null,busy=false,checkedAt='';
+  function renderCount(element,record,session,date) {
+    element.replaceChildren();
+    const message=describe(record);
+    if(!record || record.remaining===0 || record.players>record.capacity || record.status==='Cancelled') {
+      const link=document.createElement('a');
+      link.href='mailto:'+T.catalog.email+'?subject='+encodeURIComponent('Availability for '+session.day+' training · '+date);
+      link.textContent=message;
+      link.setAttribute('aria-label',message+' — '+session.day+' '+T.prettyDate(date));
+      element.append(link);
+    } else element.textContent=message;
+  }
   rows.forEach(row=>{
-    const count=document.createElement('span');count.className='session-capacity';count.textContent=describe(null);
+    const count=document.createElement('span');count.className='session-capacity';count.textContent='Checking availability…';
     row.querySelector('.schedule-day').append(count);
   });
   const note=document.createElement('div');note.className='count-feed-note';
   const status=document.createElement('p');status.setAttribute('role','status');
-  const help=document.createElement('p');help.textContent='20 players maximum per session. Counts include accepted registrations and coach-reported expected players whose contact details may still be pending. Availability is confirmed by the coaching team.';
+  const help=document.createElement('p');help.textContent='20 players maximum per youth session. Counts may take time to update; the coaching team confirms your place.';
   note.append(status,help);
-  // The training list already carries a count on each session; keep it uncluttered.
-  if(!rows.length)preview.after(note);
+  if(rows.length)rows[0].closest('.schedule-list')?.after(note);
+  else (document.querySelector('#training-registration .quick-assurance')||preview).after(note);
   function render() {
+    let missing=false;
     rows.forEach(row=>{
       const session=T.getSession(row.dataset.sessionDay),date=session && T.nextDate(session);
       if(!date)return;
-      row.querySelector('.schedule-next').textContent='Next: '+T.prettyDate(date);
-      row.querySelector('.session-capacity').textContent=describe(records?.get(session.id+':'+date));
+      const next=row.querySelector('.schedule-next');
+      if(next)next.textContent='Next: '+T.prettyDate(date);
+      const record=records?.get(session.id+':'+date);
+      if(!record)missing=true;
+      renderCount(row.querySelector('.session-capacity'),record,session,date);
     });
     if(preview)preview.querySelectorAll('li[data-session-date]').forEach(li=>{
+      const session=T.getSession(li.dataset.sessionId),date=li.dataset.sessionDate;
+      if(!session || !T.isoDate(date))return;
       let count=li.querySelector('.session-capacity');
       if(!count){count=document.createElement('span');count.className='session-capacity';li.append(count);}
-      count.textContent=describe(records?.get(li.dataset.sessionId+':'+li.dataset.sessionDate));
+      const record=records?.get(session.id+':'+date);
+      if(!record)missing=true;
+      renderCount(count,record,session,date);
     });
+    if(records)status.textContent='Availability checked at '+checkedAt+' (Vancouver).'+(missing?' Counts are not available for every displayed date.':'')+' Refreshes every minute.';
   }
   if(preview)new MutationObserver(render).observe(preview,{childList:true});
   async function update() {
     if(busy)return;
     busy=true;document.documentElement.dataset.countsState='loading';
-    if(!records)status.textContent='Checking ledger counts…';
+    if(!records)status.textContent='Checking availability…';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
     try {
       const response=await fetch(feed+'&_='+Math.floor(Date.now()/60000),{signal:controller.signal,credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer'});
       if(!response.ok)throw new Error('Count feed unavailable');
       const source=await response.text();if(source.length>100000)throw new Error('Count feed too large');
       records=parse(source);
-      const time=new Intl.DateTimeFormat('en-CA',{timeZone:T.catalog.zone,hour:'numeric',minute:'2-digit'}).format(new Date());
-      status.textContent='Ledger counts checked at '+time+' (Vancouver). Refreshes every minute while this page is open.';
+      checkedAt=new Intl.DateTimeFormat('en-CA',{timeZone:T.catalog.zone,hour:'numeric',minute:'2-digit'}).format(new Date());
       document.documentElement.dataset.countsState='ready';
     } catch {
       records=null;
-      status.textContent='Live counts are temporarily unavailable. Capacity is 20 players per session; contact us to check a place.';
+      status.textContent='Live availability is temporarily unavailable. Contact us to check a place.';
       document.documentElement.dataset.countsState='unavailable';
     } finally {clearTimeout(timer);busy=false;render();}
   }

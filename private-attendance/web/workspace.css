@@ -21,12 +21,12 @@
   --desk-gold: #d5d8dd;
   --desk-blue: #d5d8dd;
   --desk-ink: #292d33;
-  --desk-muted: #56534e;
-  --desk-line: #bfb6a8;
-  --desk-canvas: #d5cec2;
-  --desk-surface: #e4ddd1;
-  --desk-inset: #dcd4c7;
-  --desk-field: #ece6dc;
+  --desk-muted: #4d4a45;
+  --desk-line: #b6afa2;
+  --desk-canvas: #ccc6bc;
+  --desk-surface: #dbd5ca;
+  --desk-inset: #d2cabc;
+  --desk-field: #e3ddd3;
   --desk-accent: #596779;
   --desk-green: #21664e;
   --desk-red: #923f35;
@@ -2080,7 +2080,7 @@ body.planner-drawer-open .global-error { z-index: 90; }
 }
 
 /* Dedicated session workspace: a quiet canvas with deliberate exits. */
-:root { --desk-canvas: #d5cec2; }
+:root { --desk-canvas: #ccc6bc; }
 #app .card { box-shadow: 0 3px 14px #10263d05; }
 #app .page-heading h1 { letter-spacing: -.035em; }
 #app .desk-nav #navigation button { font-weight: 650; }
@@ -2270,7 +2270,7 @@ body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accen
   body #planner-drawer :is(.note-card,.library-card,.library-suggestion,.practice-activity) {
     background:var(--desk-inset); border-color:var(--desk-line);
   }
-  body #app #player-note-folders button.note-folder-card[aria-pressed="true"] { background:#cfc2ae; border-color:#86745c; }
+  body #app #player-note-folders button.note-folder-card[aria-pressed="true"] { background:#c6bba9; border-color:#86745c; }
   body #app .desk-main :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),
   body #planner-drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
     background:var(--desk-field); border-color:#aaa193; color:var(--desk-ink);
@@ -2279,7 +2279,7 @@ body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accen
   body #app .planner-plan-card .privacy-message { background:var(--desk-inset); border-color:var(--desk-line); color:#55534d; }
   body #app .desk-main button.secondary,
   body #app .planner-workspace-actions button { background:var(--desk-field); border-color:#aaa193; color:var(--desk-ink); }
-  body #app .desk-main button.secondary:hover:not(:disabled) { background:#d3c9b9; }
+  body #app .desk-main button.secondary:hover:not(:disabled) { background:#cbc2b3; }
   body #app .desk-main #plan-form textarea:focus { background:var(--desk-field); border-color:#86745c; }
   body #app .desk-main :is(.note-meta,.note-folder-kind,.note-folder-roster,.roster-row p,.task-row p,.account-row p,.audit-row p),
   body #app #planner-days button:not([aria-pressed="true"]) span { color:var(--desk-muted); }
@@ -2291,21 +2291,21 @@ body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accen
   .desk-layout { background:transparent; }
   .desk-nav { background:linear-gradient(180deg,#27292d,#323335); border-right-color:transparent; }
   #app .desk-main {
-    width:calc(100% - 18px); margin:12px 18px 22px 0; border:1px solid #e9e0d044; border-radius:30px;
-    background:radial-gradient(ellipse at 0 0,#bbb7af66,transparent 55%),linear-gradient(140deg,#d1cbbf,#ddd5c8 55%,#c9c5bc);
-    box-shadow:0 14px 40px #16181b26,inset 0 1px 0 #fff6;
+    width:calc(100% - 18px); margin:12px 18px 22px 0; border:1px solid #e0d7c744; border-radius:30px;
+    background:radial-gradient(ellipse at 0 0,#bbb7af66,transparent 55%),linear-gradient(140deg,#cac4ba,#d5cdbf 55%,#c3bfb7);
+    box-shadow:0 14px 40px #16181b26,inset 0 1px 0 #fff3;
   }
   body #app .desk-main .card:not(.profile-card),
   body #app :is(.planner-session-browser,#player-note-folders) {
-    border-radius:23px; border-color:#bfb6a88c;
-    background:linear-gradient(135deg,#eae3d7ed,#e0d8cce8 65%,#d9d2c7e8);
-    box-shadow:0 6px 22px #34312b08,inset 0 1px 0 #fff5;
+    border-radius:23px; border-color:#b6afa28c;
+    background:linear-gradient(135deg,#e1dacfed,#d7cfc3e8 65%,#d0c9bee8);
+    box-shadow:0 6px 22px #34312b08,inset 0 1px 0 #fff3;
   }
   body #app :is(.roster-row,.note-card,.task-row,.account-row,.audit-row),
   body #app .coaching-agenda-row:not(.is-current) {
-    background:linear-gradient(125deg,#e0d8cbd9,#d6cfc3d9); border-color:#b9b0a278; border-radius:18px;
+    background:linear-gradient(125deg,#d7cfc2d9,#cdc6bad9); border-color:#b0a89b78; border-radius:18px;
   }
-  body #app #planner-days button:not([aria-pressed="true"]) { background:linear-gradient(125deg,#dfd7cb,#d3ccc0); }
+  body #app #planner-days button:not([aria-pressed="true"]) { background:linear-gradient(125deg,#d6cec2,#cac3b7); }
   body.planner-focus-mode { background:#303235; }
   body.planner-focus-mode .desk-layout { padding:12px; background:transparent; }
   body.planner-focus-mode #app .desk-main { width:100%; min-height:calc(100dvh - 24px); margin:0; border-radius:28px; }

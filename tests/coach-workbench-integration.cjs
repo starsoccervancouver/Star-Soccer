@@ -45,6 +45,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
       let value;
       if (url.pathname.endsWith('/bootstrap')) value = { profile, csrfToken: 'fixture-csrf', googleEnabled: true };
       else if (url.pathname.endsWith('/desk')) value = { profile, sessions, notes: [], tasks: [], observedAt: now };
+      else if (url.pathname.endsWith('/diagrams/list')) value = { diagrams: [] };
       else if (url.pathname.endsWith('/session') && request.method() === 'POST') {
         const payload = JSON.parse(request.postData());
         assert([rid(1), rid(2), rid(3)].includes(payload.sessionId));
@@ -67,7 +68,8 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     assert.equal(await page.locator('#session').inputValue(), rid(1));
     assert.equal(await page.locator('#panel-plan').isVisible(), true);
     assert.equal(await page.locator('#practice-ideas').getAttribute('open'), null, 'Optional practice ideas start collapsed so the editor is immediately available');
-    await page.locator('#practice-ideas > summary').click();
+    await page.locator('#planner-open-tools').click();
+    if (await page.locator('#practice-ideas').getAttribute('open') === null) await page.locator('#practice-ideas > summary').click();
     checks++;
 
     await page.locator('.practice-activity[data-drill-id="traffic"] summary').click();
@@ -112,6 +114,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     assert.equal(await page.locator('#plan-reflection').inputValue(), 'Keep this session reflection.');
     checks++;
 
+    await page.locator('#planner-close-drawer').click();
     await page.getByRole('button', { name: 'Save shared plan', exact: true }).click();
     await page.getByText('Shared session plan saved.', { exact: true }).waitFor();
     assert.equal(requests.filter(request => request.path.endsWith('/plans/save')).length, 1);
@@ -145,12 +148,12 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     await page.evaluate(({ sessionId, playerId }) => window.dispatchEvent(new CustomEvent('coach:add-note', { detail: { sessionId, playerId } })), { sessionId: rid(1), playerId: rid(999) });
     assert.equal(await page.locator('#note-player').inputValue(), notePlayer, 'A nonexistent player cannot be selected through a forced event');
     assert.equal(sessions[0].players[0].actualAttendance, 'Not marked');
-    assert.deepEqual(requests.filter(request => request.method === 'POST').map(request => request.path).filter(path => !['/workspace/api/session', '/workspace/api/plans/save'].includes(path)), []);
+    assert.deepEqual(requests.filter(request => request.method === 'POST').map(request => request.path).filter(path => !['/workspace/api/session', '/workspace/api/plans/save', '/workspace/api/diagrams/list'].includes(path)), []);
     checks++;
 
     await page.locator('#navigation button[data-tab="plan"]').click();
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
-    if (await page.locator('#practice-ideas').getAttribute('open') !== null) await page.locator('#practice-ideas > summary').click();
+    assert.equal(await page.locator('#planner-drawer').isVisible(), false, 'Optional tools remain tucked away on returning to the planner');
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.evaluate(() => { document.activeElement?.blur(); document.querySelector('#notice').hidden = true; window.scrollTo(0, 0); });
     await page.evaluate(() => document.fonts.ready);

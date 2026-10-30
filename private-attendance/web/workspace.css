@@ -1912,3 +1912,139 @@ body[data-desk-reduced-motion="true"] *, body[data-desk-reduced-motion="true"] *
   .profile-heading { flex-direction: column; gap: 15px; }
   .settings-navigation button { font-size: 11px; padding-right: 6px; padding-left: 6px; }
 }
+
+/* One day, one session, with preparation tools kept close at hand. */
+#app h1, #app h2, #app h3, #login h1, #login h2,
+#planner-drawer h2, #planner-drawer h3 {
+  font-family: "Manrope", Arial, sans-serif;
+  font-style: normal;
+}
+#app .page-heading h1 { font-size: clamp(29px, 3vw, 42px); font-weight: 750; line-height: 1.18; letter-spacing: -.045em; }
+#login .signin-story h1 { font-size: clamp(40px, 4.5vw, 62px); font-weight: 750; line-height: 1.08; letter-spacing: -.045em; }
+#app button, #app .button, #login button, #planner-drawer button { border-radius: 999px; min-height: 44px; }
+#app .desk-nav #navigation button, #app .desk-nav #navigation .nav-settings { border-radius: 14px; }
+#app button.priority-action { padding-right: 12px; padding-left: 12px; border-radius: 14px; margin-bottom: 5px; }
+#app input, #app select, #app textarea, #planner-drawer input, #planner-drawer select, #planner-drawer textarea { border-radius: 12px; }
+#app .profile-entry { border-radius: 14px; }
+.planner-session-browser { min-width: 0; margin: 0 0 18px; padding: 22px 24px 0; border: 1px solid var(--desk-line); border-radius: 20px; background: #fff; }
+.planner-day-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 17px; }
+.planner-day-heading .eyebrow { margin-bottom: 5px; }
+.planner-day-heading h2 { margin: 0; font-size: 18px; font-weight: 750; letter-spacing: -.025em; }
+.planner-day-heading button { flex-shrink: 0; font-size: 12px; }
+.planner-days { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; min-width: 0; }
+#app .planner-days button { display: flex; min-width: 0; min-height: 96px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; padding: 14px 17px; border: 1px solid #d5dee3; border-radius: 16px; color: var(--desk-ink); background: #f8f9f8; text-align: left; }
+.planner-days button strong { font-size: 15px; line-height: 1.35; }
+.planner-days button span { display: block; color: var(--desk-muted); font-size: 12px; font-weight: 500; line-height: 1.45; }
+#app .planner-days button:hover:not(:disabled) { border-color: #7595ab; background: #edf5f8; }
+#app .planner-days button[aria-pressed="true"] { border-color: var(--desk-navy-soft); color: #fff; background: var(--desk-navy-soft); box-shadow: 0 3px 9px #10263d16; }
+.planner-days button[aria-pressed="true"] span { color: #c4d6e2; }
+#app .planner-days button:disabled { background: #f4f5f4; opacity: .62; }
+.planner-date-options { margin-top: 18px; padding: 16px 18px; border: 1px solid #dce5e9; border-radius: 14px; background: #f5f8f9; }
+.planner-date-options label { margin: 0; max-width: 720px; font-size: 13px; }
+.planner-session-summary { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-width: 0; margin-top: 22px; padding: 20px 0; border-top: 1px solid #e5e9e9; }
+.planner-session-summary > div { min-width: 0; }
+.planner-session-mode { display: inline-block; margin-bottom: 6px; color: #866130; font-size: 11px; font-weight: 750; line-height: 1.5; letter-spacing: .04em; }
+.planner-session-summary h2 { margin: 0 0 6px; font-size: clamp(22px, 2vw, 28px); letter-spacing: -.04em; }
+.planner-session-summary p { margin: 0; font-size: 13px; }
+.planner-ready-label { flex-shrink: 0; padding: 7px 12px; border-radius: 999px; color: #5c6e79; background: #f0f3f3; font-size: 11px; font-weight: 650; }
+.planner-workspace-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 22px; }
+#app .planner-workspace-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 11px 18px; border-color: #cad6dd; box-shadow: 0 2px 4px #10263d03; font-size: 13px; }
+#app .planner-workspace-actions #planner-open-notes { border-color: #ddcbb2; background: #fffaf2; color: #674d2d; }
+#app .planner-workspace-actions button[aria-expanded="true"] { border-color: #3b6d8e; color: #173d59; background: #e9f4fa; }
+.planner-tool-icon { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 21px; height: 21px; font-size: 21px; font-weight: 500; line-height: 1; }
+.planner-plan-card { border-radius: 20px; }
+.planner-plan-heading { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.planner-plan-heading .eyebrow { margin-bottom: 6px; }
+.planner-plan-heading h2 { margin: 0; font-size: 21px; }
+.planner-plan-card .privacy-message { margin: 19px 0 21px; padding: 10px 13px; font-size: 12px; }
+.planner-plan-card #plan-dictation-help:empty { display: none; }
+.planner-plan-card #plan-form label { font-size: 13px; }
+.planner-plan-card #plan-form textarea { font-size: 15px; background: #fcfdfd; }
+.planner-plan-card #plan-form textarea:focus { background: #fff; }
+.planner-drawer-backdrop { position: fixed; inset: 0; z-index: 70; background: #03102170; backdrop-filter: blur(3px); }
+.planner-drawer { position: fixed; inset: 0 0 0 auto; z-index: 80; display: flex; flex-direction: column; width: min(460px, 94vw); height: 100vh; height: 100dvh; min-width: 0; max-width: 100%; margin: 0; padding: 0; border: 0; border-left: 1px solid #d5dfe5; border-radius: 24px 0 0 24px; color: var(--desk-ink); background: var(--desk-canvas); box-shadow: -14px 0 50px #06132622; }
+.planner-drawer[data-pane="tools"] { width: min(960px, 94vw); }
+.planner-drawer[data-pane="run"] { width: min(760px, 94vw); }
+.planner-drawer-header { display: flex; flex-shrink: 0; justify-content: space-between; align-items: center; gap: 15px; min-height: 96px; padding: 21px 24px; border-bottom: 1px solid var(--desk-line); border-radius: 24px 0 0 0; background: #fff; }
+.planner-drawer-header > div { min-width: 0; }
+.planner-drawer-header .eyebrow { margin-bottom: 5px; }
+.planner-drawer-header h2 { margin: 0; font-size: 21px; line-height: 1.3; letter-spacing: -.035em; }
+.planner-drawer-header button { flex-shrink: 0; display: inline-flex; align-items: center; gap: 9px; padding: 9px 14px; font-size: 12px; }
+.planner-drawer-header button span { font-size: 23px; line-height: 1; font-weight: 400; }
+.planner-drawer-content { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 24px; scrollbar-width: thin; }
+.planner-drawer-content > section { min-width: 0; }
+.planner-drawer-content .coaching-tools-disclosure { padding: 17px; border: 1px solid var(--desk-line); border-radius: 17px; background: #fff; }
+.planner-drawer-content .coaching-tools-disclosure > summary { border: 0; border-radius: 12px; background: #f0f4f5; }
+.planner-drawer-content .coaching-tools-disclosure[open] > summary { margin-bottom: 20px; }
+.planner-drawer-content .card { padding: 18px; border-radius: 14px; }
+.planner-notes-privacy { margin: 0 0 19px; color: #647580; font-size: 12px; line-height: 1.6; }
+.planner-folder-picker { margin: 0 0 22px; font-size: 12px; }
+.planner-folder-picker select { font-size: 14px; font-weight: 650; background: #fff; }
+.planner-notes-list { min-width: 0; margin-bottom: 24px; }
+.planner-notes-list .note-card { margin: 0 0 12px; padding: 17px; border: 1px solid #dce3e6; border-radius: 15px; background: #fff; }
+.planner-notes-list .note-card h3 { margin: 0 0 8px; font-size: 14px; }
+.planner-notes-list .note-body { margin: 11px 0 0; font-size: 14px; }
+.planner-notes-list .note-meta { margin: 7px 0 0; font-size: 11px; }
+.planner-notes-list .empty-state { padding: 22px 17px; border: 1px dashed #bdcdd6; border-radius: 15px; background: #f9fbfb; font-size: 13px; }
+.planner-note-form { padding-top: 22px; border-top: 1px solid #cfdbe1; }
+.planner-note-form h3 { margin: 0 0 18px; font-size: 16px; }
+.planner-note-form label { font-size: 12px; }
+.planner-note-form select, .planner-note-form textarea { font-size: 14px; }
+.planner-note-form button { width: 100%; }
+.planner-note-form #planner-note-status { margin: 12px 0 0; min-height: 21px; font-size: 12px; }
+body.planner-drawer-open { overflow: hidden; }
+body.planner-drawer-open .global-error { z-index: 90; }
+.planner-drawer[hidden], .planner-drawer-backdrop[hidden] { display: none; }
+@media (max-width: 900px) {
+  .planner-ready-label { display: none; }
+  .planner-session-browser { padding: 20px 20px 0; }
+  .planner-days { gap: 8px; }
+  #app .planner-days button { padding: 12px 13px; }
+}
+@media (max-width: 600px) {
+  #app .page-heading h1 { font-size: 30px; }
+  .planner-day-heading { align-items: flex-start; flex-wrap: wrap; gap: 14px; }
+  .planner-day-heading button { padding: 9px 12px; }
+  .planner-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #app .planner-days button { min-height: 84px; padding: 12px 14px; }
+  .planner-session-browser { padding: 17px 16px 0; border-radius: 17px; }
+  .planner-session-summary { margin-top: 17px; padding: 18px 0; }
+  .planner-session-summary h2 { font-size: 23px; }
+  .planner-workspace-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 17px; }
+  #app .planner-workspace-actions button { min-width: 0; padding: 10px 12px; font-size: 12px; }
+  #planner-open-notes { grid-column: 1 / -1; }
+  .planner-plan-heading { align-items: flex-start; flex-direction: column; gap: 13px; }
+  .planner-plan-heading h2 { font-size: 20px; }
+  .planner-drawer, .planner-drawer[data-pane="tools"], .planner-drawer[data-pane="run"] { width: 100%; border-left: 0; border-radius: 0; }
+  .planner-drawer-header { min-height: 86px; padding: 17px 16px; border-radius: 0; }
+  .planner-drawer-header h2 { font-size: 19px; }
+  .planner-drawer-header .eyebrow { font-size: 10px; }
+  .planner-drawer-content { padding: 17px 15px 28px; }
+  .planner-drawer-content .coaching-tools-disclosure { padding: 13px; }
+}
+@media (max-width: 600px) {
+  /* Keep the first planning field within easy reach on a narrow phone. */
+  .desk-main:has(#panel-plan:not([hidden])) { padding-top: 17px; }
+  .desk-main:has(#panel-plan:not([hidden])) .page-heading { gap: 8px; margin-bottom: 15px; }
+  .desk-main:has(#panel-plan:not([hidden])) .page-heading .eyebrow,
+  .desk-main:has(#panel-plan:not([hidden])) #page-copy { display: none; }
+  #app .desk-main:has(#panel-plan:not([hidden])) .page-heading h1 { margin: 0; font-size: 27px; }
+  .planner-day-heading { margin-bottom: 12px; gap: 10px; }
+  .planner-day-heading > div { display: none; }
+  .planner-day-heading button { margin-left: auto; }
+  .planner-session-browser { padding: 13px 13px 0; margin-bottom: 13px; }
+  #app .planner-days button { min-height: 78px; padding: 10px 12px; gap: 3px; }
+  .planner-days button strong { font-size: 14px; }
+  .planner-days button span { font-size: 11px; }
+  .planner-date-options { margin-top: 12px; padding: 12px; }
+  .planner-session-summary { margin-top: 13px; padding: 13px 0; }
+  .planner-session-summary h2 { margin-bottom: 4px; font-size: 22px; }
+  .planner-session-summary p { font-size: 12px; }
+  .planner-workspace-actions { margin-bottom: 13px; gap: 7px; }
+  .planner-plan-card { padding: 17px; }
+  .planner-plan-heading .eyebrow, .planner-plan-heading > .privacy-pill { display: none; }
+  .planner-plan-heading h2 { font-size: 19px; }
+  .planner-plan-card .privacy-message { margin: 13px 0 14px; padding: 9px 11px; }
+  .planner-plan-card .dictation-help { margin-bottom: 14px; }
+}
+@media print { .planner-drawer, .planner-drawer-backdrop { display: none !important; } }

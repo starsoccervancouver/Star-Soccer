@@ -111,8 +111,8 @@ require('./coach-fixture-fonts.cjs')(assets);
     await d.page.locator('#plan-focus').fill('Fictional unsaved plan'); await d.answer(false); await d.page.locator('#open-profile').click();
     assert.equal(await d.page.locator('#panel-plan').isVisible(), true); assert.equal(await d.page.locator('#plan-focus').inputValue(), 'Fictional unsaved plan');
     await d.answer(true); await clickSettings(d); assert.equal(await d.page.locator('#panel-settings').isVisible(), true);
-    await d.page.locator('#navigation [data-tab="plan"]').click(); await d.page.locator('#tactics-disclosure > summary').click(); await d.page.waitForFunction(() => !document.getElementById('tactics-title').disabled);
-    await d.page.locator('#tactics-title').fill('Fictional unsaved drill'); await d.answer(false); await clickSettings(d);
+    await d.page.locator('#navigation [data-tab="plan"]').click(); await d.page.locator('#planner-open-tools').click(); await d.page.waitForFunction(() => !document.getElementById('tactics-title').disabled);
+    await d.page.locator('#tactics-title').fill('Fictional unsaved drill'); await d.page.locator('#planner-close-drawer').click(); await d.answer(false); await clickSettings(d);
     assert.equal(await d.page.locator('#panel-plan').isVisible(), true); assert.equal(await d.page.locator('#tactics-title').inputValue(), 'Fictional unsaved drill');
     await d.answer(true); await d.page.locator('#open-profile').click(); assert.equal(await d.page.locator('#panel-settings').isVisible(), true); assert.deepEqual(d.errors, []); checks++;
 

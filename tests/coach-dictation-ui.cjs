@@ -176,8 +176,9 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     checks++;
 
     await page.evaluate(() => fixtureSpeech.capture(7));
+    await page.locator('#planner-other-date').click();
     page.once('dialog', dialog => dialog.accept());
-    await page.locator('#session').selectOption(rid(2));
+    await page.locator('#planner-date').selectOption(rid(2));
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled && document.querySelector('#plan-focus').value === 'Other session focus');
     await page.evaluate(() => fixtureSpeech.emitLate(7, [{ text: 'Previous session speech.', final: true }]));
     assert.equal(await page.locator('#plan-focus').inputValue(), 'Other session focus');

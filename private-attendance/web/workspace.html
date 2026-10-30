@@ -19,6 +19,7 @@
 <script src="/workspace/assets/coaching.js" defer></script>
 <script src="/workspace/assets/session.js" defer></script>
 <script src="/workspace/assets/tactics.js" defer></script>
+<script src="/workspace/assets/planner.js" defer></script>
 </head>
 <body>
 <a class="desk-skip" href="#desk-main">Skip to coach workspace</a>
@@ -339,10 +340,20 @@
 </div>
 </section>
 <section id="panel-plan" class="tab-panel" hidden>
-<section class="card">
+<section class="planner-session-browser" aria-label="Choose a planning session">
+<div class="planner-day-heading"><div><p class="eyebrow">Start with a day</p><h2>Your next session</h2></div><button id="planner-other-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-date-options">Choose another date</button></div>
+<div id="planner-days" class="planner-days" role="group" aria-label="Training days"></div>
+<div id="planner-date-options" class="planner-date-options" hidden><label>Choose another session<select id="planner-date"></select></label></div>
+<div class="planner-session-summary"><div><span id="planner-session-mode" class="planner-session-mode"></span><h2 id="planner-session-title">Choose a training day</h2><p id="planner-session-detail" class="small"></p></div><span class="planner-ready-label">Plan · prepare · play</span></div>
+</section>
+<div class="planner-workspace-actions" role="group" aria-label="Session planning tools">
+<button id="planner-open-notes" class="secondary planner-folder-button" type="button" aria-controls="planner-drawer" aria-expanded="false"><span class="planner-tool-icon" aria-hidden="true">▤</span><span>Group &amp; player notes</span></button>
+<button id="planner-open-tools" class="secondary" type="button" aria-controls="planner-drawer" aria-expanded="false"><span class="planner-tool-icon" aria-hidden="true">↗</span><span>Drills &amp; tactics</span></button>
+<button id="planner-open-run" class="secondary" type="button" aria-controls="planner-drawer" aria-expanded="false"><span class="planner-tool-icon" aria-hidden="true">▷</span><span>Run session</span></button>
+</div>
+<section class="card planner-plan-card">
+<div class="planner-plan-heading"><div><p class="eyebrow">The session plan</p><h2>What are we working on?</h2></div><span class="privacy-pill">Shared preparation</span></div>
 <p class="privacy-message shared">Shared with coaches assigned to this session and full-access admins.</p>
-<details id="session-field-disclosure" class="coaching-tools-disclosure"><summary>Run this session</summary><section id="session-field-tools" aria-label="Saved session run sheet"></section></details>
-<details id="tactics-disclosure" class="coaching-tools-disclosure"><summary>Tactics board &amp; animated drills</summary><section id="tactics-board-tools" aria-label="Session tactics and drill setups"></section></details>
 <p class="dictation-help small" id="plan-dictation-help"></p>
 <form id="plan-form" class="plan-grid">
 <label class="full-width">Session focus<textarea id="plan-focus" data-dictation-label="Dictate session focus" rows="2" maxlength="2000" placeholder="The one thing we want players to take away">
@@ -370,7 +381,6 @@
 </span>
 </div>
 </form>
-<details class="coaching-tools-disclosure" id="practice-ideas"><summary>Practice ideas &amp; reuse</summary><section id="practice-toolbox" aria-label="Practice toolbox"></section></details>
 </section>
 </section>
 <section id="panel-tasks" class="tab-panel" hidden>
@@ -449,6 +459,29 @@
 </main>
 </div>
 </div>
+<div id="planner-drawer-backdrop" class="planner-drawer-backdrop" hidden></div>
+<aside id="planner-drawer" class="planner-drawer" role="dialog" aria-modal="true" aria-labelledby="planner-drawer-title" data-pane="notes" tabindex="-1" hidden>
+<header class="planner-drawer-header"><div><p class="eyebrow">Session workspace</p><h2 id="planner-drawer-title">Group &amp; player notes</h2></div><button id="planner-close-drawer" class="secondary" type="button" aria-label="Close session tools">Close <span aria-hidden="true">×</span></button></header>
+<div class="planner-drawer-content">
+<section id="planner-notes-pane" hidden>
+<p class="planner-notes-privacy">Private to the note’s author and approved full-access accounts.</p>
+<label class="planner-folder-picker">Open a notes folder<select id="planner-notes-player"><option value="">Group notes</option></select></label>
+<div id="planner-notes-list" class="planner-notes-list" aria-label="Coaching notes"></div>
+<form id="planner-note-form" class="planner-note-form">
+<h3>Add a private note</h3>
+<label>Category<select id="planner-note-category"><option>General</option><option>Technical</option><option>Tactical</option><option>Physical</option><option>Confidence</option><option>Goal</option><option>Session review</option></select></label>
+<label>What did you notice?<textarea id="planner-note-body" rows="4" maxlength="6000" required placeholder="A useful observation or something to revisit next time"></textarea></label>
+<button type="submit">Save private note</button>
+<p id="planner-note-status" class="small" role="status" aria-live="polite"></p>
+</form>
+</section>
+<section id="planner-tools-pane" hidden>
+<details id="tactics-disclosure" class="coaching-tools-disclosure"><summary>Tactics board &amp; animated drills</summary><section id="tactics-board-tools" aria-label="Session tactics and drill setups"></section></details>
+<details class="coaching-tools-disclosure" id="practice-ideas"><summary>Practice ideas &amp; reuse</summary><section id="practice-toolbox" aria-label="Practice toolbox"></section></details>
+</section>
+<section id="planner-run-pane" hidden><details id="session-field-disclosure" class="coaching-tools-disclosure"><summary>Run this session</summary><section id="session-field-tools" aria-label="Saved session run sheet"></section></details></section>
+</div>
+</aside>
 <p id="boot" class="boot-message" role="status">Opening Coach Desk…</p>
 <p id="global-error" class="global-error" role="alert" hidden>
 </p>

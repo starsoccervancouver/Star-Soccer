@@ -46,7 +46,8 @@ require('./coach-fixture-fonts.cjs')(assets);
   }
 
   const enterPlan=async f=>{await f.page.locator('#navigation button[data-tab="plan"]').click();await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);};
-  const openBoard=async f=>{await f.page.locator('#tactics-disclosure > summary').click();await f.page.waitForFunction(()=>!document.getElementById('tactics-title').disabled);};
+  const openBoard=async f=>{await f.page.locator('#planner-open-tools').click();await f.page.waitForFunction(()=>!document.getElementById('tactics-title').disabled);};
+  const chooseDate=async(f,id)=>{if(!await f.page.locator('#planner-date').isVisible())await f.page.locator('#planner-other-date').click();await f.page.locator('#planner-date').selectOption(id);};
   const count=(f,suffix)=>f.requests.filter(r=>r.path.endsWith(suffix)).length;
   const beginBridgeList=async f=>{
    const waiting=f.page.waitForRequest(request=>new URL(request.url()).pathname.endsWith('/diagrams/list'));
@@ -66,8 +67,9 @@ require('./coach-fixture-fonts.cjs')(assets);
 
   await f.page.locator('#tactics-title').fill('Unsaved fictional tactics');
   assert.equal(await f.page.evaluate(()=>CoachTactics.isDirty()),true);
+  await f.page.locator('#planner-close-drawer').click();
   const promptBefore=await f.page.evaluate(()=>fixtureConfirmPrompts.length);
-  for(const action of [()=>f.page.locator('#navigation button[data-tab="home"]').click(),()=>f.page.locator('#session').selectOption(rid(2)),()=>f.page.locator('#refresh').click(),()=>f.page.locator('#logout').click()]){
+  for(const action of [()=>f.page.locator('#navigation button[data-tab="home"]').click(),()=>chooseDate(f,rid(2)),()=>f.page.locator('#refresh').click(),()=>f.page.locator('#logout').click()]){
    await f.answer(false);await action();
    assert.equal(await f.page.locator('#tactics-title').inputValue(),'Unsaved fictional tactics');
    assert.equal(await f.page.locator('#session').inputValue(),rid(1));
@@ -77,6 +79,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   assert.equal(count(f,'/refresh'),0);assert.equal(count(f,'/logout'),0);assert.equal(count(f,'/diagrams/save'),0);
   checks++;
 
+  await openBoard(f);
   f.state.saveMode='delay';const saveRequested=f.page.waitForRequest(request=>new URL(request.url()).pathname.endsWith('/diagrams/save'));
   await f.page.locator('#tactics-save').click();await saveRequested;
   await f.page.waitForFunction(()=>document.getElementById('session').disabled);
@@ -101,7 +104,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   await f.context.close();
 
   const g=await fixture();await enterPlan(g);g.state.listMode='delay';await beginBridgeList(g);
-  await g.page.locator('#session').selectOption(rid(2));assert.equal(await g.page.locator('#session').inputValue(),rid(2));
+  await chooseDate(g,rid(2));assert.equal(await g.page.locator('#session').inputValue(),rid(2));
   g.release('/diagrams/list');await g.page.waitForFunction(()=>fixtureBridgeResult!==null);
   const late=await g.page.evaluate(()=>fixtureBridgeResult);assert.equal(late.ok,false);assert.match(late.message,/session changed/i);
   assert.equal(await g.page.locator('#tactics-title').inputValue(),'New drill');assert.equal(await g.page.locator('#tactics-library option').count(),1);

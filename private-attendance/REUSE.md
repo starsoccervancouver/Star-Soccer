@@ -45,6 +45,12 @@ The existing private SQLite store adds the `coach_diagrams` table and session in
 
 The source-only export includes the board, strict data validator, backend routes and isolated tests. Other clubs receive their own empty store, branding, approved accounts and session assignments. There are no third-party tactics libraries, licensed drill templates, parent messages or additional credentials.
 
+## Day-first session planning
+
+The planner opens the next scheduled session and lets coaches choose a training weekday or any other recorded date. Its notes drawer uses only the already authorized notes and roster: group history matches the exact weekday, session time and venue, while individual history matches a current roster player's ID. There is no stable cross-session group ID in the present roster, so different times or venues are never combined. New drawer notes use the existing private note endpoint and permissions, with uncertain-save readback before any retry.
+
+Drill ideas, animated tactics and the session run sheet open in drawers. Closing a drawer preserves drafts and pauses playback; changing sessions, refreshing or signing out retains the existing discard checks. All new UI state stays in memory. No schema, credentials, attendance records, capacity rules or email behavior change.
+
 ## Profile and workspace preferences
 
 Settings & profile groups account details, Team & access, the activity log and existing coaching records. Owner/admin/coach permissions remain enforced by the same server routes. Only the owner can manage accounts; activity and legacy records remain restricted to full-access users.

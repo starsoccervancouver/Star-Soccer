@@ -7,6 +7,7 @@ module.exports = function addCoachFixtureFonts(assets) {
     ['/workspace/assets/instrument-serif.woff2', 'instrument-serif-italic-latin.woff2'],
   ]) assets[url] = { body: fs.readFileSync(path.join(__dirname, '..', 'fonts', file)), type: 'font/woff2' };
   for (const [url, file, type] of [
+    ['/workspace/assets/planner.js', 'workspace-planner.js', 'text/javascript'],
     ['/workspace/assets/dictation.js', 'workspace-dictation.js', 'text/javascript'],
     ['/workspace/assets/coaching.js', 'workspace-coaching.js', 'text/javascript'],
     ['/workspace/assets/coaching.css', 'workspace-coaching.css', 'text/css'],

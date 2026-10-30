@@ -4,3 +4,25 @@ test-results/
 
 work/
 outputs/
+
+# Private attendance demo state and any future private data exports.
+private-attendance/data/
+private-attendance/.state/
+private-attendance/**/*.sqlite
+private-attendance/**/*.sqlite-*
+private-attendance/**/*.db
+private-attendance/cloudflare/assets.generated.mjs
+private-attendance/cloudflare/.wrangler/
+private-attendance/cloudflare/.dev.vars*
+private-attendance/cloudflare/wrangler.live.toml
+private-attendance/cloudflare/wrangler.verify.toml
+
+private-attendance/PRODUCTION.md
+
+private-attendance/coach-interface-plan.json
+
+.env*
+
+*.dpapi
+
+*.pending

@@ -1,0 +1,27 @@
+name = "star-soccer-private-attendance"
+main = "production-worker.mjs"
+compatibility_date = "2026-10-28"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+preview_urls = false
+
+[build]
+command = "node build-assets.mjs"
+
+[vars]
+ATTENDANCE_MODE = "disabled"
+OWNER_APPROVED = "false"
+LIVE_EMAIL_SENDS = "false"
+COACH_DASHBOARD_ENABLED = "false"
+LIVE_AIRTABLE_WRITES = "false"
+
+[[durable_objects.bindings]]
+name = "ATTENDANCE_COORDINATOR"
+class_name = "AttendanceCoordinator"
+
+[[migrations]]
+tag = "v1-private-attendance"
+new_sqlite_classes = ["AttendanceCoordinator"]
+
+# Custom domain, account binding and secrets are provisioned only during approved setup.
+# No cron: invitation creation and recovery are explicit private admin operations.

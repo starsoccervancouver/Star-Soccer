@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Coach Desk | Star Soccer</title>
+<link rel="stylesheet" href="/assets/app.css">
+<link rel="stylesheet" href="/workspace/assets/workspace.css">
+<link rel="stylesheet" href="/workspace/assets/coaching.css">
+<script src="/workspace/assets/passkeys.js" defer>
+</script>
+<script src="/workspace/assets/workspace.js" defer>
+</script>
+<script src="/workspace/assets/dictation.js" defer></script>
+<script src="/workspace/assets/coaching.js" defer></script>
+</head>
+<body>
+<a class="desk-skip" href="#desk-main">Skip to coach workspace</a>
+<div id="login" class="signin" hidden>
+<a class="return-site" href="https://starsoccer.ca/">← Star Soccer website</a>
+<div class="signin-layout">
+<section class="signin-story">
+<img src="/assets/logo.svg" alt="Star Soccer Vancouver">
+<p class="eyebrow">For the people on the touchline</p>
+<h1>Ready for a<br>great session.</h1>
+<p>Your players, session plans and coaching notes in one private workspace.</p>
+<div class="signin-promises">
+<span>Assigned sessions</span>
+<span>Private coach notes</span>
+<span>Simple attendance</span>
+</div>
+</section>
+<section class="card signin-card">
+<p class="eyebrow">Coach Desk</p>
+<h2 id="signin-title">Sign in to your workspace</h2>
+<p id="signin-copy">Use the email approved by Star Soccer and your device’s passkey.</p>
+<div id="google-signin" hidden>
+<button id="google-signin-button" class="google-signin-button" type="button">Continue with Google</button>
+<p class="small">Use the Google account approved by Star Soccer. This verifies your email only; it does not give Coach Desk access to your inbox or calendar.</p>
+</div>
+<details id="passkey-options" open>
+<summary id="passkey-summary" hidden>Use an existing passkey instead</summary>
+<form id="signin-form">
+<label>Email<input id="signin-email" type="email" autocomplete="username webauthn" required placeholder="Your approved email">
+</label>
+<button class="button confirm" id="signin-button" type="submit">Sign in with a passkey</button>
+</form>
+<div id="enroll-options" hidden>
+<button class="button confirm" id="enroll-button" type="button">Set up secure sign-in</button>
+<button class="secondary" id="enroll-phone-button" type="button">Use my phone</button>
+<p class="small">No USB security key is required. Use your computer's fingerprint, face or PIN, or choose your phone. For a phone, enable Bluetooth on both devices and follow the browser's QR-code steps.</p>
+<button class="secondary" id="existing-signin-button" type="button">Already set up? Sign in instead</button>
+</div>
+</details>
+<div id="signin-recovery" hidden>
+<button class="button confirm" id="retry-workspace" type="button">Retry opening Coach Desk</button>
+</div>
+<p id="passkey-security-copy" class="small">A passkey uses your device’s fingerprint, face or PIN. Star Soccer never receives your device PIN or biometric data.</p>
+<p id="access-copy" class="small">New coach? Ask the owner for access. Only approved accounts can open Coach Desk.</p>
+</section>
+</div>
+</div>
+<div id="app" hidden>
+<header class="desk-header">
+<a href="https://starsoccer.ca/">
+<img src="/assets/logo.svg" alt="Star Soccer Vancouver">
+</a>
+<div>
+<strong>Coach Desk</strong>
+<span id="identity">
+</span>
+</div>
+<button class="secondary" id="logout">Sign out</button>
+</header>
+<div class="desk-layout">
+<aside class="desk-nav">
+<p class="nav-section">WORKSPACE</p>
+<nav id="navigation">
+<button data-tab="home" class="nav-active">Overview</button>
+<button data-tab="attendance">Attendance</button>
+<button data-tab="notes">Player notes &amp; goals</button>
+<button data-tab="plan">Session planner</button>
+<button data-tab="tasks">Tasks &amp; follow-ups</button>
+<button data-tab="team" data-owner hidden>Team &amp; access</button>
+<button data-tab="activity" data-full hidden>Activity log</button>
+<button data-tab="legacy" data-full hidden>Existing Airtable notes</button>
+</nav>
+<div class="nav-foot">
+<span id="role">
+</span>
+<p>Your notes stay private to you and approved full-access accounts.</p>
+<a href="https://starsoccer.ca/">Public website ↗</a>
+</div>
+</aside>
+<main class="desk-main" id="desk-main" tabindex="-1" aria-busy="false">
+<div class="page-heading">
+<div>
+<p class="eyebrow" id="page-eyebrow">Your coaching week</p>
+<h1 id="page-title" tabindex="-1">Make every session count.</h1>
+<p id="page-copy">A clear view of who’s coming and what comes next.</p>
+</div>
+<button class="secondary" id="refresh">Refresh roster</button>
+</div>
+<p class="desk-loading" id="desk-loading" role="status" hidden>Refreshing your roster…</p>
+<div class="session-toolbar" id="session-toolbar">
+<label>Session<select id="session">
+</select>
+</label>
+<label class="inline-check">
+<input id="show-all" type="checkbox"> Include empty / past sessions</label>
+<span id="freshness" class="small">
+</span>
+</div>
+<section id="panel-home" class="tab-panel">
+<div class="desk-stats" id="home-stats">
+</div>
+<section id="coaching-hub" aria-label="Session briefing"></section>
+<div class="two-columns">
+<section class="card">
+<p class="eyebrow">Next up</p>
+<h2 id="next-title">
+</h2>
+<p id="next-details">
+</p>
+<p id="next-expected" class="callout">
+</p>
+<button class="button" id="go-attendance">Open the roster</button>
+<button class="secondary" id="go-plan">Plan this session</button>
+</section>
+<section class="card">
+<p class="eyebrow">Keep the week moving</p>
+<h2>Your follow-ups</h2>
+<div id="home-followups">
+</div>
+</section>
+</div>
+<section class="card">
+<div class="section-heading">
+<div>
+<p class="eyebrow">A quick coaching recap</p>
+<h2>Recent notes</h2>
+</div>
+<button class="secondary" id="go-notes">Add a note</button>
+</div>
+<div id="home-notes">
+</div>
+</section>
+</section>
+<section id="panel-attendance" class="tab-panel" hidden>
+<section class="attendance-browser" aria-label="Choose attendance session">
+<div class="attendance-view-controls" role="group" aria-label="Attendance views">
+<button id="attendance-upcoming" type="button" aria-pressed="true">Upcoming week</button>
+<button id="attendance-past" type="button" aria-pressed="false">Past attendance</button>
+</div>
+<div id="attendance-upcoming-wrap">
+<div class="attendance-week-heading">
+<div>
+<h2>Upcoming week</h2>
+<p id="attendance-week-range">
+</p>
+</div>
+<span id="attendance-freshness" class="small">
+</span>
+</div>
+<div id="attendance-days" class="attendance-days">
+</div>
+<label id="attendance-slot-wrap" hidden>Session on this day<select id="attendance-slot">
+</select>
+</label>
+</div>
+<div id="attendance-history-wrap" hidden>
+<h2>Past attendance</h2>
+<p class="small">Past dated rosters, newest first. Not marked means attendance has not been recorded. Parent replies and coach-marked attendance stay separate.</p>
+<div class="attendance-history-filters">
+<label>Training day<select id="attendance-past-day">
+<option value="all">All days</option>
+<option value="3">Wednesday</option>
+<option value="4">Thursday</option>
+<option value="5">Friday</option>
+<option value="0">Sunday</option>
+</select>
+</label>
+<label>Past session<select id="attendance-history">
+</select>
+</label>
+</div>
+</div>
+</section>
+<div class="desk-stats" id="attendance-stats">
+</div>
+<section class="card">
+<div class="section-heading">
+<div>
+<h2 id="roster-title">Session roster</h2>
+<p id="roster-details">
+</p>
+</div>
+<div class="roster-heading-actions">
+<span class="privacy-pill">Coach-marked attendance</span>
+<button class="secondary" id="print-roster" type="button">Print roster</button>
+</div>
+</div>
+<p class="small" id="marking-help">Parent replies help you prepare. Mark Present or Absent only after checking the player is there.</p>
+<div class="roster-tools">
+<label>Find a player<input id="roster-search" type="search" autocomplete="off" placeholder="Search this roster by name">
+</label>
+<label class="roster-status-filter">Show attendance<select id="roster-status-filter" aria-label="Show attendance">
+<option value="all">All players</option>
+<option value="Not marked">Not marked</option>
+<option value="Present">Present</option>
+<option value="Absent">Absent</option>
+</select>
+</label>
+<button class="secondary" id="roster-search-clear" type="button" hidden>Clear search</button>
+<p class="small" id="roster-search-count" role="status" aria-live="polite" role="status">
+</p>
+</div>
+<div id="roster">
+</div>
+</section>
+</section>
+<section id="panel-notes" class="tab-panel" hidden>
+<details class="coaching-tools-disclosure" id="player-history-panel"><summary>Player history &amp; development</summary><section id="player-development" aria-label="Player development history"></section></details>
+<div class="two-columns note-columns">
+<section class="card">
+<p class="eyebrow">Observe. Encourage. Develop.</p>
+<h2 id="note-title">Add a coaching note</h2>
+<p class="privacy-message">Private to you and full-access admins. Session plans are shared separately.</p>
+<p class="dictation-help small" id="note-dictation-help"></p>
+<form id="note-form">
+<label>Player<select id="note-player">
+<option value="">Session observation</option>
+</select>
+</label>
+<label>Category<select id="note-category">
+<option>General</option>
+<option>Technical</option>
+<option>Tactical</option>
+<option>Physical</option>
+<option>Confidence</option>
+<option>Goal</option>
+<option>Session review</option>
+</select>
+</label>
+<label>What did you notice?<textarea id="note-body" data-dictation-label="Dictate note" rows="6" maxlength="6000" required placeholder="What went well? What would help next time?">
+</textarea>
+</label>
+<label>Review date <span class="optional">optional</span>
+<input id="note-review" type="date">
+</label>
+<div class="form-save-actions">
+<button class="button" type="submit">Save private note</button>
+<span class="form-state" id="note-state" role="status" hidden>Unsaved changes</span>
+</div>
+<button class="secondary" type="button" id="note-cancel" hidden>Cancel edit</button>
+</form>
+</section>
+<section class="card">
+<div class="section-heading">
+<div>
+<p class="eyebrow">Player development</p>
+<h2 id="notes-heading">Your notes</h2>
+</div>
+<button class="secondary" id="export-notes">Export notes</button>
+</div>
+<label>Find a note<input id="note-search" type="search" placeholder="Player, category or note text">
+</label>
+<div id="note-list">
+</div>
+</section>
+</div>
+</section>
+<section id="panel-plan" class="tab-panel" hidden>
+<section class="card">
+<p class="privacy-message shared">Shared with coaches assigned to this session and full-access admins.</p>
+<p class="dictation-help small" id="plan-dictation-help"></p>
+<form id="plan-form" class="plan-grid">
+<label class="full-width">Session focus<textarea id="plan-focus" data-dictation-label="Dictate session focus" rows="2" maxlength="2000" placeholder="The one thing we want players to take away">
+</textarea>
+</label>
+<label>Warm-up<textarea id="plan-warmup" data-dictation-label="Dictate warm-up" rows="4" maxlength="2000" placeholder="Arrival activity, movement and ball work">
+</textarea>
+</label>
+<label>Technical activity<textarea id="plan-technical" data-dictation-label="Dictate technical activity" rows="4" maxlength="2000" placeholder="Setup, coaching points and progressions">
+</textarea>
+</label>
+<label>Game / application<textarea id="plan-game" data-dictation-label="Dictate game" rows="4" maxlength="2000" placeholder="How will players apply the skill?">
+</textarea>
+</label>
+<label>Equipment / preparation<textarea id="plan-equipment" data-dictation-label="Dictate equipment" rows="4" maxlength="2000" placeholder="Balls, cones, bibs, goals and setup">
+</textarea>
+</label>
+<label class="full-width">After-session reflection<textarea id="plan-reflection" data-dictation-label="Dictate reflection" rows="3" maxlength="2000" placeholder="What worked, and what should we revisit?">
+</textarea>
+</label>
+<div class="full-width">
+<button class="button" type="submit">Save shared plan</button>
+<span class="form-state" id="plan-state" role="status" hidden>Unsaved changes</span>
+<span id="plan-updated" class="small">
+</span>
+</div>
+</form>
+<details class="coaching-tools-disclosure" id="practice-ideas"><summary>Practice ideas &amp; reuse</summary><section id="practice-toolbox" aria-label="Practice toolbox"></section></details>
+</section>
+</section>
+<section id="panel-tasks" class="tab-panel" hidden>
+<section class="card">
+<p class="eyebrow">Small steps, followed through</p>
+<h2>Tasks &amp; follow-ups</h2>
+<form id="task-form" class="task-form">
+<label>Task<input id="task-title" maxlength="250" required placeholder="Something to prepare or follow up">
+</label>
+<label>Due date <span class="optional">optional</span>
+<input id="task-due" type="date">
+</label>
+<button class="button" type="submit">Add task</button>
+</form>
+<div id="task-list">
+</div>
+</section>
+</section>
+<section id="panel-team" class="tab-panel" hidden>
+<div class="two-columns">
+<section class="card">
+<p class="eyebrow">Owner controls</p>
+<h2 id="user-title">Approve a coach</h2>
+<p>Coaches see assigned sessions and their own private notes. Full-access admins can view all sessions and all coach notes. Only the owner can manage accounts.</p>
+<form id="user-form">
+<label>Name<input id="user-name" maxlength="100" required>
+</label>
+<label>Email<input id="user-email" type="email" required>
+</label>
+<label>Access<select id="user-role">
+<option value="coach">Coach — own notes &amp; assigned sessions</option>
+<option value="admin">Full-access admin — all sessions &amp; notes</option>
+</select>
+</label>
+<label class="inline-check">
+<input id="user-active" type="checkbox" checked> Account active</label>
+<button class="button" type="submit">Save access</button>
+<button class="secondary" id="user-cancel" type="button" hidden>Cancel edit</button>
+</form>
+<p class="small" id="team-signin-help">New accounts receive no email automatically. Copy a private setup link to share yourself.</p>
+</section>
+<section class="card">
+<h2>Approved accounts</h2>
+<div id="user-list">
+</div>
+<h3>Assign coaches to the selected session</h3>
+<p id="assignment-session" class="small">
+</p>
+<div id="assignments">
+</div>
+</section>
+</div>
+</section>
+<section id="panel-activity" class="tab-panel" hidden>
+<section class="card">
+<p class="eyebrow">A clear record of changes</p>
+<h2>Recent activity</h2>
+<div id="activity-list">
+</div>
+</section>
+</section>
+<section id="panel-legacy" class="tab-panel" hidden>
+<section class="card">
+<p class="eyebrow">Admin-only history</p>
+<h2>Existing Airtable coaching notes</h2>
+<p>These existing notes remain read-only here because their authors haven’t been reliably linked to individual sign-in accounts.</p>
+<button class="secondary" id="load-legacy">Load existing notes</button>
+<div id="legacy-list">
+</div>
+</section>
+</section>
+<p id="notice" class="desk-notice" role="status" hidden>
+</p>
+</main>
+</div>
+</div>
+<p id="boot" class="boot-message" role="status">Opening Coach Desk…</p>
+<p id="global-error" class="global-error" role="alert" hidden>
+</p>
+<section id="print-roster-sheet" aria-label="Private printable session roster">
+</section>
+</body>
+</html>

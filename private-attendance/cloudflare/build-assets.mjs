@@ -1,0 +1,9 @@
+import {readFile,writeFile} from 'node:fs/promises';
+const files={html:'respond.html',landing:'landing.html',css:'app.css',parentJS:'parent.js',logo:'logo.svg',overview:'overview.html',overviewCSS:'overview.css',overviewJS:'overview.js',emailPreview:'email-preview.html',emailPreviewJS:'email-preview.js',workspace:'workspace.html',workspaceCSS:'workspace.css',workspaceJS:'workspace.js',dictationJS:'workspace-dictation.js',coachingJS:'workspace-coaching.js',coachingCSS:'workspace-coaching.css'};
+let output='// Generated from the reviewed parent UI. Do not edit.\n';
+for(const [name,file]of Object.entries(files))output+='export const '+name+'='+JSON.stringify(await readFile(new URL('../web/'+file,import.meta.url),'utf8'))+';\n';
+output+='export const passkeysJS='+JSON.stringify(await readFile(new URL('../../node_modules/@simplewebauthn/browser/dist/bundle/index.umd.min.js',import.meta.url),'utf8'))+';\n';
+// Reuse the public site's licensed fonts without requests to a third-party CDN.
+for(const [name,file]of Object.entries({workspaceManropeFont:'manrope-normal-latin.woff2',workspaceInstrumentSerifFont:'instrument-serif-italic-latin.woff2'}))output+='export const '+name+'='+JSON.stringify((await readFile(new URL('../../fonts/'+file,import.meta.url))).toString('base64'))+';\n';
+for(const [name,file]of Object.entries({workspaceManropeLicense:'manrope-OFL.txt',workspaceInstrumentSerifLicense:'instrumentserif-OFL.txt'}))output+='export const '+name+'='+JSON.stringify(await readFile(new URL('../../fonts/'+file,import.meta.url),'utf8'))+';\n';
+await writeFile(new URL('assets.generated.mjs',import.meta.url),output);

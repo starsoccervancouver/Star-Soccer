@@ -12,7 +12,7 @@ test('shared stylesheet stays within the transfer budget and preserves runtime s
 test('public artifact includes all routes and excludes development files',()=>{
   execFileSync(process.execPath,['scripts/stage-site.cjs']);
   const names=fs.readdirSync('_site');
-  for(const name of ['node_modules','tests','scripts','ops','work','outputs','README.md','package.json','styles.css'])assert(!names.includes(name),'Development file published: '+name);
+  for(const name of ['node_modules','tests','scripts','ops','work','outputs','private-attendance','README.md','package.json','styles.css'])assert(!names.includes(name),'Development file published: '+name);
   assert(!names.some(name=>name.endsWith('.png') && name!=='email-star-soccer-logo.png'),'Reference screenshots must not be published');
   for(const name of fs.readdirSync('.').filter(name=>name.endsWith('.html')))assert(names.includes(name),'Missing route: '+name);
   assert(fs.existsSync('_site/Star soccer/index.html'));

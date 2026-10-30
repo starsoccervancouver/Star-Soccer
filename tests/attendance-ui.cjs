@@ -1,0 +1,61 @@
+/* Real local engine and browser; all fixture data is fictional and network stays on loopback. */
+const assert=require('node:assert/strict'),{chromium}=require('playwright'),fs=require('node:fs'),path=require('node:path');
+(async()=>{
+ const {startDemo}=await import('../private-attendance/demo.mjs');const d=await startDemo({port:0});let browser;
+ try{
+  browser=await chromium.launch();const context=await browser.newContext(),page=await context.newPage(),external=[];page.setDefaultTimeout(6000);page.setDefaultNavigationTimeout(6000);
+  await context.route('**/*',route=>{if(new URL(route.request().url()).origin===d.origin)return route.continue();external.push(route.request().url());return route.abort();});
+  const alex=d.drafts.find(x=>x.playerName==='Alex'),sam=d.drafts.find(x=>x.playerName==='Sam'),sessionId=d.snapshot.sessions[0].id;
+  const row=()=>d.service.dashboard({sessionId}).sessions[0].players.find(p=>p.playerId==='demo_alex');
+  let checks=0;const check=(condition,message)=>{assert.ok(condition,message);checks++;};
+  await page.setViewportSize({width:320,height:800});await page.goto(alex.yesUrl);await page.locator('#details').waitFor({state:'visible'});
+  check(page.url()===d.origin+'/respond','Token fragment is removed immediately');check(row().response===null,'Opening a yes link and preview do not record attendance');
+  check(/3:45/.test(await page.locator('#when').textContent()),'Approved November Vancouver session time renders 3:45 PM');
+  check((await page.locator('#confirm').isEnabled())===true,'Prefilled yes choice is ready for explicit confirmation');
+  check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Parent page fits 320px');
+  check(await page.locator('#confirm').evaluate(e=>e.getBoundingClientRect().height>=44),'Confirmation has a large mobile touch target');
+  check(await page.locator('#confirm').evaluate(e=>e.getBoundingClientRect().bottom<=755),'Confirmation remains reachable within the first 755px on a 320px phone');
+  fs.mkdirSync(path.join(__dirname,'../outputs'),{recursive:true});await page.screenshot({path:path.join(__dirname,'../outputs/private-attendance-parent-preview.png'),fullPage:true});
+  await page.locator('#no').click();await page.waitForFunction(()=>!document.querySelector('#confirm').disabled);await page.locator('#confirm').click();await page.locator('#success').waitFor({state:'visible'});
+  check(row().response==='no'&&row().version===1,'Choosing No from a Yes link obtains the matching challenge and saves once');
+  check(row().physicalAttendance==='not-marked','Parent reply does not mark physical attendance');
+  await page.locator('#change').click();await page.locator('#confirm').waitFor({state:'visible'});await page.locator('#yes').click();await page.waitForFunction(()=>!document.querySelector('#confirm').disabled);
+  const other=await context.newPage();await other.goto(alex.yesUrl);await other.locator('#details').waitFor({state:'visible'});await other.locator('#confirm').click();await other.locator('#success').waitFor({state:'visible'});
+  check(row().response==='yes'&&row().version===2,'A later explicit answer replaces the preparation response');
+  await page.locator('#confirm').click();await page.locator('#change').waitFor({state:'visible'});check((await page.locator('#change').textContent()).includes('Review latest'),'A stale tab must review the current response before changing it');
+  check(row().response==='yes'&&row().version===2,'Stale response does not overwrite the newer response');
+  await page.locator('#change').click();await page.locator('#confirm').waitFor({state:'visible'});await page.locator('#no').click();await page.waitForFunction(()=>!document.querySelector('#confirm').disabled);await page.locator('#confirm').dblclick();await page.locator('#success').waitFor({state:'visible'});
+  check(row().response==='no'&&row().version===3,'Double-clicking the final confirmation cannot produce duplicate updates');
+  await page.goto(d.origin+'/coach');await page.locator('#roster tr').first().waitFor();
+  check((await page.locator('#totals').textContent()).includes('Confirmed by registration1'),'Coach summary includes the pass without an attendance request');
+  check((await page.locator('#capacity').textContent()).includes('3 / 20 registered places'),'Declining does not release the registered place');
+  check((await page.locator('#roster').textContent()).includes('Can’t make it'),'Coach preparation receives the private response');
+  await page.setViewportSize({width:1280,height:850});await page.screenshot({path:path.join(__dirname,'../outputs/private-attendance-coach-preview.png'),fullPage:true});await page.setViewportSize({width:320,height:800});
+  await page.locator('#session-choice').selectOption(d.snapshot.sessions[1].id);await page.waitForFunction(()=>document.querySelector('#session-details').textContent.includes('Winter Camp'));
+  check((await page.locator('#roster').textContent()).includes('Confirmed by registration'),'Camp stays confirmed through registration');
+  await page.goto(sam.optOutUrl);await page.locator('#details').waitFor({state:'visible'});
+  check(d.service.dashboard({sessionId}).sessions[0].players.find(p=>p.name==='Sam').reminderPreference==='enabled','Opening opt-out does not change email preferences');
+  await page.locator('#confirm').click();await page.locator('#success').waitFor({state:'visible'});
+  check(d.service.dashboard({sessionId}).sessions[0].players.find(p=>p.name==='Sam').reminderPreference==='disabled','Explicit opt-out stops recurring email eligibility');
+  check(d.service.dashboard({sessionId}).sessions[0].registered===3,'Opt-out preserves bookings');
+  await page.goto(d.origin+'/respond#token=not-a-real-token&answer=yes');await page.locator('#error').waitFor({state:'visible'});check(await page.locator('#details').isHidden(),'Invalid token reveals no child/session details');
+  const racePage=await context.newPage();racePage.setDefaultTimeout(6000);let releasePreview,startPreview,heldPreview=false;const previewGate=new Promise(resolve=>{releasePreview=resolve;}),previewStarted=new Promise(resolve=>{startPreview=resolve;});
+  await racePage.route('**/api/preview',async route=>{if(!heldPreview&&route.request().postDataJSON().token===alex.token){heldPreview=true;startPreview();await previewGate;}await route.continue();});
+  await racePage.goto(alex.yesUrl);await previewStarted;await racePage.goto(sam.yesUrl);await racePage.waitForFunction(()=>document.querySelector('#player').textContent==='Sam'&&!document.querySelector('#details').hidden);
+  const oldPreviewFinished=racePage.waitForResponse(r=>r.url().endsWith('/api/preview')&&r.request().postDataJSON().token===alex.token);releasePreview();await oldPreviewFinished;await racePage.evaluate(()=>new Promise(requestAnimationFrame));
+  check((await racePage.locator('#player').textContent())==='Sam','A delayed previous-child preview cannot overwrite the newly opened child');
+  await racePage.unroute('**/api/preview');let releaseResponse,startResponse,heldResponse=false;const responseGate=new Promise(resolve=>{releaseResponse=resolve;}),responseStarted=new Promise(resolve=>{startResponse=resolve;});
+  await racePage.route('**/api/respond',async route=>{if(!heldResponse){heldResponse=true;startResponse();await responseGate;}await route.continue();});
+  await racePage.goto(alex.yesUrl);await racePage.locator('#details').waitFor({state:'visible'});await racePage.locator('#confirm').click();await responseStarted;await racePage.goto(sam.yesUrl);await racePage.waitForFunction(()=>document.querySelector('#player').textContent==='Sam'&&!document.querySelector('#details').hidden);
+  const oldResponseFinished=racePage.waitForResponse(r=>r.url().endsWith('/api/respond'));releaseResponse();await oldResponseFinished;await racePage.evaluate(()=>new Promise(requestAnimationFrame));
+  check((await racePage.locator('#player').textContent())==='Sam'&&await racePage.locator('#success').isHidden(),'A delayed saved response cannot display success for a different child');
+  check(d.service.dashboard({sessionId}).sessions[0].players.find(p=>p.name==='Sam').response===null,'Previous-child response never changes the new child’s record');
+  await racePage.unroute('**/api/respond');let loseAck=true;await racePage.route('**/api/respond',async route=>{if(loseAck){loseAck=false;await route.fetch();await route.abort('failed');}else await route.continue();});
+  await racePage.goto(alex.noUrl);await racePage.locator('#details').waitFor({state:'visible'});await racePage.locator('#confirm').click();await racePage.locator('#error').waitFor({state:'visible'});const acknowledgedVersion=row().version;check(row().response==='no','An uncertain transport result may already be durably saved');
+  await racePage.locator('#confirm').click();await racePage.locator('#success').waitFor({state:'visible'});check(row().version===acknowledgedVersion&&row().response==='no','A network retry reuses its idempotency key and cannot duplicate a saved response');
+  await page.goto(d.origin+'/demo');await page.locator('#drafts .card').first().waitFor();check(await page.locator('#drafts .card').count()===2,'Only drop-ins receive attendance draft previews');
+  for(const width of [320,375,430,768,1280]){await page.setViewportSize({width,height:800});check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Draft review fits '+width+'px');}
+  check(external.length===0,'No parent page or demo requests external software or tracking assets');
+  console.log('Private attendance UI: '+checks+' checks passed, 0 failed.');
+ }finally{await browser?.close();await d.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

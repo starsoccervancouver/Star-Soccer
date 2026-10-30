@@ -11,7 +11,8 @@ function vancouver(date,hour,minute){
   }
   throw new Error('Local test instant not found');
 }
-test('attendance email contains date, location, Calendar RSVP and no payment demand',()=>{
+test('explicit legacy attendance helper preserves historical Calendar recovery without sending',()=>{
+  assert.equal(E.legacyAttendanceInquiry,E.attendanceInquiry);
   const m=E.attendanceInquiry('wednesday','2026-10-28',['Example Player'],ref);
   for(const text of ['Wed, Oct 28, 2026','3:45–5:15 PM','Connaught Park','Google Calendar invitation',ref])assert.ok(m.body.includes(text),text);
   assert.match(m.html,/RSVP in your Calendar invitation/);assert.doesNotMatch(m.html,/body=YES|body=NO|Tap Send/);
@@ -50,23 +51,23 @@ test('reminders open at 9am Vancouver two days before, catch up before training,
   assert.equal(E.reminderDue('wednesday','2026-11-11',vancouver('2026-11-09',8,59)),false);
   assert.equal(E.reminderDue('wednesday','2026-11-11',vancouver('2026-11-09',9,0)),true);
 });
-test('branded confirmation ends with a separate attendance invitation note and future passes defer the inquiry',()=>{
+test('new branded confirmations avoid Calendar and keep pass attendance confirmed through registration',()=>{
   const m=E.registrationConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Player');
-  assert.match(m.body,/Thank you/);assert.match(m.html,/Calendar attendance invitation/);assert.match(m.body,/\$30 CAD/);
-  assert.match(m.html,/email-star-soccer-logo\.png/);assert.match(m.html,/email-autumn-field\.jpg/);assert.match(m.html,/Your attendance invitation is coming/);
-  assert.doesNotMatch(m.html,/Coming to training\?|RSVP in Google Calendar/);assert.doesNotMatch(m.body,/Attendance:\n/);
+  assert.match(m.body,/Thank you/);assert.match(m.body,/\$30 CAD/);
+  assert.match(m.html,/email-star-soccer-logo\.png/);assert.match(m.html,/email-autumn-field\.jpg/);
+  assert.doesNotMatch(m.html,/Coming to training\?|RSVP in Google Calendar|attendance invitation|Calendar/);assert.doesNotMatch(m.body,/Attendance:\n/);
   const now=new Date('2026-10-27T03:00:00Z');
   const next=E.passConfirmation('wednesday','2026-10-28','SS-ABCDEF12','Player',now);
-  assert.match(next.html,/Calendar attendance invitation/);assert.match(next.body,/e-transfer/);assert.doesNotMatch(next.body,/START/);
+  assert.match(next.body,/e-transfer/);assert.doesNotMatch(next.body,/START|Calendar|attendance invitation|Choose Yes/);
   const future=E.passConfirmation('wednesday','2026-11-04','SS-ABCDEF12','Player',now);
-  assert.doesNotMatch(future.html,/Coming to training/);assert.doesNotMatch(future.body,/Attendance:\n|Choose Yes/);assert.match(future.body,/No attendance response is needed now/);
+  assert.doesNotMatch(future.html,/Coming to training/);assert.doesNotMatch(future.body,/Attendance:\n|Choose Yes|Calendar|attendance invitation/);
 });
 
 test('camp confirmation uses the winter brand and keeps the package details',()=>{
   const C=require('../winter-camps.js'),q=C.quote({week:'boxing',kind:'week',slot:'pm',age:8},new Date('2026-10-27T03:00:00Z'));
   const m=E.campConfirmation(q,'SS-CAMP-EXAMPLE123','Player');
   assert.match(m.html,/WINTER CAMPS/);assert.match(m.body,/Winter Camp — Week 2|\$185 CAD/);assert.doesNotMatch(m.html,/subject=Re|body=YES/);
-  assert.match(m.html,/email-winter-field\.jpg/);assert.match(m.body,/Before camp starts/);
+  assert.match(m.html,/email-winter-field\.jpg/);assert.match(m.body,/registration confirms every package date/);assert.doesNotMatch(m.body,/Calendar|attendance invitation|RSVP/);
 });
 test('camp drop-in confirmation personalizes only the chosen dates and exact total',()=>{
  const C=require('../winter-camps.js'),q=C.quote({week:'christmas',kind:'dropin',slot:'am',dates:['2026-12-21','2026-12-25'],age:8},new Date('2026-10-27T03:00:00Z'));
@@ -91,4 +92,68 @@ test('payment thank-you requires verified receipt, preserves cents and personali
  assert.doesNotMatch(m.body,/fully paid|balance|^Received:|attendance invitation/im);
  for(const bad of [{confirmedReceived:false},{amountCents:97.5},{amountCents:0},{reference:'bad'},{receivedDate:'2026-02-30'},{players:['Player','player']}])assert.throws(()=>E.paymentThankYou({...args,...bad}));
  const escaped=E.paymentThankYou({...args,parentName:'<Parent & Co>'});assert.match(escaped.html,/&lt;Parent &amp; Co&gt;/);assert.ok(!escaped.html.includes('<Parent'));
+});
+
+test('full-day confirmations preserve the authoritative catalog total in both HTML and plain text',()=>{
+ const C=require('../winter-camps.js'),now=new Date('2026-10-28T19:00:00Z');
+ for(const [week,kind,dates] of [
+  ['christmas','week',undefined],['boxing','week',undefined],
+  ['christmas','dropin',['2026-12-21']],['boxing','dropin',['2026-12-28','2027-01-01']],
+  ['christmas','dropin',['2026-12-25']]
+ ]){
+  const q=C.quote({week,kind,slot:'both',dates,age:8},now),m=E.campConfirmation(q,'SS-CAMP-FULLDAY01','Alex','Jordan');
+  const total=q.price;assert.equal(q.lunch,true);
+  for(const content of [m.body,m.html]){assert.ok(content.includes('$'+total+' CAD'));assert.ok(content.includes('Alex'));assert.ok(content.includes('Bring a packed lunch'));assert.doesNotMatch(content,/per player|pay twice|another payment/);}
+  if(total===0)assert.doesNotMatch(m.body,/You can pay|transfer notes/);
+ }
+});
+
+const attendanceOrigin='https://attendance.starsoccer.ca';
+function attendanceDraftArgs(){
+ const token='A'.repeat(43),out='B'.repeat(43);
+ return {parentName:'Jordan',players:[{playerId:'fictional-alex',name:'Alex',yesUrl:attendanceOrigin+'/respond#token='+token+'&answer=yes',noUrl:attendanceOrigin+'/respond#token='+token+'&answer=no',optOutUrl:attendanceOrigin+'/respond#token='+out+'&action=optout'}],session:{id:'fictional-wednesday-2026-11-04',label:'Wednesday training',date:'2026-11-04',time:'3:45–5:15 PM',location:'Connaught Park',startAt:'2026-11-04T22:45:00.000Z',endAt:'2026-11-05T00:15:00.000Z'},reference:'SS-RSVP-EXAMPLE123',appOrigin:attendanceOrigin,mode:'draft'};
+}
+test('private attendance draft is personalized with explicit confirmation links and no Calendar or payment request',()=>{
+ const args=attendanceDraftArgs(),m=E.weeklyAttendanceDraft(args);
+ assert.equal(m.draftOnly,true);assert.match(m.body,/^Hi Jordan,/);assert.match(m.body,/Can Alex join us/);
+ assert.match(m.body,/Wed, Nov 4, 2026/);assert.match(m.body,/Connaught Park/);
+ for(const value of ['Yes, attending','Can’t make it','confirm your choice on the page','change your answer before the session starts','No login is needed','Stop weekly attendance emails for Alex'])assert.ok(m.body.includes(value),value);
+ assert.match(m.html,/href="https:\/\/attendance\.starsoccer\.ca\/respond#token=/);
+ assert.doesNotMatch(m.body,/Calendar|RSVP Yes|e-transfer|payment|\$|marked present/);
+ assert.doesNotMatch(m.html,/<script|onload=|fetch\(/i);
+ assert.ok(!m.body.includes('fictional-alex'));assert.ok(!m.html.includes('fictional-alex'));
+ assert.equal(E.weeklyAttendanceDraft({...args,parentName:null}).body.startsWith('Hi Alex’s family,'),true);
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,mode:'send'}),/draft-only/);
+});
+test('each sibling has independent response links, escaped names and an opt-out for their own check-ins',()=>{
+ const args=attendanceDraftArgs(),first=args.players[0],token='C'.repeat(43),out='D'.repeat(43);
+ args.parentName='<Jordan & Co>';args.players[0].name='<Alex & Co>';
+ args.players.push({playerId:'fictional-robin',name:'Robin',yesUrl:attendanceOrigin+'/respond#token='+token+'&answer=yes',noUrl:attendanceOrigin+'/respond#token='+token+'&answer=no',optOutUrl:attendanceOrigin+'/respond#token='+out+'&action=optout'});
+ const m=E.weeklyAttendanceDraft(args);
+ assert.match(m.html,/&lt;Jordan &amp; Co&gt;/);assert.match(m.html,/&lt;Alex &amp; Co&gt;/);assert.ok(!m.html.includes('<Alex'));
+ for(const p of args.players){assert.ok(m.body.includes(p.yesUrl));assert.ok(m.body.includes(p.noUrl));assert.ok(m.body.includes(p.optOutUrl));}
+ assert.match(m.body,/Stop weekly attendance emails for Robin/);
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,players:[first,{...args.players[1],playerId:first.playerId}]}),/distinct actual player/);
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,players:[first,{...args.players[1],yesUrl:first.yesUrl,noUrl:first.noUrl}]}),/own session response token/);
+  assert.throws(()=>E.weeklyAttendanceDraft({...args,players:[first,{...args.players[1],optOutUrl:first.optOutUrl}]}),/separate scoped opt-out/);
+});
+test('attendance drafts reject unapproved origins, header injection, malformed actions and ambiguous tokens',()=>{
+ const args=attendanceDraftArgs(),p=args.players[0];
+ for(const origin of ['https://evil.invalid','https://attendance.starsoccer.ca.evil.invalid','http://attendance.starsoccer.ca','https://attendance.starsoccer.ca/path','https://user@attendance.starsoccer.ca','http://127.0.0.1:8788'])assert.throws(()=>E.weeklyAttendanceDraft({...args,appOrigin:origin}));
+ for(const yesUrl of [p.yesUrl.replace('https:','http:'),p.yesUrl.replace('/respond','/redirect'),p.yesUrl.replace('#token=','?token='),p.yesUrl+'&extra=1',p.yesUrl+'&token='+'A'.repeat(43),p.noUrl,p.yesUrl.replace('A'.repeat(43),'short'),p.yesUrl.replace('attendance.starsoccer.ca','evil.invalid')])assert.throws(()=>E.weeklyAttendanceDraft({...args,players:[{...p,yesUrl}]}));
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,players:[{...p,noUrl:p.noUrl.replace('A'.repeat(43),'C'.repeat(43))}]}),/one session response token/);
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,players:[{...p,optOutUrl:p.yesUrl}]}));
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,players:[{...p,name:'Alex\nBcc: hidden'}]}));
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,session:{...args.session,label:'Wednesday\nBcc: hidden'}}));
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,session:{...args.session,date:'2026-02-30'}}));
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,session:{...args.session,endAt:args.session.startAt}}));
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,session:{...args.session,startAt:'2026-11-04'}}));
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,session:{...args.session,startAt:'2026-02-30T22:45:00Z'}}));
+});
+test('loopback-only attendance previews require explicit demo mode and preserve scoped links',()=>{
+ const args=attendanceDraftArgs(),origin='http://127.0.0.1:8788';
+ args.demo=true;args.appOrigin=origin;args.players=args.players.map(p=>Object.fromEntries(Object.entries(p).map(([k,v])=>[k,typeof v==='string'?v.replace(attendanceOrigin,origin):v])));
+ const draft=E.weeklyAttendanceDraft(args);assert.equal(draft.draftOnly,true);assert.ok(draft.body.includes(origin+'/respond#token='));
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,demo:false}));
+ assert.throws(()=>E.weeklyAttendanceDraft({...args,appOrigin:'http://192.168.1.10:8788'}));
 });

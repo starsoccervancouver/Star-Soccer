@@ -1,0 +1,22 @@
+# REVIEW EXAMPLE ONLY. Do not deploy without fresh owner approval.
+name = "star-soccer-attendance-disabled"
+main = "worker.mjs"
+compatibility_date = "2026-10-28"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+preview_urls = false
+
+[vars]
+ATTENDANCE_MODE = "disabled"
+LIVE_EMAIL_SENDS = "false"
+LIVE_AIRTABLE_WRITES = "false"
+
+[[durable_objects.bindings]]
+name = "ATTENDANCE_COORDINATOR"
+class_name = "AttendanceCoordinator"
+
+[[migrations]]
+tag = "v1-private-attendance"
+new_sqlite_classes = ["AttendanceCoordinator"]
+
+# No routes, domain, account IDs, credentials, cron triggers or billing configuration.

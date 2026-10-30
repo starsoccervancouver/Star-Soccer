@@ -1,0 +1,14 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),{execFileSync}=require('node:child_process');
+const {DatabaseSync}=require('node:sqlite');
+const loaded=Promise.resolve().then(()=>{execFileSync(process.execPath,['private-attendance/cloudflare/build-assets.mjs'],{stdio:'ignore'});return import('../private-attendance/cloudflare/production-worker.mjs');});
+const fid=n=>'fld'+String(n).padStart(14,'0');
+test('production Worker remains closed without the complete approved configuration',async()=>{const {default:worker}=await loaded;let touched=false;const r=await worker.fetch(new Request('https://attendance.starsoccer.ca/respond'),{ATTENDANCE_MODE:'live',LIVE_EMAIL_SENDS:'false',ATTENDANCE_COORDINATOR:{idFromName(){touched=true;}}});assert.equal(r.status,503);assert.equal(touched,false);assert.equal((await r.json()).draftOnly,true);});
+test('Durable Object initializes shared SQL schema and exposes no public coach or admin roster',async t=>{
+ const {AttendanceCoordinator}=await loaded,db=new DatabaseSync(':memory:');t.after(()=>db.close());const sql={exec(query,...args){let rows=[],written=0;if(!args.length&&query.includes(';'))db.exec(query);else{const stmt=db.prepare(query);if(stmt.columns().length)rows=stmt.all(...args);else written=Number(stmt.run(...args).changes);}return {toArray:()=>rows,rowsWritten:written};}};
+ const storage={sql,transactionSync(fn){db.exec('BEGIN IMMEDIATE');try{const r=fn();db.exec('COMMIT');return r;}catch(e){db.exec('ROLLBACK');throw e;}}};
+ const config={baseId:'app00000000000000',tables:Object.fromEntries(['attendance','enrollments','sessions','players','families','bookings','registrations'].map((k,i)=>[k,'tbl'+String(i).padStart(14,'0')])),rsvpFields:{rsvpStatus:fid(1),rsvpUpdatedAt:fid(2),rsvpNotes:fid(3),player:fid(4),session:fid(5)},preferenceFields:{player:fid(6),family:fid(7),preference:fid(8),updatedAt:fid(9)},exclusiveWriter:true,handoffEvidence:'fictional test fixture only'};
+ const env={ATTENDANCE_MODE:'live',LIVE_EMAIL_SENDS:'false',OWNER_APPROVED:'true',LIVE_AIRTABLE_WRITES:'false',ADMIN_KEY:'a'.repeat(43),COOKIE_KEY:'b'.repeat(43),AIRTABLE_TOKEN:'fictional-test',AIRTABLE_CONFIG:JSON.stringify(config)};
+ const worker=new AttendanceCoordinator({storage},env),origin='https://attendance.starsoccer.ca';
+ const responses=await Promise.all(['/health','/coach','/api/dashboard','/respond'].map(path=>worker.fetch(new Request(origin+path))));assert.deepEqual(responses.map(r=>r.status),[200,404,404,200]);const html=await responses[3].text();assert(!html.includes('Fictional local preview'));assert(html.includes('Confirm response'));assert.equal(db.prepare('SELECT COUNT(*) AS n FROM responses').get().n,0);
+ const bootstrap=await worker.fetch(new Request(origin+'/api/bootstrap'));assert.equal(bootstrap.status,200);assert.match(bootstrap.headers.get('set-cookie'),/Secure/);
+});

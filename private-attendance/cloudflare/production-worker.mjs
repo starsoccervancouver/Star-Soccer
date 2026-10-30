@@ -1,0 +1,54 @@
+import {durableSqliteStore} from './storage.mjs';
+import {initializeStore} from '../schema.mjs';
+import {createService} from '../service.mjs';
+import {createProductionHandler} from '../production-http.mjs';
+import {createRosterReader} from '../airtable-roster.mjs';
+import {createAirtableAdapter,projectOutbox} from '../airtable-adapter.mjs';
+import {createPreferenceAdapter} from '../preference-adapter.mjs';
+import {createAirtableTransport} from '../airtable-transport.mjs';
+import {createOwnerAuth} from '../owner-auth.mjs';
+import {createCoachStore} from '../coach-store.mjs';
+import {createCoachAuth} from '../coach-auth.mjs';
+import {createCoachAttendance} from '../coach-attendance.mjs';
+import {createCoachHandler} from '../coach-http.mjs';
+import {createCoachGoogleAuth} from '../coach-google-auth.mjs';
+import {html,landing,css,parentJS,logo,overview,overviewCSS,overviewJS,emailPreview,emailPreviewJS,workspace,workspaceCSS,workspaceJS,dictationJS,coachingJS,coachingCSS,passkeysJS,workspaceManropeFont,workspaceInstrumentSerifFont,workspaceManropeLicense,workspaceInstrumentSerifLicense} from './assets.generated.mjs';
+// Public font assets contain no coach data; existing no-store/security headers apply.
+const fontBody=value=>Uint8Array.from(atob(value),character=>character.charCodeAt(0));
+const workspaceFontAssets={
+ '/workspace/assets/manrope.woff2':{body:fontBody(workspaceManropeFont),type:'font/woff2'},
+ '/workspace/assets/instrument-serif.woff2':{body:fontBody(workspaceInstrumentSerifFont),type:'font/woff2'},
+ '/workspace/assets/manrope-OFL.txt':{body:workspaceManropeLicense,type:'text/plain; charset=utf-8'},
+ '/workspace/assets/instrument-serif-OFL.txt':{body:workspaceInstrumentSerifLicense,type:'text/plain; charset=utf-8'}
+};
+const disabled=()=>new Response(JSON.stringify({error:'attendance_service_not_activated',draftOnly:true}),{status:503,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex'}});
+const active=env=>env.ATTENDANCE_MODE==='live'&&env.LIVE_EMAIL_SENDS==='false'&&env.OWNER_APPROVED==='true'&&env.ADMIN_KEY&&env.COOKIE_KEY&&env.AIRTABLE_TOKEN&&env.AIRTABLE_CONFIG;
+export default {async fetch(request,env){if(!active(env))return disabled();const id=env.ATTENDANCE_COORDINATOR.idFromName('single-private-writer-v1');return env.ATTENDANCE_COORDINATOR.get(id).fetch(request);}};
+export class AttendanceCoordinator{
+ constructor(ctx,env){this.ctx=ctx;this.env=env;this.tail=Promise.resolve();this.store=durableSqliteStore(ctx.storage);}
+ fetch(request){const work=this.tail.catch(()=>{}).then(()=>this.handle(request)).catch(()=>disabled());this.tail=work.then(()=>{});return work;}
+ async handle(request){
+  if(!active(this.env))return disabled();
+  if(!this.handler){
+   initializeStore(this.store);this.store.run('CREATE TABLE IF NOT EXISTS runtime_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)');
+   const env=this.env,config=JSON.parse(env.AIRTABLE_CONFIG),origin='https://attendance.starsoccer.ca',airtableFetch=createAirtableTransport();
+   this.service=createService({store:this.store,origin,mode:'live',activation:{ownerApproved:true,exclusiveWriter:config.exclusiveWriter===true,draftOnly:true,handoffEvidence:config.handoffEvidence}});
+   const reader=createRosterReader({baseId:config.baseId,token:env.AIRTABLE_TOKEN,tableMap:config.tables,verifiedContacts:config.verifiedContacts||{},fetchFn:airtableFetch});
+   const adapter=createAirtableAdapter({baseId:config.baseId,tableId:config.tables.attendance,fields:config.rsvpFields,token:env.AIRTABLE_TOKEN,fetchFn:airtableFetch,dryRun:env.LIVE_AIRTABLE_WRITES!=='true',exclusiveWriter:config.exclusiveWriter,approval:config.approval});
+   const preference=createPreferenceAdapter({baseId:config.baseId,tableId:config.tables.enrollments,fields:config.preferenceFields,token:env.AIRTABLE_TOKEN,fetchFn:airtableFetch,enabled:env.LIVE_AIRTABLE_WRITES==='true'&&config.approval?.ownerApproved===true&&config.approval?.scope==='attendance-rsvp-only'&&config.approval?.baseId===config.baseId&&config.approval?.tableId===config.tables.attendance&&Date.parse(config.approval?.approvedAt)<=Date.now()&&Date.parse(config.approval?.expiresAt)>Date.now()});
+   const refreshRoster=async(sessionId)=>{const revision=Number(this.store.get("SELECT value FROM runtime_state WHERE key='revision'")?.value||0)+1;const data=await reader.read(revision,sessionId);this.service.importRoster(data.snapshot);this.service.seedHistory(data.history);this.store.run("INSERT INTO runtime_state VALUES('revision',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",String(revision));this.store.run("INSERT INTO runtime_state VALUES('preferenceTargets',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",JSON.stringify([...new Map([...JSON.parse(this.store.get("SELECT value FROM runtime_state WHERE key='preferenceTargets'")?.value||'[]'),...data.preferences].map(t=>[t.enrollmentId,t])).values()]));};
+   const flush=async()=>{await projectOutbox({service:this.service,adapter});const targets=JSON.parse(this.store.get("SELECT value FROM runtime_state WHERE key='preferenceTargets'")?.value||'[]');for(const event of this.service.listPreferences()){try{if((await preference.deliver(event,targets)).delivered)this.service.markPreferenceDelivered(event.event_id);}catch{/* Durable preference remains pending for manual recovery. */}}return {pending:this.service.listOutbox().length+this.service.listPreferences().length};};
+   const ownerAuth=createOwnerAuth({store:this.store});let ownerCache=null;
+   const ownerData=async({refresh=false}={})=>{if(refresh||!ownerCache||Date.now()-Date.parse(ownerCache.observedAt)>300000)ownerCache=await reader.overview();return {...ownerCache,pendingSync:this.service.listOutbox().length+this.service.listPreferences().length};};
+   const coachEnabled=env.COACH_DASHBOARD_ENABLED==='true';let coachAuth=null;
+   if(coachEnabled){const coaches=createCoachStore({store:this.store});coachAuth=createCoachAuth({store:this.store,coaches});const attendance=createCoachAttendance({store:this.store,coaches,baseId:config.baseId,tableId:config.tables.attendance,token:env.AIRTABLE_TOKEN,...(config.coachAttendanceFields?{fieldMap:config.coachAttendanceFields}:{}),fetchFn:airtableFetch});
+    const legacyNotes=async()=>{const table=config.tables.coachingNotes||'Player Coaching Notes';if(typeof table!=='string'||!table.trim()||table.length>100)throw Error('INVALID_COACH_NOTES_TARGET');const url=new URL('https://api.airtable.com/v0/'+config.baseId+'/'+encodeURIComponent(table));const names=['Player profile','Technical notes','Game intelligence notes','Physical & coordination notes','Confidence & teamwork notes','Next coaching priority','Session-specific observation'];for(const name of names)url.searchParams.append('fields[]',name);let offset,rows=[],seen=new Set();do{if(seen.has(offset))throw Error('AIRTABLE_OFFSET_REPEAT');seen.add(offset);if(offset)url.searchParams.set('offset',offset);const r=await airtableFetch(url,{headers:{Authorization:'Bearer '+env.AIRTABLE_TOKEN},redirect:'manual',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('AIRTABLE_READ_FAILED');const body=await r.json();rows.push(...body.records);offset=body.offset;if(rows.length>10000)throw Error('AIRTABLE_PAGE_LIMIT');}while(offset);return rows.filter(r=>names.slice(1).some(k=>r.fields[k])).map(r=>({id:r.id,title:r.fields['Player profile'],fields:Object.fromEntries(names.slice(1).map(k=>[k,r.fields[k]||'']))}));};
+    this.coachHandler=createCoachHandler({coaches,auth:coachAuth,googleAuth:env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET?createCoachGoogleAuth({store:this.store,coaches,auth:coachAuth,clientId:env.GOOGLE_CLIENT_ID,clientSecret:env.GOOGLE_CLIENT_SECRET}):null,cookieKey:env.COOKIE_KEY,overview:ownerData,attendance,legacyNotes,updateAttendance:({attendanceId,status})=>{for(const s of ownerCache?.sessions||[])for(const p of s.players)if(p.attendanceId===attendanceId)p.actualAttendance=status;},assets:{...workspaceFontAssets,'/workspace/assets/dictation.js':{body:dictationJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/coaching.js':{body:coachingJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/coaching.css':{body:coachingCSS,type:'text/css; charset=utf-8'},'/workspace':{body:workspace,type:'text/html; charset=utf-8'},'/workspace/':{body:workspace,type:'text/html; charset=utf-8'},'/workspace/assets/workspace.css':{body:workspaceCSS,type:'text/css; charset=utf-8'},'/workspace/assets/workspace.js':{body:workspaceJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/passkeys.js':{body:passkeysJS,type:'text/javascript; charset=utf-8'}}});
+   }
+   const liveHTML=html.replace(/<p class="demo-note">[\s\S]*?<\/p>/,'');
+   this.handler=createProductionHandler({service:this.service,origin,adminKey:env.ADMIN_KEY,cookieKey:env.COOKIE_KEY,refreshRoster,flush,ownerAuth,ownerData,legacyOwnerEnabled:!coachEnabled,coachBootstrap:coachAuth?()=>coachAuth.bootstrapOwner():null,assets:{'/email-preview':{body:emailPreview,type:'text/html; charset=utf-8'},'/assets/email-preview.js':{body:emailPreviewJS,type:'text/javascript; charset=utf-8'},'/overview':{body:overview,type:'text/html; charset=utf-8'},'/assets/overview.css':{body:overviewCSS,type:'text/css; charset=utf-8'},'/assets/overview.js':{body:overviewJS,type:'text/javascript; charset=utf-8'},'/':{body:landing,type:'text/html; charset=utf-8'},'/respond':{body:liveHTML,type:'text/html; charset=utf-8'},'/assets/app.css':{body:css,type:'text/css; charset=utf-8'},'/assets/parent.js':{body:parentJS,type:'text/javascript; charset=utf-8'},'/assets/logo.svg':{body:logo,type:'image/svg+xml'}}});
+  }
+  if(this.coachHandler&&new URL(request.url).pathname.startsWith('/workspace'))return this.coachHandler(request);
+  return this.handler(request);
+ }
+}

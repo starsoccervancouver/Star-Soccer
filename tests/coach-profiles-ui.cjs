@@ -53,10 +53,13 @@ assets['/workspace/assets/passkeys.js'] = { body: '', type: 'text/javascript' };
     assert.doesNotMatch(text, /Thursday finishing|Other player private|Another coach private|Group-only|Outside assigned/);
     assert.deepEqual(await page.locator('.profile-stats strong').allTextContents(), ['1','1','0'], 'Cancelled and future dates do not count as physical attendance');
     await page.locator('.profile-history summary').click(); assert.equal(await page.locator('.profile-history-row').count(), 2);
-    const otherGroup = await page.locator('#profile-group option').last().getAttribute('value');
-    await page.locator('#profile-group').selectOption(otherGroup); text = await page.locator('#player-profile-detail').innerText();
+    assert.equal(await page.locator('#profile-group').count(), 0, 'Profile does not show a second group dropdown');
+    await page.locator('#profile-back').click();
+    const otherGroup = await page.evaluate(session => CoachGroups.key(session), sessions[4]);
+    const firstGroup = await page.evaluate(session => CoachGroups.key(session), sessions[0]);
+    await page.locator('#profiles-filter').selectOption(otherGroup); await page.locator('[data-profile-id="' + rid(101) + '"]').click(); text = await page.locator('#player-profile-detail').innerText();
     assert.match(text, /Thursday finishing/); assert.doesNotMatch(text, /Look up before receiving|Improved passing/);
-    const firstGroup = await page.locator('#profile-group option').first().getAttribute('value'); await page.locator('#profile-group').selectOption(firstGroup);
+    await page.locator('#profile-back').click(); await page.locator('#profiles-filter').selectOption(firstGroup); await page.locator('[data-profile-id="' + rid(101) + '"]').click();
     await page.evaluate(()=>scrollTo(0,0));
     await page.screenshot({ path: 'outputs/coach-player-profile.png', fullPage: true });
     for (const width of [320, 390, 768]) { await page.setViewportSize({ width, height: 844 }); assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'Profile fits at ' + width); }

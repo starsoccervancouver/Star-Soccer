@@ -86,9 +86,7 @@
     header.append(name, node('p', entry.age ? 'Age ' + entry.age : 'Player profile', 'small')); detail.append(header);
     const groups = new Map(); for (const row of entry.rows) groups.set(scopeKey(row.session), scopeLabel(row.session));
     if (!groups.has(group)) { const next = entry.rows.find(row => row.session.status !== 'Cancelled' && row.session.date >= today()) || entry.rows.at(-1); group = scopeKey(next.session); }
-    const label = node('label', 'Show notes and history for'), select = node('select'); select.id = 'profile-group'; label.htmlFor = select.id;
-    for (const [value, text] of groups) select.append(new Option(text, value)); select.value = group;
-    select.addEventListener('change', () => { group = select.value; renderDetail(entry); }); label.append(select); detail.append(label);
+    detail.append(node('p', groups.get(group), 'small'));
     const rows = entry.rows.filter(row => scopeKey(row.session) === group), history = rows.filter(row => row.session.status !== 'Cancelled' && row.session.date <= today());
     const stats = node('div', '', 'profile-stats');
     for (const [value, label] of [['Present', 'Marked present'], ['Absent', 'Marked absent'], ['Not marked', 'Not marked']]) {

@@ -96,7 +96,7 @@
 <button data-tab="home" class="nav-active">Overview</button>
 <button data-tab="notes">Player notes &amp; goals</button>
 <button data-tab="plan">Training groups</button>
-<button data-tab="tasks">Tasks &amp; follow-ups</button>
+
 <button data-tab="settings" class="nav-settings">Settings &amp; profile</button>
 </nav>
 <div class="nav-foot">
@@ -160,7 +160,7 @@
 <option value="attendance">Attendance</option>
 <option value="notes">Player notes &amp; goals</option>
 <option value="plan">Training groups</option>
-<option value="tasks">Tasks &amp; follow-ups</option>
+
 </select></label>
 <label>Layout spacing<select id="preference-density">
 <option value="comfortable">Comfortable</option>
@@ -200,7 +200,7 @@
 <p class="eyebrow">Keep the week moving</p>
 <h2>Needs your attention</h2>
 <div id="home-priorities"></div>
-<div id="home-followups">
+<div id="home-followups" hidden>
 </div>
 </section>
 </div>
@@ -409,7 +409,7 @@
 </div>
 </div>
 </section>
-<section id="panel-tasks" class="tab-panel" hidden>
+<section id="panel-tasks" class="tab-panel" hidden inert>
 <section class="card">
 <p class="eyebrow">Small steps, followed through</p>
 <h2>Tasks &amp; follow-ups</h2>

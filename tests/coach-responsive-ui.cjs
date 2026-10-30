@@ -218,7 +218,7 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
     assert.match(type.heading, /Manrope/);
     assert(type.faces.some(face => /Manrope/.test(face.family) && face.status === 'loaded'), 'Simple brand typography loads from isolated first-party fixtures');
     checks++;
-    const tabs = ['home', 'attendance', 'notes', 'plan', 'tasks', 'settings', 'team', 'activity', 'legacy'];
+    const tabs = ['home', 'attendance', 'notes', 'plan', 'settings', 'team', 'activity', 'legacy'];
     for (const width of [320, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       for (const tab of tabs) {

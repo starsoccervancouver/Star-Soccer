@@ -46,6 +46,7 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
     });
     const page = await context.newPage(); page.setDefaultTimeout(6000); page.on('pageerror', e => errors.push(e.message));
+    await page.addInitScript(()=>localStorage.setItem('coach-desk-display-v1',JSON.stringify({start:'tasks',density:'comfortable',reduceMotion:false})));
     await page.goto(origin + '/workspace'); await page.locator('#app').waitFor({ state: 'visible' });
     assert.match(await page.locator('#home-priorities').innerText(), /1 recent session with unmarked players/);
     assert.match(await page.locator('#home-priorities').innerText(), /1 note with a review date due/);
@@ -63,12 +64,12 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
     await openFolder(page, rid(102));
     await page.locator('#note-category-filter').selectOption('Confidence');
     assert.equal(await page.locator('#note-list .note-card').count(), 1); checks++;
-    await leaveGroup(page); await page.getByRole('button', { name: 'Tasks & follow-ups', exact: true }).click();
-    assert.equal(await page.locator('#task-list .task-row').count(), 2);
-    assert.equal(await page.locator('#task-list .task-overdue').count(), 1);
-    await page.getByRole('button', { name: 'Completed', exact: true }).click();
-    assert.equal(await page.locator('#task-list .task-row').count(), 1);
-    assert.match(await page.locator('#task-list').innerText(), /Reopen/); checks++;
+    await leaveGroup(page);
+    assert.equal(await page.locator('#navigation [data-tab="tasks"]').count(), 0);
+    assert.equal(await page.locator('#preference-start option[value="tasks"]').count(), 0);
+    assert.equal(await page.locator('#panel-tasks').isVisible(), false);
+    assert.equal(await page.locator('#home-followups').innerText(), '');
+    assert.doesNotMatch(await page.locator('#home-stats').innerText(), /Open follow-ups/); checks++;
     await page.getByRole('button', { name: 'Overview', exact: true }).click();
     await page.locator('#coaching-hub').getByRole('button', { name: /^Open group: Thursday/ }).click(); await openView(page, 'plan');
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
@@ -85,7 +86,7 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
     await page.screenshot({ path: 'outputs/coach-command-center-mobile.png', fullPage: true });
     for (const width of [320,390,768]) {
       await page.setViewportSize({ width, height: 844 });
-      for (const tab of ['home','notes','tasks','plan']) {
+      for (const tab of ['home','notes','plan']) {
         if (await page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) await page.locator('#planner-home').click();
         await page.locator('#navigation [data-tab="'+tab+'"]').click();
         if (tab === 'plan' || tab === 'notes') await openSession(page, sessions, rid(1), tab === 'notes' ? 'notes' : 'plan');
@@ -94,7 +95,7 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
     } checks++;
     assert.equal(requests.filter(r => /attendance$|save$|archive$|invite$|assign$/.test(r.path)).length, 0, 'Review/navigation tools never mutate records');
     assert.deepEqual(errors, []); checks++;
-    profile.role='owner'; tasks.forEach(t=>t.status='done'); notes.forEach(n=>n.review_date='2027-01-01'); sessions.forEach(s=>s.players.forEach(p=>p.actualAttendance='Present')); sessions[0].issues=[{reason:'Parent email missing',player:'Preview Maya'}]; await page.reload(); await page.locator('#app').waitFor({state:'visible'}); await page.locator('.priority-roster-details summary').click(); assert.match(await page.locator('#home-priorities').innerText(),/Parent email missing: Preview Maya/); assert.doesNotMatch(await page.locator('#home-priorities').innerText(),/Nothing needs a follow-up/); checks++;
+    profile.role='owner'; tasks.forEach(t=>t.status='done'); notes.forEach(n=>n.review_date='2027-01-01'); sessions.forEach(s=>s.players.forEach(p=>p.actualAttendance='Present')); sessions[0].issues=[{reason:'Parent email missing',player:'Preview Maya'}]; await page.reload(); await page.locator('#app').waitFor({state:'visible'}); await page.locator('.priority-roster-details summary').click(); assert.match(await page.locator('#home-priorities').innerText(),/Parent email missing: Preview Maya/); assert.doesNotMatch(await page.locator('#home-priorities').innerText(),/Nothing needs attention/); checks++;
     await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await page.locator('#login').waitFor({ state: 'visible' });
     for (const id of ['home-priorities','task-list','note-list','session-field-tools']) assert.equal(await page.locator('#'+id).innerText(), '', 'Clears private '+id);

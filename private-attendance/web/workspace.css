@@ -1981,6 +1981,10 @@ body[data-desk-reduced-motion="true"] *, body[data-desk-reduced-motion="true"] *
 .planner-folder-picker { margin: 0 0 22px; font-size: 12px; }
 .planner-folder-picker select { font-size: 14px; font-weight: 650; background: #fff; }
 .planner-notes-list { min-width: 0; margin-bottom: 24px; }
+.planner-notes-history { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--desk-line); }
+.planner-notes-history h3 { margin: 0 0 15px; font-size: 16px; }
+.planner-notes-history #planner-notes-results { margin: 12px 0; }
+.plan-load-feedback:not(:has([hidden])) { margin-bottom: 16px; }
 .planner-notes-list .note-card { margin: 0 0 12px; padding: 17px; border: 1px solid #dce3e6; border-radius: 15px; background: #fff; }
 .planner-notes-list .note-card h3 { margin: 0 0 8px; font-size: 14px; }
 .planner-notes-list .note-body { margin: 11px 0 0; font-size: 14px; }
@@ -2048,3 +2052,20 @@ body.planner-drawer-open .global-error { z-index: 90; }
   .planner-plan-card .dictation-help { margin-bottom: 14px; }
 }
 @media print { .planner-drawer, .planner-drawer-backdrop { display: none !important; } }
+
+/* Follow-ups stay easy to find, edit and prepare for the right session. */
+.task-target { margin: -4px 0 16px; overflow-wrap: anywhere; }
+.task-search-tools { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding: 18px 0; margin-top: 8px; border-top: 1px solid var(--desk-line); }
+.task-search-tools label { flex: 1 1 220px; margin: 0; }
+.task-search-tools label:nth-child(2) { flex: 0 1 220px; }
+.task-search-tools button { flex: 0 0 auto; }
+.task-row-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+#task-save-status:empty { display: none; }
+#task-target { color: var(--desk-muted); }
+@media (max-width: 600px) {
+  .task-search-tools { gap: 10px; }
+  .task-search-tools label, .task-search-tools label:nth-child(2) { flex-basis: 100%; }
+  .task-row-actions { justify-content: flex-start; }
+  .task-row-actions button { flex: 1 1 auto; }
+  #task-form #task-cancel { width: 100%; }
+}

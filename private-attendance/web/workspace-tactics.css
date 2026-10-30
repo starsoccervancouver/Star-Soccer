@@ -64,5 +64,14 @@
   .tactics-footer > .tactics-toolbar { width: 100%; }
   .tactics-frame-list button { max-width: 100%; }
 }
+.tactics-reuse { margin: 14px 0 20px; padding: 0 16px 14px; border: 1px solid var(--desk-line, #dce2e4); border-radius: 16px; background: #fafbf8; }
+.tactics-reuse:not([open]) { padding-bottom: 0; }
+.tactics-reuse > summary { min-height: 48px; padding: 14px 0; font-size: 14px; font-weight: 700; cursor: pointer; overflow-wrap: anywhere; }
+.tactics-reuse label { display: block; min-width: 0; font-size: 12px; margin: 12px 0; }
+.tactics-reuse select { display: block; width: 100%; max-width: 100%; min-width: 0; min-height: 44px; margin-top: 6px; border-radius: 12px; }
+.tactics-reuse-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.tactics-reuse-actions button { min-height: 44px; border-radius: 999px; max-width: 100%; white-space: normal; }
+.tactics-reuse .small { overflow-wrap: anywhere; }
+@media (max-width: 520px) { .tactics-reuse { padding-left: 12px; padding-right: 12px; } .tactics-reuse-actions button { flex: 1 1 180px; } }
 @media (prefers-reduced-motion: reduce) { #tactics-board-tools * { scroll-behavior: auto; } }
 @media print { #tactics-board-tools { display: none !important; } }

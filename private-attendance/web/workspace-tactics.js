@@ -17,6 +17,7 @@
   let context = null, identity = '', record = blank(), baseline = '', diagrams = [], loaded = false, loadAttempted = false, pending = false, requestEpoch = 0, lastAttempt = null, recoveryNeeded = false;
   let selectedItem = '', frameIndex = 0, undo = [], redo = [], pointer = null, running = false, animation = 0, elapsed = 0, started = 0, renderedPositions = null;
   let message = 'Choose a session, then open the tactics board.', messageError = false;
+  let sourceSessionId = '', sourceDiagrams = [];
   const snapshot = () => JSON.stringify({ title: record.title, content: record.content });
   baseline = snapshot();
   const dirty = () => !!identity && snapshot() !== baseline;
@@ -41,6 +42,16 @@
   const librarySelect = select('tactics-library', [['', 'New unsaved setup']]);
   librarySelect.addEventListener('change', () => { if (!editable()) return; const chosen = diagrams.find(d => d.id === librarySelect.value); if (!chosen) { librarySelect.value = record.id || ''; return; } if (dirty() && !confirm('Open this saved diagram and discard unsaved diagram changes?')) { librarySelect.value = record.id || ''; return; } clear(chosen); tell('Saved diagram opened.'); });
   library.append(field('Saved setups for this session', librarySelect), button('New setup', 'tactics-new', () => { if (!editable() || dirty() && !confirm('Start a new setup and discard unsaved diagram changes?')) return; clear(); tell('Start with an empty field or try the passing triangle.'); }));
+  const reuse = el('details', '', 'tactics-reuse'); reuse.id = 'tactics-reuse';
+  reuse.append(el('summary', 'Reuse a setup from another session'), el('p', 'Choose a session you can access, then copy a saved setup into this session. The original stays unchanged. Review your copy and choose Save setup when ready.', 'small'));
+  const sourceSelect = select('tactics-source-session', [['', 'Choose a session']]);
+  const sourceBoard = select('tactics-source-board', [['', 'Load a session first']]);
+  sourceSelect.addEventListener('change', () => { if (!editable() || recoveryNeeded) return; sourceSessionId = sourceSelect.value; sourceDiagrams = []; renderReuse(); });
+  sourceBoard.addEventListener('change', renderReuseControls);
+  const sourceActions = el('div', '', 'tactics-reuse-actions');
+  sourceActions.append(button('Load saved setups', 'tactics-source-load', loadSource), button('Copy setup to this session', 'tactics-source-copy', copySource));
+  const sourceStatus = el('p', '', 'small'); sourceStatus.id = 'tactics-source-status'; sourceStatus.setAttribute('role', 'status');
+  reuse.append(field('Source session', sourceSelect), field('Saved setup to copy', sourceBoard), sourceActions, sourceStatus);
   const editor = el('div', '', 'tactics-editor');
   editor.id = 'tactics-editor';
   const heading = el('div', '', 'tactics-heading');
@@ -105,7 +116,47 @@
   const recoveryActions = el('div', '', 'tactics-toolbar tactics-recovery-actions'); recoveryActions.append(reload, reopen);
   footer.append(editingActions, saveActions, status, recoveryActions);
   editor.append(heading, topActions, boardLayout, help, phases, footer);
-  mount.append(intro, library, editor);
+  mount.append(intro, library, reuse, editor);
+
+  function renderReuseControls() {
+    const disabled = !editable() || recoveryNeeded;
+    sourceSelect.disabled = disabled || sourceSelect.options.length < 2;
+    sourceBoard.disabled = disabled || !sourceDiagrams.length;
+    $('tactics-source-load').disabled = disabled || !sourceSessionId;
+    $('tactics-source-copy').disabled = disabled || !sourceDiagrams.some(d => d.id === sourceBoard.value);
+  }
+  function renderReuse() {
+    const candidates = (context?.sessions || []).filter(s => s.id !== context?.selected && s.status !== 'Cancelled').sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.id).localeCompare(String(b.id)));
+    if (!candidates.some(s => s.id === sourceSessionId)) { sourceSessionId = ''; sourceDiagrams = []; }
+    sourceSelect.replaceChildren(...[['', 'Choose a session'], ...candidates.map(s => [s.id, [s.date, s.time, s.location].filter(Boolean).join(' · ')])].map(([value, label]) => { const option = el('option', label); option.value = value; return option; }));
+    sourceSelect.value = sourceSessionId;
+    const selected = sourceBoard.value;
+    sourceBoard.replaceChildren(...[['', sourceDiagrams.length ? 'Choose a saved setup' : 'Load a session first'], ...sourceDiagrams.map(d => [d.id, d.title])].map(([value, label]) => { const option = el('option', label); option.value = value; return option; }));
+    sourceBoard.value = sourceDiagrams.some(d => d.id === selected) ? selected : '';
+    renderReuseControls();
+  }
+  async function loadSource() {
+    if (!editable() || recoveryNeeded || !sourceSessionId || !context.sessions?.some(s => s.id === sourceSessionId && s.id !== context.selected && s.status !== 'Cancelled')) return;
+    const ticket = ++requestEpoch, startedIdentity = identity, source = sourceSessionId, target = context.selected;
+    pending = true; sourceDiagrams = []; sourceStatus.textContent = 'Loading saved setups…'; render();
+    try {
+      const result = await request('source-list', { sessionId: target, sourceSessionId: source });
+      if (ticket !== requestEpoch || identity !== startedIdentity || context?.selected !== target || sourceSessionId !== source) return;
+      if (!Array.isArray(result.diagrams) || result.diagrams.some(d => d.session_id !== source || !d.id || typeof d.title !== 'string' || d.content?.schemaVersion !== 1 || !Array.isArray(d.content.items) || !Array.isArray(d.content.frames) || !d.content.frames.length)) throw Error('The source setups could not be verified. Your current diagram is unchanged.');
+      sourceDiagrams = clone(result.diagrams);
+      sourceStatus.textContent = sourceDiagrams.length ? sourceDiagrams.length + ' saved setup' + (sourceDiagrams.length === 1 ? '' : 's') + ' available. Choose one to copy.' : 'No saved setups in that session. Choose another session.';
+    } catch (error) { if (ticket === requestEpoch && identity === startedIdentity) sourceStatus.textContent = error.message || 'The source session could not be loaded. Your diagram is unchanged.'; }
+    finally { if (ticket === requestEpoch && identity === startedIdentity) { pending = false; render(); } }
+  }
+  function copySource() {
+    if (!editable() || recoveryNeeded) return;
+    const source = sourceDiagrams.find(d => d.id === sourceBoard.value);
+    if (!source || source.session_id !== sourceSessionId || !context.sessions?.some(s => s.id === sourceSessionId && s.id !== context.selected && s.status !== 'Cancelled')) return;
+    if (dirty() && !confirm('Copy this setup and discard your current unsaved diagram changes?')) return;
+    const copied = clone(source.content), copiedTitle = source.title.trim().slice(0, 73) + ' (copy)';
+    clear(); record.title = copiedTitle.slice(0, 80); record.content = copied;
+    tell('Copied into a new unsaved setup for this session. The original is unchanged.'); render(); notifyDraft();
+  }
 
   function renderStatus() {
     status.textContent = (dirty() ? 'Unsaved changes · ' : '') + message;
@@ -113,7 +164,7 @@
   }
   function render() {
     if (!context?.profile) { mount.replaceChildren(); return; }
-    if (!mount.childElementCount) mount.append(intro, library, editor);
+    if (!mount.childElementCount) mount.append(intro, library, reuse, editor);
     title.value = record.title; pitch.value = record.content.pitch;
     librarySelect.replaceChildren(); const unsaved = el('option', 'New unsaved setup'); unsaved.value = ''; librarySelect.append(unsaved);
     for (const d of diagrams) { const option = el('option', d.title); option.value = d.id; librarySelect.append(option); }
@@ -143,6 +194,7 @@
     for (const control of addGroup.querySelectorAll('button')) control.disabled = disabled || record.content.items.length >= 40;
     emptyHint.hidden = !!record.content.items.length;
     mount.setAttribute('aria-busy', String(pending));
+    renderReuse();
     renderStatus(); draw(); renderPlayback();
   }
   function draw() {
@@ -273,7 +325,7 @@
     const changed = identity !== nextIdentity;
     if (changed || !next || next.busy || next.tab !== 'plan') { pause(); pointer = null; }
     context = next;
-    if (changed) { identity = nextIdentity; requestEpoch++; pending = false; loaded = false; loadAttempted = false; diagrams = []; clear(); tell(nextIdentity ? 'Open the board to load this session’s setups.' : 'Choose a session, then open the tactics board.'); }
+    if (changed) { identity = nextIdentity; requestEpoch++; pending = false; loaded = false; loadAttempted = false; diagrams = []; sourceSessionId = ''; sourceDiagrams = []; sourceStatus.textContent = ''; reuse.open = false; clear(); tell(nextIdentity ? 'Open the board to load this session’s setups.' : 'Choose a session, then open the tactics board.'); }
     if (!next?.profile) { loaded = false; diagrams = []; }
     render();
     if (!loaded && !loadAttempted && !pending && active() && $('tactics-disclosure')?.open) load();

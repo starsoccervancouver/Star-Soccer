@@ -56,3 +56,11 @@ Drill ideas, animated tactics and the session run sheet open in drawers. Closing
 Settings & profile groups account details, Team & access, the activity log and existing coaching records. Owner/admin/coach permissions remain enforced by the same server routes. Only the owner can manage accounts; activity and legacy records remain restricted to full-access users.
 
 The starting view, layout spacing and reduced interface motion are optional browser preferences. Only these three validated presentation choices are saved under `coach-desk-display-v1`; no names, emails, player data or permissions are written to browser storage. Preferences apply to that browser and can be restored to defaults. Profiles show existing account details rather than providing a second permission editor.
+
+## Coach Desk audit improvements
+
+The planner keeps an in-progress session available, clears stale plan content when a load fails, and offers an explicit retry. Notes have search, limited history with a load-more control, and dictation in the planner drawer. Follow-ups support title and due-date edits, session filtering and search; drafts retain their original session, and saves preserve record versions and authors. Draft guards cover navigation, session changes, refresh and sign-out, while uncertain saves are checked against saved records before another attempt.
+
+Coaches can copy an accessible session's tactics setup into a new unsaved setup without changing its source. The run sheet compares activity timers with the recorded session length and warns when unsaved plan edits are missing from field or print views. These changes use existing authenticated routes and records: no database or Airtable migration, new credentials, attendance changes, capacity changes or email activation is required.
+
+The source-only starter includes the four audit browser suites and their shared fixture assets. After installing dependencies and Chromium (`pnpm exec playwright install chromium`), run `pnpm test:audit:browser` alongside the existing unit, planner, settings and tactics checks. All browser scenarios use fictional data and intercepted requests; no production account or connection is needed.

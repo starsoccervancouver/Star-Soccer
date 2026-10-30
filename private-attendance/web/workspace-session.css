@@ -1,6 +1,13 @@
 /* Large, calm controls for the touchline. All data remains in the signed-in page. */
 .field-entry-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 6px; }
 .field-entry-actions button { min-height: 46px; }
+.field-unsaved-warning { padding: 16px; margin: 12px 0 18px; border: 1px solid #d4b57c; border-radius: 16px; background: #fff5df; color: #624b24; }
+.field-unsaved-warning[hidden] { display: none; }
+.field-unsaved-warning strong { font-size: 15px; }
+.field-unsaved-warning p { margin: 7px 0 12px; font-size: 13px; line-height: 1.65; }
+.field-unsaved-warning button { min-height: 44px; border-radius: 999px; }
+.field-time-budget { margin: 14px 0; padding: 12px 15px; border: 1px solid var(--desk-line, #d9e2e7); border-radius: 14px; background: #fff; color: var(--desk-ink, #162a3b); font-size: 13px; font-weight: 650; line-height: 1.65; overflow-wrap: anywhere; }
+.field-time-budget.is-over-budget { border-color: #d4b57c; background: #fff5df; color: #624b24; }
 body.field-view-open { overflow: hidden; }
 .field-view { width: min(1120px, calc(100% - 40px)); max-height: calc(100dvh - 40px); box-sizing: border-box; padding: 30px; margin: auto; border: 1px solid var(--desk-line, #d9e2e7); border-radius: 20px; color: var(--desk-ink, #162a3b); background: var(--desk-canvas, #f7f7f3); box-shadow: 0 24px 80px #0c1c3455; overscroll-behavior: contain; }
 .field-view::backdrop { background: #0c1c34b8; }

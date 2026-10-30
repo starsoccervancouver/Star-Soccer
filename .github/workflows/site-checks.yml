@@ -43,3 +43,9 @@ jobs:
         run: node tests/coach-settings-ui.cjs
       - name: Check day-first planning, private notes and tool drawers
         run: node tests/coach-planner-layout-ui.cjs
+      - name: Check coach draft safety, notes, follow-ups and reusable session tools
+        run: |
+          node tests/coach-audit-safety-ui.cjs
+          node tests/coach-notes-drawer-ui.cjs
+          node tests/coach-tasks-workflow-ui.cjs
+          node tests/coach-reuse-budget-ui.cjs

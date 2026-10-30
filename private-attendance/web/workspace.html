@@ -355,6 +355,7 @@
 <div class="planner-plan-heading"><div><p class="eyebrow">The session plan</p><h2>What are we working on?</h2></div><span class="privacy-pill">Shared preparation</span></div>
 <p class="privacy-message shared">Shared with coaches assigned to this session and full-access admins.</p>
 <p class="dictation-help small" id="plan-dictation-help"></p>
+<div class="plan-load-feedback"><p id="plan-load-status" class="small" role="status" aria-live="polite" hidden></p><button type="button" class="secondary" id="plan-retry" hidden>Retry loading this plan</button></div>
 <form id="plan-form" class="plan-grid">
 <label class="full-width">Session focus<textarea id="plan-focus" data-dictation-label="Dictate session focus" rows="2" maxlength="2000" placeholder="The one thing we want players to take away">
 </textarea>
@@ -388,14 +389,23 @@
 <p class="eyebrow">Small steps, followed through</p>
 <h2>Tasks &amp; follow-ups</h2>
 <p class="small">Keep preparation and player follow-ups connected to the selected session.</p>
+<h3 id="task-editor-title">Add a follow-up</h3>
+<p id="task-target" class="small task-target"></p>
 <form id="task-form" class="task-form">
 <label>Task<input id="task-title" maxlength="250" required placeholder="Something to prepare or follow up">
 </label>
 <label>Due date <span class="optional">optional</span>
 <input id="task-due" type="date">
 </label>
-<button class="button" type="submit">Add task</button>
+<button class="button" id="task-submit" type="submit">Add task</button>
+<button class="secondary" id="task-cancel" type="button" hidden>Cancel edit</button>
 </form>
+<p id="task-save-status" class="small" role="status" aria-live="polite"></p>
+<div class="task-search-tools">
+<label>Find a follow-up<input id="task-search" type="search" placeholder="Task, coach or venue" autocomplete="off"></label>
+<label>Session scope<select id="task-scope"><option value="all">All sessions</option><option value="selected">Selected session</option></select></label>
+<button class="secondary" id="task-search-clear" type="button" hidden>Clear search</button>
+</div>
 <div class="task-filters" role="group" aria-label="Task views"><button class="secondary" type="button" data-task-filter="open" aria-pressed="true">Open</button><button class="secondary" type="button" data-task-filter="all" aria-pressed="false">All</button><button class="secondary" type="button" data-task-filter="done" aria-pressed="false">Completed</button><span id="task-summary" class="small" role="status"></span></div>
 <div id="task-list">
 </div>
@@ -466,14 +476,21 @@
 <section id="planner-notes-pane" hidden>
 <p class="planner-notes-privacy">Private to the note’s author and approved full-access accounts.</p>
 <label class="planner-folder-picker">Open a notes folder<select id="planner-notes-player"><option value="">Group notes</option></select></label>
-<div id="planner-notes-list" class="planner-notes-list" aria-label="Coaching notes"></div>
 <form id="planner-note-form" class="planner-note-form">
 <h3>Add a private note</h3>
 <label>Category<select id="planner-note-category"><option>General</option><option>Technical</option><option>Tactical</option><option>Physical</option><option>Confidence</option><option>Goal</option><option>Session review</option></select></label>
-<label>What did you notice?<textarea id="planner-note-body" rows="4" maxlength="6000" required placeholder="A useful observation or something to revisit next time"></textarea></label>
+<label>What did you notice?<textarea id="planner-note-body" data-dictation-label="Dictate private note" rows="4" maxlength="6000" required placeholder="A useful observation or something to revisit next time"></textarea></label>
+<p class="dictation-help small"></p>
 <button type="submit">Save private note</button>
 <p id="planner-note-status" class="small" role="status" aria-live="polite"></p>
 </form>
+<section class="planner-note-history" aria-label="Recent note history">
+<h3>Recent history</h3>
+<label>Find a note<input id="planner-notes-search" type="search" placeholder="Search this folder" autocomplete="off"></label>
+<p id="planner-notes-results" class="small" role="status"></p>
+<div id="planner-notes-list" class="planner-notes-list" aria-label="Coaching notes"></div>
+<button id="planner-notes-more" type="button" class="secondary" hidden>Show more notes</button>
+</section>
 </section>
 <section id="planner-tools-pane" hidden>
 <details id="tactics-disclosure" class="coaching-tools-disclosure"><summary>Tactics board &amp; animated drills</summary><section id="tactics-board-tools" aria-label="Session tactics and drill setups"></section></details>

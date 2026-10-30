@@ -32,6 +32,54 @@
   const clubName = () => window.CoachClub?.name || 'Star Soccer';
   const active = () => !!context?.profile && !!context.session && context.selected === context.session.id && context.tab === 'plan' && context.planReady && !context.busy && context.session.status !== 'Cancelled';
   const content = () => context?.plan?.content || {};
+  function recordedMinutes() {
+    const session = context?.session;
+    if (!session) return null;
+    const start = Date.parse(session.startAt), end = Date.parse(session.endAt);
+    if (Number.isFinite(start) && Number.isFinite(end)) {
+      const minutes = (end - start) / 60000;
+      return Number.isInteger(minutes) && minutes > 0 && minutes <= 1440 ? minutes : null;
+    }
+    const parts = String(session.time || '').toLowerCase().replace(/\b(?:12(?::00)?\s*)?noon\b/g, '12:00 pm').split(/[–—-]/);
+    if (parts.length !== 2) return null;
+    const parse = value => {
+      const match = value.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+      if (!match || Number(match[2] || 0) > 59 || Number(match[1]) > (match[3] ? 12 : 23) || (match[3] && Number(match[1]) < 1)) return null;
+      return { hour: Number(match[1]), minute: Number(match[2] || 0), period: match[3] || '' };
+    };
+    const from = parse(parts[0]), to = parse(parts[1]);
+    if (!from || !to) return null;
+    const minutes = value => (value.period ? value.hour % 12 + (value.period === 'pm' ? 12 : 0) : value.hour) * 60 + value.minute;
+    const inherited = !from.period && !!to.period && from.hour >= 1 && from.hour <= 12;
+    if (inherited) from.period = to.period;
+    let first = minutes(from), last = minutes(to);
+    if (inherited && first > last && to.period === 'pm') first -= 720;
+    const duration = last - first;
+    return duration > 0 && duration <= 720 ? duration : null;
+  }
+  function renderBudgets() {
+    const total = durations.reduce((sum, minutes) => sum + minutes, 0), slot = recordedMinutes(), difference = slot === null ? null : slot - total;
+    const text = slot === null ? 'Session length not recorded · ' + total + ' minutes in stage timers.' : slot + '-minute recorded session · ' + total + ' minutes in stage timers · ' + (difference > 0 ? difference + ' minutes left for breaks or transitions.' : difference < 0 ? Math.abs(difference) + ' minutes over the recorded session.' : 'Stage timers fit the recorded session.');
+    for (const element of document.querySelectorAll('.field-time-budget')) {
+      if (element.textContent !== text) element.textContent = text;
+      element.classList.toggle('is-over-budget', difference !== null && difference < 0);
+    }
+  }
+  function budget(id) {
+    const element = node('p', '', 'field-time-budget');
+    element.id = id;
+    element.setAttribute('role', 'status');
+    return element;
+  }
+  function unsavedWarning(id) {
+    const warning = node('section', '', 'field-unsaved-warning');
+    warning.id = id;
+    warning.hidden = !context?.planDirty;
+    if (warning.hidden) return warning;
+    warning.append(node('strong', 'Your latest plan edits are not saved.'), node('p', 'Field view and printed sheets use your last saved plan. Return to the plan to save your changes first.'));
+    warning.append(makeButton('Return to plan', id + '-return', () => { closeField(); window.dispatchEvent(new CustomEvent('coach:return-plan')); }));
+    return warning;
+  }
   const readableDate = value => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return 'Date not recorded';
     const date = new Date(value + 'T12:00:00Z');
@@ -107,7 +155,8 @@
     $('field-timer-minutes').disabled = running;
     $('field-stage-label').textContent = stages[stageIndex].title;
     $('field-stage-content').textContent = String(content()[stages[stageIndex].key] || '').trim() || 'No activity has been saved for this stage yet.';
-    $('field-timer-total').textContent = durations.reduce((sum, minutes) => sum + minutes, 0) + ' minutes across three stages · adjustable for this visit';
+    $('field-timer-total').textContent = 'Adjust each stage for this visit. Timer choices do not change the saved plan.';
+    renderBudgets();
     for (const [index, button] of [...dialog.querySelectorAll('[data-field-stage]')].entries()) {
       button.setAttribute('aria-pressed', String(index === stageIndex));
       button.classList.toggle('is-active', index === stageIndex);
@@ -135,7 +184,7 @@
     title.id = 'field-view-title';
     heading.append(title, node('p', [context.session.time, context.session.location].filter(Boolean).join(' · '), 'small'));
     header.append(heading, makeButton('Close field view', 'close-field-view', closeField));
-    dialog.append(header, node('p', 'Saved plan only. This view never changes attendance or your saved plan.', 'field-saved-notice'));
+    dialog.append(header, unsavedWarning('field-dialog-unsaved-warning'), node('p', 'Saved plan only. This view never changes attendance or your saved plan.', 'field-saved-notice'), budget('field-time-budget'));
     const focus = node('section', '', 'field-focus');
     focus.append(node('span', 'Session focus', 'eyebrow'), node('p', String(content().focus || '').trim() || 'No session focus saved yet.'));
     dialog.append(focus);
@@ -212,6 +261,7 @@
     sheet.replaceChildren();
     sheet.append(node('p', clubName() + ' · Private session preparation'), node('h1', readableDate(context.session.date)), node('p', [context.session.time, context.session.location].filter(Boolean).join(' · ')));
     sheet.append(node('p', 'Saved plan and full named roster. Parent replies and physical attendance are separate.'));
+    if (context.planDirty) sheet.append(node('p', 'Saved version: unsaved plan edits are not included in this sheet.'));
     for (const [key, label] of [['focus', 'Session focus'], ['warmup', 'Warm-up'], ['technical', 'Technical activity'], ['game', 'Game / application'], ['equipment', 'Equipment & setup']]) {
       const section = node('section');
       section.append(node('h2', label), node('p', String(content()[key] || '').trim() || 'Not recorded in the saved plan.'));
@@ -239,7 +289,8 @@
   function renderEntry() {
     mount.replaceChildren();
     if (!context?.profile) return;
-    mount.append(node('p', 'Take the saved session plan to the field, use an optional activity timer, or print the plan and full roster. Save any edits first.', 'small'));
+    mount.append(unsavedWarning('field-unsaved-warning'), node('p', 'Take the saved session plan to the field, use an optional activity timer, or print the plan and full roster.', 'small'));
+    if (context.session) mount.append(budget('field-time-budget-entry'));
     const actions = node('div', '', 'field-entry-actions');
     const open = makeButton('Open field view', 'open-field-view', openField, true);
     const print = makeButton('Print session sheet', 'print-session-sheet', printSession);
@@ -248,11 +299,12 @@
     mount.append(actions);
     if (!context.planReady) mount.append(node('p', 'Choose a session and wait for its saved plan to load.', 'small'));
     else if (!['focus', 'warmup', 'technical', 'game', 'equipment'].some(key => String(content()[key] || '').trim())) mount.append(node('p', 'No preparation plan has been saved for this session yet. The field view will show the recorded roster and empty plan sections.', 'small'));
+    renderBudgets();
   }
 
   window.addEventListener('coach:context', event => {
     const next = event.detail || null;
-    const nextIdentity = next?.profile && next.session ? next.profile.email + ':' + next.session.id : '';
+    const nextIdentity = next?.profile && next.session ? [next.profile.email, next.profile.role, next.profile.sessionVersion, next.session.id].join(':') : '';
     const nextSignature = JSON.stringify([next?.session, next?.plan]);
     const changedIdentity = nextIdentity !== identity;
     if (changedIdentity || !next || next.busy || next.tab !== 'plan' || !next.planReady || nextSignature !== contentSignature) { closeField(); clearPrint(); }
@@ -270,6 +322,8 @@
       dialog.replaceChildren();
       clearPrint();
     }
+    const warning = $('field-dialog-unsaved-warning');
+    if (warning && warning.hidden === !!next?.planDirty) warning.replaceWith(unsavedWarning('field-dialog-unsaved-warning'));
     renderEntry();
   });
   dialog.addEventListener('close', () => { pause(); document.body.classList.remove('field-view-open'); });

@@ -24,16 +24,28 @@
     return (match[3] ? Number(match[1]) % 12 + (match[3] === 'pm' ? 12 : 0) : Number(match[1])) * 60 + Number(match[2] || 0);
   };
   const usable = session => session && /^\d{4}-\d{2}-\d{2}$/.test(session.date || '') && !['cancelled', 'completed'].includes(String(session.status).toLowerCase());
+  const endMinute = session => {
+    const end = String(session.time || '').split(/[–—-]/)[1];
+    return end ? startMinute({ time: end.trim() }) : null;
+  };
+  const inProgress = session => {
+    if (!usable(session)) return false;
+    if (session.startAt) return Number.isFinite(Date.parse(session.endAt)) && Date.parse(session.startAt) <= Date.now() && Date.parse(session.endAt) > Date.now();
+    const now = localNow(), start = startMinute(session), end = endMinute(session);
+    return session.date === now.date && start !== null && end !== null && end > start && start <= now.minute && end > now.minute;
+  };
   const sortSessions = rows => [...rows].sort((a, b) => a.date.localeCompare(b.date) || (startMinute(a) ?? 1440) - (startMinute(b) ?? 1440) || String(a.id).localeCompare(String(b.id)));
   const nextSession = (rows, day = null) => {
     const now = localNow();
     return sortSessions((rows || []).filter(s => {
       if (!usable(s) || day !== null && weekday(s.date) !== Number(day)) return false;
+      if (inProgress(s)) return true;
       if (s.startAt && Number.isFinite(Date.parse(s.startAt))) return Date.parse(s.startAt) >= Date.now();
       return s.date > now.date || s.date === now.date && startMinute(s) !== null && startMinute(s) >= now.minute;
-    }))[0] || null;
+    })).sort((a, b) => Number(inProgress(b)) - Number(inProgress(a)))[0] || null;
   };
   let context = null, identity = '', pane = '', opener = null, noteSaving = false, uncertain = false;
+  let historyLimit = 10;
   const dirty = () => !!$('planner-note-body')?.value.trim();
   const busy = () => noteSaving;
   function resetDraft() {
@@ -56,14 +68,14 @@
       button.setAttribute('aria-pressed', String(!!selected && weekday(selected.date) === day));
       button.disabled = locked() || !next;
       button.append(make('strong', ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]), make('span', next ? label(next.date).split(', ').slice(1).join(', ') || next.date : 'No upcoming session'));
-      if (next) button.append(make('span', next.time || 'Time to confirm', 'planner-day-time'));
+      if (next) button.append(make('span', (inProgress(next) ? 'In progress · ' : '') + (next.time || 'Time to confirm'), 'planner-day-time'));
       button.addEventListener('click', () => { if (next && !locked()) emit('coach:open-session', { sessionId: next.id, tab: 'plan' }); });
       return button;
     }));
     $('planner-session-title').textContent = selected ? label(selected.date) : 'Choose a training day';
     $('planner-session-detail').textContent = selected ? [selected.time, selected.location].filter(Boolean).join(' · ') : 'No upcoming assigned session. You can still choose a recorded session below.';
     const next = selected && nextSession(rows, weekday(selected.date));
-    $('planner-session-mode').textContent = selected ? next?.id === selected.id ? 'Next session for this day' : 'Selected date' : 'No session selected';
+    $('planner-session-mode').textContent = selected ? inProgress(selected) ? 'In progress' : next?.id === selected.id ? 'Next session for this day' : 'Selected date' : 'No session selected';
     const dates = sortSessions(rows.filter(s => s.status !== 'Cancelled'));
     $('planner-date').replaceChildren(...dates.map(s => { const option = make('option', label(s.date) + ' · ' + s.time + ' · ' + s.location); option.value = s.id; return option; }));
     if (!selected) { const option = make('option', 'Choose a session'); option.value = ''; $('planner-date').prepend(option); }
@@ -77,22 +89,27 @@
     picker.replaceChildren(new Option('Group notes', ''), ...(selected?.players || []).map(player => new Option(player.name, player.playerId)));
     picker.value = [...picker.options].some(o => o.value === previous) ? previous : '';
     const playerId = picker.value;
+    const query = $('planner-notes-search').value.trim().toLowerCase();
     const list = (context?.notes || []).filter(note => {
+      if (query && !(note.body + ' ' + note.category + ' ' + note.author_email).toLowerCase().includes(query)) return false;
       if (playerId) return note.player_id === playerId;
       if (note.player_id) return false;
       return note.session_id === selected?.id || sameGroup(selected, context?.sessions?.find(s => s.id === note.session_id));
     }).sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
     const heading = make('p', playerId ? 'Player history across your accessible sessions.' : 'Group history for this training day, time and venue.', 'small');
-    const cards = list.map(note => {
-      const source = context.sessions.find(s => s.id === note.session_id), card = make('article', '', 'planner-note-card');
+    const cards = list.slice(0, historyLimit).map(note => {
+      const source = context.sessions.find(s => s.id === note.session_id), card = make('article', '', 'planner-note-card note-card');
       const date = source?.date ? label(source.date) : 'Previous session';
       card.append(make('span', note.category, 'tag'), make('h3', date), make('p', note.body, 'note-body'), make('p', (note.author_email === context.profile.email ? 'Your private note' : note.author_email) + (note.updated_at ? ' · ' + new Intl.DateTimeFormat('en-CA', { timeZone: club.timeZone, month: 'short', day: 'numeric' }).format(new Date(note.updated_at)) : ''), 'small'));
       return card;
     });
-    $('planner-notes-list').replaceChildren(heading, ...(cards.length ? cards : [make('p', playerId ? 'No notes for this player yet.' : 'No group notes yet. Add one for this session below.', 'empty-state')]));
+    $('planner-notes-list').replaceChildren(heading, ...(cards.length ? cards : [make('p', query ? 'No notes match your search.' : playerId ? 'No notes for this player yet.' : 'No group notes yet. Add one for this session above.', 'empty-state')]));
+    $('planner-notes-results').textContent = Math.min(list.length, historyLimit) + ' of ' + list.length + ' matching notes' + (context.notes.length >= 200 ? ' · Showing the 200 most recent accessible notes; older history may be omitted.' : '');
+    $('planner-notes-more').hidden = list.length <= historyLimit;
     $('planner-note-body').placeholder = playerId ? 'What would help this player in the next session?' : 'What should the coaching group work on next?';
     for (const control of $('planner-note-form').querySelectorAll('input,select,textarea,button')) control.disabled = locked() || unavailable() || uncertain;
     picker.disabled = locked() || unavailable();
+    document.dispatchEvent(new Event('coach:dictation-state'));
   }
 
   function closeDrawer(force = false) {
@@ -104,6 +121,7 @@
     for (const id of ['tactics-disclosure', 'practice-ideas', 'session-field-disclosure']) if ($(id)) $(id).open = false;
     for (const id of ['planner-open-notes', 'planner-open-tools', 'planner-open-run']) $(id)?.setAttribute('aria-expanded', 'false');
     if (wasOpen) document.dispatchEvent(new Event('coach:dictation-stop'));
+    document.dispatchEvent(new Event('coach:dictation-state'));
     if (!force && opener?.isConnected && !opener.disabled) opener.focus();
   }
   function openDrawer(next, button) {
@@ -152,11 +170,18 @@
   });
   for (const name of ['notes', 'tools', 'run']) $('planner-open-' + name).addEventListener('click', event => openDrawer(name, event.currentTarget));
   $('planner-close-drawer').addEventListener('click', () => closeDrawer());
+  window.addEventListener('coach:return-plan', () => {
+    if (context?.tab !== 'plan' || noteSaving) return;
+    closeDrawer(); $('plan-focus').focus();
+  });
   $('planner-drawer-backdrop').addEventListener('click', () => closeDrawer());
   $('planner-notes-player').addEventListener('change', event => {
+    document.dispatchEvent(new Event('coach:dictation-stop'));
     if (dirty() && !confirm('Switch note folders and discard this unsaved note?')) { event.target.value = event.target.dataset.previous || ''; return; }
-    resetDraft(); event.target.dataset.previous = event.target.value; renderNotes();
+    resetDraft(); historyLimit = 10; $('planner-notes-search').value = ''; event.target.dataset.previous = event.target.value; renderNotes();
   });
+  $('planner-notes-search').addEventListener('input', () => { historyLimit = 10; renderNotes(); });
+  $('planner-notes-more').addEventListener('click', () => { historyLimit += 10; renderNotes(); });
   $('planner-note-form').addEventListener('submit', saveNote);
   $('planner-drawer').addEventListener('keydown', event => {
     if (event.key === 'Escape') { event.preventDefault(); closeDrawer(); }
@@ -170,7 +195,7 @@
   window.addEventListener('coach:context', event => {
     const next = event.detail || null, nextIdentity = next?.profile ? [next.profile.email, next.profile.role, next.profile.sessionVersion, next.session?.id || ''].join(':') : '';
     if (identity !== nextIdentity) {
-      closeDrawer(true); resetDraft(); $('planner-notes-player').replaceChildren(); $('planner-notes-player').dataset.previous = '';
+      closeDrawer(true); resetDraft(); historyLimit = 10; $('planner-notes-search').value = ''; $('planner-notes-results').textContent = ''; $('planner-notes-more').hidden = true; $('planner-notes-player').replaceChildren(); $('planner-notes-player').dataset.previous = '';
     }
     identity = nextIdentity; context = next;
     if (!next?.profile) {

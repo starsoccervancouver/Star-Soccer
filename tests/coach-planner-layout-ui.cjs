@@ -91,6 +91,21 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     assert.equal(await current(f), rid(2), 'Opening the planner starts at the nearest upcoming session');
     assert.equal(await f.page.locator('#planner-drawer').isVisible(), false);
     assert.equal(count(f, '/notes/save') + count(f, '/diagrams/list'), 0, 'Entering the planner does not write notes or fetch a closed board');
+    const currentSelection = await f.page.evaluate(() => {
+      const future = { id: 'future', date: '2026-10-29', time: '4:00–5:00 PM', status: 'Scheduled' };
+      const ongoing = { id: 'ongoing', date: '2026-10-29', time: '10:00 AM–12:00 PM', status: 'Scheduled' };
+      const pick = rows => CoachPlanner.nextSession(rows)?.id || null;
+      return [
+        pick([future, ongoing]),
+        pick([future, { ...ongoing, time: '10:00–11:00 AM' }]),
+        pick([future, { ...ongoing, status: 'Cancelled' }]),
+        pick([future, { ...ongoing, status: 'Completed' }]),
+        pick([future, { ...ongoing, startAt: '2026-10-29T17:00:00Z', endAt: '2026-10-29T19:00:00Z' }]),
+        pick([future, { ...ongoing, time: 'Time to confirm' }]),
+      ];
+    });
+    assert.deepEqual(currentSelection, ['ongoing', 'future', 'future', 'future', 'ongoing', 'future'], 'An active session remains reachable until its end, without reopening ended or cancelled sessions');
+    checks++;
     await day(f, 3).click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
     assert.equal(await current(f), rid(6), 'Wednesday chooses its next active session, skipping a cancelled earlier slot');
     assert.match(await f.page.locator('#planner-session-title').innerText(), /Nov|November/);

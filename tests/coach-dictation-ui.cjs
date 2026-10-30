@@ -89,7 +89,8 @@ const addAssets = require('./coach-fixture-fonts.cjs');
 
     const { context, page, requests } = await fixture();
     const note = page.locator('#note-body'), noteButton = page.locator('#dictation-note-body'), noteStatus = page.locator('#dictation-status-note-body');
-    assert.equal(await page.locator('[data-dictation-label]').count(), 7);
+    assert.equal(await page.locator('[data-dictation-label]').count(), 8);
+    assert.equal(await page.locator('#dictation-planner-note-body').count(), 1, 'The planner drawer has its own dictation control');
     assert.equal(await page.evaluate(() => fixtureSpeech.instances.length), 0, 'Opening the app must never open the microphone');
     assert.match(await page.locator('#note-dictation-help').innerText(), /browser|speech|audio/i);
     checks++;

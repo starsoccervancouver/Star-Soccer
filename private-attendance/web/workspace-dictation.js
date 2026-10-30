@@ -7,9 +7,9 @@
   let inserting = false;
   const app = () => document.getElementById('app');
   const key = field => [document.getElementById('session')?.value, field.closest('.tab-panel')?.id,
-    field.id === 'note-body' ? document.getElementById('note-player')?.value : '', field.id].join('|');
+    field.id === 'note-body' ? document.getElementById('note-player')?.value : field.id === 'planner-note-body' ? document.getElementById('planner-notes-player')?.value : '', field.id].join('|');
   const editable = field => !app()?.hidden && !field.disabled && !field.readOnly &&
-    !field.closest('.tab-panel')?.hidden && document.getElementById('desk-main')?.getAttribute('aria-busy') !== 'true';
+    !field.closest('.tab-panel')?.hidden && !field.closest('#planner-drawer')?.hidden && !field.closest('#planner-notes-pane')?.hidden && document.getElementById('desk-main')?.getAttribute('aria-busy') !== 'true';
 
   function status(control, text) {
     control.status.textContent = text;
@@ -146,6 +146,7 @@
       : 'Browser dictation is unavailable here. You can use your device’s voice typing.';
   }
   document.addEventListener('coach:dictation-stop', () => cancel());
+  document.addEventListener('coach:dictation-state', () => { if (active && !valid(active)) cancel(); refresh(); });
   window.addEventListener('coach:context', () => {
     if (active && !valid(active)) cancel();
     refresh();

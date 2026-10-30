@@ -2179,3 +2179,47 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
 #app #player-note-folders button.note-folder-card[aria-pressed="true"] { color:var(--desk-ink); background:#faf4eb; }
 .coach-camps-heading { grid-column:1 / -1; margin:18px 0 0; font-size:18px; }
 .coach-camps-section { margin-top:24px; padding-top:8px; border-top:1px solid var(--desk-line); }
+
+/* Shared record lists: calm cards, clear hierarchy and reachable actions. */
+@media screen {
+  #roster, #note-list, #task-list, #user-list, #legacy-list, #activity-list { display:grid; gap:12px; margin-top:18px; }
+  #app :is(.roster-row,.note-card,.task-row,.account-row,.audit-row) {
+    min-width:0; margin:0; padding:20px; border:1px solid #dde5ea; border-radius:16px;
+    background:#fbfcfd; box-shadow:0 2px 6px #10263d03;
+  }
+  #app :is(.roster-row,.note-card,.task-row,.account-row):focus-within { border-color:#8aa9bd; }
+  #app :is(.roster-row,.task-row,.account-row) { column-gap:22px; }
+  #app :is(.roster-row,.task-row,.account-row) strong { font-size:15px; line-height:1.5; letter-spacing:-.015em; }
+  #app :is(.roster-row,.task-row,.account-row) p { margin:7px 0 0; line-height:1.65; }
+  #app .note-card h3 { margin:10px 0 5px; font-size:16px; letter-spacing:-.02em; }
+  #app .note-card > h3:first-child { margin-top:0; }
+  #app .note-meta { margin:0; font-size:12px; color:#5c7180; }
+  #app .note-body { margin:15px 0; font-size:14px; line-height:1.75; }
+  #app .note-actions { padding-top:14px; margin-top:16px; border-top:1px solid #e5ebef; }
+  #app :is(.note-actions,.task-row-actions,.account-actions,.attendance-controls) button { min-height:44px; padding:10px 15px; border-radius:12px; font-size:12px; }
+  #app .task-row > div:first-child { flex:1; }
+  #app .task-row.done { opacity:1; background:#f5f7f8; color:#5c7180; }
+  #app .task-row.done strong { color:#5c7180; text-decoration-color:#9caeb8; }
+  #app .audit-row { position:relative; align-items:flex-start; gap:12px; padding-left:42px; }
+  #app .audit-row::before { content:''; position:absolute; left:20px; top:26px; width:7px; height:7px; border-radius:50%; background:#c0a06e; }
+  #app .audit-row strong { font-size:13px; text-transform:capitalize; }
+  #app .audit-row p { margin:0; font-size:12px; text-align:right; }
+  #assignments .inline-check { padding:14px 16px; margin:10px 0; border:1px solid #dde5ea; border-radius:12px; background:#fbfcfd; }
+  #app .development-attendance { display:grid; gap:8px; }
+  #app .development-attendance li { padding:12px 14px; border:1px solid #e0e7ec; border-radius:12px; background:#f8fafb; }
+  #app .development-observation { padding:16px; margin-bottom:10px; border:1px solid #e0e7ec; border-radius:14px; background:#fbfcfd; }
+  #app .empty-state { padding:22px; border:1px dashed #d4dfe6; border-radius:14px; background:#f8fafb; line-height:1.65; }
+  body[data-desk-density="compact"] #app :is(.roster-row,.note-card,.task-row,.account-row,.audit-row) { padding-top:13px; padding-bottom:13px; }
+  body[data-desk-density="compact"] #app .audit-row::before { top:20px; }
+}
+@media screen and (max-width:600px) {
+  #roster, #note-list, #task-list, #user-list, #legacy-list, #activity-list { gap:10px; }
+  #app :is(.roster-row,.note-card,.task-row,.account-row,.audit-row) { padding:16px; border-radius:14px; }
+  #app .roster-row { grid-template-columns:minmax(0,1fr); gap:14px; }
+  #app .task-row { flex-direction:column; align-items:stretch; gap:14px; }
+  #app .task-row-actions, #app .account-actions { width:100%; justify-content:flex-start; }
+  #app :is(.task-row-actions,.account-actions,.note-actions) button { flex:1 1 auto; }
+  #app .audit-row { flex-direction:column; padding-left:34px; gap:5px; }
+  #app .audit-row::before { left:16px; top:22px; }
+  #app .audit-row p { text-align:left; }
+}

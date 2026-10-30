@@ -2142,3 +2142,38 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
 @media (prefers-reduced-motion: reduce) {
   .planner-focus-mode *, .planner-focus-mode *::before, .planner-focus-mode *::after { scroll-behavior: auto !important; }
 }
+
+/* A group is the entry point; dates and work stay inside its workspace. */
+#session-toolbar[hidden], .session-spotlight[hidden], .attendance-browser[hidden], .planner-session-summary[hidden], #planner-other-date[hidden], #session-plan-section[hidden], .session-workspace-pane[hidden], #planner-save[hidden] { display:none !important; }
+.session-workspace-tabs { display:flex; align-items:stretch; flex-wrap:wrap; gap:8px; padding:20px 0; }
+#app .session-workspace-tabs button { min-height:46px; padding:11px 20px; border:1px solid var(--desk-line); border-radius:14px; color:var(--desk-ink); background:#fff; font:650 14px/1.4 Manrope,system-ui,sans-serif; box-shadow:none; }
+#app .session-workspace-tabs button[aria-pressed="true"] { background:var(--desk-ink); color:#fff; border-color:var(--desk-ink); }
+.session-workspace-pane { min-width:0; }
+.session-workspace-pane > .card { border-radius:20px; }
+#panel-notes > .two-columns { align-items:start; }
+#panel-notes #player-note-folders { padding:22px; border:1px solid var(--desk-line); border-radius:20px; background:#fff; }
+#note-folder-help { margin:0 0 18px; color:var(--desk-muted); }
+#app #planner-days { grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); gap:14px; padding-bottom:24px; }
+#app #planner-days button { min-height:140px; text-align:left; align-items:flex-start; border-radius:18px; padding:20px; }
+#app #planner-days button strong { font-size:15px; line-height:1.55; }
+#app #planner-days button span { line-height:1.5; }
+#app .home-command-row { display:block; }
+#app .home-command-row > .card { width:100%; }
+#app #planner-workspace .planner-workspace-actions { padding-top:0; }
+@media(max-width:600px) {
+ .session-workspace-tabs { gap:6px; padding:18px 0; }
+ #app .session-workspace-tabs button { flex:1 1 28%; min-width:0; padding:10px 8px; font-size:12px; border-radius:12px; }
+ #panel-notes #player-note-folders { padding:16px; }
+ #app #planner-days { grid-template-columns:1fr; gap:10px; }
+ #app #planner-days button { min-height:110px; padding:16px; }
+}
+
+#coaching-hub .coaching-agenda { grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr)); gap:14px; }
+#coaching-hub .coaching-agenda-row { display:flex; flex-direction:column; align-items:stretch; padding:22px; border-radius:18px; gap:18px; }
+#coaching-hub .coaching-agenda-details { flex:1 1 auto; }
+#coaching-hub .coaching-agenda-details h3 { font-size:16px; line-height:1.6; }
+#coaching-hub .coaching-inline-actions button { width:100%; border-radius:13px; }
+
+#app #player-note-folders button.note-folder-card { border-radius:16px; justify-content:flex-start; align-items:flex-start; padding:16px; min-height:132px; font-weight:400; }
+#app #player-note-folders button.note-folder-card strong { font-size:15px; line-height:1.45; font-weight:700; }
+#app #player-note-folders button.note-folder-card[aria-pressed="true"] { color:var(--desk-ink); background:#faf4eb; }

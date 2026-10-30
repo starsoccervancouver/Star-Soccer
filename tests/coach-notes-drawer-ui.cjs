@@ -2,18 +2,20 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
+const { openSession } = require('./coach-fixture-navigation.cjs');
 const origin = 'https://attendance.starsoccer.ca', now = '2026-10-29T18:00:00Z';
 const rid = n => 'rec' + String(n).padStart(14, '0');
 const profile = { email: 'notes-owner@example.test', name: 'Fictional Notes Owner', role: 'owner', sessionVersion: 1 };
 const player = (n, name) => ({ playerId: rid(n), attendanceId: rid(n + 500), name, kind: 'dropin', status: 'Not yet asked', actualAttendance: 'Not marked', issues: [] });
 const sam = player(101, 'Fictional Sam'), lee = player(102, 'Fictional Lee'), other = player(103, 'Fictional Morgan');
-const session = (n, date, time = '4:00–5:00 PM', location = 'Fictional West Field', players = [sam, lee]) => ({ id: rid(n), date, time, location, players, status: 'Scheduled', capacity: 20, capacityUsed: players.length, expected: players.length, counts: { yes: 0, no: 0, awaiting: players.length, confirmed: 0 }, issues: [] });
+const session = (n, date, time = '4:00–5:00 PM', location = 'Fictional West Field', players = [sam, lee]) => ({ id: rid(n), programId: rid(900), date, time, location, players, status: 'Scheduled', capacity: 20, capacityUsed: players.length, expected: players.length, counts: { yes: 0, no: 0, awaiting: players.length, confirmed: 0 }, issues: [] });
 const sessions = [session(1, '2026-10-29'), session(2, '2026-10-22'), session(3, '2026-10-28'), session(4, '2026-10-22', '6:00–7:00 PM'), session(5, '2026-10-22', '4:00–5:00 PM', 'Fictional East Field', [other])];
 const note = (n, sessionId, playerId, body) => ({ id: 'fictional-note-' + n, session_id: sessionId, player_id: playerId, body, category: 'General', author_email: profile.email, updated_at: new Date(Date.parse(now) - n * 60000).toISOString(), created_at: now, version: 1 });
 const notes = [
   ...Array.from({ length: 12 }, (_, i) => note(i + 1, rid(i % 2 ? 2 : 1), null, 'Group observation ' + (i + 1) + (i === 11 ? ': targeted passing' : ': scanning'))),
   note(20, rid(3), null, 'Unrelated weekday group'), note(21, rid(4), null, 'Unrelated time group'), note(22, rid(5), null, 'Unrelated venue group'),
-  note(30, rid(1), sam.playerId, 'Sam current first touch'), note(31, rid(3), sam.playerId, 'Sam earlier passing'),
+  note(30, rid(1), sam.playerId, 'Sam current first touch'), note(31, rid(2), sam.playerId, 'Sam earlier passing'),
+  note(34, rid(3), sam.playerId, 'Sam unrelated Wednesday note'),
   note(32, rid(1), lee.playerId, 'Lee private confidence'), note(33, rid(5), other.playerId, 'Morgan unrelated player'),
 ];
 const assets = {};
@@ -63,8 +65,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     const page = await context.newPage(); page.setDefaultTimeout(6000); page.on('pageerror', error => errors.push(error.stack || error.message));
     await page.goto(origin + '/workspace');
     await page.locator('#app').waitFor({ state: 'visible' });
-    await page.locator('#navigation [data-tab="plan"]').click();
-    await page.locator('#planner-open-selected').click();
+    await openSession(page, sessions, rid(1), 'plan');
     await page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
     await page.locator('#planner-open-notes').click();
     const list = page.locator('#planner-notes-list'), field = page.locator('#planner-note-body'), dictate = page.locator('#dictation-planner-note-body');

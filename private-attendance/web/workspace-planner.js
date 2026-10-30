@@ -1,4 +1,4 @@
-/* Day-first planning and private drawers. Uses only the authorized workspace context. */
+/* Group-first planning and private drawers. Uses only the authorized workspace context. */
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
@@ -55,9 +55,13 @@
   }
   window.CoachPlanner = Object.freeze({ nextSession, isDirty: dirty, isBusy: busy, discard: resetDraft, focusSession, exitFocus, isFocused: () => !!focusedSession && focusedSession === context?.selected && context?.tab === 'plan' });
   const current = () => context?.session;
+  const readOnly = () => String(current()?.status).toLowerCase() === 'cancelled';
   const unavailable = () => !context?.profile || !current() || context.tab !== 'plan';
   const locked = () => !!context?.busy || noteSaving;
-  const sameGroup = (a, b) => a && b && weekday(a.date) === weekday(b.date) && String(a.time || '').trim() === String(b.time || '').trim() && String(a.location || '').trim() === String(b.location || '').trim();
+  const sameGroup = (a, b) => !!window.CoachGroups?.sameGroup(a, b);
+  const selectedGroup = () => context?.selectedGroup || window.CoachGroups?.groups(context?.sessions || []).find(group => group.key === window.CoachGroups.key(current())) || null;
+  const groupHistory = () => (context?.groupSessions || context?.sessions || []).filter(row => sameGroup(current(), row));
+  const groupTarget = group => nextSession(group.sessions) || sortSessions(group.sessions.filter(row => row && /^\d{4}-\d{2}-\d{2}$/.test(row.date || '') && row.date <= localNow().date && String(row.status).toLowerCase() !== 'cancelled')).at(-1) || sortSessions(group.sessions.filter(row => /^\d{4}-\d{2}-\d{2}$/.test(row?.date || '') && String(row.status).toLowerCase() === 'cancelled')).at(-1) || null;
 
   function closeDatePicker() {
     $('planner-date-options').hidden = true;
@@ -69,17 +73,18 @@
     $('planner-focus-bar').hidden = !active;
     $('planner-session-browser').hidden = active;
     $('planner-workspace').hidden = !active;
-    $('planner-focus-title').textContent = active ? label(selected.date) : '';
-    $('planner-focus-detail').textContent = active ? [selected.time, selected.location].filter(Boolean).join(' · ') : '';
+    $('planner-focus-title').textContent = active ? window.CoachGroups.label(selectedGroup() || selected) : '';
+    $('planner-focus-detail').textContent = active ? [readOnly() ? 'Cancelled · Read only' : '', label(selected.date), selected.time, selected.location].filter(Boolean).join(' · ') : '';
+    if (!active) closeDatePicker();
     for (const id of ['planner-back', 'planner-home', 'planner-focus-date']) $(id).disabled = locked();
-    $('planner-save').disabled = !active || locked() || !context?.planReady;
+    $('planner-save').disabled = !active || locked() || readOnly() || !context?.planReady;
     $('planner-save').textContent = context?.planDirty ? 'Save changes' : 'Save plan';
     document.dispatchEvent(new Event('coach:dictation-state'));
   }
   function focusSession(sessionId) {
-    if (!context?.profile || context.tab !== 'plan' || current()?.id !== sessionId || current().status === 'Cancelled') return false;
+    if (!context?.profile || context.tab !== 'plan' || current()?.id !== sessionId) return false;
     const newlyFocused = focusedSession !== sessionId || !$('planner-workspace').getClientRects().length;
-    focusedSession = sessionId; closeDatePicker(); renderFocus();
+    focusedSession = sessionId; closeDatePicker(); renderFocus(); emit('coach:focus-changed', { focused: true, sessionId });
     if (newlyFocused) {
       const ticket = ++focusEpoch;
       requestAnimationFrame(() => { if (ticket !== focusEpoch || focusedSession !== sessionId || context?.tab !== 'plan') return; $('planner-focus-title').focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'instant' }); });
@@ -87,7 +92,7 @@
     return true;
   }
   function exitFocus() {
-    focusedSession = ''; focusEpoch++; closeDrawer(true); closeDatePicker(); renderFocus();
+    focusedSession = ''; focusEpoch++; closeDrawer(true); closeDatePicker(); renderFocus(); emit('coach:focus-changed', { focused: false, sessionId: null });
     if (context?.profile && context.tab === 'plan') { $('planner-chooser-title').focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'instant' }); }
   }
   function requestSession(sessionId) {
@@ -101,28 +106,31 @@
 
   function renderDays() {
     const rows = context?.sessions || [], selected = current();
-    const days = [...new Set([...(club.trainingDays || [3, 4, 5, 0]), ...rows.filter(usable).filter(s => nextSession([s])).map(s => weekday(s.date))])];
-    $('planner-days').replaceChildren(...days.map(day => {
-      const next = nextSession(rows, day), button = make('button', '', 'planner-day');
-      button.type = 'button'; button.dataset.weekday = String(day);
-      button.setAttribute('aria-pressed', String(!!selected && weekday(selected.date) === day));
+    const groups = window.CoachGroups?.groups(rows) || [], group = selectedGroup();
+    $('planner-other-date').hidden = true;
+    document.querySelector('.planner-session-summary').hidden = true;
+    $('planner-days').replaceChildren(...groups.map(item => {
+      const next = groupTarget(item), button = make('button', '', 'planner-day');
+      button.type = 'button'; button.dataset.weekday = String(item.weekday ?? ''); button.dataset.groupKey = item.key;
+      button.setAttribute('aria-pressed', String(item.key === group?.key));
       button.disabled = locked() || !next;
-      button.append(make('strong', ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]), make('span', next ? label(next.date).split(', ').slice(1).join(', ') || next.date : 'No upcoming session'));
-      if (next) button.append(make('span', (inProgress(next) ? 'In progress · ' : '') + (next.time || 'Time to confirm'), 'planner-day-time'));
+      button.append(make('strong', item.label), make('span', item.verified ? 'Attendance, plans and player notes' : 'Separate dates · no shared group history'));
+      button.append(make('span', next ? inProgress(next) ? 'In progress' : nextSession(item.sessions) ? 'Open upcoming session' : 'Open recorded dates' : 'No available dates', 'planner-day-time'));
       button.addEventListener('click', () => { if (next) requestSession(next.id); });
       return button;
-    }));
-    $('planner-session-title').textContent = selected ? label(selected.date) : 'Choose a training day';
-    $('planner-session-detail').textContent = selected ? [selected.time, selected.location].filter(Boolean).join(' · ') : 'No upcoming assigned session. You can still choose a recorded session below.';
-    const next = selected && nextSession(rows, weekday(selected.date));
-    $('planner-session-mode').textContent = selected ? inProgress(selected) ? 'In progress' : next?.id === selected.id ? 'Next session for this day' : 'Selected date' : 'No session selected';
-    const dates = sortSessions(rows.filter(s => s.status !== 'Cancelled'));
-    $('planner-date').replaceChildren(...dates.map(s => { const option = make('option', label(s.date) + ' · ' + s.time + ' · ' + s.location); option.value = s.id; return option; }));
+    }), ...(!groups.length ? [make('p', 'No assigned training groups yet.', 'empty-state')] : []));
+    $('planner-session-title').textContent = selected ? window.CoachGroups.label(group || selected) : 'Choose a training group';
+    $('planner-session-detail').textContent = selected ? [label(selected.date), selected.time, selected.location].filter(Boolean).join(' · ') : 'No assigned training group.';
+    const next = group && nextSession(group.sessions);
+    $('planner-session-mode').textContent = selected ? inProgress(selected) ? 'In progress' : next?.id === selected.id ? 'Next session for this group' : 'Selected date' : 'No session selected';
+    const dates = sortSessions(group?.sessions || []);
+    $('planner-date').replaceChildren(...dates.map(s => { const option = make('option', label(s.date) + ' · ' + s.time + ' · ' + s.location + (String(s.status).toLowerCase() === 'cancelled' ? ' · Cancelled (read only)' : '')); option.value = s.id; return option; }));
     if (!selected) { const option = make('option', 'Choose a session'); option.value = ''; $('planner-date').prepend(option); }
     $('planner-date').value = selected?.id || '';
     for (const id of ['planner-other-date', 'planner-date']) $(id).disabled = locked() || !dates.length;
-    $('planner-open-selected').disabled = locked() || !selected || selected.status === 'Cancelled';
+    $('planner-open-selected').disabled = locked() || !selected;
     for (const id of ['planner-open-notes', 'planner-open-tools', 'planner-open-run']) $(id).disabled = locked() || !selected;
+    if (readOnly()) for (const id of ['planner-open-tools', 'planner-open-run']) $(id).disabled = true;
     renderFocus();
   }
 
@@ -132,13 +140,15 @@
     picker.value = [...picker.options].some(o => o.value === previous) ? previous : '';
     const playerId = picker.value;
     const query = $('planner-notes-search').value.trim().toLowerCase();
+    const historyIds = new Set(groupHistory().map(row => row.id));
     const list = (context?.notes || []).filter(note => {
+      if (!historyIds.has(note.session_id)) return false;
       if (query && !(note.body + ' ' + note.category + ' ' + note.author_email).toLowerCase().includes(query)) return false;
       if (playerId) return note.player_id === playerId;
       if (note.player_id) return false;
-      return note.session_id === selected?.id || sameGroup(selected, context?.sessions?.find(s => s.id === note.session_id));
+      return true;
     }).sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
-    const heading = make('p', playerId ? 'Player history across your accessible sessions.' : 'Group history for this training day, time and venue.', 'small');
+    const heading = make('p', selectedGroup()?.verified ? playerId ? 'This player’s notes within this training group.' : 'Group notes across its recorded dates.' : 'Notes for this date only. This session has no verified recurring group.', 'small');
     const cards = list.slice(0, historyLimit).map(note => {
       const source = context.sessions.find(s => s.id === note.session_id), card = make('article', '', 'planner-note-card note-card');
       const date = source?.date ? label(source.date) : 'Previous session';
@@ -149,7 +159,7 @@
     $('planner-notes-results').textContent = Math.min(list.length, historyLimit) + ' of ' + list.length + ' matching notes' + (context.notes.length >= 200 ? ' · Showing the 200 most recent accessible notes; older history may be omitted.' : '');
     $('planner-notes-more').hidden = list.length <= historyLimit;
     $('planner-note-body').placeholder = playerId ? 'What would help this player in the next session?' : 'What should the coaching group work on next?';
-    for (const control of $('planner-note-form').querySelectorAll('input,select,textarea,button')) control.disabled = locked() || unavailable() || uncertain;
+    for (const control of $('planner-note-form').querySelectorAll('input,select,textarea,button')) control.disabled = locked() || unavailable() || readOnly() || uncertain;
     picker.disabled = locked() || unavailable();
     document.dispatchEvent(new Event('coach:dictation-state'));
   }
@@ -167,7 +177,7 @@
     if (!force && opener?.isConnected && !opener.disabled) opener.focus();
   }
   function openDrawer(next, button) {
-    if (unavailable() || locked()) return;
+    if (unavailable() || locked() || readOnly() && next !== 'notes') return;
     pane = next; opener = button;
     $('planner-drawer').dataset.pane = next;
     $('planner-drawer-title').textContent = ({ notes: 'Group & player notes', tools: 'Drills & tactics', run: 'Run this session' })[next];
@@ -182,7 +192,7 @@
   }
   async function saveNote(event) {
     event.preventDefault();
-    if (unavailable() || locked() || uncertain || !dirty()) return;
+    if (unavailable() || locked() || readOnly() || uncertain || !dirty()) return;
     const targetIdentity = identity, playerId = $('planner-notes-player').value || null;
     const payload = { sessionId: current().id, playerId, category: $('planner-note-category').value, body: $('planner-note-body').value.trim() };
     noteSaving = true; $('planner-note-status').textContent = 'Saving private note…'; renderNotes(); $('planner-close-drawer').disabled = true;
@@ -202,6 +212,7 @@
   }
 
   function toggleDatePicker() {
+    if (locked() || !focusedSession || focusedSession !== current()?.id || context?.tab !== 'plan') return;
     const open = $('planner-date-options').hidden;
     $('planner-date-options').hidden = !open;
     for (const id of ['planner-other-date', 'planner-focus-date']) $(id).setAttribute('aria-expanded', String(open));

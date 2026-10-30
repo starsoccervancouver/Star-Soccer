@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
 (async () => {
   const origin = 'https://tactics.example.test';
   const session = { id: 'rec00000000000001', date: '2026-10-30', time: '4–5 PM', location: 'Fictional field', status: 'Scheduled', players: [] };
-  const fixture = { selected: session.id, session, sessions: [session], profile: { email: 'fictional-coach@example.test', name: 'Fictional Coach', role: 'coach' }, tab: 'plan', busy: false, planReady: true };
+  const fixture = { selected: session.id, session, sessions: [session], groupSessions: [session], profile: { email: 'fictional-coach@example.test', name: 'Fictional Coach', role: 'coach' }, tab: 'plan', busy: false, planReady: true };
   const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/workspace.css"><link rel="stylesheet" href="/session.css"><link rel="stylesheet" href="/tactics.css"><script defer src="/tactics.js"></script></head><body style="background:#f4f2ec"><main style="max-width:1100px;margin:0 auto;padding:16px"><h1>Fictional Club · tactics preview</h1><section class="card"><details id="tactics-disclosure" class="coaching-tools-disclosure"><summary>Tactics & drill diagrams</summary><section id="tactics-board-tools"></section></details></section></main></body></html>';
   const assets = {
     '/workspace': { body: html, type: 'text/html' },

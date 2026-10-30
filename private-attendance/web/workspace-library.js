@@ -130,7 +130,7 @@
     if (loaded && !matching.length) list.append(node('p', records.length ? 'No saved drills match these filters.' : 'Your library is empty. Save a useful activity below to reuse it.', 'empty-state'));
     more.hidden = matching.length <= historyLimit; renderState();
   }
-  function sameGroup(a, b) { return a && b && new Date(a.date + 'T12:00:00Z').getUTCDay() === new Date(b.date + 'T12:00:00Z').getUTCDay() && a.time === b.time && a.location === b.location; }
+  function sameGroup(a, b) { return !!window.CoachGroups?.sameGroup(a, b); }
   const topics = [
     { skill: 'Passing', match: /\b(pass(?:ing|es)?|support|angles?)\b/i, title: 'Pass and offer a new angle', minutes: 10, target: 'technical', setup: 'In groups of three, pass to a teammate and move to offer a new passing angle. Use comfortable distances and rotate roles.', coaching: 'Look up before the pass. Help the receiver by moving into clear space.', progression: 'Add a passive defender once the group is ready.', equipment: 'Balls and cones.' },
     { skill: 'First touch', match: /\b(first touch|receiv(?:e|ing)|control)\b/i, title: 'Receive through an open gate', minutes: 10, target: 'technical', setup: 'Create two cone gates beside a receiving area. A partner passes; the receiver takes a controlled first touch toward an open gate.', coaching: 'Prepare the body before the ball arrives and keep the next touch within reach.', progression: 'Let the passer indicate a gate as the ball travels.', equipment: 'One ball per pair and cones.' },
@@ -140,13 +140,16 @@
     { skill: 'Defending', match: /\b(defend(?:ing|er|ers)?|press(?:ing)?|tackl(?:e|ing))\b/i, title: 'Delay and guide', minutes: 10, target: 'game', setup: 'Use short one-versus-one channels. The defender aims to slow the attacker and guide them away from a target, with controlled contact and generous rest.', coaching: 'Stay balanced and patient. Match the challenge to the players.', progression: 'Add a supporting defender to practise communicating.', equipment: 'Balls, cones and bibs.' },
   ];
   function renderSuggestions() {
-    const input = [context?.notes, context?.session, context?.sessions, scope.value, records];
+    const input = [context?.notes, context?.session, context?.sessions, context?.groupSessions, scope.value, records];
     if (suggestionInputs && input.every((value, index) => value === suggestionInputs[index])) return;
     suggestionInputs = input;
-    const prior = scope.value; scope.replaceChildren(new Option('Group notes only', ''), ...(context?.session?.players || []).map(player => new Option(player.name, player.playerId)));
-    scope.value = [...scope.options].some(option => option.value === prior) ? prior : '';
     const selected = context?.session;
-    const applicable = (context?.notes || []).filter(note => scope.value ? note.player_id === scope.value : !note.player_id && (note.session_id === selected?.id || sameGroup(selected, context?.sessions?.find(s => s.id === note.session_id))));
+    const groupRows = Array.isArray(context?.groupSessions) ? context.groupSessions : (context?.sessions || []).filter(session => session.id === selected?.id || sameGroup(selected, session));
+    const groupIds = new Set(groupRows.map(session => session.id));
+    const players = new Map(); for (const session of groupRows) for (const player of session.players || []) if (!players.has(player.playerId)) players.set(player.playerId, player);
+    const prior = scope.value; scope.replaceChildren(new Option('Group notes only', ''), ...[...players.values()].map(player => new Option(player.name, player.playerId)));
+    scope.value = [...scope.options].some(option => option.value === prior) ? prior : '';
+    const applicable = (context?.notes || []).filter(note => groupIds.has(note.session_id) && (scope.value ? note.player_id === scope.value : !note.player_id));
     const matched = topics.map(topic => ({ topic, count: applicable.filter(note => topic.match.test(String(note.body || '') + ' ' + String(note.category || ''))).length })).filter(item => item.count);
     const saved = records.filter(permitted).map(drill => ({ drill, matches: matched.filter(({ topic }) => topic.match.test(drill.skill + ' ' + drill.title)) })).filter(item => item.matches.length)
       .sort((a, b) => b.matches.reduce((sum, item) => sum + item.count, 0) - a.matches.reduce((sum, item) => sum + item.count, 0) || String(b.drill.updated_at).localeCompare(String(a.drill.updated_at)) || a.drill.title.localeCompare(b.drill.title));

@@ -39,6 +39,7 @@ const { chromium } = require('playwright');
     session(1, '2026-12-31', players),
     session(2, '2027-01-01', [player(4, 'Fictional Friday Player', 'Not marked')]),
   ];
+  const { openSession, leaveGroup } = require('./coach-fixture-navigation.cjs');
   const users = [
     { ...profile, active: true, assignments: [] },
     { email: 'coach@example.test', name: 'Fixture Coach', role: 'coach', active: true, assignments: [rid(1)] },
@@ -75,7 +76,8 @@ const { chromium } = require('playwright');
       const asset = assets[url.pathname];
       if (asset) return route.fulfill({ status: 200, contentType: asset.type, body: asset.body });
       let value;
-      if (request.method() === 'POST') {
+      if (url.pathname === '/workspace/api/session') value = { plan: { version: 0, content: {} } };
+      else if (request.method() === 'POST') {
         assert.equal(url.pathname, '/workspace/api/logout', 'Usability controls must not write business records or issue enrollment tokens');
         signedIn = false;
         value = { signedOut: true };
@@ -92,7 +94,7 @@ const { chromium } = require('playwright');
     page.setDefaultTimeout(5000);
     await page.goto(origin + '/workspace');
     await page.locator('#app').waitFor({ state: 'visible' });
-    await page.getByRole('button', { name: 'Attendance', exact: true }).click();
+    await openSession(page, sessions, rid(1), 'attendance');
 
     const rows = page.locator('#roster .roster-row');
     assert.equal(await rows.count(), 3);
@@ -138,7 +140,7 @@ const { chromium } = require('playwright');
     checks++;
 
     await search.fill('Maya');
-    await page.locator('#attendance-days button[data-weekday="5"]').click();
+    await openSession(page, sessions, rid(2), 'attendance');
     assert.equal(await search.inputValue(), '', 'Selecting another session must restore that full roster');
     assert.equal(await page.locator('#roster-search-count').innerText(), '1 player');
     assert.equal(await rows.locator('strong').innerText(), 'Fictional Friday Player');
@@ -150,7 +152,7 @@ const { chromium } = require('playwright');
     assert.equal(await clear.isVisible(), true);
     checks++;
 
-    await page.getByRole('button', { name: 'Settings & profile', exact: true }).click();
+    await leaveGroup(page); await page.getByRole('button', { name: 'Settings & profile', exact: true }).click();
     await page.getByRole('button', { name: 'Team & access', exact: true }).click();
     await page.locator('#user-list .account-row').first().waitFor();
     const signinLinks = page.getByRole('button', { name: 'Copy sign-in link', exact: true });
@@ -165,19 +167,19 @@ const { chromium } = require('playwright');
     assert.deepEqual(await page.evaluate(() => window.fixtureClipboard), [origin + '/workspace', origin + '/workspace']);
     assert.match(await page.locator('#notice').innerText(), /Approved coaches can choose Continue with Google/);
     assert.equal(requests.filter(request => request.path.includes('/users/invite')).length, 0);
-    assert.equal(requests.filter(request => request.method === 'POST').length, 0);
+    assert.equal(requests.filter(request => request.method === 'POST' && !request.path.endsWith('/session')).length, 0);
     checks++;
 
     await page.evaluate(() => { window.fixtureClipboardBlocked = true; });
     await signinLinks.first().click();
     await page.locator('#global-error').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#global-error').innerText(), 'Open attendance.starsoccer.ca/workspace and choose Continue with Google.');
-    assert.equal(requests.filter(request => request.method === 'POST').length, 0);
+    assert.equal(requests.filter(request => request.method === 'POST' && !request.path.endsWith('/session')).length, 0);
     checks++;
 
-    await page.getByRole('button', { name: 'Attendance', exact: true }).click();
+    await openSession(page, sessions, rid(2), 'attendance');
     await search.fill('Friday');
-    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await leaveGroup(page); await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await page.locator('#login').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#roster-search').inputValue(), '');
     assert.equal(await page.locator('#roster').innerText(), '');
@@ -185,7 +187,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#user-list').innerText(), '');
     assert.equal(await page.getByRole('button', { name: 'Continue with Google', exact: true }).isVisible(), true);
     assert.equal(await page.locator('#enroll-options').isVisible(), false);
-    assert.deepEqual(requests.filter(request => request.method === 'POST').map(request => request.path), ['/workspace/api/logout']);
+    assert.deepEqual(requests.filter(request => request.method === 'POST' && !request.path.endsWith('/session')).map(request => request.path), ['/workspace/api/logout']);
     checks++;
 
     console.log('Coach Desk quality of life UI: ' + checks + ' isolated status, search, clear, session reset, mobile, stable Google-link and logout checks passed. No live network, business writes, emails or system clipboard used.');

@@ -3,13 +3,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
 const addAssets = require('./coach-fixture-fonts.cjs');
+const { openView, openFolder } = require('./coach-fixture-navigation.cjs');
 
 (async () => {
   const origin = 'https://attendance.starsoccer.ca', now = '2026-12-31T20:00:00Z';
   const rid = n => 'rec' + String(n).padStart(14, '0');
   const profile = { email: 'workbench-coach@example.test', name: 'Fictional Workbench Coach', role: 'coach' };
   const player = { playerId: rid(101), attendanceId: rid(201), name: 'Fictional Preparation Player', kind: 'dropin', status: 'Attending', actualAttendance: 'Not marked', issues: [] };
-  const makeSession = (id, date) => ({ id: rid(id), date, time: '4:00–5:00 PM', location: 'Fictional field', status: 'Scheduled', capacity: 20, capacityUsed: 1, expected: 1, counts: { yes: 1, no: 0, awaiting: 0, confirmed: 0 }, issues: [], players: [{ ...player }] });
+  const makeSession = (id, date) => ({ id: rid(id), programId: rid(900), date, time: '4:00–5:00 PM', location: 'Fictional field', status: 'Scheduled', capacity: 20, capacityUsed: 1, expected: 1, counts: { yes: 1, no: 0, awaiting: 0, confirmed: 0 }, issues: [], players: [{ ...player }] });
   const sessions = [makeSession(1, '2026-12-31'), makeSession(2, '2026-12-30'), makeSession(3, '2027-01-01')];
   const targetPlan = { version: 4, content: { focus: 'Target focus', warmup: 'Target warm-up', technical: '', game: '', equipment: '', reflection: 'Keep this session reflection.' } };
   const sourcePlan = { version: 9, content: { focus: 'Source focus', warmup: 'Source warm-up', technical: 'Source technical activity', game: 'Source game', equipment: 'Source equipment', reflection: 'Do not copy source reflection.' } };
@@ -63,7 +64,8 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     page.setDefaultTimeout(6000);
     await page.goto(origin + '/workspace');
     await page.locator('#app').waitFor({ state: 'visible' });
-    await page.locator('#coaching-hub .coaching-agenda-row').first().getByRole('button', { name: /^Plan session for/ }).click();
+    await page.locator('#coaching-hub').getByRole('button', { name: /^Open group: Thursday/ }).click();
+    await openView(page, 'plan');
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled && document.querySelector('#plan-focus').value === 'Target focus');
     assert.equal(await page.locator('#session').inputValue(), rid(1));
     assert.equal(await page.locator('#panel-plan').isVisible(), true);
@@ -79,6 +81,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     assert.equal(requests.filter(request => request.path.endsWith('/plans/save')).length, 0);
     checks++;
 
+    await page.locator('#copy-plan-group').selectOption(await page.evaluate(session => CoachGroups.key(session), sessions[1]));
     await page.locator('#copy-plan-source').selectOption(rid(2));
     const beforeCancel = await page.locator('#plan-warmup').inputValue();
     page.once('dialog', dialog => dialog.dismiss());
@@ -124,8 +127,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     assert.equal(JSON.stringify(sourcePlan), sourceSnapshot, 'The source plan remains unchanged');
     checks++;
 
-    await page.locator('#planner-home').click();
-    await page.locator('#navigation button[data-tab="notes"]').click();
+    await openFolder(page, rid(101));
     assert.equal(await page.locator('#player-history-panel').getAttribute('open'), null, 'Player history starts collapsed so the note editor stays prominent');
     await page.locator('#player-history-panel > summary').click();
     await page.locator('#player-development').getByRole('button', { name: /^Add a note for/ }).click();
@@ -152,8 +154,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     assert.deepEqual(requests.filter(request => request.method === 'POST').map(request => request.path).filter(path => !['/workspace/api/session', '/workspace/api/plans/save', '/workspace/api/diagrams/list'].includes(path)), []);
     checks++;
 
-    await page.locator('#navigation button[data-tab="plan"]').click();
-    await page.locator('#planner-open-selected').click();
+    await openView(page, 'plan');
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
     assert.equal(await page.locator('#planner-drawer').isVisible(), false, 'Optional tools remain tucked away on returning to the planner');
     await page.setViewportSize({ width: 1440, height: 1000 });

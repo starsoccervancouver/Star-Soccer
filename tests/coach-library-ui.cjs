@@ -2,12 +2,13 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
+const { openSession } = require('./coach-fixture-navigation.cjs');
 const origin = 'https://attendance.starsoccer.ca', now = '2026-10-29T18:00:00Z';
 const rid = n => 'rec' + String(n).padStart(14, '0');
 const owner = { email: 'library-owner@example.test', name: 'Fictional Library Owner', role: 'owner', sessionVersion: 1 };
 const player = (n, name) => ({ playerId: rid(n), attendanceId: rid(n + 500), name, kind: 'dropin', status: 'Not yet asked', actualAttendance: 'Not marked', issues: [] });
 const sam = player(101, 'Fictional Sam'), lee = player(102, 'Fictional Lee');
-const session = (n, date, players = [sam]) => ({ id: rid(n), date, time: '4:00–5:00 PM', location: 'Fictional West Field', players, status: 'Scheduled', capacity: 20, capacityUsed: players.length, expected: players.length, counts: { yes: 0, no: 0, awaiting: players.length, confirmed: 0 }, issues: [] });
+const session = (n, date, players = [sam]) => ({ id: rid(n), programId: rid(800), date, time: '4:00–5:00 PM', location: 'Fictional West Field', players, status: 'Scheduled', capacity: 20, capacityUsed: players.length, expected: players.length, counts: { yes: 0, no: 0, awaiting: players.length, confirmed: 0 }, issues: [] });
 const sessions = [session(1, '2026-10-29'), session(2, '2026-10-22'), session(3, '2026-10-30', [lee])];
 const notes = [
   { id: 'note1', session_id: rid(2), player_id: null, body: 'Group scanning PRIVATE_GROUP_DETAIL', category: 'Tactical', author_email: owner.email, updated_at: now },
@@ -64,8 +65,7 @@ require('./coach-fixture-fonts.cjs')(assets);
       });
       const page = await context.newPage(); page.setDefaultTimeout(6500); page.on('pageerror', error => errors.push(error.stack || error.message));
       await page.goto(origin + '/workspace'); await page.locator('#app').waitFor({ state: 'visible' });
-      await page.locator('#navigation [data-tab="plan"]').click(); await page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
-      await page.locator('#planner-open-selected').click();
+      await openSession(page, sessions, rid(1), 'plan');
       await page.locator('#planner-open-tools').click();
       return { page, context, state, requests, errors, pending, pendingLists, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
     }

@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
+const { openSession, leaveGroup } = require('./coach-fixture-navigation.cjs');
 const origin = 'https://attendance.starsoccer.ca', now = '2026-10-29T18:00:00Z';
 const rid = n => 'rec' + String(n).padStart(14, '0');
 const owner = { email: 'fictional-owner@example.test', name: 'Fictional Owner', role: 'owner', sessionVersion: 1 };
@@ -57,6 +58,7 @@ require('./coach-fixture-fonts.cjs')(assets);
       });
       const page = await context.newPage(); page.setDefaultTimeout(6000); page.on('pageerror', error => errors.push(error.stack || error.message));
       await page.goto(origin + '/workspace'); await page.locator('#app').waitFor({ state: 'visible' });
+      await openSession(page, sessions, rid(1), 'attendance'); await leaveGroup(page);
       await page.locator('#navigation [data-tab="tasks"]').click();
       return { page, context, state, requests, errors, pending, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
     }
@@ -110,7 +112,7 @@ require('./coach-fixture-fonts.cjs')(assets);
       const f = await fixture();
       await f.page.locator('#task-due').fill('2026-11-02');
       await f.page.locator('#task-title').fill('Bring cones for this group');
-      await f.answer(false); await f.page.locator('#session').selectOption(rid(2));
+      await f.answer(false); await f.page.locator('#navigation [data-tab="plan"]').click();
       assert.equal(await f.page.locator('#session').inputValue(), rid(1), 'Declined session switch keeps captured target');
       assert.equal(await f.page.locator('#task-title').inputValue(), 'Bring cones for this group');
       await f.page.locator('#task-submit').click();

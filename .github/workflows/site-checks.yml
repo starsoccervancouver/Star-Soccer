@@ -53,3 +53,8 @@ jobs:
         run: |
           node tests/coach-focus-planner-ui.cjs
           node tests/coach-library-ui.cjs
+
+      - name: Check recurring groups, private player folders and dated workspace navigation
+        run: |
+          node tests/coach-folders-ui.cjs
+          node tests/coach-group-workspace-ui.cjs

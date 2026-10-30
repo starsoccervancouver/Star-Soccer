@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
+const { openSession, openFolder } = require('./coach-fixture-navigation.cjs');
 
 (async () => {
   const origin = 'https://attendance.starsoccer.ca';
@@ -9,14 +10,14 @@ const { chromium } = require('playwright');
   const rid = n => 'rec' + String(n).padStart(14, '0');
   const profile = { email: 'fixture-owner@example.test', name: 'Fictional Owner', role: 'owner' };
   const session = (n, date) => ({
-    id: rid(n), date, time: '4:00–5:00 PM', location: 'Fictional practice field', status: 'Planned',
+    id: rid(n), programId: rid(900), date, time: '4:00–5:00 PM', location: 'Fictional practice field', status: 'Planned',
     capacity: 20, capacityUsed: 1, registered: 1, expected: 1, issues: [],
     counts: { yes: 0, no: 0, confirmed: 0, awaiting: 1 },
-    players: [{ playerId: rid(100 + n), attendanceId: rid(200 + n), name: 'Fictional Player ' + n,
+    players: [{ playerId: rid(101), attendanceId: rid(200 + n), name: 'Fictional Player',
       kind: 'dropin', status: 'Not yet asked', response: null, actualAttendance: 'Not marked', issues: [] }],
   });
-  const sessions = [session(1, '2026-10-29'), session(2, '2026-10-30')];
-  const note = (id, sessionId, body) => ({ id, session_id: rid(sessionId), player_id: rid(100 + sessionId),
+  const sessions = [session(1, '2026-10-29'), session(2, '2026-11-05')];
+  const note = (id, sessionId, body) => ({ id, session_id: rid(sessionId), player_id: rid(101),
     author_email: profile.email, category: 'General', body, review_date: null, created_at: now, updated_at: now, version: 1 });
   let notes = [note('fixture-note-a', 1, 'Saved fictional note A'), note('fixture-note-b', 1, 'Saved fictional note B'), note('fixture-note-c', 2, 'Saved fictional note C')];
   const assets = {};
@@ -46,6 +47,7 @@ const { chromium } = require('playwright');
       let result;
       if (url.pathname === '/workspace/api/bootstrap') result = { profile, csrfToken: 'fictional-csrf', googleEnabled: true };
       else if (url.pathname === '/workspace/api/desk') result = { profile, sessions, notes, tasks: [], observedAt: now };
+      else if (url.pathname === '/workspace/api/session') result = { plan: { version: 0, content: {} } };
       else if (url.pathname === '/workspace/api/notes/archive' && request.method() === 'POST') {
         const payload = request.postDataJSON();
         mutations.push({ path: url.pathname, payload });
@@ -66,7 +68,7 @@ const { chromium } = require('playwright');
     const promptCount = () => page.evaluate(() => fixtureConfirmPrompts.length);
     await page.goto(origin + '/workspace');
     await page.locator('#app').waitFor({ state: 'visible' });
-    await page.getByRole('button', { name: 'Player notes & goals', exact: true }).click();
+    await openSession(page, sessions, rid(1), 'notes'); await openFolder(page, rid(101));
     assert.equal(await page.locator('#session').inputValue(), rid(1));
 
     await page.locator('#note-body').fill('Unsaved fictional observation');
@@ -99,7 +101,7 @@ const { chromium } = require('playwright');
     await card('Saved fictional note C').getByRole('button', { name: 'Edit', exact: true }).click();
     assert.equal(await page.locator('#session').inputValue(), rid(2));
     assert.equal(await page.locator('#note-body').inputValue(), 'Saved fictional note C');
-    assert.equal(await page.locator('#note-player').inputValue(), rid(102));
+    assert.equal(await page.locator('#note-player').inputValue(), rid(101));
     assert.equal(mutations.length, 0, 'Editing a draft is not a save');
     checks++;
 
@@ -146,7 +148,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#note-body').inputValue(), '', 'Successful archival resets only its active editor');
     assert.equal(await page.locator('#note-body').isEnabled(), true);
     assert.equal(await page.locator('#note-cancel').isVisible(), false);
-    assert.equal(await page.locator('#note-title').innerText(), 'Add a coaching note');
+    assert.equal(await page.locator('#note-title').innerText(), 'Add a note for Fictional Player');
     assert.equal(mutations.length, 2, 'One failed attempt and one explicit retry only');
     assert(mutations.every(item => item.path.endsWith('/notes/archive') && item.payload.id === 'fixture-note-c' && item.payload.expectedVersion === 1));
     assert.deepEqual(errors, []);

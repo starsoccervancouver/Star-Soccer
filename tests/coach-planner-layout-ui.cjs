@@ -2,11 +2,12 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
+const groups = require('../private-attendance/web/workspace-groups.js');
 const origin = 'https://attendance.starsoccer.ca', now = '2026-10-29T18:00:00Z';
 const rid = n => 'rec' + String(n).padStart(14, '0');
 const player = (n, name) => ({ playerId: rid(n), attendanceId: rid(n + 500), name, kind: 'dropin', status: 'Not yet asked', actualAttendance: 'Not marked', issues: [] });
 const sam = player(101, 'Fictional Sam'), lee = player(102, 'Fictional Lee'), other = player(103, 'Fictional Morgan');
-const session = (n, date, { time = '4:00–5:00 PM', location = 'Fictional West Field', status = 'Scheduled', players = [sam, lee] } = {}) => ({ id: rid(n), date, time, location, status, capacity: 20, capacityUsed: players.length, expected: players.length, counts: { yes: 0, no: 0, awaiting: players.length, confirmed: 0 }, issues: [], players });
+const session = (n, date, { time = '4:00–5:00 PM', location = 'Fictional West Field', status = 'Scheduled', players = [sam, lee] } = {}) => ({ id: rid(n), programId: rid(900), date, time, location, status, capacity: 20, capacityUsed: players.length, expected: players.length, counts: { yes: 0, no: 0, awaiting: players.length, confirmed: 0 }, issues: [], players });
 const sessions = [
   session(1, '2026-10-28'),
   session(2, '2026-10-29'),
@@ -29,6 +30,7 @@ const notes = [
   note(5, rid(4), lee.playerId, 'Lee: celebrate using both feet.'),
   note(6, rid(3), other.playerId, 'Morgan: unrelated player history.'),
   note(7, rid(10), null, 'Other time group: a separate evening session.'),
+  note(8, rid(2), sam.playerId, 'Sam: a separate Thursday observation.'),
 ];
 const assets = {};
 for (const [url, file, type] of [['/workspace', 'workspace.html', 'text/html'], ['/workspace/assets/workspace.js', 'workspace.js', 'text/javascript'], ['/workspace/assets/workspace.css', 'workspace.css', 'text/css'], ['/assets/app.css', 'app.css', 'text/css'], ['/assets/logo.svg', 'logo.svg', 'image/svg+xml']]) assets[url] = { body: fs.readFileSync('private-attendance/web/' + file, 'utf8'), type };
@@ -77,13 +79,26 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
       });
       const page = await context.newPage(); page.setDefaultTimeout(7000); page.on('pageerror', error => errors.push(error.stack || error.message));
       await page.goto(origin + '/workspace' + hash); await page.locator('#app').waitFor({ state: 'visible' });
-      return { page, context, requests, errors, state, pending, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
+      return { page, context, requests, errors, state, pending, rows, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
     }
-    const enter = async f => { await f.page.locator('#navigation [data-tab="plan"]').click(); await f.page.locator('#planner-open-selected').click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled); };
+    const card = (f, row) => f.page.locator('#planner-days [data-group-key=' + JSON.stringify(groups.key(row)) + ']');
+    const enterSelected = async f => { const selected = await f.page.locator('#session').inputValue(); await card(f, f.rows.find(row=>row.id===selected)).click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled); };
+    const enter = async f => { await f.page.locator('#navigation [data-tab="plan"]').click(); await enterSelected(f); };
     const count = (f, suffix) => f.requests.filter(r => r.path.endsWith(suffix)).length;
     const current = f => f.page.locator('#session').inputValue();
-    const day = (f, number) => f.page.locator('#planner-days [data-weekday="' + number + '"]');
-    const selectDate = async (f, id) => { if (!await f.page.locator('#planner-date').isVisible()) await f.page.locator('#planner-focus-date').click(); await f.page.locator('#planner-date').selectOption(id); };
+    const day = (f, number) => { const row=f.rows.find(row=>new Date(row.date+'T12:00:00Z').getUTCDay()===number&&row.time==='4:00–5:00 PM'&&row.location==='Fictional West Field');return row?card(f,row):f.page.locator('#planner-days [data-weekday="'+number+'"]').first(); };
+    const selectDate = async (f, id) => {
+      const selectedId=await current(f), selected=f.rows.find(row=>row.id===selectedId), target=f.rows.find(row=>row.id===id);
+      if(groups.key(selected)!==groups.key(target)){
+        await f.page.locator('#planner-back').click();
+        if(await f.page.locator('#planner-workspace').isVisible())return;
+        await card(f,target).click();
+        await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);
+      }
+      if(await current(f)===id)return;
+      if(!await f.page.locator('#planner-date').isVisible())await f.page.locator('#planner-focus-date').click();
+      await f.page.locator('#planner-date').selectOption(id);
+    };
     const choose = async (f, id) => { await selectDate(f, id); await f.page.waitForFunction(id => document.getElementById('session').value === id && !document.getElementById('plan-focus').disabled, id); };
     const chooseDay = async (f, number) => { await f.page.locator('#planner-back').click(); await day(f, number).click(); await f.page.waitForFunction(() => !document.getElementById('plan-focus').disabled); };
     const clean = f => assert.deepEqual(f.errors, []);
@@ -110,12 +125,13 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     checks++;
     await chooseDay(f, 3);
     assert.equal(await current(f), rid(6), 'Wednesday chooses its next active session, skipping a cancelled earlier slot');
-    assert.match(await f.page.locator('#planner-session-title').innerText(), /Nov|November/);
+    assert.match(await f.page.locator('#planner-focus-title').innerText(), /Wednesday/);
+    assert.match(await f.page.locator('#planner-focus-detail').innerText(), /Nov|November/);
     await choose(f, rid(8)); assert.equal(await current(f), rid(8), 'A later date can override the next-session default');
     await choose(f, rid(1)); assert.equal(await current(f), rid(1), 'Past sessions remain explicitly reachable');
     await chooseDay(f, 3); await f.page.waitForFunction(() => document.getElementById('session').value.endsWith('000006'));
     assert.equal(await current(f), rid(6), 'Choosing the weekday again returns to its next session');
-    assert.equal(await f.page.locator('#planner-date option[value="' + rid(5) + '"]').isEnabled().catch(() => false), false, 'Cancelled sessions cannot be selected');
+    assert.equal(await f.page.locator('#planner-date option[value="' + rid(5) + '"]').count(), 0, 'A cancelled date in another time slot stays outside this group');
     clean(f); checks++;
 
     const timeChoices = await f.page.evaluate(() => {
@@ -138,7 +154,7 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     for (const startup of [{ savedStart: 'plan' }, { hash: '#view=plan' }]) {
       const initial = await fixture({ ...startup, rows: [sessions[7], sessions[1], sessions[2]] });
       await initial.page.locator('#panel-plan').waitFor({ state: 'visible' });
-      await initial.page.locator('#planner-open-selected').click();
+      await enterSelected(initial);
       await initial.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
       assert.equal(await current(initial), rid(2), 'Direct planner entry chooses the next session, not the first unsorted roster row');
       assert.equal(await initial.page.locator('#session-toolbar').isVisible(), false);
@@ -157,6 +173,7 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     await f.page.locator('#planner-notes-player').selectOption(sam.playerId);
     assert.match(await f.page.locator('#planner-notes-list').innerText(), /Sam: encourage/);
     assert(!(await f.page.locator('#planner-notes-list').innerText()).includes('Morgan:'), 'Unrelated player notes remain out of this folder');
+    assert(!(await f.page.locator('#planner-notes-list').innerText()).includes('separate Thursday'), 'The same player’s notes in another group stay out of this folder');
     await f.page.locator('#planner-close-drawer').click();
     assert.equal(await f.page.locator('#plan-focus').inputValue(), 'Fictional focus to preserve while reading notes');
     assert.equal(await f.page.locator('#planner-open-notes').evaluate(el => el === document.activeElement), true, 'Closing returns focus to the drawer opener');
@@ -232,10 +249,25 @@ assets['/workspace/assets/planner.js'] = { body: fs.readFileSync('private-attend
     await f.context.close();
 
     const restricted = await fixture({ role: 'coach', rows: [sessions[2]] }); await enter(restricted);
-    assert.equal(await current(restricted), rid(3)); assert.equal(await day(restricted, 3).isDisabled(), true, 'A day without assigned upcoming sessions is unavailable');
+    assert.equal(await current(restricted), rid(3)); assert.equal(await day(restricted, 3).count(), 0, 'An unassigned group is absent');
     await restricted.page.locator('#planner-open-notes').click();
     assert(!(await restricted.page.locator('#planner-notes-player').innerText()).includes('Fictional Sam'), 'Unassigned players have no folder');
     clean(restricted); await restricted.context.close(); checks++;
+
+    const unmapped = await fixture({ rows: [sessions[0], sessions[5]].map(row => ({ ...row, programId: null })) });
+    await unmapped.page.locator('#navigation [data-tab="plan"]').click();
+    assert.equal(await unmapped.page.locator('#planner-days [data-group-key]').count(), 1, 'Unmapped dates use one navigation bucket, not dated cards');
+    await unmapped.page.locator('#planner-days [data-group-key]').click();
+    assert.equal(await current(unmapped), rid(6));
+    await unmapped.page.locator('#planner-open-notes').click();
+    assert(!(await unmapped.page.locator('#planner-notes-list').innerText()).includes('Wednesday group: scanning'), 'Unmapped navigation does not imply shared group history');
+    await unmapped.page.locator('#planner-notes-player').selectOption(sam.playerId);
+    assert(!(await unmapped.page.locator('#planner-notes-list').innerText()).includes('Sam: encourage'), 'Unmapped navigation does not imply shared player history');
+    await unmapped.page.locator('#planner-close-drawer').click();
+    await choose(unmapped, rid(1));
+    await unmapped.page.locator('#planner-open-notes').click();
+    assert.match(await unmapped.page.locator('#planner-notes-list').innerText(), /Wednesday group: scanning/,'The recorded date remains explicitly reachable');
+    clean(unmapped); await unmapped.context.close(); checks++;
 
     const draft = await fixture(); await enter(draft); await draft.page.locator('#planner-open-notes').click();
     await draft.page.locator('#planner-note-body').fill('Fictional unsaved group note'); await draft.page.locator('#planner-close-drawer').click();

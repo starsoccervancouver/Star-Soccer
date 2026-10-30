@@ -44,7 +44,7 @@
   library.append(field('Saved setups for this session', librarySelect), button('New setup', 'tactics-new', () => { if (!editable() || dirty() && !confirm('Start a new setup and discard unsaved diagram changes?')) return; clear(); tell('Start with an empty field or try the passing triangle.'); }));
   const reuse = el('details', '', 'tactics-reuse'); reuse.id = 'tactics-reuse';
   reuse.append(el('summary', 'Reuse a setup from another session'), el('p', 'Choose a session you can access, then copy a saved setup into this session. The original stays unchanged. Review your copy and choose Save setup when ready.', 'small'));
-  const sourceSelect = select('tactics-source-session', [['', 'Choose a session']]);
+  const sourceSelect = select('tactics-source-session', [['', 'Choose a date in this group']]);
   const sourceBoard = select('tactics-source-board', [['', 'Load a session first']]);
   sourceSelect.addEventListener('change', () => { if (!editable() || recoveryNeeded) return; sourceSessionId = sourceSelect.value; sourceDiagrams = []; renderReuse(); });
   sourceBoard.addEventListener('change', renderReuseControls);
@@ -126,7 +126,7 @@
     $('tactics-source-copy').disabled = disabled || !sourceDiagrams.some(d => d.id === sourceBoard.value);
   }
   function renderReuse() {
-    const candidates = (context?.sessions || []).filter(s => s.id !== context?.selected && s.status !== 'Cancelled').sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.id).localeCompare(String(b.id)));
+    const candidates = (context?.groupSessions || []).filter(s => s.id !== context?.selected && s.status !== 'Cancelled').sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(a.id).localeCompare(String(b.id)));
     if (!candidates.some(s => s.id === sourceSessionId)) { sourceSessionId = ''; sourceDiagrams = []; }
     sourceSelect.replaceChildren(...[['', 'Choose a session'], ...candidates.map(s => [s.id, [s.date, s.time, s.location].filter(Boolean).join(' · ')])].map(([value, label]) => { const option = el('option', label); option.value = value; return option; }));
     sourceSelect.value = sourceSessionId;
@@ -136,7 +136,7 @@
     renderReuseControls();
   }
   async function loadSource() {
-    if (!editable() || recoveryNeeded || !sourceSessionId || !context.sessions?.some(s => s.id === sourceSessionId && s.id !== context.selected && s.status !== 'Cancelled')) return;
+    if (!editable() || recoveryNeeded || !sourceSessionId || !context.groupSessions?.some(s => s.id === sourceSessionId && s.id !== context.selected && s.status !== 'Cancelled')) return;
     const ticket = ++requestEpoch, startedIdentity = identity, source = sourceSessionId, target = context.selected;
     pending = true; sourceDiagrams = []; sourceStatus.textContent = 'Loading saved setups…'; render();
     try {
@@ -151,7 +151,7 @@
   function copySource() {
     if (!editable() || recoveryNeeded) return;
     const source = sourceDiagrams.find(d => d.id === sourceBoard.value);
-    if (!source || source.session_id !== sourceSessionId || !context.sessions?.some(s => s.id === sourceSessionId && s.id !== context.selected && s.status !== 'Cancelled')) return;
+    if (!source || source.session_id !== sourceSessionId || !context.groupSessions?.some(s => s.id === sourceSessionId && s.id !== context.selected && s.status !== 'Cancelled')) return;
     if (dirty() && !confirm('Copy this setup and discard your current unsaved diagram changes?')) return;
     const copied = clone(source.content), copiedTitle = source.title.trim().slice(0, 73) + ' (copy)';
     clear(); record.title = copiedTitle.slice(0, 80); record.content = copied;

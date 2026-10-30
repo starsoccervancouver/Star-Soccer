@@ -12,7 +12,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
   const player = (id, name, actualAttendance, response = 'yes') => ({ playerId: rid(id), attendanceId: rid(id + 100), name, actualAttendance, response, status: response === 'yes' ? 'Attending' : 'Not yet asked' });
   const maya = status => player(101, 'Fictional Maya With A Long Family Name', status);
   const noah = status => player(102, 'Fictional Noah Rivera', status);
-  const session = (id, date, players, status = 'Scheduled') => ({ id: rid(id), date, time: '4:00–5:00 PM', location: 'Fictional training field and meeting point', status, capacity: 20, capacityUsed: players.length, expected: players.length, players });
+  const session = (id, date, players, status = 'Scheduled') => ({ id: rid(id), programId: rid(900), programName: 'Fictional soccer training', date, time: '4:00–5:00 PM', location: 'Fictional training field and meeting point', status, capacity: 20, capacityUsed: players.length, expected: players.length, players });
   const sessions = [
     session(1, '2026-12-31', [maya('Not marked'), noah('Absent')]),
     session(2, '2027-01-01', [maya('Not marked')]),
@@ -24,16 +24,18 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     session(8, '2027-01-05', [noah('Not marked')]),
     session(9, '2027-01-07', [maya('Not marked')]),
     session(10, '2026-12-00', [maya('Not marked')]),
+    session(11, '2026-12-24', [maya('Present'), noah('Not marked')]),
   ];
   const notes = [
-    { id: 'fictional-maya-note', player_id: rid(101), body: 'Fictional Maya coaching progress', category: 'Technical', review_date: '2026-12-30', updated_at: now },
-    { id: 'fictional-noah-note', player_id: rid(102), body: 'Fictional Noah coaching progress', category: 'Goal', review_date: '2027-01-10', updated_at: now },
-    { id: 'fictional-session-note', player_id: null, body: 'Fictional general session observation', category: 'Session review', updated_at: now },
+    { id: 'fictional-maya-note', session_id: rid(11), player_id: rid(101), body: 'Fictional Maya coaching progress', category: 'Technical', review_date: '2026-12-30', updated_at: now },
+    { id: 'fictional-noah-note', session_id: rid(1), player_id: rid(102), body: 'Fictional Noah coaching progress', category: 'Goal', review_date: '2027-01-10', updated_at: now },
+    { id: 'fictional-session-note', session_id: rid(1), player_id: null, body: 'Fictional general session observation', category: 'Session review', updated_at: now },
+    { id: 'fictional-other-group-note', session_id: rid(4), player_id: rid(101), body: 'Unrelated Wednesday observation', category: 'Technical', updated_at: now },
   ];
-  const contextValue = { profile, session: sessions[0], sessions, selected: rid(1), notes, tasks: [], plan: { content: {} }, planReady: true, busy: false, tab: 'home' };
+  const contextValue = { profile, session: sessions[0], sessions, groupSessions: [sessions[0], sessions[6], sessions[8], sessions[10]], noteFolder: rid(101), selected: rid(1), notes, tasks: [], plan: { content: {} }, planReady: true, busy: false, tab: 'home' };
   const assets = {};
   addAssets(assets);
-  const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/workspace/assets/workspace.css"><link rel="stylesheet" href="/workspace/assets/coaching.css"><script defer src="/workspace/assets/coaching.js"></script></head><body><main class="desk-main"><section id="coaching-hub"></section><section id="player-development"></section><section id="practice-toolbox"></section></main></body></html>';
+  const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/workspace/assets/workspace.css"><link rel="stylesheet" href="/workspace/assets/coaching.css"><script defer src="/workspace/assets/groups.js"></script><script defer src="/workspace/assets/coaching.js"></script></head><body><main class="desk-main"><section id="coaching-hub"></section><section id="player-development"></section><section id="practice-toolbox"></section></main></body></html>';
   assets['/workspace'] = { body: html, type: 'text/html' };
   assets['/workspace/assets/workspace.css'] = { body: fs.readFileSync('private-attendance/web/workspace.css', 'utf8'), type: 'text/css' };
   const browser = await chromium.launch();
@@ -63,30 +65,31 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     await page.evaluate(value => window.dispatchEvent(new CustomEvent('coach:context', { detail: value })), contextValue);
     await page.evaluate(() => document.fonts.ready);
     const agenda = page.locator('.coaching-agenda-row');
-    assert.equal(await agenda.count(), 4, 'Only the next seven dates and four requested weekdays appear, including explicitly cancelled dates');
-    assert.equal(await agenda.filter({ hasText: 'Cancelled' }).count(), 1);
-    assert.equal(await agenda.filter({ hasText: 'Cancelled' }).locator('button:enabled').count(), 0);
+    assert.equal(await agenda.count(), 6, 'Each recurring weekday group appears once, with the incomplete date held separately');
+    assert.equal(await agenda.locator('button').count(), 6, 'Each group has one clear entry action');
+    assert.equal(await agenda.filter({ hasText: 'No active session recorded' }).locator('button:disabled').count(), 1, 'An invalid date cannot open a session');
+    assert.equal(await agenda.locator('h3').filter({ hasText: /Dec|Jan|2026|2027/ }).count(), 0, 'Dates are context inside group cards, never top-level group names');
     assert.equal(await page.locator('#coaching-hub').getByText('1 note ready for review', { exact: true }).count(), 1);
     checks++;
 
-    await agenda.filter({ has: page.locator('.tag', { hasText: '2 expected' }) }).getByRole('button', { name: /^Open roster for/ }).click();
-    await agenda.filter({ has: page.locator('.tag', { hasText: '2 expected' }) }).getByRole('button', { name: /^Plan session for/ }).click();
+    await agenda.filter({ has: page.locator('h3', { hasText: /Thursday/ }) }).getByRole('button', { name: /^Open group:/ }).click();
     let actions = await page.evaluate(() => fixtureCoachEvents.filter(event => event.type === 'coach:open-session'));
-    assert.deepEqual(actions.map(action => action.detail), [{ sessionId: rid(1), tab: 'attendance' }, { sessionId: rid(1), tab: 'plan' }]);
+    assert.deepEqual(actions.map(action => action.detail), [{ sessionId: rid(1), tab: 'plan', workspaceView: 'attendance' }]);
     checks++;
 
-    assert.equal(await page.locator('#development-player option').count(), 2, 'Only named players present in the supplied scope are selectable');
-    assert.equal(await page.locator('#development-player').inputValue(), rid(101));
-    assert.deepEqual(await page.locator('.development-summary strong').allTextContents(), ['1', '0', '2'], 'Future and cancelled sessions do not count; unmarked is never inferred absent');
+    assert.equal(await page.locator('#development-player').count(), 0, 'History follows the chosen player folder without a competing global player dropdown');
+    assert.match(await page.locator('#player-development h3').first().innerText(), /Fictional Maya/);
+    assert.deepEqual(await page.locator('.development-summary strong').allTextContents(), ['1', '0', '1'], 'History stays in this group; future/cancelled sessions do not count and unmarked is never inferred absent');
     assert.match(await page.locator('#player-development').innerText(), /unmarked session is not an absence/i);
     assert.match(await page.locator('.development-observation').innerText(), /Fictional Maya coaching progress/);
     assert(!(await page.locator('#player-development').innerText()).includes('Fictional Noah coaching progress'));
     assert(!(await page.locator('#player-development').innerText()).includes('Fictional general session observation'));
+    assert(!(await page.locator('#player-development').innerText()).includes('Unrelated Wednesday observation'), 'The same player’s notes in another group stay outside this folder');
     checks++;
 
     await page.locator('#player-development').getByRole('button', { name: /^Add a note for/ }).click();
     assert.deepEqual(await page.evaluate(() => fixtureCoachEvents.filter(event => event.type === 'coach:add-note').at(-1).detail), { sessionId: rid(1), playerId: rid(101) });
-    await page.locator('#development-player').selectOption(rid(102));
+    await page.evaluate(value => window.dispatchEvent(new CustomEvent('coach:context', { detail: value })), { ...contextValue, noteFolder: rid(102) });
     assert.deepEqual(await page.locator('.development-summary strong').allTextContents(), ['0', '1', '1']);
     assert.match(await page.locator('.development-observation').innerText(), /Fictional Noah coaching progress/);
     checks++;
@@ -108,14 +111,40 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     assert.equal(requests.filter(request => request.method === 'POST').length, 0, 'Inserting a practice idea changes only a draft through the root UI');
     checks++;
 
+    assert.equal(await page.locator('#copy-plan-source').isDisabled(), true, 'Dates stay unavailable until a source training group is selected');
+    assert.equal(await page.locator('#copy-plan-source option').count(), 1, 'No global cross-group date dropdown');
+    const thursdayKey = await page.evaluate(session => CoachGroups.key(session), sessions[0]);
+    await page.locator('#copy-plan-group').selectOption(thursdayKey);
     const sourceOptions = await page.locator('#copy-plan-source option').evaluateAll(options => options.map(option => option.value));
     assert(!sourceOptions.includes(rid(1)), 'The current plan cannot copy itself');
     assert(!sourceOptions.includes(rid(6)) && !sourceOptions.includes(rid(7)), 'Cancelled sessions are not offered as templates');
     assert(!sourceOptions.includes(rid(10)), 'Malformed dates must not become plan-copy options');
+    assert(!sourceOptions.includes(rid(4)), 'The date picker contains only the chosen group');
+    const wednesdayKey = await page.evaluate(session => CoachGroups.key(session), sessions[3]);
+    await page.locator('#copy-plan-group').selectOption(wednesdayKey);
     await page.locator('#copy-plan-source').selectOption(rid(4));
     await page.getByRole('button', { name: 'Copy plan to draft', exact: true }).click();
     assert.deepEqual(await page.evaluate(() => fixtureCoachEvents.filter(event => event.type === 'coach:copy-plan').at(-1).detail), { sourceSessionId: rid(4) });
     assert.match(await page.locator('.practice-reuse').innerText(), /reflection is left behind/);
+    checks++;
+
+    await page.locator('#copy-plan-group').selectOption(thursdayKey);
+    assert.equal(await page.locator('#copy-plan-source').inputValue(), '', 'Changing source groups clears the previous date');
+    assert.equal(await page.getByRole('button', { name: 'Copy plan to draft', exact: true }).isDisabled(), true);
+    await page.evaluate(value => window.dispatchEvent(new CustomEvent('coach:context', { detail: value })), { ...contextValue, session: sessions[1], selected: rid(2), groupSessions: [sessions[1]] });
+    assert.match(await page.locator('#player-development h3').first().innerText(), /Fictional Maya/);
+    assert.equal(await page.locator('.development-observation').count(), 0, 'A player’s observations from another group do not follow them into this group');
+    assert.deepEqual(await page.locator('.development-summary strong').allTextContents(), ['0', '0', '0']);
+    await page.evaluate(value => window.dispatchEvent(new CustomEvent('coach:context', { detail: value })), { ...contextValue, noteFolder: '' });
+    assert.equal(await page.locator('.development-summary').count(), 0, 'The group notes folder never shows an arbitrary player’s history');
+    assert.match(await page.locator('#player-development').innerText(), /Open a player’s folder/);
+    await page.evaluate(value => window.dispatchEvent(new CustomEvent('coach:context', { detail: value })), { ...contextValue, groupSessions: undefined });
+    assert.equal(await page.locator('#development-player').count(), 0, 'Missing group scope never falls back to every authorized player');
+    assert.match(await page.locator('#player-development').innerText(), /Open a training group/);
+    await page.evaluate(value => window.dispatchEvent(new CustomEvent('coach:context', { detail: value })), { ...contextValue, profile: { ...profile, email: 'another-coach@example.test' } });
+    assert.equal(await page.locator('#copy-plan-group').inputValue(), '', 'Identity changes reset source group/date choices');
+    assert.equal(await page.locator('#copy-plan-source').inputValue(), '');
+    await page.evaluate(value => window.dispatchEvent(new CustomEvent('coach:context', { detail: value })), contextValue);
     checks++;
 
     const eventCount = await page.evaluate(() => fixtureCoachEvents.length);
@@ -142,9 +171,9 @@ const addAssets = require('./coach-fixture-fonts.cjs');
 
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('coach:context', { detail: null })));
     for (const id of ['coaching-hub', 'player-development', 'practice-toolbox']) assert.equal(await page.locator('#' + id).innerHTML(), '', 'Sign-out clears all scoped content from ' + id);
-    await page.evaluate(value => window.dispatchEvent(new CustomEvent('coach:context', { detail: value })), { ...contextValue, session: null, selected: '', sessions: [], notes: [] });
-    assert.match(await page.locator('#coaching-hub').innerText(), /No assigned training sessions/);
-    assert.match(await page.locator('#player-development').innerText(), /Player profiles appear/);
+    await page.evaluate(value => window.dispatchEvent(new CustomEvent('coach:context', { detail: value })), { ...contextValue, session: null, selected: '', sessions: [], groupSessions: [], notes: [] });
+    assert.match(await page.locator('#coaching-hub').innerText(), /No assigned training groups/);
+    assert.match(await page.locator('#player-development').innerText(), /Open a training group/);
     assert.equal(await page.locator('#drill-age').inputValue(), 'all', 'A cleared identity cannot inherit a previous user filter');
     assert.equal(await page.locator('#drill-skill').inputValue(), 'all');
     checks++;

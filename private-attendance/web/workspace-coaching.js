@@ -16,19 +16,16 @@
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
   };
   const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-  const addDays = (date, count) => {
-    const result = new Date(date + 'T12:00:00Z');
-    result.setUTCDate(result.getUTCDate() + count);
-    return result.toISOString().slice(0, 10);
-  };
   const dateLabel = date => validDate(date) ? new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(date + 'T12:00:00Z')) : 'Date not recorded';
-  const trainingDays = new Set(window.CoachClub?.trainingDays || [0, 3, 4, 5]);
   const empty = text => element('p', text, 'empty-state');
   let context = null;
   let playerId = '';
   let ageFilter = 'all';
   let skillFilter = 'all';
   let copySource = '';
+  let copyGroup = '';
+  const groupSessions = () => Array.isArray(context?.groupSessions) ? context.groupSessions : [];
+  const authorizedGroups = () => window.CoachGroups?.groups(context?.sessions || []) || [];
 
   // Original starter activities, intended for coach adaptation rather than a fixed curriculum.
   const drills = [
@@ -70,7 +67,7 @@
 
   function visiblePlayers() {
     const result = new Map();
-    for (const session of context?.sessions || []) {
+    for (const session of groupSessions()) {
       for (const player of session.players || []) {
         if (player.playerId && !result.has(player.playerId)) result.set(player.playerId, player);
       }
@@ -84,25 +81,27 @@
     target.replaceChildren();
     if (!context) return;
     target.className = 'card coaching-hub';
-    const start = today(), end = addDays(start, 6);
-    const rows = (context.sessions || []).filter(session => validDate(session.date) && session.date >= start && session.date <= end && trainingDays.has(new Date(session.date + 'T12:00:00Z').getUTCDay())).sort((a, b) => a.date.localeCompare(b.date) || String(a.time || '').localeCompare(String(b.time || '')) || a.id.localeCompare(b.id));
-    heading(target, 'Session preparation', 'Your next seven days', 'Open the dated roster or jump straight into its plan. ' + dateLabel(start) + ' – ' + dateLabel(end) + '.');
+    const start = today(), groups = authorizedGroups();
+    heading(target, 'Your training groups', 'Choose a group', 'Open the group to prepare a session, check attendance or find a player’s notes.');
     const agenda = element('div', '', 'coaching-agenda');
-    for (const session of rows) {
-      const row = element('article', '', 'coaching-agenda-row' + (session.id === context.selected ? ' is-current' : ''));
+    for (const group of groups) {
+      const members = group.sessions.filter(session => validDate(session.date) && session.status !== 'Cancelled');
+      const next = window.CoachPlanner?.nextSession ? window.CoachPlanner.nextSession(members) : members.find(session => session.date >= start);
+      const session = next || members.at(-1);
+      const row = element('article', '', 'coaching-agenda-row' + (group.sessionIds.includes(context.selected) ? ' is-current' : ''));
+      row.dataset.groupKey = group.key;
       const details = element('div', '', 'coaching-agenda-details');
-      details.append(element('h3', dateLabel(session.date)), element('p', [session.time, session.location].filter(Boolean).join(' · '), 'small'));
-      details.append(element('span', session.status === 'Cancelled' ? 'Cancelled' : Number.isInteger(session.expected) ? session.expected + ' expected' : 'Expected count not recorded', 'tag'));
+      details.append(element('h3', group.label));
+      details.append(element('p', session ? (next ? 'Next session: ' : 'Most recent session: ') + dateLabel(session.date) : 'No active session recorded', 'small'));
       const actions = element('div', '', 'coaching-inline-actions');
-      const roster = button('Roster', () => emit('coach:open-session', { sessionId: session.id, tab: 'attendance' }), { label: 'Open roster for ' + dateLabel(session.date) + ' at ' + (session.time || 'the recorded time') });
-      const plan = button('Plan session', () => emit('coach:open-session', { sessionId: session.id, tab: 'plan' }), { label: 'Plan session for ' + dateLabel(session.date) + ' at ' + (session.time || 'the recorded time') });
-      if (session.status === 'Cancelled') roster.disabled = plan.disabled = true;
-      actions.append(roster, plan);
+      const open = button('Open group', () => { if (session) emit('coach:open-session', { sessionId: session.id, tab: 'plan', workspaceView: 'attendance' }); }, { primary: true, label: 'Open group: ' + group.label });
+      if (!session) open.disabled = true;
+      actions.append(open);
       row.append(details, actions);
       agenda.append(row);
     }
     target.append(agenda);
-    if (!rows.length) target.append(empty('No assigned training sessions are recorded for the next seven days.'));
+    if (!groups.length) target.append(empty('No assigned training groups are available.'));
     const due = (context.notes || []).filter(note => validDate(note.review_date) && note.review_date <= start);
     if (due.length && !$('home-priorities')) {
       const review = element('div', '', 'coaching-review-alert');
@@ -118,29 +117,19 @@
     target.replaceChildren();
     if (!context) return;
     target.className = 'card player-development';
-    heading(target, 'Player development', 'A useful player picture', 'Attendance history and saved observations from the sessions you are allowed to view.');
+    heading(target, 'Player development', 'A useful player picture', 'Attendance history and saved observations within this training group.');
+    const scopedSessions = groupSessions(), memberIds = new Set(scopedSessions.map(session => session.id));
+    if (!scopedSessions.length) return target.append(empty('Open a training group to see its player folders and history.'));
     const players = visiblePlayers();
-    if (!players.some(player => player.playerId === playerId)) playerId = context.session?.players?.[0]?.playerId || players[0]?.playerId || '';
-    const label = element('label', 'Review a player');
-    label.htmlFor = 'development-player';
-    const select = element('select');
-    select.id = 'development-player';
-    select.setAttribute('aria-label', 'Review a player');
-    for (const player of players) {
-      const option = element('option', player.name || 'Named player');
-      option.value = player.playerId;
-      select.append(option);
-    }
-    select.value = playerId;
-    select.disabled = !!context.busy || !players.length;
-    select.addEventListener('change', () => { playerId = select.value; renderDevelopment(); });
-    target.append(label, select);
     if (!players.length) return target.append(empty('Player profiles appear when your assigned rosters contain named players.'));
-    const selectedPlayer = players.find(player => player.playerId === playerId);
-    const observations = (context.notes || []).filter(note => note.player_id === playerId).sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+    const selectedPlayer = players.find(player => player.playerId === context.noteFolder);
+    playerId = selectedPlayer?.playerId || '';
+    if (!selectedPlayer) return target.append(empty('Open a player’s folder above to see their notes and attendance history.'));
+    target.append(element('h3', selectedPlayer.name || 'Named player'));
+    const observations = (context.notes || []).filter(note => note.player_id === playerId && memberIds.has(note.session_id)).sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
     const seen = new Set();
     const history = [];
-    for (const session of context.sessions || []) {
+    for (const session of scopedSessions) {
       if (!validDate(session.date) || session.date > today() || session.status === 'Cancelled' || seen.has(session.id)) continue;
       const row = (session.players || []).find(player => player.playerId === playerId);
       if (!row) continue;
@@ -155,7 +144,7 @@
       summary.append(stat);
     }
     target.append(summary, element('p', 'Only recorded physical attendance is shown. An unmarked session is not an absence; parent replies are separate.', 'small'));
-    const currentSession = context.session?.status !== 'Cancelled' && context.session?.players?.some(player => player.playerId === playerId) ? context.session : (context.sessions || []).filter(session => session.status !== 'Cancelled' && (session.players || []).some(player => player.playerId === playerId)).sort((a, b) => b.date.localeCompare(a.date))[0];
+    const currentSession = memberIds.has(context.session?.id) && context.session?.status !== 'Cancelled' && context.session?.players?.some(player => player.playerId === playerId) ? context.session : scopedSessions.filter(session => session.status !== 'Cancelled' && (session.players || []).some(player => player.playerId === playerId)).sort((a, b) => b.date.localeCompare(a.date))[0];
     const selectedPlayerId = playerId;
     if (currentSession) target.append(button('Add a note for ' + (selectedPlayer?.name || 'this player'), () => emit('coach:add-note', { sessionId: currentSession.id, playerId: selectedPlayerId }), { primary: true }));
     const columns = element('div', '', 'development-columns');
@@ -244,29 +233,54 @@
     target.append(element('p', matching.length + ' activit' + (matching.length === 1 ? 'y' : 'ies') + ' match', 'small'), activities);
     if (!matching.length) target.append(empty('No starter activities match these filters. Try another focus or age group.'));
     const reuse = element('section', '', 'practice-reuse');
-    reuse.append(element('h3', 'Start from another session'), element('p', 'Copy a saved plan into this draft. The source plan stays unchanged and its after-session reflection is left behind.', 'small'));
-    const candidates = (context.sessions || []).filter(session => session.id !== context.selected && session.status !== 'Cancelled' && validDate(session.date)).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+    reuse.append(element('h3', 'Reuse a group’s session plan'), element('p', 'Choose a training group, then a date to copy its saved plan into this draft. The source plan stays unchanged and its after-session reflection is left behind.', 'small'));
+    const sourceGroups = authorizedGroups().filter(group => group.sessions.some(session => session.id !== context.selected && session.status !== 'Cancelled' && validDate(session.date)));
+    if (!sourceGroups.some(group => group.key === copyGroup)) copyGroup = '';
+    const groupLabel = element('label', 'Training group to reuse');
+    groupLabel.htmlFor = 'copy-plan-group';
+    const groupSelect = element('select');
+    groupSelect.id = 'copy-plan-group';
+    groupSelect.setAttribute('aria-label', 'Training group to reuse');
+    const groupPlaceholder = element('option', 'Choose a training group');
+    groupPlaceholder.value = '';
+    groupSelect.append(groupPlaceholder);
+    for (const group of sourceGroups) {
+      const option = element('option', group.label);
+      option.value = group.key;
+      groupSelect.append(option);
+    }
+    groupSelect.value = copyGroup;
+    groupSelect.disabled = locked || !sourceGroups.length;
+    groupSelect.addEventListener('change', () => {
+      if (locked) return;
+      copyGroup = sourceGroups.some(group => group.key === groupSelect.value) ? groupSelect.value : '';
+      copySource = '';
+      renderToolbox();
+    });
+    groupLabel.append(groupSelect);
+    const selectedGroup = sourceGroups.find(group => group.key === copyGroup);
+    const candidates = (selectedGroup?.sessions || []).filter(session => session.id !== context.selected && session.status !== 'Cancelled' && validDate(session.date)).sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
     if (!candidates.some(session => session.id === copySource)) copySource = '';
-    const label = element('label', 'Session to reuse');
+    const label = element('label', 'Date to reuse');
     label.htmlFor = 'copy-plan-source';
     const select = element('select');
     select.id = 'copy-plan-source';
-    select.setAttribute('aria-label', 'Session to reuse');
-    const placeholder = element('option', 'Choose a recorded session');
+    select.setAttribute('aria-label', 'Date to reuse');
+    const placeholder = element('option', copyGroup ? 'Choose a recorded date' : 'Choose a group first');
     placeholder.value = '';
     select.append(placeholder);
     for (const session of candidates) {
-      const option = element('option', dateLabel(session.date) + ' · ' + (session.time || 'Time not recorded') + ' · ' + (session.location || 'Venue not recorded'));
+      const option = element('option', dateLabel(session.date));
       option.value = session.id;
       select.append(option);
     }
     select.value = copySource;
     select.disabled = locked || !candidates.length;
-    const copy = button('Copy plan to draft', () => { if (copySource) emit('coach:copy-plan', { sourceSessionId: copySource }); });
+    const copy = button('Copy plan to draft', () => { if (!locked && candidates.some(session => session.id === copySource)) emit('coach:copy-plan', { sourceSessionId: copySource }); });
     copy.disabled = locked || !copySource;
-    select.addEventListener('change', () => { copySource = select.value; copy.disabled = locked || !copySource; });
+    select.addEventListener('change', () => { if (locked) return; copySource = candidates.some(session => session.id === select.value) ? select.value : ''; copy.disabled = locked || !copySource; });
     label.append(select);
-    reuse.append(label, copy);
+    reuse.append(groupLabel, label, copy);
     if (!context.planReady) reuse.append(element('p', 'Choose a session and wait for its plan to load before adding activities or copying a plan.', 'small'));
     target.append(reuse);
   }
@@ -278,9 +292,12 @@
   }
 
   window.addEventListener('coach:context', event => {
-    context = event.detail && event.detail.profile ? event.detail : null;
+    const next = event.detail && event.detail.profile ? event.detail : null;
+    const identity = value => value?.profile ? [value.profile.email, value.profile.role, value.profile.sessionVersion].join('|') : '';
+    if (identity(context) !== identity(next)) playerId = copySource = copyGroup = '';
+    context = next;
     if (!context) {
-      playerId = copySource = '';
+      playerId = copySource = copyGroup = '';
       ageFilter = skillFilter = 'all';
     }
     render();

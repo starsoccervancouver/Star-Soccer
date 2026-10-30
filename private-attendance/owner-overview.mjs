@@ -1,4 +1,4 @@
-const ids=v=>Array.isArray(v)?v.map(x=>typeof x==='string'?x:x.id):[];
+const ids=v=>Array.isArray(v)?v.map(x=>typeof x==='string'?x:x?.id):[];
 export function buildOwnerOverview(tables,observedAt,verifiedContacts={}){
  const index=name=>new Map(tables[name].map(r=>[r.id,r.fields])),players=index('players'),families=index('families'),bookings=index('bookings'),enrollments=index('enrollments'),registrations=index('registrations');
  const sessions=tables.sessions.map(r=>{const s=r.fields,roster=[];
@@ -17,7 +17,8 @@ export function buildOwnerOverview(tables,observedAt,verifiedContacts={}){
   }
   const used=Math.max(roster.length,s['Expected headcount (owner reported)']||0),counts={yes:roster.filter(p=>p.status==='Attending').length,no:roster.filter(p=>p.status==='Unavailable').length,confirmed:roster.filter(p=>p.status==='Confirmed by registration').length,awaiting:roster.filter(p=>['Awaiting reply','Not yet asked'].includes(p.status)).length};
   const issues=roster.flatMap(p=>p.issues.map(reason=>({player:p.name,reason})));if(used>roster.length)issues.push({player:(used-roster.length)+' owner-reported players',reason:'Names and contact details pending'});if(used>s.Capacity)issues.push({player:'Session capacity',reason:'Capacity needs review before any confirmation'});
-  return {id:r.id,label:s.Session,date:s.Date,time:s.Time,location:s.Venue,status:s['Session status'],capacity:s.Capacity,registered:roster.length,capacityUsed:used,expected:Math.max(0,used-counts.no),counts,issues,players:roster};
+  const programLinks=ids(s['Weekly program']),programId=programLinks.length===1&&typeof programLinks[0]==='string'&&/^rec[A-Za-z0-9]{14}$/.test(programLinks[0])?programLinks[0]:null;
+  return {id:r.id,label:s.Session,date:s.Date,time:s.Time,location:s.Venue,programId,status:s['Session status'],capacity:s.Capacity,registered:roster.length,capacityUsed:used,expected:Math.max(0,used-counts.no),counts,issues,players:roster};
  }).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
  return {observedAt,sessions,draftOnly:true,manualOnly:true,source:'Airtable',pendingSync:0};
 }

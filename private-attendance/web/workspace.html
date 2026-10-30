@@ -12,9 +12,11 @@
 <link rel="stylesheet" href="/workspace/assets/session.css">
 <link rel="stylesheet" href="/workspace/assets/tactics.css">
 <link rel="stylesheet" href="/workspace/assets/library.css">
+<link rel="stylesheet" href="/workspace/assets/folders.css">
 <script src="/workspace/assets/club-config.js" defer></script>
 <script src="/workspace/assets/passkeys.js" defer>
 </script>
+<script src="/workspace/assets/groups.js" defer></script>
 <script src="/workspace/assets/workspace.js" defer>
 </script>
 <script src="/workspace/assets/dictation.js" defer></script>
@@ -23,6 +25,7 @@
 <script src="/workspace/assets/tactics.js" defer></script>
 <script src="/workspace/assets/planner.js" defer></script>
 <script src="/workspace/assets/library.js" defer></script>
+<script src="/workspace/assets/folders.js" defer></script>
 </head>
 <body>
 <a class="desk-skip" href="#desk-main">Skip to coach workspace</a>
@@ -91,7 +94,7 @@
 <button data-tab="home" class="nav-active">Overview</button>
 <button data-tab="attendance">Attendance</button>
 <button data-tab="notes">Player notes &amp; goals</button>
-<button data-tab="plan">Session planner</button>
+<button data-tab="plan">Training groups</button>
 <button data-tab="tasks">Tasks &amp; follow-ups</button>
 <button data-tab="settings" class="nav-settings">Settings &amp; profile</button>
 </nav>
@@ -118,7 +121,7 @@
 <button type="button" data-settings-tab="activity" data-full hidden>Activity log</button>
 <button type="button" data-settings-tab="legacy" data-full hidden>Existing records</button>
 </nav>
-<div class="session-toolbar" id="session-toolbar">
+<div class="session-toolbar" id="session-toolbar" hidden>
 <label>Session<select id="session">
 </select>
 </label>
@@ -155,7 +158,7 @@
 <option value="home">Overview</option>
 <option value="attendance">Attendance</option>
 <option value="notes">Player notes &amp; goals</option>
-<option value="plan">Session planner</option>
+<option value="plan">Training groups</option>
 <option value="tasks">Tasks &amp; follow-ups</option>
 </select></label>
 <label>Layout spacing<select id="preference-density">
@@ -180,8 +183,8 @@
 <section id="panel-home" class="tab-panel">
 <div class="desk-stats" id="home-stats">
 </div>
-<div class="two-columns home-command-row">
-<section class="card session-spotlight">
+<div class="home-command-row">
+<section class="card session-spotlight" hidden>
 <p class="eyebrow">Selected session</p>
 <h2 id="next-title">
 </h2>
@@ -213,8 +216,22 @@
 </div>
 </section>
 </section>
-<section id="panel-attendance" class="tab-panel" hidden>
-<section class="attendance-browser" aria-label="Choose attendance session">
+<section id="panel-plan" class="tab-panel" hidden>
+<header id="planner-focus-bar" class="planner-focus-bar" hidden>
+<nav class="planner-focus-exits" aria-label="Leave session workspace"><button id="planner-back" class="secondary" type="button"><span aria-hidden="true">←</span> Back to groups</button><button id="planner-home" class="secondary" type="button">Home</button></nav>
+<div class="planner-focus-heading"><div><p class="eyebrow">Training group</p><h1 id="planner-focus-title" tabindex="-1"></h1><p id="planner-focus-detail" class="small"></p></div><div class="planner-focus-controls"><button id="planner-focus-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-date-options">Change date</button><button id="planner-save" type="submit" form="plan-form" disabled>Save plan</button></div></div>
+</header>
+<section id="planner-session-browser" class="planner-session-browser" aria-label="Choose a planning session">
+<div class="planner-day-heading"><div><p class="eyebrow">Start with a day</p><h2 id="planner-chooser-title" tabindex="-1">Choose a training group</h2></div><button hidden id="planner-other-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-date-options">Choose another date</button></div>
+<p class="planner-chooser-intro">Choose a recurring group first. Its dates, attendance, plans and individual player notes stay together.</p>
+<div id="planner-days" class="planner-days" role="group" aria-label="Training days"></div>
+<div class="planner-session-summary" hidden><div><span id="planner-session-mode" class="planner-session-mode"></span><h2 id="planner-session-title">Choose a training day</h2><p id="planner-session-detail" class="small"></p></div><button id="planner-open-selected" type="button">Plan this session <span aria-hidden="true">→</span></button></div>
+</section>
+<div id="planner-date-options" class="planner-date-options" hidden><label>Session date<select id="planner-date"></select></label></div>
+<div id="planner-workspace" class="planner-workspace" hidden>
+<nav id="session-workspace-tabs" class="session-workspace-tabs" aria-label="This session"><button type="button" data-session-view="attendance">Attendance</button><button type="button" data-session-view="plan">Session plan</button><button type="button" data-session-view="notes">Player &amp; group notes</button></nav>
+<section id="panel-attendance" class="session-workspace-pane" hidden>
+<section hidden class="attendance-browser" aria-label="Choose attendance session">
 <div class="attendance-view-controls" role="group" aria-label="Attendance views">
 <button id="attendance-upcoming" type="button" aria-pressed="true">Upcoming week</button>
 <button id="attendance-past" type="button" aria-pressed="false">Past attendance</button>
@@ -286,7 +303,9 @@
 </div>
 </section>
 </section>
-<section id="panel-notes" class="tab-panel" hidden>
+<section id="panel-notes" class="session-workspace-pane" hidden>
+<div id="player-note-folders"></div>
+<p id="note-folder-help" class="small" role="status"></p>
 <details class="coaching-tools-disclosure" id="player-history-panel"><summary>Player history &amp; development</summary><section id="player-development" aria-label="Player development history"></section></details>
 <div class="two-columns note-columns">
 <section class="card">
@@ -295,7 +314,7 @@
 <p class="privacy-message">Private to you and full-access admins. Session plans are shared separately.</p>
 <p class="dictation-help small" id="note-dictation-help"></p>
 <form id="note-form">
-<label>Player<select id="note-player">
+<label hidden>Player<select id="note-player">
 <option value="">Session observation</option>
 </select>
 </label>
@@ -342,19 +361,8 @@
 </section>
 </div>
 </section>
-<section id="panel-plan" class="tab-panel" hidden>
-<header id="planner-focus-bar" class="planner-focus-bar" hidden>
-<nav class="planner-focus-exits" aria-label="Leave session workspace"><button id="planner-back" class="secondary" type="button"><span aria-hidden="true">←</span> Back to sessions</button><button id="planner-home" class="secondary" type="button">Home</button></nav>
-<div class="planner-focus-heading"><div><p class="eyebrow">Session workspace</p><h1 id="planner-focus-title" tabindex="-1"></h1><p id="planner-focus-detail" class="small"></p></div><div class="planner-focus-controls"><button id="planner-focus-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-date-options">Change date</button><button id="planner-save" type="submit" form="plan-form" disabled>Save plan</button></div></div>
-</header>
-<section id="planner-session-browser" class="planner-session-browser" aria-label="Choose a planning session">
-<div class="planner-day-heading"><div><p class="eyebrow">Start with a day</p><h2 id="planner-chooser-title" tabindex="-1">Choose your session</h2></div><button id="planner-other-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-date-options">Choose another date</button></div>
-<p class="planner-chooser-intro">Choose a training day to open its next session. Your plan, group notes and drills stay together.</p>
-<div id="planner-days" class="planner-days" role="group" aria-label="Training days"></div>
-<div class="planner-session-summary"><div><span id="planner-session-mode" class="planner-session-mode"></span><h2 id="planner-session-title">Choose a training day</h2><p id="planner-session-detail" class="small"></p></div><button id="planner-open-selected" type="button">Plan this session <span aria-hidden="true">→</span></button></div>
-</section>
-<div id="planner-date-options" class="planner-date-options" hidden><label>Choose another session<select id="planner-date"></select></label></div>
-<div id="planner-workspace" class="planner-workspace" hidden>
+
+<div id="session-plan-section">
 <div class="planner-workspace-actions" role="group" aria-label="Session planning tools">
 <button id="planner-open-notes" class="secondary planner-folder-button" type="button" aria-controls="planner-drawer" aria-expanded="false"><span class="planner-tool-icon" aria-hidden="true">▤</span><span>Group &amp; player notes</span></button>
 <button id="planner-open-tools" class="secondary" type="button" aria-controls="planner-drawer" aria-expanded="false"><span class="planner-tool-icon" aria-hidden="true">↗</span><span>Drills &amp; tactics</span></button>
@@ -392,6 +400,7 @@
 </div>
 </form>
 </section>
+</div>
 </div>
 </section>
 <section id="panel-tasks" class="tab-panel" hidden>
@@ -503,9 +512,10 @@
 </section>
 </section>
 <section id="planner-tools-pane" hidden>
+<section id="coach-drill-library" aria-label="Your reusable drills"></section>
 <details id="tactics-disclosure" class="coaching-tools-disclosure"><summary>Tactics board &amp; animated drills</summary><section id="tactics-board-tools" aria-label="Session tactics and drill setups"></section></details>
 <details class="coaching-tools-disclosure" id="practice-ideas"><summary>Practice ideas &amp; reuse</summary><section id="practice-toolbox" aria-label="Practice toolbox"></section></details>
-<section id="coach-drill-library" aria-label="Your reusable drills"></section>
+
 </section>
 <section id="planner-run-pane" hidden><details id="session-field-disclosure" class="coaching-tools-disclosure"><summary>Run this session</summary><section id="session-field-tools" aria-label="Saved session run sheet"></section></details></section>
 </div>

@@ -9,7 +9,7 @@
   const key = field => [document.getElementById('session')?.value, field.closest('.tab-panel')?.id,
     field.id === 'note-body' ? document.getElementById('note-player')?.value : field.id === 'planner-note-body' ? document.getElementById('planner-notes-player')?.value : '', field.id].join('|');
   const editable = field => !app()?.hidden && !field.disabled && !field.readOnly &&
-    !field.closest('.tab-panel')?.hidden && !field.closest('#planner-drawer')?.hidden && !field.closest('#planner-notes-pane')?.hidden && document.getElementById('desk-main')?.getAttribute('aria-busy') !== 'true';
+    !field.closest('[hidden]') && !field.closest('#planner-drawer')?.hidden && !field.closest('#planner-notes-pane')?.hidden && document.getElementById('desk-main')?.getAttribute('aria-busy') !== 'true';
 
   function status(control, text) {
     control.status.textContent = text;

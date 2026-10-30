@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
+const { openSession } = require('./coach-fixture-navigation.cjs');
 const origin = 'https://attendance.starsoccer.ca', now = '2026-10-29T18:00:00Z';
 const key = 'coach-desk-display-v1', rid = n => 'rec' + String(n).padStart(14, '0');
 const sessions = [1, 2].map(n => ({ id: rid(n), date: n === 1 ? '2026-10-29' : '2026-10-30', time: '4:00–5:00 PM', location: 'Fictional practice field', status: 'Scheduled', capacity: 20, capacityUsed: 1, expected: 1, counts: { yes: 0, no: 0, awaiting: 1, confirmed: 0 }, issues: [], players: [{ playerId: rid(100 + n), attendanceId: rid(200 + n), name: 'Fictional player ' + n, kind: 'dropin', status: 'Not yet asked', actualAttendance: 'Not marked', issues: [] }] }));
@@ -67,7 +68,7 @@ require('./coach-fixture-fonts.cjs')(assets);
       assert.equal(await section(f, 'legacy').isVisible(), role !== 'coach');
       if (role === 'owner') {
         await section(f, 'team').click(); await f.page.waitForFunction(() => document.getElementById('user-list').textContent.includes('Fictional owner'));
-        assert.equal(await f.page.locator('#panel-team').isVisible(), true); assert.equal(await f.page.locator('#session-toolbar').isVisible(), true); assert.equal(count(f, '/users'), 1);
+        assert.equal(await f.page.locator('#panel-team').isVisible(), true); assert.equal(await f.page.locator('#session-toolbar').isVisible(), false); assert.equal(count(f, '/users'), 1);
       } else {
         await section(f, 'team').evaluate(button => button.dispatchEvent(new MouseEvent('click', { bubbles: true })));
         assert.equal(await f.page.locator('#panel-team').isVisible(), false); assert.equal(count(f, '/users'), 0, 'Hidden owner navigation cannot grant access');
@@ -107,11 +108,11 @@ require('./coach-fixture-fonts.cjs')(assets);
     }
     const blocked = await fixture({ deniedStorage: true }); await clickSettings(blocked); await blocked.page.locator('#preference-density').selectOption('compact'); assert.deepEqual(blocked.errors, []); await blocked.context.close(); checks++;
 
-    const d = await fixture(); await d.page.locator('#navigation [data-tab="plan"]').click(); await d.page.locator('#planner-open-selected').click(); await d.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
+    const d = await fixture(); await openSession(d.page, sessions, rid(1), 'plan'); await d.page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
     await d.page.locator('#plan-focus').fill('Fictional unsaved plan'); await d.answer(false); await clickSettings(d);
     assert.equal(await d.page.locator('#panel-plan').isVisible(), true); assert.equal(await d.page.locator('#plan-focus').inputValue(), 'Fictional unsaved plan');
     await d.answer(true); await clickSettings(d); assert.equal(await d.page.locator('#panel-settings').isVisible(), true);
-    await d.page.locator('#navigation [data-tab="plan"]').click(); await d.page.locator('#planner-open-selected').click(); await d.page.locator('#planner-open-tools').click(); await d.page.waitForFunction(() => !document.getElementById('tactics-title').disabled);
+    await openSession(d.page, sessions, rid(1), 'plan'); await d.page.locator('#planner-open-tools').click(); await d.page.waitForFunction(() => !document.getElementById('tactics-title').disabled);
     await d.page.locator('#tactics-title').fill('Fictional unsaved drill'); await d.page.locator('#planner-close-drawer').click(); await d.answer(false); await clickSettings(d);
     assert.equal(await d.page.locator('#panel-plan').isVisible(), true); assert.equal(await d.page.locator('#tactics-title').inputValue(), 'Fictional unsaved drill');
     await d.answer(true); await clickSettings(d); assert.equal(await d.page.locator('#panel-settings').isVisible(), true); assert.deepEqual(d.errors, []); checks++;

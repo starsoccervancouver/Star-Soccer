@@ -2,7 +2,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=require('playwright');
 const origin='https://attendance.starsoccer.ca',now='2026-10-29T18:00:00Z',rid=n=>'rec'+String(n).padStart(14,'0');
 const profile={email:'fixture-tactics@example.test',name:'Fictional Tactics Coach',role:'owner'};
-const sessions=[1,2].map(n=>({id:rid(n),date:n===1?'2026-10-29':'2026-10-30',time:'4:00–5:00 PM',location:'Fictional tactics field',status:'Planned',capacity:20,capacityUsed:1,expected:1,counts:{yes:0,no:0,confirmed:0,awaiting:1},issues:[],players:[{playerId:rid(100+n),attendanceId:rid(200+n),name:'Fictional Tactics Player '+n,kind:'dropin',status:'Not yet asked',actualAttendance:'Not marked',issues:[]}]}));
+const {openSession}=require('./coach-fixture-navigation.cjs');
+const sessions=[1,2].map(n=>({id:rid(n),programId:rid(900),date:n===1?'2026-10-29':'2026-11-05',time:'4:00–5:00 PM',location:'Fictional tactics field',status:'Planned',capacity:20,capacityUsed:1,expected:1,counts:{yes:0,no:0,confirmed:0,awaiting:1},issues:[],players:[{playerId:rid(100+n),attendanceId:rid(200+n),name:'Fictional Tactics Player '+n,kind:'dropin',status:'Not yet asked',actualAttendance:'Not marked',issues:[]}]}));
 const board=()=>({schemaVersion:1,pitch:'full',items:[{id:'home_1',kind:'home',label:'1'}],frames:[{id:'phase_1',title:'Start',duration:3,positions:[{id:'home_1',x:30,y:50}]}]});
 const saved=(sessionId=rid(1))=>({id:'diagram_'+'a'.repeat(27),session_id:sessionId,title:'Fictional saved setup',content:board(),created_by:profile.email,updated_by:profile.email,created_at:now,updated_at:now,version:1});
 const assets={};
@@ -45,7 +46,7 @@ require('./coach-fixture-fonts.cjs')(assets);
    return {context,page,state,requests,errors,pending,answer:value=>page.evaluate(value=>fixtureConfirmAnswers.push(value),value),release:(path,mode='success')=>{const index=pending.findIndex(item=>item.path.endsWith(path));assert(index>=0,'Expected pending '+path);pending.splice(index,1)[0].resolve(mode);}};
   }
 
-  const enterPlan=async f=>{await f.page.locator('#navigation button[data-tab="plan"]').click();await f.page.locator('#planner-open-selected').click();await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);};
+  const enterPlan=async f=>{await openSession(f.page,sessions,rid(1),'plan');await f.page.waitForFunction(()=>!document.getElementById('plan-focus').disabled);};
   const openBoard=async f=>{await f.page.locator('#planner-open-tools').click();await f.page.waitForFunction(()=>!document.getElementById('tactics-title').disabled);};
   const chooseDate=async(f,id)=>{if(!await f.page.locator('#planner-date').isVisible())await f.page.locator('#planner-focus-date').click();await f.page.locator('#planner-date').selectOption(id);};
   const count=(f,suffix)=>f.requests.filter(r=>r.path.endsWith(suffix)).length;

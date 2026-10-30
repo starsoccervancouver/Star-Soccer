@@ -2,13 +2,14 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
+const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixture-navigation.cjs');
 
 (async () => {
   const origin = 'https://attendance.starsoccer.ca', now = '2026-10-29T19:00:00Z';
   const rid = n => 'rec' + String(n).padStart(14, '0');
   const profile = { email: 'coach@example.test', name: 'Alex Morgan · Preview coach', role: 'coach' };
   const player = (id, name, actualAttendance = 'Not marked') => ({ playerId: rid(id), attendanceId: rid(id + 100), name, kind: 'dropin', status: 'Attending', actualAttendance, issues: [] });
-  const session = (id, date, players) => ({ id: rid(id), date, time: '4:00–5:00 PM', location: 'Preview training field', status: 'Scheduled', capacity: 20, capacityUsed: players.length, expected: players.length, counts: { yes: players.length, no: 0, awaiting: 0, confirmed: 0 }, players, issues: [] });
+  const session = (id, date, players) => ({ id: rid(id), programId: rid(900), date, time: '4:00–5:00 PM', location: 'Preview training field', status: 'Scheduled', capacity: 20, capacityUsed: players.length, expected: players.length, counts: { yes: players.length, no: 0, awaiting: 0, confirmed: 0 }, players, issues: [] });
   const sessions = [session(1, '2026-10-29', [player(101, 'Preview Maya'), player(102, 'Preview Sam'), player(103, 'Preview Noah')]), session(2, '2026-10-28', [player(101, 'Preview Maya', 'Present'), player(102, 'Preview Sam')]), session(3, '2026-10-30', [player(101, 'Preview Maya'), player(102, 'Preview Sam')]), session(4, '2026-11-01', [player(103, 'Preview Noah')]), session(5, '2026-09-02', [player(102, 'Preview Sam')])];
   const notes = [
     { id: 'note1', session_id: rid(1), player_id: rid(101), category: 'Goal', body: 'Preview observation: try checking the space before receiving.', review_date: '2026-10-28', author_email: profile.email, updated_at: now, version: 1 },
@@ -51,24 +52,25 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#home-stats .desk-stat').first().innerText(), 'Sessions · next 7 days\n3'); checks++;
     await page.getByRole('button', { name: /Finish attendance/ }).click();
     assert.equal(await page.locator('#session').inputValue(), rid(2));
-    assert.equal(await page.locator('#attendance-past').getAttribute('aria-pressed'), 'true');
     assert.deepEqual(await page.locator('#roster .attendance-status').allTextContents(), ['Present', 'Not marked']); checks++;
-    await page.getByRole('button', { name: 'Overview', exact: true }).click();
+    await leaveGroup(page);
     await page.getByRole('button', { name: /Review coaching observations/ }).click();
     assert.equal(await page.locator('#note-review-filter').isChecked(), true);
     assert.equal(await page.locator('#note-list .note-card').count(), 1);
     await page.locator('#note-category-filter').selectOption('Confidence');
     assert.equal(await page.locator('#note-list .note-card').count(), 0);
     await page.locator('#note-review-filter').uncheck();
+    await openFolder(page, rid(102));
+    await page.locator('#note-category-filter').selectOption('Confidence');
     assert.equal(await page.locator('#note-list .note-card').count(), 1); checks++;
-    await page.getByRole('button', { name: 'Tasks & follow-ups', exact: true }).click();
+    await leaveGroup(page); await page.getByRole('button', { name: 'Tasks & follow-ups', exact: true }).click();
     assert.equal(await page.locator('#task-list .task-row').count(), 2);
     assert.equal(await page.locator('#task-list .task-overdue').count(), 1);
     await page.getByRole('button', { name: 'Completed', exact: true }).click();
     assert.equal(await page.locator('#task-list .task-row').count(), 1);
     assert.match(await page.locator('#task-list').innerText(), /Reopen/); checks++;
     await page.getByRole('button', { name: 'Overview', exact: true }).click();
-    await page.locator('#coaching-hub').getByRole('button', { name: /^Plan session for Thu/ }).click();
+    await page.locator('#coaching-hub').getByRole('button', { name: /^Open group: Thursday/ }).click(); await openView(page, 'plan');
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
     await page.locator('#plan-focus').fill('Unsaved fixture plan');
     page.once('dialog', d => d.dismiss());
@@ -86,7 +88,7 @@ const { chromium } = require('playwright');
       for (const tab of ['home','notes','tasks','plan']) {
         if (await page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) await page.locator('#planner-home').click();
         await page.locator('#navigation [data-tab="'+tab+'"]').click();
-        if (tab === 'plan') { await page.locator('#planner-open-selected').click(); await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled); }
+        if (tab === 'plan' || tab === 'notes') await openSession(page, sessions, rid(1), tab === 'notes' ? 'notes' : 'plan');
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'No overflow: ' + tab + ' at ' + width);
       }
     } checks++;

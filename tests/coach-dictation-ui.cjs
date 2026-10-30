@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
 const addAssets = require('./coach-fixture-fonts.cjs');
+const { openSession, openView, leaveGroup } = require('./coach-fixture-navigation.cjs');
 
 (async () => {
   const origin = 'https://attendance.starsoccer.ca';
@@ -82,7 +83,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
       page.setDefaultTimeout(6000);
       await page.goto(origin + '/workspace');
       await page.locator('#app').waitFor({ state: 'visible' });
-      await page.locator('#navigation button[data-tab="notes"]').click();
+      await openSession(page, sessions, rid(1), 'notes');
       await page.locator('#dictation-note-body').waitFor({ state: 'visible' });
       return { context, page, requests };
     }
@@ -161,8 +162,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     checks++;
 
     // Planner voice controls are field-specific and one microphone session may be active at a time.
-    await page.locator('#navigation button[data-tab="plan"]').click();
-    await page.locator('#planner-open-selected').click();
+    await openView(page, 'plan');
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
     const focusButton = page.locator('#dictation-plan-focus'), warmupButton = page.locator('#dictation-plan-warmup');
     await focusButton.click();
@@ -178,9 +178,8 @@ const addAssets = require('./coach-fixture-fonts.cjs');
     checks++;
 
     await page.evaluate(() => fixtureSpeech.capture(7));
-    await page.locator('#planner-focus-date').click();
     page.once('dialog', dialog => dialog.accept());
-    await page.locator('#planner-date').selectOption(rid(2));
+    await openSession(page, sessions, rid(2), 'plan');
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled && document.querySelector('#plan-focus').value === 'Other session focus');
     await page.evaluate(() => fixtureSpeech.emitLate(7, [{ text: 'Previous session speech.', final: true }]));
     assert.equal(await page.locator('#plan-focus').inputValue(), 'Other session focus');
@@ -189,8 +188,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
 
     await focusButton.click();
     await page.evaluate(() => fixtureSpeech.capture(8));
-    await page.locator('#planner-home').click();
-    await page.locator('#navigation button[data-tab="notes"]').click();
+    await openView(page, 'notes');
     await page.evaluate(() => fixtureSpeech.emitLate(8, [{ text: 'Speech after tab switch.', final: true }]));
     assert.equal(await page.locator('#plan-focus').inputValue(), 'Other session focus');
     assert.equal(await focusButton.getAttribute('aria-pressed'), 'false');
@@ -198,7 +196,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
 
     // Return to the original fictional date for one intentional mocked note save.
     page.once('dialog', dialog => dialog.accept());
-    await page.locator('#session').selectOption(rid(1));
+    await openSession(page, sessions, rid(1), 'notes');
     await note.fill('Review this dictated note before saving.');
     await noteButton.click();
     await page.evaluate(() => fixtureSpeech.capture(9));
@@ -216,7 +214,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
 
     await noteButton.click();
     await page.evaluate(() => fixtureSpeech.capture(10));
-    await page.getByRole('button', { name: 'Sign out', exact: true }).click();
+    await leaveGroup(page); await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await page.locator('#login').waitFor({ state: 'visible' });
     await page.evaluate(() => fixtureSpeech.emitLate(10, [{ text: 'Private speech after logout.', final: true }]));
     assert.equal(await note.inputValue(), '');

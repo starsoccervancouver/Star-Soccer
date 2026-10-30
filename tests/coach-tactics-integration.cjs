@@ -86,7 +86,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   await f.page.locator('#tactics-save').click();await saveRequested;
   await f.page.waitForFunction(()=>document.getElementById('session').disabled);
   for(const id of ['session','refresh','logout','plan-focus','tactics-title','tactics-save'])assert.equal(await f.page.locator('#'+id).isDisabled(),true,id+' locks during save');
-  for(const tab of ['home','plan','notes','tasks'])assert.equal(await f.page.locator('#navigation button[data-tab="'+tab+'"]').isDisabled(),true);
+  for(const tab of ['home','profiles','plan','library','settings'])assert.equal(await f.page.locator('#navigation button[data-tab="'+tab+'"]').isDisabled(),true);
   const payload=f.requests.find(r=>r.path.endsWith('/diagrams/save'));
   assert.equal(payload.headers['x-csrf-token'],'fictional-tactics-csrf');assert.equal(payload.method,'POST');
   assert.equal(payload.payload.sessionId,rid(1));assert.equal(payload.payload.id,saved().id);assert.equal(payload.payload.expectedVersion,1);assert.equal(payload.payload.title,'Unsaved fictional tactics');assert.deepEqual(payload.payload.content,board());

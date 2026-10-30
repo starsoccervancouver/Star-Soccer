@@ -147,7 +147,14 @@ require('./coach-fixture-fonts.cjs')(assets);
     await d.page.locator('#preference-text-size').selectOption('large');
     for (const width of [1365, 390, 320]) {
       await d.page.setViewportSize({ width, height: 950 });
-      if(width<900){assert(await d.page.locator('#navigation [data-tab="settings"]').isHidden());await d.page.locator('.desk-nav-more').click();assert(await d.page.locator('#navigation [data-tab="settings"]').isVisible());await d.page.locator('#navigation [data-tab="settings"]').click();assert.equal(await d.page.locator('.desk-nav-more').getAttribute('aria-expanded'),'false');}
+      if (width < 900) {
+        const settings = d.page.locator('#navigation [data-tab="settings"]'), more = d.page.locator('.desk-nav-more');
+        // Resizing can finish before the browser dispatches the matchMedia change event.
+        await settings.waitFor({ state: 'hidden' }); await more.waitFor({ state: 'visible' });
+        assert(await settings.isHidden());
+        await more.click(); assert(await settings.isVisible());
+        await settings.click(); assert.equal(await more.getAttribute('aria-expanded'), 'false');
+      }
       assert(await d.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No horizontal overflow at ' + width);
       for (const id of ['open-profile', 'preference-start', 'preference-text-size', 'preference-session-view', 'reset-preferences', 'copy-workspace-link']) {
         const box = await d.page.locator('#' + id).boundingBox(); assert(box && box.height >= 43, id + ' retains a touch target at ' + width);

@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
-const { openSession } = require('./coach-fixture-navigation.cjs');
+const { openSession, openDestination } = require('./coach-fixture-navigation.cjs');
 const origin = 'https://attendance.starsoccer.ca', now = '2026-10-29T18:00:00Z';
 const key = 'coach-desk-display-v1', rid = n => 'rec' + String(n).padStart(14, '0');
 const sessions = [1, 2].map(n => ({ id: rid(n), date: n === 1 ? '2026-10-29' : '2026-10-30', time: '4:00–5:00 PM', location: 'Fictional practice field', status: 'Scheduled', capacity: 20, capacityUsed: 1, expected: 1, counts: { yes: 0, no: 0, awaiting: 1, confirmed: 0 }, issues: [], players: [{ playerId: rid(100 + n), attendanceId: rid(200 + n), name: 'Fictional player ' + n, kind: 'dropin', status: 'Not yet asked', actualAttendance: 'Not marked', issues: [] }] }));
@@ -48,14 +48,14 @@ require('./coach-fixture-fonts.cjs')(assets);
       await page.goto(origin + '/workspace' + hash); await page.locator('#app').waitFor({ state: 'visible' });
       return { page, context, state, requests, errors, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
     }
-    const clickSettings = async f => { if (await f.page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) { await f.page.locator('#planner-home').click(); if (await f.page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) return; } await f.page.locator('#navigation [data-tab="settings"]').click(); };
+    const clickSettings = async f => { if (await f.page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) { await f.page.locator('#planner-home').click(); if (await f.page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) return; } await openDestination(f.page, 'settings'); };
     const section = (f, name) => f.page.locator('#settings-navigation [data-settings-tab="' + name + '"]');
     const count = (f, suffix) => f.requests.filter(r => r.path.endsWith(suffix)).length;
 
     for (const role of ['owner', 'admin', 'coach']) {
       const f = await fixture({ role }); await clickSettings(f);
       assert.equal(await f.page.locator('#panel-settings').isVisible(), true);
-      assert.deepEqual(await f.page.locator('#navigation button').evaluateAll(buttons=>buttons.map(button=>button.dataset.tab)), ['home','profiles','plan','library','settings'], 'Main navigation contains only active coaching sections');
+      assert.deepEqual(await f.page.locator('#navigation button[data-tab]').evaluateAll(buttons=>buttons.map(button=>button.dataset.tab)), ['home','plan','profiles','library','settings'], 'Main navigation contains only active coaching sections');
       assert.equal(await f.page.locator('#navigation [data-tab="team"],#navigation [data-tab="activity"],#navigation [data-tab="legacy"]').count(), 0);
       assert.equal(await f.page.locator('#profile-name').innerText(), 'Fictional ' + role);
       assert.equal(await f.page.locator('#profile-email').innerText(), 'fictional-' + role + '@example.test');
@@ -147,6 +147,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     await d.page.locator('#preference-text-size').selectOption('large');
     for (const width of [1365, 390, 320]) {
       await d.page.setViewportSize({ width, height: 950 });
+      if(width<900){assert(await d.page.locator('#navigation [data-tab="settings"]').isHidden());await d.page.locator('.desk-nav-more').click();assert(await d.page.locator('#navigation [data-tab="settings"]').isVisible());await d.page.locator('#navigation [data-tab="settings"]').click();assert.equal(await d.page.locator('.desk-nav-more').getAttribute('aria-expanded'),'false');}
       assert(await d.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No horizontal overflow at ' + width);
       for (const id of ['open-profile', 'preference-start', 'preference-text-size', 'preference-session-view', 'reset-preferences', 'copy-workspace-link']) {
         const box = await d.page.locator('#' + id).boundingBox(); assert(box && box.height >= 43, id + ' retains a touch target at ' + width);

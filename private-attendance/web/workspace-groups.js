@@ -50,12 +50,27 @@
     if (group.kind === 'camp') return 'Winter Camp — Week ' + group.week;
     return [group.day, group.time || 'Time to confirm', group.location || 'Venue to confirm', group.verified ? '' : 'Other sessions'].filter(Boolean).join(' · ');
   }
-  const compareSessions = (a, b) => text(a.date).localeCompare(text(b.date)) || timeKey(a.time).localeCompare(timeKey(b.time)) || text(a.id).localeCompare(text(b.id));
+  function minute(value) {
+    const parts = text(value).toLowerCase().replace(/noon/g, '12:00 pm').split(/[–—-]/), match = parts[0].trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+    if (!match) return 1440;
+    const suffix = match[3] || parts[1]?.match(/(am|pm)\s*$/)?.[1], hour = Number(match[1]), minutes = Number(match[2] || 0);
+    if (minutes > 59 || hour > (suffix ? 12 : 23) || suffix && hour < 1) return 1440;
+    return (suffix ? hour % 12 + (suffix === 'pm' ? 12 : 0) : hour) * 60 + minutes;
+  }
+  const compareSessions = (a, b) => text(a.date).localeCompare(text(b.date)) || minute(a.time) - minute(b.time) || text(a.id).localeCompare(text(b.id));
+  function upcoming(session, now, local) {
+    if (weekday(session) === null || ['cancelled', 'completed'].includes(text(session.status).toLowerCase())) return false;
+    if (Number.isFinite(Date.parse(session.startAt))) {
+      return Date.parse(session.startAt) >= now.getTime() || Date.parse(session.endAt) > now.getTime();
+    }
+    const end = text(session.time).split(/[–—-]/)[1];
+    return session.date > local.date || session.date === local.date && (minute(session.time) >= local.minute || end && minute(end) < 1440 && minute(end) > local.minute);
+  }
   function members(sessions, groupKey) {
     if (typeof groupKey !== 'string' || !Array.isArray(sessions)) return [];
     return sessions.filter(session => key(session) === groupKey).slice().sort(compareSessions);
   }
-  function groups(sessions) {
+  function groups(sessions, { now = new Date(), timeZone = globalThis.CoachClub?.timeZone || 'America/Vancouver' } = {}) {
     const buckets = new Map();
     for (const session of Array.isArray(sessions) ? sessions : []) {
       const item = identity(session); if (!item) continue;
@@ -72,7 +87,15 @@
     }
     // Distinct programs at the same time and venue stay separate and selectable.
     for (const sameLabel of labels.values()) if (sameLabel.length > 1) sameLabel.forEach((group, index) => { group.label += ' · Group ' + (index + 1); });
-    return result;
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).formatToParts(now).map(part => [part.type, part.value]));
+    const local = { date: parts.year + '-' + parts.month + '-' + parts.day, minute: Number(parts.hour) * 60 + Number(parts.minute) };
+    const next = new Map(result.map(group => [group.key, group.sessions.find(session => upcoming(session, now, local))]));
+    // Keep history reachable after upcoming groups; stable keys break equal-slot ties.
+    return result.sort((a, b) => {
+      const left = next.get(a.key), right = next.get(b.key);
+      if (!!left !== !!right) return left ? -1 : 1;
+      return (left && right ? text(left.date).localeCompare(text(right.date)) || minute(left.time) - minute(right.time) : 0) || a.key.localeCompare(b.key);
+    });
   }
   return Object.freeze({ key, groups, sameGroup, members, label });
 });

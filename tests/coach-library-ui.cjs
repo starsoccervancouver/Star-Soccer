@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
-const { openSession } = require('./coach-fixture-navigation.cjs');
+const { openSession, openDestination } = require('./coach-fixture-navigation.cjs');
 const origin = 'https://attendance.starsoccer.ca', now = '2026-10-29T18:00:00Z';
 const rid = n => 'rec' + String(n).padStart(14, '0');
 const owner = { email: 'library-owner@example.test', name: 'Fictional Library Owner', role: 'owner', sessionVersion: 1 };
@@ -65,7 +65,7 @@ require('./coach-fixture-fonts.cjs')(assets);
       });
       const page = await context.newPage(); page.setDefaultTimeout(6500); page.on('pageerror', error => errors.push(error.stack || error.message));
       await page.goto(origin + '/workspace'); await page.locator('#app').waitFor({ state: 'visible' });
-      if (standalone) await page.locator('#navigation [data-tab="library"]').click();
+      if (standalone) await openDestination(page, 'library');
       else { await openSession(page, sessions, rid(1), 'plan'); await page.locator('#planner-open-tools').click(); }
       return { page, context, state, requests, errors, pending, pendingLists, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
     }
@@ -81,7 +81,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert.equal(count(standalone,'/session'),0,'Standalone library needs no session');
     assert.equal(await standalone.page.locator('#library-list [data-insert=true]:visible').count(),0);
     await standalone.page.locator('#library-new').click(); await fill(standalone,'Standalone new activity');
-    await standalone.page.locator('#navigation [data-tab="profiles"]').click();
+    await openDestination(standalone.page, 'profiles');
     assert.equal(await standalone.page.locator('#panel-library').isVisible(),true,'Unsaved drill stays after declining navigation');
     await standalone.page.locator('#library-save').click(); await standalone.page.getByText('Reusable drill saved. Session plans stay unchanged until you add it.',{exact:true}).waitFor();
     assert.equal(count(standalone,'/drills/save'),1); assert.equal(count(standalone,'/session'),0);

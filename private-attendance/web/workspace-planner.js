@@ -99,7 +99,8 @@
     $('planner-focus-bar').hidden = !active;
     $('planner-session-browser').hidden = active;
     $('planner-workspace').hidden = !active;
-    $('planner-focus-title').textContent = active ? window.CoachGroups.label(selectedGroup() || selected) : '';
+    const group = selectedGroup();
+    $('planner-focus-title').textContent = active ? group?.kind === 'camp' ? group.label : (group?.day || 'Training') + ' group' + (group?.label.match(/ · Group \d+$/)?.[0] || '') : '';
     $('planner-focus-detail').textContent = active ? [readOnly() ? 'Cancelled · Read only' : '', label(selected.date), selected.time, selected.location].filter(Boolean).join(' · ') : '';
     if (!active) closeDatePicker();
     for (const id of ['planner-back', 'planner-home', 'planner-focus-date']) $(id).disabled = locked();
@@ -141,7 +142,7 @@
       button.setAttribute('aria-pressed', String(item.key === group?.key));
       button.disabled = locked() || !next;
       button.append(make('strong', item.label), make('span', item.kind === 'camp' ? 'Choose a day and morning or afternoon session' : item.verified ? 'Attendance, plans and player notes' : 'Separate dates · no shared group history'));
-      button.append(make('span', next ? inProgress(next) ? 'In progress' : nextSession(item.sessions) ? 'Open upcoming session' : 'Open recorded dates' : 'No available dates', 'planner-day-time'));
+      button.append(make('span', next ? inProgress(next) ? 'In progress · ' + label(next.date) : nextSession(item.sessions) ? 'Next · ' + label(next.date) : 'Recorded dates · ' + label(next.date) : 'No available dates', 'planner-day-time'));
       button.addEventListener('click', () => { if (next) requestSession(next.id, item.kind === 'camp'); });
       return button;
     });

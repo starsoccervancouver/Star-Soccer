@@ -8,11 +8,13 @@
     if (className) element.className = className;
     return element;
   };
-  const stages = [
+  const legacyStages = [
     { key: 'warmup', title: 'Warm-up', minutes: 10 },
     { key: 'technical', title: 'Technical activity', minutes: 20 },
     { key: 'game', title: 'Game / application', minutes: 20 },
   ];
+  let stages = legacyStages;
+  const stageLabels = { warmup: 'Warm-up', technical: 'Technical', game: 'Game / application', other: 'Break / other' };
   const defaults = () => stages.map(stage => stage.minutes);
   let context = null, identity = '', stageIndex = 0, durations = defaults();
   let remaining = durations[0] * 60000, running = false, startedAt = 0, timer = null;
@@ -32,6 +34,8 @@
   const clubName = () => window.CoachClub?.name || 'Star Soccer';
   const active = () => !!context?.profile && !!context.session && context.selected === context.session.id && context.tab === 'plan' && context.planReady && !context.busy && context.session.status !== 'Cancelled';
   const content = () => context?.plan?.content || {};
+  const hasActivities = () => Array.isArray(content().activities) && content().activities.length > 0;
+  const savedStages = () => hasActivities() ? content().activities.map((block, index) => ({ key: 'activity-' + index, title: block.title, minutes: block.duration, instructions: block.instructions, equipment: block.equipment, stage: block.stage })) : legacyStages;
   function recordedMinutes() {
     const session = context?.session;
     if (!session) return null;
@@ -154,8 +158,9 @@
     $('field-timer-status').textContent = timerMessage;
     $('field-timer-minutes').disabled = running;
     $('field-stage-label').textContent = stages[stageIndex].title;
-    $('field-stage-content').textContent = String(content()[stages[stageIndex].key] || '').trim() || 'No activity has been saved for this stage yet.';
-    $('field-timer-total').textContent = 'Adjust each stage for this visit. Timer choices do not change the saved plan.';
+    const stage = stages[stageIndex];
+    $('field-stage-content').textContent = hasActivities() ? [stageLabels[stage.stage] + ' · ' + stage.minutes + ' minutes saved', stage.instructions || 'No instructions saved yet.', stage.equipment ? 'Equipment: ' + stage.equipment : ''].filter(Boolean).join('\n\n') : String(content()[stage.key] || '').trim() || 'No activity has been saved for this stage yet.';
+    $('field-timer-total').textContent = hasActivities() ? 'Timers start from saved activity durations. Adjustments here apply to this visit only.' : 'Adjust each stage for this visit. Timer choices do not change the saved plan.';
     renderBudgets();
     for (const [index, button] of [...dialog.querySelectorAll('[data-field-stage]')].entries()) {
       button.setAttribute('aria-pressed', String(index === stageIndex));
@@ -248,6 +253,12 @@
     dialog.append(grid);
     const preparation = node('section', '', 'field-equipment');
     preparation.append(node('h3', 'Equipment & setup'), node('p', String(content().equipment || '').trim() || 'No equipment list saved yet.'));
+    if (hasActivities()) {
+      const notes = node('details', '', 'field-roster');
+      notes.append(node('summary', 'Supporting stage coaching notes'));
+      for (const stage of legacyStages) if (String(content()[stage.key] || '').trim()) notes.append(node('h3', stage.title), node('p', content()[stage.key], 'field-stage-copy'));
+      preparation.append(notes);
+    }
     const roster = node('details', '', 'field-roster');
     roster.append(node('summary', 'Session roster · ' + (context.session.players || []).length + ' named players'), node('p', 'Parent replies help you prepare. Check players in from Attendance only after checking they are there.', 'small'), rosterTable());
     if (!context.session.players?.length) roster.append(node('p', 'No named players recorded for this session.', 'small'));
@@ -262,9 +273,16 @@
     sheet.append(node('p', clubName() + ' · Private session preparation'), node('h1', readableDate(context.session.date)), node('p', [context.session.time, context.session.location].filter(Boolean).join(' · ')));
     sheet.append(node('p', 'Saved plan and full named roster. Parent replies and physical attendance are separate.'));
     if (context.planDirty) sheet.append(node('p', 'Saved version: unsaved plan edits are not included in this sheet.'));
-    for (const [key, label] of [['focus', 'Session focus'], ['warmup', 'Warm-up'], ['technical', 'Technical activity'], ['game', 'Game / application'], ['equipment', 'Equipment & setup']]) {
+    const focus = node('section'); focus.append(node('h2', 'Session focus'), node('p', String(content().focus || '').trim() || 'Not recorded in the saved plan.')); sheet.append(focus);
+    if (hasActivities()) {
+      const total = content().activities.reduce((sum, block) => sum + block.duration, 0), slot = recordedMinutes();
+      sheet.append(node('h2', 'Activity running order'), node('p', total + ' minutes planned' + (slot === null ? ' · Session length not recorded.' : ' / ' + slot + '-minute session' + (total > slot ? ' · ' + (total - slot) + ' minutes over.' : '.'))));
+      content().activities.forEach((block, index) => { const section = node('section'); section.append(node('h3', (index + 1) + '. ' + block.title + ' · ' + block.duration + ' min · ' + stageLabels[block.stage]), node('p', block.instructions || 'No instructions recorded.')); if (block.equipment) section.append(node('p', 'Equipment: ' + block.equipment)); sheet.append(section); });
+    }
+    for (const [key, label] of [['warmup', 'Warm-up'], ['technical', 'Technical activity'], ['game', 'Game / application'], ['equipment', 'Equipment & setup']]) {
       const section = node('section');
-      section.append(node('h2', label), node('p', String(content()[key] || '').trim() || 'Not recorded in the saved plan.'));
+      if (hasActivities() && key !== 'equipment' && !String(content()[key] || '').trim()) continue;
+      section.append(node('h2', label + (hasActivities() && key !== 'equipment' ? ' · supporting notes' : '')), node('p', String(content()[key] || '').trim() || 'Not recorded in the saved plan.'));
       sheet.append(section);
     }
     sheet.append(node('h2', 'Session roster'), rosterTable());
@@ -298,7 +316,7 @@
     actions.append(open, print);
     mount.append(actions);
     if (!context.planReady) mount.append(node('p', 'Choose a session and wait for its saved plan to load.', 'small'));
-    else if (!['focus', 'warmup', 'technical', 'game', 'equipment'].some(key => String(content()[key] || '').trim())) mount.append(node('p', 'No preparation plan has been saved for this session yet. The field view will show the recorded roster and empty plan sections.', 'small'));
+    else if (!hasActivities() && !['focus', 'warmup', 'technical', 'game', 'equipment'].some(key => String(content()[key] || '').trim())) mount.append(node('p', 'No preparation plan has been saved for this session yet. The field view will show the recorded roster and empty plan sections.', 'small'));
     renderBudgets();
   }
 
@@ -310,9 +328,10 @@
     if (changedIdentity || !next || next.busy || next.tab !== 'plan' || !next.planReady || nextSignature !== contentSignature) { closeField(); clearPrint(); }
     context = next;
     identity = nextIdentity;
-    if (changedIdentity) {
+    if (changedIdentity || nextSignature !== contentSignature) {
       dialog.replaceChildren();
       stageIndex = 0;
+      stages = savedStages();
       durations = defaults();
       resetTimer();
       clearPrint();

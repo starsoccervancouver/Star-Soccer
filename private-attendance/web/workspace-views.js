@@ -8,6 +8,23 @@
   const parsed = date => /^\d{4}-\d{2}-\d{2}$/.test(date || '') && Number.isFinite(Date.parse(date + 'T12:00:00Z')) && new Date(date + 'T12:00:00Z').toISOString().slice(0,10) === date;
   const format = (date, options) => new Intl.DateTimeFormat('en-CA', { timeZone:'UTC', ...options }).format(new Date(date + 'T12:00:00Z'));
   const startMinute = session => { const text=String(session.time||''),first=text.split(/[–—-]/)[0],match=first.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);if(!match)return 1440;const suffix=(match[3]||text.match(/am|pm/gi)?.at(-1)||'').toLowerCase(),hour=Number(match[1]);return (suffix?hour%12+(suffix==='pm'?12:0):hour)*60+Number(match[2]||0); };
+  function mountNavigation() {
+    const nav = document.getElementById('navigation'); if (!nav || nav.querySelector('.desk-nav-more')) return;
+    const toggle = make('button', 'More ▾', 'desk-nav-more'), items = make('div', '', 'desk-nav-more-items'), media = matchMedia('(max-width: 900px)');
+    toggle.type = 'button'; toggle.setAttribute('aria-expanded', 'false'); toggle.setAttribute('aria-controls', 'desk-nav-more-items'); items.id = 'desk-nav-more-items';
+    for (const button of nav.querySelectorAll('button[data-tab]')) if (!['home', 'plan'].includes(button.dataset.tab)) items.append(button);
+    nav.append(toggle, items);
+    const close = () => { toggle.setAttribute('aria-expanded', 'false'); items.hidden = media.matches; };
+    const sync = () => { toggle.hidden = !media.matches; close(); };
+    toggle.addEventListener('click', () => { const open = toggle.getAttribute('aria-expanded') !== 'true'; toggle.setAttribute('aria-expanded', String(open)); items.hidden = !open; });
+    items.addEventListener('click', event => { if (event.target.closest('button[data-tab]') && media.matches) { close(); toggle.focus({preventScroll:true}); } });
+    nav.addEventListener('keydown', event => { if (event.key === 'Escape' && !items.hidden && media.matches) { close(); toggle.focus(); } });
+    document.addEventListener('click', event => { if (!nav.contains(event.target)) close(); });
+    new MutationObserver(() => toggle.classList.toggle('nav-active', !!items.querySelector('[aria-current="page"]'))).observe(items, {subtree:true, attributes:true, attributeFilter:['aria-current']});
+    window.addEventListener('coach:context', event => { toggle.disabled = !!event.detail?.busy; if (!event.detail?.profile) close(); });
+    media.addEventListener('change', sync); sync();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountNavigation, {once:true}); else mountNavigation();
   function mount(host, key, options) {
     if (!host) return;
     const { groups, locked = false, onOpen } = options;
@@ -22,6 +39,15 @@
     for (const mode of ['calendar','list','grid']) { const b=button(mode[0].toUpperCase()+mode.slice(1), mode, () => { state.mode=mode; render(mode); }); b.setAttribute('aria-pressed', String(state.mode===mode)); toolbar.append(b); }
     const anchor=host.querySelector(':scope > .coaching-agenda, :scope > #planner-days');
     if (anchor) anchor.before(toolbar); else host.append(toolbar);
+    if (key === 'overview') {
+      const next = window.CoachPlanner?.nextSession(groups.flatMap(group => group.sessions));
+      const group = next && groups.find(item => item.sessionIds.includes(next.id));
+      if (group) {
+        const resume = button('', 'continue-group', () => onOpen(next.id)); resume.className = 'coach-next-group'; resume.dataset.coachViews = 'next'; resume.dataset.nextSessionId = next.id;
+        resume.append(make('span', 'Continue to next group →', 'coach-next-label'), make('strong', group.label), make('span', format(next.date,{weekday:'short',month:'short',day:'numeric'}), 'coach-next-date'));
+        toolbar.before(resume);
+      }
+    }
     if (state.mode !== 'calendar') return;
     const calendar=make('section','','coach-calendar'); calendar.dataset.coachViews='calendar'; calendar.setAttribute('aria-label','Session calendar'); toolbar.after(calendar);
     const unique=new Map(); for(const group of groups) for(const session of group.sessions) if(parsed(session.date)&&!unique.has(session.id)) unique.set(session.id,{session,group});

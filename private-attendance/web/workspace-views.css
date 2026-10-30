@@ -17,3 +17,47 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
 .coach-calendar-session{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:16px;border-radius:16px;background:#d7cfc2b3;border:1px solid #b6afa280}.coach-calendar-session>div{min-width:0}.coach-calendar-session strong{font-size:14px;overflow-wrap:anywhere}.coach-calendar-session p{margin:5px 0 0}
 #app .coach-calendar-session button{flex-shrink:0;min-height:44px;border-radius:12px;font-size:12px}
 @media(max-width:600px){.coach-calendar-heading{gap:6px}.coach-calendar-heading h3{flex-basis:100%;font-size:18px;margin-bottom:5px}.coach-calendar-grid{gap:3px}.coach-calendar-weekday{font-size:10px}#app button.coach-calendar-day{min-height:58px;padding:6px 3px;border-radius:9px;font-size:12px;align-items:center}.coach-calendar-count{font-size:10px;padding:0 4px}.coach-calendar-session{flex-direction:column;align-items:stretch;gap:12px;padding:14px}#coaching-hub[data-coach-view=list] .coaching-agenda-row{flex-direction:column;align-items:stretch;gap:12px}.coach-view-label{display:none}#app .coach-view-switch button{flex:1;padding:9px 12px}}
+
+/* Keep primary destinations visible; secondary destinations have an explicit menu. */
+.desk-nav-more-items { display:contents; }
+.desk-nav-more-items[hidden] { display:none; }
+#app button.coach-next-group { display:flex; flex-direction:column; align-items:flex-start; gap:5px; width:100%; min-height:44px; margin:16px 0 0; padding:15px 18px; border-radius:16px; text-align:left; white-space:normal; background:var(--desk-navy-soft); border-color:var(--desk-navy-soft); color:#fff; }
+.coach-next-label { font-size:12px; font-weight:650; }
+.coach-next-group strong { font-size:15px; line-height:1.45; overflow-wrap:anywhere; }
+.coach-next-date { font-size:12px; opacity:.85; }
+@media screen and (max-width:900px) {
+  .desk-nav #navigation { position:relative; overflow:visible; display:flex; gap:5px; }
+  #app .desk-nav #navigation > button { min-width:0; flex:1 1 auto; padding:10px 8px; font-size:12px; }
+  #app .desk-nav #navigation > .desk-nav-more { flex:0 0 auto; }
+  .desk-nav-more-items:not([hidden]) { position:absolute; right:0; top:calc(100% + 8px); z-index:40; display:flex; flex-direction:column; width:min(270px,calc(100vw - 32px)); padding:8px; gap:5px; border:1px solid #696760; border-radius:18px; background:#303235; box-shadow:0 12px 30px #1116; }
+  #app .desk-nav #navigation .desk-nav-more-items button { width:100%; margin:0; min-height:44px; text-align:left; white-space:normal; }
+}
+@media screen and (max-width:600px) {
+  #app .desk-main { padding-top:18px; padding-right:14px; padding-left:14px; }
+  .page-heading { gap:10px; margin-bottom:16px; }
+  .page-heading h1 { font-size:28px; line-height:1.18; }
+  .page-heading .eyebrow { margin-bottom:5px; }
+  #page-copy { margin:8px 0 0; font-size:13px; line-height:1.5; }
+  #app .page-heading #refresh { min-height:44px; padding:9px 12px; font-size:12px; }
+  #panel-home:not([hidden]) { display:flex; flex-direction:column; }
+  #home-stats { order:0; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-bottom:14px; }
+  #home-stats .desk-stat { padding:10px 8px; border-radius:13px; display:flex; flex-direction:column; justify-content:space-between; }
+  #home-stats .desk-stat span { font-size:10px; line-height:1.35; margin-bottom:5px; }
+  #home-stats .desk-stat strong { font-size:24px; }
+  #coaching-hub { order:1; padding:16px; margin-bottom:16px; }
+  #panel-home > .home-command-row { order:2; }
+  #coaching-hub > .eyebrow { display:none; }
+  #coaching-hub > h2 { margin:0 0 6px; }
+  #coaching-hub > .small { margin:0; font-size:12px; line-height:1.5; }
+  .coach-view-switch { margin:12px 0; }
+  #coaching-hub .coaching-agenda { margin-top:0; gap:10px; }
+  #coaching-hub .coaching-agenda-row { padding:14px; gap:10px; }
+  #coaching-hub .coaching-agenda-details h3 { font-size:14px; line-height:1.5; }
+  #coaching-hub .coaching-agenda-details p { font-size:12px; margin:0; }
+  #app #coaching-hub .coaching-inline-actions button { min-height:44px; padding:10px 12px; font-size:12px; }
+  .planner-session-browser { padding:16px; }
+  .planner-chooser-intro { margin:8px 0 12px; font-size:13px; }
+  .planner-focus-exits { margin-bottom:16px; }
+  #app .planner-focus-heading h1 { font-size:26px; }
+  .planner-focus-heading { gap:12px; }
+}

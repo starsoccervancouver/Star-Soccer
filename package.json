@@ -8,7 +8,8 @@
     "test": "node private-attendance/cloudflare/build-assets.mjs && node --test tests/*.test.cjs",
     "attendance:demo": "node private-attendance/demo.mjs",
     "test:attendance": "node --test tests/attendance-*.test.cjs",
-    "test:attendance:browser": "node tests/attendance-ui.cjs"
+    "test:attendance:browser": "node tests/attendance-ui.cjs",
+    "release:coach": "node scripts/release-coach-desk.mjs"
   },
   "engines": {
     "node": ">=22.13.0"

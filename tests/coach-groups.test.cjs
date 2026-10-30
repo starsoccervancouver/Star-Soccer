@@ -54,6 +54,17 @@ test('scoped input yields only its permitted sessions and browser UMD uses no st
  assert.equal(sandbox.CoachGroups.key(a),groups.key(a));assert.equal(Object.keys(sandbox).join(','),'CoachGroups');
 });
 
+test('groups follow the next upcoming slot, with stable ties and archived history retained',()=>{
+ const now=new Date('2026-10-30T18:00:00Z');
+ const rows=[row(1,'2026-11-03'),row(2,'2026-10-30',{time:'12:00–1:00 PM'}),row(3,'2026-10-30',{time:'4:00–5:00 PM'}),row(4,'2026-10-29',{status:'Completed'}),row(5,'2026-10-30',{time:'10:00–11:00 AM'}),row(6,'2026-10-30',{programId:rid(101),time:'12:00–1:00 PM'}),row(7,'2026-10-30',{programId:rid(102),time:'11:00–12:00 PM',status:'Cancelled'})];
+ const result=groups.groups(rows,{now});
+ assert.deepEqual(result.slice(0,4).map(group=>group.sessionIds[0]),[rid(2),rid(6),rid(3),rid(1)],'Friday noon, Friday evening, then Tuesday; cancelled and finished slots are archived');
+ assert.equal(result.length,rows.length,'Historical groups remain reachable');
+ assert.deepEqual(groups.groups([...rows].reverse(),{now}).map(group=>[group.key,group.label]),result.map(group=>[group.key,group.label]),'Input order never changes tie labels or ordering');
+ const active=row(8,'2026-10-30',{time:'10:30 AM–12:00 PM'});
+ assert.equal(groups.groups([...rows,active],{now})[0].sessionIds[0],active.id,'An in-progress session stays first');
+});
+
 test('overview exposes exactly one well-formed existing Weekly program link',async()=>{
  const {buildOwnerOverview}=await import('../private-attendance/owner-overview.mjs');
  const links=[[rid(100)],[{id:rid(101)}],[],[rid(100),rid(101)],['invalid'],[null],undefined];

@@ -101,6 +101,7 @@
     save.textContent = writing ? 'Saving…' : record.id ? 'Save changes' : 'Save drill';
     for (const el of list.querySelectorAll('button')) { el.disabled = locked() || !!recovery || (el.dataset.insert === 'true' && !canInsert()); if (el.dataset.insert === 'true') el.hidden = standalone(); }
     for (const el of recommendationList.querySelectorAll('button')) el.disabled = !canInsert() || !!recovery;
+    emit('coach:library-state', { starterEnabled:standalone() && !locked() && !recovery, loaded, count:records.length });
   }
   function insert(drill) {
     if (!canInsert() || recovery) return;
@@ -219,7 +220,8 @@
   }
   window.addEventListener('coach:library-prefill', event => {
     const value = event.detail || {}, drill = value.drill;
-    if (!ready() || locked() || recovery || value.sessionId !== context.session?.id || !drill || !Object.hasOwn(targets, drill.target) || !Number.isInteger(drill.minutes) || drill.minutes < 1 || drill.minutes > 120) return;
+    const starter = value.source === 'starter' && standalone();
+    if (!ready() || locked() || recovery || !starter && value.sessionId !== context.session?.id || !drill || !Object.hasOwn(targets, drill.target) || !Number.isInteger(drill.minutes) || drill.minutes < 1 || drill.minutes > 120) return;
     const draft = { ...blank() };
     for (const key of fields) {
       const text = drill[key] ?? '';
@@ -228,7 +230,7 @@
     }
     if (!draft.title || !draft.setup) return;
     if (dirty() && !confirm('Replace your unsaved drill with this practice idea?')) return;
-    writeEditor(draft); baseline = fingerprint(blank()); disclosure.open = true; renderState();
+    writeEditor(draft); baseline = fingerprint(blank()); disclosure.open = true; editor.hidden = false; renderState();
     notify('Practice idea copied to a new drill draft. Review it and choose Save drill to keep it.'); $('library-title').focus();
   });
   window.addEventListener('coach:context', event => {

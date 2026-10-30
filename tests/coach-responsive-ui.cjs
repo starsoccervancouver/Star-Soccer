@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
 const addFonts = require('./coach-fixture-fonts.cjs');
-const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixture-navigation.cjs');
+const { openSession, openView, openFolder, leaveGroup, openDestination } = require('./coach-fixture-navigation.cjs');
 
 (async () => {
   const origin = 'https://attendance.starsoccer.ca';
@@ -224,15 +224,15 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
       for (const tab of tabs) {
         if (await page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) await page.locator('#planner-home').click();
         const settingsSection = ['team', 'activity', 'legacy'].includes(tab);
-        await page.locator('#navigation button[data-tab="' + (settingsSection ? 'settings' : ['attendance','notes'].includes(tab) ? 'plan' : tab) + '"]').click();
+        await openDestination(page, settingsSection ? 'settings' : ['attendance','notes'].includes(tab) ? 'plan' : tab);
         if (settingsSection) await page.locator('#settings-navigation button[data-settings-tab="' + tab + '"]').click();
         if (['plan', 'attendance', 'notes'].includes(tab)) await openSession(page, sessions, rid(1), tab);
         await page.locator('#panel-' + tab).waitFor({ state: 'visible' });
         const overflow = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('#app *')].filter(element => { const rect = element.getBoundingClientRect(); return rect.width && (rect.right > innerWidth + 1 || rect.left < -1) && !element.closest('#navigation'); }).slice(-12).map(element => ({ tag: element.tagName, id: element.id, class: element.className, left: element.getBoundingClientRect().left, right: element.getBoundingClientRect().right, width: element.getBoundingClientRect().width })) }));
         assert(overflow.scroll <= width + 1, tab + ' must not overflow at ' + width + 'px: ' + JSON.stringify(overflow));
-        assert.equal(await page.locator('#navigation button.nav-active').getAttribute('data-tab'), settingsSection ? 'settings' : ['attendance','notes'].includes(tab) ? 'plan' : tab);
+        assert.equal(await page.locator('#navigation button[data-tab].nav-active').getAttribute('data-tab'), settingsSection ? 'settings' : ['attendance','notes'].includes(tab) ? 'plan' : tab);
         if (settingsSection) assert.equal(await page.locator('#settings-navigation button[data-settings-tab="' + tab + '"]').getAttribute('aria-current'), 'page');
-        assert.equal(await page.locator('#navigation button.nav-active').getAttribute('aria-current'), 'page');
+        assert.equal(await page.locator('#navigation button[data-tab].nav-active').getAttribute('aria-current'), 'page');
         // Inspect one current DOM snapshot: async plan readback may replace toolbox controls.
         const smallButtons = await page.evaluate(() => [...document.querySelectorAll('#app button')].filter(button => button.getClientRects().length && getComputedStyle(button).visibility !== 'hidden').filter(button => button.getBoundingClientRect().height < 43.5).map(button => ({ text: button.textContent, height: button.getBoundingClientRect().height })));
         assert.deepEqual(smallButtons, [], tab + ' buttons need 44px touch targets at ' + width + 'px');

@@ -11,6 +11,11 @@ async function openView(page, view, { ready = true } = {}) {
   if (await button.getAttribute('aria-pressed') !== 'true') await button.click();
   if (view === 'plan' && ready) await page.waitForFunction(() => !document.getElementById('plan-focus').disabled);
 }
+async function openDestination(page, tab) {
+  const destination=page.locator('#navigation [data-tab="'+tab+'"]');
+  if (!await destination.isVisible()) await page.locator('.desk-nav-more').click();
+  await destination.click();
+}
 async function openSession(page, sessions, id, view = 'attendance', options = {}) {
   if (await page.locator('#planner-drawer').isVisible()) await page.locator('#planner-close-drawer').click();
   const target = sessions.find(session => session.id === id);
@@ -50,4 +55,4 @@ async function openFolder(page, playerId = '') {
   assert(index >= 0, 'Authorized player folder must be visible');
   await buttons.nth(index).click();
 }
-module.exports = { openSession, openView, openFolder, leaveGroup, focused };
+module.exports = { openSession, openView, openFolder, leaveGroup, focused, openDestination };

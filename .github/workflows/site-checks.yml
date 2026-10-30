@@ -55,6 +55,10 @@ jobs:
           node tests/coach-profiles-ui.cjs
           node tests/coach-resources-ui.cjs
           node tests/coachdesk-bundle-ui.cjs
+          node tests/coach-mobile-entry-ui.cjs
+          node tests/coach-plan-blocks-ui.cjs
+          node tests/coach-plan-roundtrip-ui.cjs
+          node tests/coach-starters-ui.cjs
 
       - name: Check recurring groups, private player folders and dated workspace navigation
         run: |

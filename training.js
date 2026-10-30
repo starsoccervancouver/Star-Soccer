@@ -10,9 +10,11 @@
     coaches: {valentinos: 'Valentinos Dinglis', evan: 'Evan Lycos', romeo: 'Romeo Dinglis'},
     locations: {
       connaught: {name: 'Connaught Park', mapQuery: 'Connaught Park Vancouver BC'},
-      kits: {name: 'Kitsilano Turf', mapQuery: 'Kitsilano Secondary School Turf Vancouver BC'}
+      kits: {name: 'Kitsilano Turf', mapQuery: 'Kitsilano Secondary School Turf Vancouver BC'},
+      'fen-burdett': {name: 'Fen Burdett Stadium', locality: 'North Vancouver', mapQuery: 'Fen Burdett Stadium 1648 Jones Avenue North Vancouver'}
     },
     sessions: [
+      {id:'tuesday',day:'Tuesday',weekday:2,time:'9:30–11:00 AM',startMinutes:570,minAge:null,maxAge:null,ageLabel:'Women’s soccer',audience:'women',location:'fen-burdett',coaches:[],dropin:20,pass4:null,active:true,excludedDates:[]},
       {id:'wednesday',day:'Wednesday',weekday:3,time:'3:45–5:15 PM',startMinutes:945,minAge:9,maxAge:14,location:'connaught',coaches:['valentinos','romeo'],dropin:30,pass4:95,active:true,excludedDates:[]},
       {id:'thursday',day:'Thursday',weekday:4,time:'4:30–5:30 PM',startMinutes:990,minAge:6,maxAge:9,location:'connaught',coaches:['valentinos'],dropin:25,pass4:80,active:true,excludedDates:[]},
       {id:'friday',day:'Friday',weekday:5,time:'3:45–5:00 PM',startMinutes:945,minAge:6,maxAge:12,location:'connaught',coaches:['romeo'],dropin:25,pass4:80,active:true,excludedDates:[]},
@@ -34,7 +36,7 @@
   function getSession(id) { return catalog.sessions.find(s=>s.id===id && s.active) || null; }
   function choice(id, type) {
     const session=getSession(id);
-    if (!session || !['dropin','pass4'].includes(type)) throw new Error('This booking link is no longer available. Please choose a current session.');
+    if (!session || !['dropin','pass4'].includes(type) || !Number.isFinite(session[type]) || session[type]<=0) throw new Error('This booking link is no longer available. Please choose a current session.');
     return {session,type,price:session[type],label:type==='pass4'?'Four-session pass':'Drop-in'};
   }
   function eligibleDate(session, date, now = new Date()) {
@@ -46,17 +48,23 @@
     for (let i=0;i<366;i++,date=addDays(date,1)) if(eligibleDate(session,date,now)) return date;
     return '';
   }
+  function ageDescription(session) { return session.ageLabel || 'Ages '+session.minAge+'–'+session.maxAge; }
+  function validAge(session, age) {
+    // A supplied age is still needed for preparation. Null catalog bounds mean
+    // no published age eligibility gate; 1–120 only validates the entered number.
+    return /^\d{1,3}$/.test(String(age)) && Number.isInteger(Number(age)) && Number(age)>=(session.minAge??1) && Number(age)<=(session.maxAge??120);
+  }
   function booking(id,type,date,age,now = new Date()) {
     const result=choice(id,type), s=result.session;
     if(!eligibleDate(s,date,now)) throw new Error(`Choose an upcoming ${s.day} before the session starts; cancelled dates cannot be booked.`);
-    if (!/^[0-9]{1,2}$/.test(String(age)) || !Number.isInteger(Number(age)) || Number(age)<s.minAge || Number(age)>s.maxAge) throw new Error(`This session is for ages ${s.minAge}–${s.maxAge}. Please enter a whole-number age in that range.`);
+    if (!validAge(s,age)) throw new Error(s.minAge===null?'Enter the player’s age as a whole number.':`This session is for ages ${s.minAge}–${s.maxAge}. Please enter a whole-number age in that range.`);
     const dates=[date];
     if(type==='pass4') {
       let candidate=date;
       for(let i=0;dates.length<4 && i<104;i++) {candidate=addDays(candidate,7);if(!s.excludedDates.includes(candidate))dates.push(candidate);}
       if(dates.length!==4) throw new Error('Four scheduled sessions are not available. Please contact the coaching team.');
     }
-    return {...result,dates,location:catalog.locations[s.location].name,coaches:s.coaches.map(c=>catalog.coaches[c]).join(' & ')};
+    return {...result,dates,location:catalog.locations[s.location].name,coaches:s.coaches.map(c=>catalog.coaches[c]).join(' & ')||'Star Soccer coaching team'};
   }
   function prettyDate(value) { return new Intl.DateTimeFormat('en-CA',{timeZone:'UTC',weekday:'short',month:'short',day:'numeric',year:'numeric'}).format(isoDate(value)); }
   function money(value) { return new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD',maximumFractionDigits:2,minimumFractionDigits:Number.isInteger(value)?0:2}).format(value); }
@@ -112,7 +120,7 @@
       'Keep these details before and after training. Contact '+catalog.email+' about payment or session changes.'
     ].join('\n');
   }
-  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,prettyDate,money,paymentInstructions,privateQuote,coachId,accepted,receiptText,referralSources,referralSource,sessionLink,registrationHelp});
+  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,ageDescription,validAge,prettyDate,money,paymentInstructions,privateQuote,coachId,accepted,receiptText,referralSources,referralSource,sessionLink,registrationHelp});
   root.StarTraining=api;
   if(typeof module!=='undefined' && module.exports) module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

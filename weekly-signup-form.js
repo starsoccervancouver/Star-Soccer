@@ -9,25 +9,31 @@
   try{choice=T.choice(params.get('sessionId'),params.get('type')||'dropin');}
   catch(error){form.hidden=true;document.querySelector('#booking-summary').hidden=true;status(error.message,true);return;}
   const s=choice.session,info=document.querySelector('[data-training-info]'),datesList=document.querySelector('#booking-dates');
+  const women=s.audience==='women';
+  if(women){
+    form.elements.namedItem('Player name').closest('label').firstChild.textContent='Player’s name';
+    form.elements.namedItem('email').closest('label').firstChild.textContent='Your email';
+    form.elements.namedItem('Parent name').closest('label').hidden=true;
+  }
   let dropinDate=T.nextDate(s);
   if(info){
     info.hidden=false;
     info.querySelector('[data-training-info-option]').textContent=s.day+' · '+choice.label;
     info.querySelector('[data-training-info-venue]').textContent=T.catalog.locations[s.location].name;
     info.querySelector('[data-training-info-time]').textContent=s.time+' · Vancouver time';
-    info.querySelector('[data-training-info-ages]').textContent='Ages '+s.minAge+'–'+s.maxAge+' · 20 per session';
-    info.querySelector('[data-training-info-coaches]').textContent=s.coaches.map(id=>T.catalog.coaches[id]).join(' & ');
+    info.querySelector('[data-training-info-ages]').textContent=T.ageDescription(s)+' · 20 per session';
+    info.querySelector('[data-training-info-coaches]').textContent=s.coaches.map(id=>T.catalog.coaches[id]).join(' & ')||'Star Soccer coaching team';
     info.querySelector('[data-training-info-date]').textContent=T.prettyDate(dropinDate);
     info.querySelector('[data-training-info-price]').textContent=T.money(choice.price)+' CAD';
     info.querySelector('[data-training-info-price-label]').textContent=choice.type==='pass4'?'per player · four consecutive scheduled dates':'per player · one session';
   }
-  document.querySelector('#booking-title').textContent=s.day+' training';
+  document.querySelector('#booking-title').textContent=women?'Tuesday women’s soccer':s.day+' training';
   document.querySelector('#booking-session').textContent=s.time+' · '+T.catalog.locations[s.location].name;
-  document.querySelector('#booking-ages').textContent='Ages '+s.minAge+'–'+s.maxAge;
+  document.querySelector('#booking-ages').textContent=women?'':T.ageDescription(s);
   const dropinSummary=document.querySelector('#quick-dropin-summary');
   if(choice.type==='dropin'&&dropinSummary){dropinSummary.hidden=false;dropinSummary.querySelector('strong').textContent=T.money(choice.price)+' CAD · one session';}
-  const age=form.elements.namedItem('Player age');age.min=s.minAge;age.max=s.maxAge;
-  document.querySelector('#age-help').textContent='Ages '+s.minAge+'–'+s.maxAge+'.';
+  const age=form.elements.namedItem('Player age');age.min=s.minAge??1;age.max=s.maxAge??120;
+  document.querySelector('#age-help').textContent=women?'Enter the player’s age in years.':T.ageDescription(s)+'.';
   const passSummary=document.querySelector('#quick-pass-summary'),passStart=document.querySelector('#pass-start');
   let passStartChanged=false,passCalendar=null;
   function renderDates(dates){
@@ -57,7 +63,7 @@
     });
     updatePass();passCalendar=window.StarPassCalendar?.(passStart,s);
   }else renderDates([dropinDate]);
-  const family=F.mount(form,{minAge:s.minAge,maxAge:s.maxAge,experience:true,onChange:updateTotal});
+  const family=F.mount(form,{minAge:s.minAge??1,maxAge:s.maxAge??120,nameLabel:women?'Player’s name':'Child’s name',experience:true,onChange:updateTotal});
   function updateTotal(){const count=family.count(),total=document.querySelector('#family-total');total.hidden=count===1;total.textContent='Requested total: '+T.money(choice.price*count)+' CAD'+(count>1?' · '+count+' players × '+T.money(choice.price):' · 1 player');}
   updateTotal();submit.disabled=false;
   form.addEventListener('input',event=>event.target.setCustomValidity?.(''));

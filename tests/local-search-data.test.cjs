@@ -58,7 +58,9 @@ test('services appear only on current service landing pages with the actual prov
       assert.equal(service.provider['@id'], origin + '/#organization');
       assert.equal(service.areaServed['@type'], 'City');
       assert.equal(service.areaServed.name, 'Vancouver');
-      assert.equal(service.description, node(file, 'WebPage').description);
+      assert.equal(service.description, file === 'programs.html'
+        ? 'Weekly youth soccer training in Vancouver. Choose a drop-in or a four-session pass for your age group.'
+        : node(file, 'WebPage').description);
       assert.equal(service.mainEntityOfPage['@id'], origin + '/' + file + '#webpage');
       assert(!('offers' in service), 'Do not imply price or availability from capacity');
       assert(!('serviceLocation' in service), 'serviceLocation belongs on ServiceChannel');
@@ -66,9 +68,11 @@ test('services appear only on current service landing pages with the actual prov
   }
 });
 
-test('weekly and camp venue channels and audience ages match their public catalogs', () => {
+test('youth weekly and camp venue channels and audience ages match their scoped public catalogs', () => {
   const weekly = node('programs.html', 'Service');
-  const active = training.sessions.filter(session => session.active);
+  const active = training.sessions.filter(session => session.active && session.audience !== 'women' && Number.isFinite(session.minAge) && Number.isFinite(session.maxAge));
+  assert.equal(weekly.name, 'Youth soccer training in Vancouver');
+  assert.equal(weekly.serviceType, 'Youth soccer training');
   assert.equal(weekly.audience.suggestedMinAge, Math.min(...active.map(session => session.minAge)));
   assert.equal(weekly.audience.suggestedMaxAge, Math.max(...active.map(session => session.maxAge)));
   assert.deepEqual(weekly.availableChannel.map(channel => channel.serviceLocation['@id']).sort(),
@@ -81,6 +85,7 @@ test('weekly and camp venue channels and audience ages match their public catalo
     assert.equal(url.pathname, '/programs.html');
     assert.equal(url.hash, '#sessions');
     assert.equal(channel.serviceLocation['@id'], origin + '/locations.html#' + key);
+    assert.notEqual(key, 'fen-burdett', 'Youth service channels do not inherit the women’s venue or an unadvertised age gate');
   }
   const camp = node('camps.html', 'Service');
   assert.equal(camp.audience.suggestedMinAge, winter.minAge);
@@ -95,8 +100,8 @@ test('weekly and camp venue channels and audience ages match their public catalo
   }
 });
 
-test('the two public venue identities are shared without asserting a business address or headquarters', () => {
-  const expectedIds = ['connaught', 'kits'].map(key => origin + '/locations.html#' + key);
+test('the three public venue identities are shared without asserting a business address or headquarters', () => {
+  const expectedIds = ['connaught', 'kits', 'fen-burdett'].map(key => origin + '/locations.html#' + key);
   const expectedNames = Object.values(training.locations).map(location => location.name).sort();
   for (const file of pages) {
     const organization = node(file, 'SportsOrganization');
@@ -107,7 +112,7 @@ test('the two public venue identities are shared without asserting a business ad
     assert.deepEqual(places.map(place => place.name).sort(), expectedNames);
     for (const place of places) {
       assert.equal(place.url, place['@id']);
-      assert.deepEqual(place.address, {'@type':'PostalAddress', addressLocality:'Vancouver', addressRegion:'BC', addressCountry:'CA'});
+      assert.deepEqual(place.address, {'@type':'PostalAddress', addressLocality:place['@id'].endsWith('#fen-burdett') ? 'North Vancouver' : 'Vancouver', addressRegion:'BC', addressCountry:'CA'});
       for (const property of ['geo', 'openingHours', 'openingHoursSpecification', 'telephone', 'owner', 'branchCode']) assert(!(property in place), file + ': unsupported public venue ' + property);
       assert.match(built['locations.html'], new RegExp('id="' + new URL(place['@id']).hash.slice(1) + '"'), 'Venue ID must match an existing visible location anchor');
     }

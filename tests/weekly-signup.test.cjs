@@ -9,6 +9,18 @@ test('weekly sign-up needs only four essentials and has no chosen date or paymen
   assert.equal(W.request('wednesday','pass4',values).type,'pass4');
   assert.equal(W.request('wednesday','pass4',values).version,'SS-PASS-V1');
 });
+test('Tuesday uses the existing intake contract for self-registration with no 18+ age gate',()=>{
+ for(const age of ['17','35','120']){
+  const r=W.request('tuesday','dropin',{name:' Fixture Participant ',email:'participant@example.invalid',age,experience:'some'});
+  assert.deepEqual(r,{version:'SS-WEEKLY-V2',sessionId:'tuesday',type:'dropin',name:'Fixture Participant',email:'participant@example.invalid',age:Number(age),experience:'Some experience'});
+ }
+ for(const age of ['0','121','17.5','','invalid'])assert.throws(()=>W.request('tuesday','dropin',{...values,age}));
+ assert.throws(()=>W.request('tuesday','pass4',{...values,age:'35'}));
+ assert.throws(()=>W.passPlan('tuesday',null,new Date('2026-10-27T03:00:00Z')));
+ const mail=W.confirmation('tuesday','2026-11-03','SS-ABCDEF12','Fixture Participant');
+ assert.match(mail.body,/Fen Burdett Stadium/);assert.match(mail.body,/Fixture Participant’s session total is \$20 CAD/);
+ assert.doesNotMatch(mail.body,/18\+|four-session pass|paid|marked present/);
+});
 test('pass defaults to upcoming training and ends on the fourth occurrence, across month and year boundaries',()=>{
   const now=new Date('2026-10-27T03:00:00Z');
   assert.deepEqual(W.passPlan('wednesday',null,now),{sessionId:'wednesday',price:95,start:'2026-10-28',end:'2026-11-18',dates:['2026-10-28','2026-11-04','2026-11-11','2026-11-18'],upcoming:true});

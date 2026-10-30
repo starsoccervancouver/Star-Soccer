@@ -65,8 +65,9 @@
       if(!date)return;
       const price=row.querySelector('.schedule-price'),dropin=price?.querySelector('strong'),pass=price?.querySelector('span:not([data-pass-value])'),value=price?.querySelector('[data-pass-value]');
       if(dropin)dropin.textContent=T.money(session.dropin)+' drop-in';
-      if(pass)pass.textContent=T.money(session.pass4)+' · 4 consecutive sessions';
-      if(value){const saving=session.dropin*4-session.pass4;value.hidden=saving<=0;value.textContent=saving>0?'Save '+T.money(saving)+' vs 4 drop-ins':'';}
+      const hasPass=Number.isFinite(session.pass4)&&session.pass4>0;
+      if(pass&&hasPass)pass.textContent=T.money(session.pass4)+' · 4 consecutive sessions';
+      if(value){const saving=hasPass?session.dropin*4-session.pass4:0;value.hidden=saving<=0;value.textContent=saving>0?'Save '+T.money(saving)+' vs 4 drop-ins':'';}
       const next=document.createElement('span');next.className='schedule-next';next.textContent='Next: '+T.prettyDate(date);
       row.querySelector('.schedule-day').append(next);
 

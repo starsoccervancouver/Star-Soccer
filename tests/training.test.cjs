@@ -3,7 +3,21 @@ const assert=require('node:assert/strict');
 const T=require('../training.js');
 const now=new Date('2026-10-16T09:00:00Z');
 test('approved catalog and prices',()=>{
- assert.deepEqual(T.catalog.sessions.map(s=>[s.id,s.minAge,s.maxAge,s.dropin,s.pass4]),[['wednesday',9,14,30,95],['thursday',6,9,25,80],['friday',6,12,25,80],['sunday',6,9,30,95]]);
+ assert.equal(T.catalog.sessions.length,5);
+ assert.deepEqual(T.catalog.sessions.filter(s=>s.id!=='tuesday').map(s=>[s.id,s.minAge,s.maxAge,s.dropin,s.pass4]),[['wednesday',9,14,30,95],['thursday',6,9,25,80],['friday',6,12,25,80],['sunday',6,9,30,95]]);
+ const tuesday=T.getSession('tuesday');
+ assert.deepEqual([tuesday.audience,tuesday.minAge,tuesday.maxAge,tuesday.dropin,tuesday.pass4],['women',null,null,20,null]);
+ assert.equal(tuesday.weekday,2);assert.equal(tuesday.startMinutes,570);assert.equal(tuesday.time,'9:30–11:00 AM');
+ assert.equal(T.catalog.locations[tuesday.location].name,'Fen Burdett Stadium');
+});
+test('Tuesday women can register for a $20 drop-in without an 18+ gate or an invented pass',()=>{
+ for(const age of [1,17,35,99,120]){
+  const booking=T.booking('tuesday','dropin','2026-10-20',age,now);
+  assert.equal(booking.price,20);assert.equal(booking.location,'Fen Burdett Stadium');assert.deepEqual(booking.dates,['2026-10-20']);
+ }
+ for(const age of [0,-1,121,'',null,'17.5','not an age'])assert.throws(()=>T.booking('tuesday','dropin','2026-10-20',age,now));
+ assert.throws(()=>T.choice('tuesday','pass4'));
+ assert.throws(()=>T.booking('tuesday','pass4','2026-10-20',35,now));
 });
 test('unknown, expired camp and absent IDs are rejected',()=>{for(const id of [null,'monday','camp-u4-u6','__proto__',''])assert.throws(()=>T.choice(id,'dropin'));assert.throws(()=>T.choice('wednesday','invalid'));});
 test('URL-style untrusted prices are not inputs to catalog lookup',()=>{assert.equal(T.choice('wednesday','pass4').price,95);assert.equal(T.choice('friday','dropin').price,25);});

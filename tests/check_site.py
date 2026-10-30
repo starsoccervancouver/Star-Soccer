@@ -2,7 +2,7 @@
 from pathlib import Path
 from html.parser import HTMLParser
 from urllib.parse import urlparse, unquote, parse_qs
-import collections, json, subprocess
+import collections, json, math, subprocess
 ROOT=Path(__file__).resolve().parents[1]
 class Page(HTMLParser):
     def __init__(self,path):
@@ -36,12 +36,15 @@ for name,p in PAGES.items():
             if not any(asset in link for _,link in p.links):errors.append(f'{name}: missing shared {asset}')
 catalog=json.loads(subprocess.check_output(['node','-e',"console.log(JSON.stringify(require('./training.js').catalog))"],cwd=ROOT,text=True))
 schedule=PAGES['programs.html'];links=[urlparse(link) for _,link in schedule.links if link.startswith('registration.html?')]
-expected={(s['id'],typ) for s in catalog['sessions'] if s['active'] for typ in ['dropin','pass4']}
+def supported_price(value):
+    return type(value) in (int,float) and math.isfinite(value) and value>0
+expected={(s['id'],typ) for s in catalog['sessions'] if s['active'] for typ in ['dropin','pass4'] if supported_price(s.get(typ))}
 actual={(parse_qs(u.query).get('sessionId',[''])[0],parse_qs(u.query).get('type',[''])[0]) for u in links}
 if actual!=expected:errors.append('Programs registration links do not match the catalog')
 for s in catalog['sessions']:
     rows=[a for tag,a in schedule.tags if a.get('data-session-day')==s['id']]
-    if len(rows)!=1 or rows[0].get('data-min-age')!=str(s['minAge']) or rows[0].get('data-max-age')!=str(s['maxAge']) or rows[0].get('data-session-location')!=s['location']:errors.append('Catalog age/location mismatch '+s['id'])
+    age_attrs={'data-min-age':s.get('minAge'),'data-max-age':s.get('maxAge')}
+    if len(rows)!=1 or any(rows[0].get(attr)!=(None if age is None else str(age)) for attr,age in age_attrs.items()) or rows[0].get('data-session-location')!=s['location']:errors.append('Catalog age/location mismatch '+s['id'])
 print(f'Checked {len(PAGES)} HTML pages, {link_count} local references, catalog links and retired camps.')
 if errors:
     print('\n'.join(errors));raise SystemExit(1)

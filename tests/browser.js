@@ -24,8 +24,9 @@
     return doc;
   }
   const change=(doc,id,value)=>{const el=doc.getElementById(id);el.value=value;el.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));};
+  const formLabel=(doc,name)=>doc.querySelector('form').elements.namedItem(name).labels[0].textContent;
   try {
-    const pages=['index.html','programs.html','program-private-small-group.html','methodology.html','locations.html','contact.html','camps.html','christmas-camp-registration.html','boxing-camp-registration.html','christmas-camp-registration.html?kind=dropin','boxing-camp-registration.html?kind=dropin','selectivo.html','registration.html?sessionId=wednesday&type=pass4','registration.html?sessionId=wednesday&type=dropin','registration-thank-you.html'];
+    const pages=['index.html','programs.html','program-private-small-group.html','methodology.html','locations.html','contact.html','camps.html','christmas-camp-registration.html','boxing-camp-registration.html','christmas-camp-registration.html?kind=dropin','boxing-camp-registration.html?kind=dropin','selectivo.html','registration.html?sessionId=wednesday&type=pass4','registration.html?sessionId=wednesday&type=dropin','registration.html?sessionId=tuesday&type=dropin','registration-thank-you.html'];
     for(const width of [320,375,430,900,1024,1440]) {
       for(const page of pages) {
         const doc=await load(page,width);
@@ -81,10 +82,10 @@
           const adultCard=doc.querySelector('#sessions #adult-women.schedule-entry[data-audience="adult"][data-session-day="tuesday"][data-session-location="fen-burdett"]');
           const adultLinks=adultCard?[...adultCard.querySelectorAll('.schedule-direct-actions a')]:[];
           const adultUrl=adultLinks.length===1?new URL(adultLinks[0].href):null;
-          check(!!adultCard && adultCard.textContent.includes('9:30–11:00 AM') && adultCard.textContent.includes('Fen Burdett Stadium') && adultCard.textContent.includes('$20 per session') && adultCard.textContent.includes('8/20 reported') && adultUrl?.pathname.endsWith('/contact.html') && adultUrl.searchParams.get('topic')==='adult-women' && adultLinks[0].getClientRects().length && adultLinks[0].getBoundingClientRect().height>=48 && !adultCard.querySelector('a[href*="registration.html"],.session-capacity'),`Training at ${width}px puts Tuesday adult women in the weekly schedule without youth booking or an unreliable count`);
+          check(!!adultCard && adultCard.textContent.includes('9:30–11:00 AM') && adultCard.textContent.includes('Fen Burdett Stadium') && adultCard.textContent.includes('$20 drop-in') && adultCard.textContent.includes('8/20 reported') && !/18\+|\$0|4 consecutive sessions/.test(adultCard.textContent) && adultUrl?.pathname.endsWith('/registration.html') && adultUrl.searchParams.get('sessionId')==='tuesday' && adultUrl.searchParams.get('type')==='dropin' && adultLinks[0].getClientRects().length && adultLinks[0].getBoundingClientRect().height>=48 && !adultCard.querySelector('.session-capacity,a[href*="type=pass4"]'),`Training at ${width}px gives Tuesday women direct $20 drop-in registration without an 18+ restriction or an invented pass`);
           check([...doc.querySelectorAll('#sessions .schedule-entry')].length===5 && doc.querySelector('#sessions .schedule-entry')===adultCard && doc.querySelector('#schedule-results').textContent==='Showing 5 of 5 sessions',`Training at ${width}px shows all five sessions in the weekly list`);
           check(!doc.querySelector('details.schedule-entry,.session-share'),`Training at ${width}px has no registration disclosure or copy-link step`);
-          if(width<=430)check(adultLinks[0].getBoundingClientRect().bottom<=820,`Training at ${width}px puts Tuesday's enquiry within the first screen (${Math.round(adultLinks[0].getBoundingClientRect().bottom)}px)`);
+          if(width<=430)check(adultLinks[0].getBoundingClientRect().bottom<=820,`Training at ${width}px puts Tuesday's registration within the first screen (${Math.round(adultLinks[0].getBoundingClientRect().bottom)}px)`);
         }
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
@@ -102,7 +103,8 @@
         if(doc.body.classList.contains('seasonal-registration')){
           if(page.startsWith('registration.html') && page.includes('type=dropin')){
             const price=doc.querySelector('#quick-dropin-summary');
-            check(!price.hidden && price.textContent.includes('$30 CAD') && price.getBoundingClientRect().bottom<doc.querySelector('#training-registration [type="submit"]').getBoundingClientRect().top,`Drop-in at ${width}px shows its catalog price and payment reassurance before registration`);
+            const selectedSession=new URL(page,location.href).searchParams.get('sessionId'),amount=frame.contentWindow.StarTraining.money(frame.contentWindow.StarTraining.getSession(selectedSession).dropin);
+            check(!price.hidden && price.textContent.includes(amount+' CAD') && price.getBoundingClientRect().bottom<doc.querySelector('#training-registration [type="submit"]').getBoundingClientRect().top,`${selectedSession} drop-in at ${width}px shows its catalog price and payment reassurance before registration`);
           }
           if(page.includes('kind=dropin')){
             const total=doc.querySelector('[data-camp-total]');
@@ -209,6 +211,27 @@
     check(![...doc.querySelectorAll('input[type="date"]')].some(el=>el.getClientRects().length) && doc.querySelector('#booking-dates li').dataset.sessionDate===frame.contentWindow.StarTraining.nextDate(frame.contentWindow.StarTraining.getSession('friday')) && !doc.querySelector('[data-optional-fields]').open,'Weekly drop-in shows the upcoming date beside submission while extra questions stay optional');
     check([...doc.querySelector('form').querySelectorAll('[required]')].map(el=>el.name).sort().join(',')==='Experience,Player age,Player name,email','Weekly registration requires exactly child, age, email and experience');
     check(doc.querySelector('[data-training-info-option]').textContent==='Friday · Drop-in' && doc.querySelector('[data-training-info-price]').textContent==='$25 CAD' && doc.querySelector('[data-training-info-venue]').textContent==='Connaught Park','Drop-in information card follows the selected session and approved price');
+    check(formLabel(doc,'Player name').includes('Child’s name') && formLabel(doc,'email').includes('Parent email') && doc.querySelector('[name="Player age"]').min==='6' && doc.querySelector('[name="Player age"]').max==='12','Youth drop-in retains its child/parent labels and age eligibility');
+    doc=await load('registration.html?sessionId=tuesday&type=dropin',320);
+    const womenForm=doc.querySelector('#training-registration'),womenWindow=frame.contentWindow;
+    check(/Player[’']s name/.test(formLabel(doc,'Player name')) && /Your email/.test(formLabel(doc,'email')) && !doc.querySelector('#booking-summary').textContent.includes('18+') && !doc.querySelector('[data-training-info-ages]').textContent.includes('18+'),'Tuesday registration uses player and self-contact language without an 18+ condition');
+    check([...womenForm.querySelectorAll('[required]')].map(el=>el.name).sort().join(',')==='Experience,Player age,Player name,email' && !womenForm.elements.namedItem('Parent name').getClientRects().length,'Tuesday keeps four essentials without asking a self-registering player for a parent name');
+    doc.querySelector('.family-add-player').click();
+    check(/Player[’']s name/.test(doc.querySelector('.family-player [data-player-field="name"]').labels[0].textContent),'Additional Tuesday players use participant-appropriate labels');
+    doc.querySelector('.family-remove-player').click();
+    for(const [name,value] of [['email','participant@example.invalid'],['Player name','Fixture Participant'],['Player age','17'],['Experience','some']])womenForm.elements.namedItem(name).value=value;
+    check(womenForm.reportValidity(),'Tuesday registration accepts a whole-number age under 18');
+    let womenCalls=0,womenPayload,womenMethod,womenUrl;
+    womenWindow.fetch=async(url,options)=>{womenCalls++;womenPayload=options.body;womenMethod=options.method;womenUrl=String(url);return {ok:true,json:async()=>({success:false})};};
+    womenForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
+    check(womenCalls===1 && womenMethod==='POST' && womenUrl==='https://formsubmit.co/ajax/starsoccervancouver@gmail.com' && womenPayload.get('Session ID')==='tuesday' && womenPayload.get('Location')==='Fen Burdett Stadium' && womenPayload.get('Price CAD')==='20' && womenPayload.get('Registration version')==='SS-WEEKLY-V2' && womenPayload.get('Requested option')==='Drop-in' && womenPayload.get('Player name')==='Fixture Participant' && womenPayload.get('Player age')==='17' && womenPayload.get('email')==='participant@example.invalid' && womenPayload.get('Experience')==='Some experience' && womenPayload.get('Parent name')==='' && !womenPayload.has('Pass start date'),'Tuesday sends the canonical $20 drop-in intake with the correct session, venue, player and self-contact details');
+    check(!womenForm.hidden && doc.querySelector('#receipt').hidden && womenForm.elements.namedItem('Player name').value==='Fixture Participant','Tuesday service rejection keeps the form and never claims a booking');
+    womenWindow.fetch=async(url,options)=>{womenCalls++;womenPayload=options.body;return {ok:true,json:async()=>({success:true})};};
+    womenForm.requestSubmit();womenForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
+    check(womenCalls===2 && womenForm.hidden && !doc.querySelector('#receipt').hidden && doc.querySelector('#receipt h2').textContent.includes('received') && doc.querySelector('#receipt').textContent.includes('will check space') && doc.querySelector('#receipt').textContent.includes('$20 CAD requested total') && !/registration confirmed|marked present|payment received/i.test(doc.querySelector('#receipt').textContent),'Tuesday form acceptance acknowledges receipt pending coaching-team confirmation and blocks duplicate submissions');
+    check(doc.documentElement.scrollWidth<=321,'Tuesday receipt fits a narrow phone');
+    doc=await load('registration.html?sessionId=tuesday&type=pass4',320);
+    check(doc.querySelector('#training-registration').hidden && !doc.querySelector('#registration-status').hidden,'Tuesday rejects an unsupported four-session pass link');
     doc=await load('programs.html?age=14&day=sunday&source=test#sessions');
     check(doc.querySelector('[data-filter-panel]').open,'Shared filtered links open the filter controls automatically');
     check(!doc.querySelector('#schedule-empty').hidden,'Incompatible age/day shows empty state');
@@ -218,7 +241,7 @@
     change(doc,'schedule-age','14');
     check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===1,'Age 14 shows only eligible training');
     check(frame.contentWindow.location.search.includes('age=14'),'Filter is reflected in shareable URL');
-    check(doc.querySelectorAll('.schedule-next').length===4,'All four youth sessions show their next Vancouver date');
+    check(doc.querySelectorAll('.schedule-next').length===5 && [...doc.querySelectorAll('#sessions .schedule-entry')].every(row=>row.querySelector('.schedule-next')?.textContent==='Next: '+frame.contentWindow.StarTraining.prettyDate(frame.contentWindow.StarTraining.nextDate(frame.contentWindow.StarTraining.getSession(row.dataset.sessionDay)))),'All five weekly sessions show their catalog-derived next Vancouver date');
     doc.querySelector('#schedule-reset').click();
     change(doc,'schedule-age','youth');
     check(doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===4 && doc.querySelector('#adult-women').hidden && doc.querySelector('#schedule-results').textContent==='Showing 4 of 5 sessions','Youth age filter shows all four child groups and excludes adult women');

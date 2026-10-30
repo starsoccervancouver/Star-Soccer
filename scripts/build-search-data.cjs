@@ -48,15 +48,24 @@ function parsePage(source, file) {
   return {source, file, graph, script: scripts[0], canonical, title: decode(title).replace(/\s+/g, ' ').trim(), description};
 }
 
-function publicPlaces(home) {
+function publicPlaces(home, locationsPage) {
   const organization = home.graph.find(node => node['@type'] === 'SportsOrganization');
   const locations = organization.location || [];
   return Object.entries(training.locations).map(([key, catalogLocation]) => {
     const id = origin + '/locations.html#' + key;
-    const source = locations.map(location => location.name ? location : home.graph.find(node => node['@id'] === location['@id']))
+    let source = locations.map(location => location.name ? location : home.graph.find(node => node['@id'] === location['@id']))
       .find(location => location?.name === catalogLocation.name);
-    if (!source || source.address?.addressLocality !== 'Vancouver' || source.address.addressRegion !== 'BC' || source.address.addressCountry !== 'CA') {
-      throw new Error('Expected the existing public Vancouver venue: ' + catalogLocation.name);
+    const locality = catalogLocation.locality || 'Vancouver';
+    // This new catalog venue is already named and addressed in the public location
+    // section. Do not invent a branch address or infer venues from arbitrary text.
+    if (!source && key === 'fen-burdett' && catalogLocation.name === 'Fen Burdett Stadium' && locality === 'North Vancouver') {
+      const section = locationsPage?.match(/<section\b[^>]*\bid="fen-burdett"[^>]*>[\s\S]*?<\/section>/i)?.[0];
+      if (section && /<h2>Fen Burdett Stadium<\/h2>/.test(section) && /1648 Jones Avenue, North Vancouver/.test(section)) {
+        source = {name:catalogLocation.name, address:{addressLocality:locality, addressRegion:'BC', addressCountry:'CA'}};
+      }
+    }
+    if (!source || source.address?.addressLocality !== locality || source.address.addressRegion !== 'BC' || source.address.addressCountry !== 'CA') {
+      throw new Error('Expected an existing verified public venue: ' + catalogLocation.name);
     }
     // These are public training venues, not a business address or an owned branch.
     return {'@type':'Place', '@id':id, name:source.name, url:id,
@@ -75,10 +84,14 @@ function serviceFor(page, organization, places) {
       serviceUrl:page.canonical + (page.file === 'programs.html' ? '?location=' + key + '#sessions' : '')};
   };
   if (page.file === 'programs.html') {
-    const sessions = training.sessions.filter(session => session.active);
+    // This service describes youth training only. Women's soccer has no approved
+    // age bounds; retain it in the page metadata without classifying it as youth.
+    const sessions = training.sessions.filter(session => session.active && session.audience !== 'women' && Number.isFinite(session.minAge) && Number.isFinite(session.maxAge));
+    if (!sessions.length) throw new Error('No active youth sessions with approved age bounds');
     const minAge = Math.min(...sessions.map(session => session.minAge));
     const maxAge = Math.max(...sessions.map(session => session.maxAge));
-    return {...base, '@id':page.canonical + '#weekly-training', name:'Weekly soccer training in Vancouver',
+    return {...base, '@id':page.canonical + '#weekly-training', name:'Youth soccer training in Vancouver',
+      description:'Weekly youth soccer training in Vancouver. Choose a drop-in or a four-session pass for your age group.',
       serviceType:'Youth soccer training', audience:{'@type':'PeopleAudience', suggestedMinAge:minAge, suggestedMaxAge:maxAge},
       availableChannel:[...new Set(sessions.map(session => session.location))].map(channel)};
   }
@@ -100,7 +113,7 @@ function buildSearchData(sources) {
   const pages = Object.entries(sources).map(([file, source]) => parsePage(source, file)).filter(Boolean);
   const home = pages.find(page => page.file === 'index.html');
   if (!home) throw new Error('index.html with its existing organization graph is required');
-  const places = publicPlaces(home);
+  const places = publicPlaces(home, sources['locations.html']);
   const organization = clone(home.graph.find(node => node['@type'] === 'SportsOrganization'));
   const website = clone(home.graph.find(node => node['@type'] === 'WebSite'));
   if (organization['@id'] !== organizationId || website['@id'] !== websiteId) throw new Error('Keep the existing shared organization and website identities');

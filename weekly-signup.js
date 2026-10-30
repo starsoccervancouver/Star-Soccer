@@ -8,9 +8,9 @@
   function request(sessionId,type,values){
     const selected=T.choice(sessionId,type||'dropin'),s=selected.session;
     const name=String(values.name||'').trim(),email=String(values.email||'').trim(),age=String(values.age||'');
-    if(!name||name.length>100||/[\r\n\x00-\x1f]/.test(name))throw new Error('Enter the child’s name.');
-    if(email.length>254||!/^\S+@[^\s@]+\.[^\s@]+$/.test(email)||/[\r\n,;]/.test(email))throw new Error('Enter one parent email address.');
-    if(!/^\d{1,2}$/.test(age)||Number(age)<s.minAge||Number(age)>s.maxAge)throw new Error(`This group is for ages ${s.minAge}–${s.maxAge}.`);
+    if(!name||name.length>100||/[\r\n\x00-\x1f]/.test(name))throw new Error(s.audience==='women'?'Enter the player’s name.':'Enter the child’s name.');
+    if(email.length>254||!/^\S+@[^\s@]+\.[^\s@]+$/.test(email)||/[\r\n,;]/.test(email))throw new Error(s.audience==='women'?'Enter one email address for your confirmation.':'Enter one parent email address.');
+    if(!T.validAge(s,age))throw new Error(s.minAge===null?'Enter the player’s age as a whole number.':`This group is for ages ${s.minAge}–${s.maxAge}.`);
     if(!Object.hasOwn(experience,values.experience))throw new Error('Choose an experience level, or Not sure yet.');
     return {version:selected.type==='pass4'?'SS-PASS-V1':'SS-WEEKLY-V2',sessionId:s.id,type:selected.type,name,email,age:Number(age),experience:experience[values.experience]};
   }

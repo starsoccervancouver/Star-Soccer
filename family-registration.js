@@ -6,7 +6,7 @@
     const suffix=root.crypto?.randomUUID?root.crypto.randomUUID().toUpperCase():Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,10).toUpperCase();
     return prefix+suffix.slice(0,43-prefix.length);
   }
-  function mount(form,{minAge,maxAge,experience=false,onChange=()=>{}}={}){
+  function mount(form,{minAge,maxAge,nameLabel='Child’s name',experience=false,onChange=()=>{}}={}){
     const doc=form.ownerDocument,records=[],savedDisabled=new Map();let locked=false,serial=1;
     const primary={key:'player-1',state:'pending',reference:'',name:form.elements.namedItem('Player name'),age:form.elements.namedItem('Player age'),experience:form.elements.namedItem('Experience'),notes:form.elements.namedItem('Notes')};
     if(!primary.name||!primary.age)throw new Error('Player fields are required.');
@@ -31,7 +31,7 @@
       const index=++serial,key='player-'+index,fieldset=doc.createElement('fieldset');fieldset.className='family-player';
       const legend=doc.createElement('legend');legend.textContent='Additional player';fieldset.append(legend);
       const row=doc.createElement('div');row.className='quick-player-row';
-      const name=input('Child’s name','text','name',key+'-name'),age=input('Age','number','age',key+'-age');row.append(name.label,age.label);fieldset.append(row);
+      const name=input(nameLabel,'text','name',key+'-name'),age=input('Age','number','age',key+'-age');row.append(name.label,age.label);fieldset.append(row);
       let exp=null;
       if(experience){const label=doc.createElement('label');label.textContent='Soccer experience';exp=primary.experience.cloneNode(true);exp.removeAttribute('name');exp.id=key+'-experience';exp.value='';label.append(exp);fieldset.append(label);}
       const notes=input('Note for this player (optional)','textarea','notes',key+'-notes');fieldset.append(notes.label);
@@ -46,7 +46,7 @@
       const seen=new Set();
       for(const p of records){
         p.name.setCustomValidity('');const name=p.name.value.trim(),key=name.normalize('NFC').toLocaleLowerCase();
-        if(!name||/[\r\n\x00-\x1f]/.test(name))p.name.setCustomValidity('Enter the child’s name.');
+        if(!name||/[\r\n\x00-\x1f]/.test(name))p.name.setCustomValidity(nameLabel==='Child’s name'?'Enter the child’s name.':'Enter the player’s name.');
         else if(seen.has(key))p.name.setCustomValidity('Use each player’s full name so the coaching team can tell them apart.');
         seen.add(key);
       }

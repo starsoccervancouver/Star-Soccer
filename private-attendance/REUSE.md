@@ -35,3 +35,12 @@ The reusable package includes coach notes, shared plans, staff roles, dated rost
 Do not change its Worker name, Durable Object migration/namespace, Google redirect, approved owner or protected Airtable mapping. Its unset new identity variables deliberately retain the established Star Soccer defaults. Its existing parent routes remain available. No data migration is required for the branding and coaching-tool release.
 
 The new club’s public site can link directly to `/workspace` on its own coach domain. Keep public marketing pages outside this private application’s deployment, just as Star Soccer’s main site links to Coach Desk. Source edits and live deployment remain separate, reviewable steps.
+
+
+## Tactics and animated drill setups
+
+The session planner includes a private 2D tactics board. Coaches can place generic team markers, cones, balls and goals; duplicate phases; move pieces between phases; and play the movement sequence. Boards belong to a dated session and share its coach assignment permissions. They never use player identities automatically and never update attendance, capacity, parent replies or payment records.
+
+The existing private SQLite store adds the `coach_diagrams` table and session index with `CREATE IF NOT EXISTS` on startup. No existing tables or rows are replaced, no Airtable fields change, and no Cloudflare namespace migration is required. Save/archive operations are audited and use expected versions to reject conflicting edits. Session text plans and diagrams save independently. Unsaved boards and undo history stay in memory and clear on sign-out; nothing is saved to browser storage.
+
+The source-only export includes the board, strict data validator, backend routes and isolated tests. Other clubs receive their own empty store, branding, approved accounts and session assignments. There are no third-party tactics libraries, licensed drill templates, parent messages or additional credentials.

@@ -8,12 +8,12 @@ const repository = fileURLToPath(new URL('../', import.meta.url));
 // Explicit source allowlist. Never recurse through the operating workspace.
 export const SOURCE_FILES = Object.freeze([
   'package.json','pnpm-lock.yaml',
-  ...['airtable-adapter','airtable-roster','airtable-transport','coach-attendance','coach-auth','coach-google-auth','coach-http','coach-store','club-config','deployment-config','migration','owner-auth','owner-overview','preference-adapter','production-http','schema','service','sqlite-store'].map(name=>'private-attendance/'+name+'.mjs'),
+  ...['airtable-adapter','airtable-roster','airtable-transport','coach-attendance','coach-auth','coach-google-auth','coach-http','coach-store','tactics-validation','club-config','deployment-config','migration','owner-auth','owner-overview','preference-adapter','production-http','schema','service','sqlite-store'].map(name=>'private-attendance/'+name+'.mjs'),
   ...['build-assets','production-worker','storage','worker'].map(name=>'private-attendance/cloudflare/'+name+'.mjs'),
-  ...['app.css','coach.html','coach.js','email-preview.html','email-preview.js','landing.html','overview.css','overview.html','overview.js','parent.js','respond.html','workspace.html','workspace.js','workspace.css','workspace-coaching.js','workspace-coaching.css','workspace-dictation.js','workspace-session.js','workspace-session.css'].map(name=>'private-attendance/web/'+name),
+  ...['app.css','coach.html','coach.js','email-preview.html','email-preview.js','landing.html','overview.css','overview.html','overview.js','parent.js','respond.html','workspace.html','workspace.js','workspace.css','workspace-coaching.js','workspace-coaching.css','workspace-dictation.js','workspace-session.js','workspace-session.css','workspace-tactics.js','workspace-tactics.css'].map(name=>'private-attendance/web/'+name),
   ...['manrope-normal-latin.woff2','instrument-serif-italic-latin.woff2','manrope-OFL.txt','instrumentserif-OFL.txt'].map(name=>'fonts/'+name),
-  ...['coach-store.test.cjs','coach-google-auth.test.cjs','coach-google-http.test.cjs','attendance-service.test.cjs','attendance-roster.test.cjs'].map(name=>'tests/'+name),
-  'private-attendance/REUSE.md'
+  ...['coach-store.test.cjs','coach-tactics.test.cjs','coach-tactics-ui.cjs','coach-tactics-integration.cjs','coach-fixture-fonts.cjs','coach-google-auth.test.cjs','coach-google-http.test.cjs','attendance-service.test.cjs','attendance-roster.test.cjs'].map(name=>'tests/'+name),
+  'private-attendance/REUSE.md','private-attendance/TACTICS.md'
 ]);
 
 export async function exportCoachDesk({destination, config}) {
@@ -36,7 +36,7 @@ export async function exportCoachDesk({destination, config}) {
       // for unsupported third-party mailbox claims unchanged, and never relax auth.
       if(path==='tests/coach-google-auth.test.cjs')text=text.replace('email:OWNER_EMAIL,email_verified:true,...overrides',"email:OWNER_EMAIL,email_verified:true,...(!overrides.email?{hd:'example.invalid'}:{}),...overrides");
       if(path==='private-attendance/cloudflare/production-worker.mjs')text=text.replace("this.coachOnly=origin!==STAR_SOCCER_ORIGIN||env.COACH_DESK_ONLY==='true';","this.coachOnly=true;");
-      if(path==='package.json'){const pkg=JSON.parse(text);pkg.name='coach-desk-club-starter';pkg.scripts={test:'node --test tests/*.test.cjs',build:'node private-attendance/cloudflare/build-assets.mjs'};text=JSON.stringify(pkg,null,2)+'\n';}
+      if(path==='package.json'){const pkg=JSON.parse(text);pkg.name='coach-desk-club-starter';pkg.scripts={test:'node --test tests/*.test.cjs','test:tactics:browser':'node tests/coach-tactics-ui.cjs && node tests/coach-tactics-integration.cjs',build:'node private-attendance/cloudflare/build-assets.mjs'};text=JSON.stringify(pkg,null,2)+'\n';}
       body=Buffer.from(text);
     }
     prepared.push({path,body});

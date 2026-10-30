@@ -1,0 +1,68 @@
+/* A lightweight, touch-friendly tactics surface using the club's Coach Desk theme. */
+#tactics-board-tools { min-width: 0; }
+.tactics-intro { max-width: 760px; margin-bottom: 18px; }
+.tactics-kicker { margin: 3px 0 7px; font-size: 21px; font-weight: 750; letter-spacing: -.03em; color: var(--desk-navy-soft, #10263d); }
+.tactics-intro .small { margin: 0; }
+.tactics-library, .tactics-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 13px; align-items: end; }
+.tactics-library { padding: 15px; margin-bottom: 18px; background: #eef2f3; border: 1px solid var(--desk-line, #dce2e4); border-radius: 12px; }
+.tactics-heading { grid-template-columns: minmax(0, 1fr) minmax(160px, 230px); }
+#tactics-board-tools label { display: block; color: var(--desk-muted, #596b78); font-size: 12px; font-weight: 650; }
+#tactics-board-tools input:not([type=checkbox]), #tactics-board-tools select { width: 100%; max-width: 100%; margin: 5px 0 0; min-height: 46px; padding: 10px 11px; border: 1px solid #b9c7d0; border-radius: 8px; color: var(--desk-ink, #162d41); background: #fff; }
+#tactics-board-tools button { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+.tactics-toolbar, .tactics-pieces { display: flex; flex-wrap: wrap; gap: 8px; }
+.tactics-toolbar { margin: 14px 0; align-items: center; }
+.tactics-pieces { flex: 1; }
+.tactics-pieces button { padding: 9px 12px; font-size: 12px; }
+.tactics-pieces [data-piece-kind=home] { background: #ecf6fc; border-color: #8cb8ce; color: #214d67; }
+.tactics-pieces [data-piece-kind=away] { background: #fbf2e5; border-color: #d7b481; color: #644421; }
+.tactics-pieces [data-piece-kind=cone] { color: #7f3d21; }
+.tactics-board-layout { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 16px; align-items: start; }
+.tactics-canvas-wrap { min-width: 0; position: relative; overflow: hidden; border-radius: 13px; border: 1px solid #a8bba1; background: #e6eddf; box-shadow: inset 0 0 0 4px #ffffff45; }
+#tactics-pitch-board { display: block; width: 100%; height: auto; touch-action: none; user-select: none; -webkit-user-select: none; }
+#tactics-pitch-board:focus-visible { outline: 3px solid #316b89; outline-offset: -4px; }
+#tactics-pitch-board [data-tactics-item] { cursor: grab; }
+#tactics-pitch-board [data-tactics-item]:active { cursor: grabbing; }
+#tactics-pitch-board [data-tactics-item]:focus-visible .tactics-hit { stroke: #172d41; stroke-width: 3; stroke-dasharray: 5 4; }
+.tactics-empty-hint { pointer-events: none; position: absolute; top: 50%; left: 12%; right: 12%; transform: translateY(-50%); padding: 15px; border-radius: 12px; background: #f8faf4ef; color: #395440; text-align: center; font-size: 14px; font-weight: 650; box-shadow: 0 3px 14px #243e2510; }
+.tactics-piece-panel { min-width: 0; display: grid; gap: 10px; }
+.tactics-piece-panel .small { font-size: 11px; margin: 0; }
+.tactics-nudge { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tactics-nudge button { padding: 8px 6px; font-size: 12px; }
+#tactics-board-tools .tactics-check { display: flex; align-items: center; gap: 9px; min-height: 44px; font-size: 12px; }
+#tactics-board-tools .tactics-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--desk-navy-soft, #10263d); flex: 0 0 auto; }
+.tactics-board-help { margin: 10px 0 20px; color: var(--desk-muted, #596b78); font-size: 11px; line-height: 1.65; }
+.tactics-phases { padding: 17px; border: 1px solid var(--desk-line, #dce2e4); border-radius: 12px; background: #f8f8f5; }
+.tactics-phase-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 13px; }
+.tactics-phase-heading h3 { font-size: 16px; margin: 0; }
+.tactics-phase-heading .small { font-size: 11px; }
+.tactics-frame-list { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+.tactics-frame-list button { flex: 0 1 auto; max-width: 100%; font-size: 12px; padding: 9px 12px; }
+.tactics-frame-list [aria-pressed=true] { background: var(--desk-navy-soft, #10263d); border-color: var(--desk-navy-soft, #10263d); color: #fff; }
+.tactics-frame-settings { display: grid; grid-template-columns: minmax(0, 1fr) 165px; gap: 12px; }
+.tactics-playback { padding-top: 14px; border-top: 1px solid var(--desk-line, #dce2e4); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tactics-playback .small { flex: 1 1 150px; font-size: 12px; margin-left: 4px; }
+.tactics-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 16px; }
+.tactics-footer .tactics-toolbar { margin-bottom: 6px; }
+.tactics-status { flex-basis: 100%; margin: 10px 0 2px; font-size: 12px; color: var(--desk-green, #21664e); overflow-wrap: anywhere; }
+.tactics-status.tactics-error { color: var(--desk-red, #923f35); }
+@media (max-width: 1050px) {
+  .tactics-board-layout { grid-template-columns: minmax(0, 1fr); }
+  .tactics-piece-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 13px; align-items: end; }
+  .tactics-nudge { grid-row: span 2; }
+  .tactics-piece-panel #tactics-coordinate { align-self: start; }
+}
+@media (max-width: 520px) {
+  .tactics-piece-art { transform: scale(1.5); transform-origin: 0 0; }
+  .tactics-library, .tactics-heading, .tactics-frame-settings { grid-template-columns: minmax(0, 1fr); }
+  .tactics-library { padding: 12px; }
+  .tactics-kicker { font-size: 19px; }
+  .tactics-pieces button { flex: 1 1 95px; font-size: 11px; padding: 9px 7px; }
+  .tactics-pieces button:last-child { flex-grow: 0; }
+  .tactics-empty-hint { font-size: 11px; padding: 9px; left: 7%; right: 7%; }
+  .tactics-phases { padding: 12px; }
+  .tactics-playback button, .tactics-footer .tactics-toolbar > button { flex: 1 1 90px; padding: 10px; font-size: 12px; }
+  .tactics-footer > .tactics-toolbar { width: 100%; }
+  .tactics-frame-list button { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { #tactics-board-tools * { scroll-behavior: auto; } }
+@media print { #tactics-board-tools { display: none !important; } }

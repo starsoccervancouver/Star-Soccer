@@ -1,4 +1,5 @@
 import {randomBytes} from 'node:crypto';
+import {validateDiagram} from './tactics-validation.mjs';
 export const OWNER_EMAIL='starsoccervancouver@gmail.com';
 export class CoachError extends Error{constructor(code,status=400){super(code);this.code=code;this.status=status;}}
 export const deny=(code='ACCESS_DENIED',status=403)=>{throw new CoachError(code,status);};
@@ -12,6 +13,8 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
  CREATE TABLE IF NOT EXISTS coach_assignments(email TEXT NOT NULL REFERENCES coach_users(email),session_id TEXT NOT NULL,assigned_by TEXT NOT NULL,PRIMARY KEY(email,session_id));
  CREATE TABLE IF NOT EXISTS coach_notes(id TEXT PRIMARY KEY,author_email TEXT NOT NULL REFERENCES coach_users(email),player_id TEXT,session_id TEXT,category TEXT NOT NULL,body TEXT NOT NULL,review_date TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,version INTEGER NOT NULL,archived INTEGER NOT NULL DEFAULT 0);
  CREATE TABLE IF NOT EXISTS coach_plans(session_id TEXT PRIMARY KEY,content TEXT NOT NULL,updated_by TEXT NOT NULL,updated_at TEXT NOT NULL,version INTEGER NOT NULL);
+ CREATE TABLE IF NOT EXISTS coach_diagrams(id TEXT PRIMARY KEY,session_id TEXT NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,created_by TEXT NOT NULL,updated_by TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,version INTEGER NOT NULL,archived INTEGER NOT NULL DEFAULT 0);
+ CREATE INDEX IF NOT EXISTS coach_diagrams_session ON coach_diagrams(session_id,archived);
  CREATE TABLE IF NOT EXISTS coach_tasks(id TEXT PRIMARY KEY,author_email TEXT NOT NULL,session_id TEXT,title TEXT NOT NULL,due_date TEXT,status TEXT NOT NULL,version INTEGER NOT NULL,created_at TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_audit(id TEXT PRIMARY KEY,actor_email TEXT NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,occurred_at TEXT NOT NULL,detail TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_attendance_commands(id TEXT PRIMARY KEY,actor_email TEXT NOT NULL,session_id TEXT NOT NULL,attendance_id TEXT NOT NULL,payload TEXT NOT NULL,state TEXT NOT NULL,created_at TEXT NOT NULL);`);
@@ -37,6 +40,35 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
   plan(actor,sessionId){api.requireSession(actor,sessionId);const p=store.get('SELECT * FROM coach_plans WHERE session_id=?',sessionId);return p?{...p,content:JSON.parse(p.content)}:{session_id:sessionId,version:0,content:{}};},
   savePlan(actor,{sessionId,content,expectedVersion}){api.requireSession(actor,sessionId);if(!content||typeof content!=='object'||Array.isArray(content)||Object.keys(content).some(k=>!['focus','warmup','technical','game','equipment','reflection'].includes(k))||Object.values(content).some(v=>typeof v!=='string'||v.length>2000||/[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(v)))deny('INVALID_PLAN',400);return store.transaction(()=>{const old=api.plan(actor,sessionId);if(old.version!==expectedVersion)deny('PLAN_CHANGED',409);store.run('INSERT INTO coach_plans VALUES(?,?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET content=excluded.content,updated_by=excluded.updated_by,updated_at=excluded.updated_at,version=excluded.version',sessionId,JSON.stringify(content),actor.email,stamp(),old.version+1);audit(actor,'plan-updated',sessionId,{version:old.version+1});return api.plan(actor,sessionId);});},
   tasks(actor){const full=api.full(actor);return store.all('SELECT * FROM coach_tasks ORDER BY status,due_date,created_at').filter(t=>full||t.author_email===actor.email);},
+  diagrams(actor,sessionId){api.requireSession(actor,sessionId);return store.all('SELECT id,session_id,title,content,created_by,updated_by,created_at,updated_at,version FROM coach_diagrams WHERE session_id=? AND archived=0 ORDER BY updated_at DESC,id',sessionId).map(row=>({...row,content:JSON.parse(row.content)}));},
+  saveDiagram(actor,{id=null,sessionId,title,content,expectedVersion=0}){
+   api.requireSession(actor,sessionId);title=txt(title,80);content=validateDiagram(content);
+   if(!Number.isSafeInteger(expectedVersion)||expectedVersion<0||id!==null&&(typeof id!=='string'||!/^diagram_[A-Za-z0-9_-]{27}$/.test(id)))deny('INVALID_DIAGRAM',400);
+   return store.transaction(()=>{
+    const old=id?store.get('SELECT * FROM coach_diagrams WHERE id=?',id):null;
+    if(id&&(!old||old.session_id!==sessionId))deny();
+    if(old?.archived)deny('DIAGRAM_ARCHIVED',409);
+    if((old?.version||0)!==expectedVersion)deny('DIAGRAM_CHANGED',409);
+    if(!old&&store.get('SELECT COUNT(*) AS count FROM coach_diagrams WHERE session_id=? AND archived=0',sessionId).count>=20)deny('DIAGRAM_LIMIT',409);
+    id=old?.id||token('diagram_');const at=stamp();
+    if(old)store.run('UPDATE coach_diagrams SET title=?,content=?,updated_by=?,updated_at=?,version=version+1 WHERE id=?',title,JSON.stringify(content),actor.email,at,id);
+    else store.run('INSERT INTO coach_diagrams VALUES(?,?,?,?,?,?,?,?,1,0)',id,sessionId,title,JSON.stringify(content),actor.email,actor.email,at,at);
+    audit(actor,old?'diagram-updated':'diagram-created',id,{sessionId,version:(old?.version||0)+1});
+    return api.diagrams(actor,sessionId).find(row=>row.id===id);
+   });
+  },
+  archiveDiagram(actor,{id,sessionId,expectedVersion}){
+   api.requireSession(actor,sessionId);
+   if(typeof id!=='string'||!/^diagram_[A-Za-z0-9_-]{27}$/.test(id)||!Number.isSafeInteger(expectedVersion)||expectedVersion<1)deny('INVALID_DIAGRAM',400);
+   return store.transaction(()=>{
+    const old=store.get('SELECT * FROM coach_diagrams WHERE id=?',id);
+    if(!old||old.session_id!==sessionId)deny();
+    if(old.archived)deny('DIAGRAM_ARCHIVED',409);
+    if(old.version!==expectedVersion)deny('DIAGRAM_CHANGED',409);
+    store.run('UPDATE coach_diagrams SET archived=1,updated_by=?,updated_at=?,version=version+1 WHERE id=?',actor.email,stamp(),id);
+    audit(actor,'diagram-archived',id,{sessionId,version:old.version+1});return {saved:true};
+   });
+  },
   saveTask(actor,{id=null,title,sessionId=null,dueDate=null,status='open',expectedVersion=0}){if(sessionId)api.requireSession(actor,sessionId);title=txt(title,250);if(!['open','done'].includes(status)||dueDate!==null&&(!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)||new Date(dueDate+'T00:00:00Z').toISOString().slice(0,10)!==dueDate))deny('INVALID_TASK',400);return store.transaction(()=>{const old=id?store.get('SELECT * FROM coach_tasks WHERE id=?',id):null;if(id&&(!old||!api.full(actor)&&old.author_email!==actor.email))deny();if((old?.version||0)!==expectedVersion)deny('TASK_CHANGED',409);id=old?.id||token('task_');if(old)store.run('UPDATE coach_tasks SET title=?,due_date=?,status=?,version=version+1 WHERE id=?',title,dueDate,status,id);else store.run('INSERT INTO coach_tasks VALUES(?,?,?,?,?,?,1,?)',id,actor.email,sessionId,title,dueDate,status,stamp());audit(actor,'task-saved',id,{status});return api.tasks(actor);});},
   audit(actor){if(!api.full(actor))deny();return store.all('SELECT id,actor_email,action,target,occurred_at,detail FROM coach_audit ORDER BY occurred_at DESC LIMIT 100');},
   recordAudit:audit

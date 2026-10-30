@@ -12,6 +12,8 @@ module.exports = function addCoachFixtureFonts(assets) {
     ['/workspace/assets/coaching.css', 'workspace-coaching.css', 'text/css'],
     ['/workspace/assets/session.js', 'workspace-session.js', 'text/javascript'],
     ['/workspace/assets/session.css', 'workspace-session.css', 'text/css'],
+    ['/workspace/assets/tactics.js', 'workspace-tactics.js', 'text/javascript'],
+    ['/workspace/assets/tactics.css', 'workspace-tactics.css', 'text/css'],
   ]) {
     const location = path.join(__dirname, '..', 'private-attendance', 'web', file);
     if (fs.existsSync(location)) assets[url] = { body: fs.readFileSync(location, 'utf8'), type };

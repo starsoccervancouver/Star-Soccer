@@ -105,6 +105,7 @@
     }
     target.append(agenda);
     if (campCards.children.length) target.append(camps);
+    window.CoachViews?.mount(target, 'overview', { groups, locked:!!context.busy, onOpen:sessionId => emit('coach:open-session', { sessionId, tab:'plan', workspaceView:'attendance' }) });
     if (!groups.length) target.append(empty('No assigned training groups are available.'));
     const due = (context.notes || []).filter(note => validDate(note.review_date) && note.review_date <= start);
     if (due.length && !$('home-priorities')) {

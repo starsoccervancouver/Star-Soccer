@@ -59,3 +59,4 @@ jobs:
           node tests/coach-folders-ui.cjs
           node tests/coach-group-workspace-ui.cjs
           node tests/coach-camps-ui.cjs
+          node tests/coach-views-ui.cjs

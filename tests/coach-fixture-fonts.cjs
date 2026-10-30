@@ -9,6 +9,8 @@ module.exports = function addCoachFixtureFonts(assets) {
   for (const [url, file, type] of [
     ['/workspace/assets/folders.js', 'workspace-folders.js', 'text/javascript'],
     ['/workspace/assets/folders.css', 'workspace-folders.css', 'text/css'],
+    ['/workspace/assets/views.js', 'workspace-views.js', 'text/javascript'],
+    ['/workspace/assets/views.css', 'workspace-views.css', 'text/css'],
     ['/workspace/assets/groups.js', 'workspace-groups.js', 'text/javascript'],
     ['/workspace/assets/library.js', 'workspace-library.js', 'text/javascript'],
     ['/workspace/assets/library.css', 'workspace-library.css', 'text/css'],

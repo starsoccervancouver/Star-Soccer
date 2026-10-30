@@ -155,6 +155,7 @@
     $('planner-open-selected').disabled = locked() || !selected;
     for (const id of ['planner-open-notes', 'planner-open-tools', 'planner-open-run']) $(id).disabled = locked() || !selected;
     if (readOnly()) for (const id of ['planner-open-tools', 'planner-open-run']) $(id).disabled = true;
+    window.CoachViews?.mount($('planner-session-browser'), 'training', { groups, locked:locked(), onOpen:sessionId => requestSession(sessionId) });
     renderFocus();
   }
 

@@ -37,15 +37,16 @@
   const band = filter('Suggested ages', 'preset-ages', [['','All ages'],['young','Younger · 5–9'],['middle','Developing · 8–12'],['older','Older · 12–14']]);
   const phase = filter('Session phase', 'preset-phase', [['','Every phase'], ...Object.entries(phases)]);
   const count = make('p', '', 'small'); count.id = 'preset-results'; count.setAttribute('aria-live', 'polite');
-  const grid = make('div', '', 'library-preset-grid'); collection.append(filters, count, grid, make('p', 'Ages, timings and TPD prompts are coaching suggestions. Check the published age band and adapt space, numbers and challenge for the players present. Source pages hold the original activities; these notes do not imply endorsement.', 'preset-footnote small')); mount.after(collection);
+  const grid = make('div', '', 'library-preset-grid'); collection.append(filters, count, grid, make('p', 'Ages, timings and TPD prompts are coaching suggestions. Check the published age band and adapt space, numbers and challenge for the players present. Source pages hold the original activities; these notes do not imply endorsement.', 'preset-footnote small')); (mount.parentElement.querySelector('.library-filters') || mount).before(collection);
   const cards = []; let enabled = false, introduced = false;
   function paragraph(card, label, text) { const p = make('p'); p.append(make('strong', label + ' '), document.createTextNode(text)); card.append(p); }
   for (const row of rows) {
     const [publisher, title, activity, sourceAges, url] = sources[row.source];
+    const playerLabel = row.players.replace(/^([0-9–]+)/, '$1 players');
     const card = make('details', '', 'library-preset'); card.dataset.presetId = row.id;
     const summary = make('summary'), meta = make('span', '', 'preset-meta');
     meta.append(make('span', phases[row.target], 'preset-phase')); if (row.isNew) meta.append(make('span', 'New idea', 'preset-new'));
-    summary.append(meta, make('strong', row.title, 'preset-title'), make('span', `Ages ${row.ages} · ${row.minutes} min`, 'small'), make('span', row.players + ' players', 'small')); card.append(summary);
+    summary.append(meta, make('strong', row.title, 'preset-title'), make('span', `Ages ${row.ages} · ${row.minutes} min`, 'small'), make('span', playerLabel, 'small')); card.append(summary);
     paragraph(card, 'Focus:', row.skill); paragraph(card, 'Equipment:', row.equipment); paragraph(card, 'Source setup:', row.setup); paragraph(card, 'Our adaptation:', row.adapt);
     const cues = make('div', '', 'preset-tpd'); for (const [label, text] of [['Technical Intelligence',row.t],['Perception',row.p],['Decision Making',row.d]]) paragraph(cues, label + ':', text); card.append(cues);
     paragraph(card, 'Ask the players:', row.reflection);
@@ -54,13 +55,13 @@
     use.addEventListener('click', () => {
       if (!enabled || use.disabled) return;
       const attribution = `${publisher}: ${title} — ${activity}. Published ages: ${sourceAges}.\n${url}`;
-      const drill = {title:row.title,skill:row.skill,minutes:row.minutes,target:row.target,equipment:row.equipment,setup:`Suggested ages ${row.ages}; ${row.players} players.\nSource setup (paraphrased): ${row.setup}\n\nSource: ${attribution}`,coaching:`Technical Intelligence: ${row.t}\nPerception: ${row.p}\nDecision Making: ${row.d}\nAsk the players: ${row.reflection}`,progression:'Our suggested adaptation: ' + row.adapt};
+      const drill = {title:row.title,skill:row.skill,minutes:row.minutes,target:row.target,equipment:row.equipment,setup:`Suggested ages ${row.ages}; ${playerLabel}.\nSource setup (paraphrased): ${row.setup}\n\nSource: ${attribution}`,coaching:`Technical Intelligence: ${row.t}\nPerception: ${row.p}\nDecision Making: ${row.d}\nAsk the players: ${row.reflection}`,progression:'Our suggested adaptation: ' + row.adapt};
       window.dispatchEvent(new CustomEvent('coach:library-prefill', {detail:{source:'starter',drill}}));
     }); card.append(use); grid.append(card); cards.push({row,card,use});
   }
   function render() { let visible = 0; for (const {row,card} of cards) { card.hidden = !!(band.value && row.band !== band.value || phase.value && row.target !== phase.value); if (!card.hidden) visible++; } count.textContent = visible ? `${visible} ${visible === 1 ? 'practice' : 'practices'} · Preview, adapt and save to your library.` : 'No practices match both filters. Try another age group or session phase.'; }
   band.addEventListener('change', render); phase.addEventListener('change', render); render();
-  window.addEventListener('coach:library-state', event => { enabled = !!event.detail?.starterEnabled; for (const {use} of cards) use.disabled = !enabled; if (event.detail?.loaded && !introduced) { introduced = true; collection.open = true; } });
+  window.addEventListener('coach:library-state', event => { enabled = !!event.detail?.starterEnabled; for (const {use} of cards) use.disabled = !enabled; if (event.detail?.loaded && !introduced) { introduced = true; collection.open = event.detail.count === 0; } });
   window.addEventListener('coach:context', event => { if (!event.detail?.profile) { enabled = introduced = false; collection.open = false; band.value = phase.value = ''; for (const {card,use} of cards) { card.open = false; use.disabled = true; } render(); } });
   window.dispatchEvent(new Event('coach:request-context'));
 })();

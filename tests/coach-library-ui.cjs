@@ -23,6 +23,7 @@ assets['/workspace/assets/passkeys.js'] = { body: '', type: 'text/javascript' };
 require('./coach-fixture-fonts.cjs')(assets);
 
 (async () => {
+  const [{ validatePlanContent }, { validateDiagram }] = await Promise.all([import('../private-attendance/plan-blocks.mjs'), import('../private-attendance/tactics-validation.mjs')]);
   const browser = await chromium.launch(); let checks = 0;
   try {
     async function fixture({ role = 'owner', width = 1365, standalone = false, noSessions = false } = {}) {
@@ -128,6 +129,31 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert.equal(kept.id, null); assert.equal(kept.expectedVersion, 0); assert.deepEqual(kept.diagram, original.diagram);
     assert.equal(copies.state.drills.find(d => d.id === original.id).title, 'Updated latest drill'); await clean(copies); checks++;
 
+    const ideas = await fixture({ width: 390 }); await open(ideas);
+    let longestInstructions = 0;
+    for (const source of ['preset', 'starter']) {
+      await ideas.page.locator('#library-source-filter').selectOption(source); await ideas.page.locator('#library-more').click();
+      const cards = ideas.page.locator('#library-list .library-card'); assert.equal(await cards.count(), 10);
+      await ideas.page.evaluate(() => CoachPlanBlocks.discard());
+      for (let index = 0; index < 10; index++) {
+        await ideas.page.evaluate(() => CoachTactics.discard());
+        const title = await cards.nth(index).locator('h3').innerText();
+        await cards.nth(index).locator('[data-insert=true]').click();
+        const activities = await ideas.page.evaluate(() => CoachPlanBlocks.content());
+        assert.equal(activities.length, index + 1, source + ': ' + title + ' appends to the primary sequence');
+        const activity = activities.at(-1); assert.equal(activity.title, title); assert.match(activity.instructions, new RegExp('\\(' + activity.duration + ' min\\)'));
+        assert.deepEqual(validatePlanContent({ activities }), { activities }); longestInstructions = Math.max(longestInstructions, activity.instructions.length);
+        const tactics = await ideas.page.evaluate(() => CoachTactics.getDraft());
+        assert.equal(tactics.title, title); assert(tactics.diagram.items.length > 0); assert.deepEqual(validateDiagram(tactics.diagram), tactics.diagram);
+        assert(await ideas.page.evaluate(() => CoachTactics.isDirty()));
+        assert.equal(await ideas.page.locator('#plan-technical').inputValue(), 'Saved receiving activity', 'Supporting notes are preserved');
+        if (source === 'preset') assert.match(activity.instructions, /https:\/\/(www\.fifatrainingcentre\.com|learn\.englandfootball\.com)\//);
+      }
+    }
+    assert.equal(count(ideas, '/plans/save') + count(ideas, '/diagrams/save') + count(ideas, '/drills/save'), 0, 'All 20 direct additions remain unsaved drafts');
+    console.log('All 20 library ideas insert valid primary activities and separate original tactics drafts; longest combined instructions: ' + longestInstructions + ' / 2000 characters.');
+    await clean(ideas); checks++;
+
     const attached = await fixture(); await open(attached);
     await attached.page.locator('#tactics-add-home').click(); await fill(attached, 'Diagram drill');
     await attached.page.locator('#library-attach-diagram').click();
@@ -141,18 +167,19 @@ require('./coach-fixture-fonts.cjs')(assets);
     const diagramCard = attached.page.locator('#library-list .library-card').filter({hasText:'Diagram drill'});
     assert.equal(await diagramCard.locator('svg').count(), 1);
     await diagramCard.locator('[data-insert=true]').click();
-    assert.match(await attached.page.locator('#plan-technical').inputValue(), /Diagram drill/);
+    assert.match(await attached.page.locator('#plan-block-0-instructions').inputValue(), /Diagram drill/);
     assert.equal(await attached.page.evaluate(() => CoachTactics.getDraft().diagram.items.length), 1);
     assert.equal(count(attached, '/diagrams/save'), 0, 'Adding a diagram is an explicit draft, not a server write');
-    const insertedText = await attached.page.locator('#plan-technical').inputValue();
+    const insertedActivities = await attached.page.evaluate(() => CoachPlanBlocks.content());
     await diagramCard.locator('[data-insert=true]').click();
-    assert.equal(await attached.page.locator('#plan-technical').inputValue(), insertedText, 'Declining diagram replacement also leaves plan text unchanged');
+    assert.deepEqual(await attached.page.evaluate(() => CoachPlanBlocks.content()), insertedActivities, 'Declining diagram replacement also leaves the activity sequence unchanged');
     await diagramCard.getByRole('button',{name:'Edit drill',exact:true}).click();
     await attached.page.locator('#library-remove-diagram').click();
     assert.equal(await attached.page.evaluate(() => CoachLibrary.isDirty()), true, 'Removing only a diagram protects the unsaved draft');
     await clean(attached); checks++;
 
     const f = await fixture(); assert.equal(count(f, '/drills/list'), 0, 'Closed archive makes no server request'); await open(f);
+    await f.page.locator('#library-source-filter').selectOption('saved');
     assert.equal(count(f, '/drills/list'), 1); assert.equal(await f.page.locator('#library-list .library-card').count(), 8);
     await f.page.locator('#library-more').click(); assert.equal(await f.page.locator('#library-list .library-card').count(), 10);
     await f.page.locator('#library-search').fill('Unique finishing'); assert.equal(await f.page.locator('#library-list .library-card').count(), 1);
@@ -167,8 +194,8 @@ require('./coach-fixture-fonts.cjs')(assets);
     await f.page.evaluate(() => window.dispatchEvent(new CustomEvent('coach:request-context')));
     assert.equal(await f.page.evaluate(() => fixtureSuggestionNode === document.querySelector('#library-recommendations > article')), true, 'Unchanged context does not rebuild suggestions');
     await recommendations.getByRole('button', { name: /Add suggestion/ }).click();
-    assert.match(await f.page.locator('#plan-technical').inputValue(), /Look, receive, choose/);
-    assert.doesNotMatch(await f.page.locator('#plan-technical').inputValue(), /PRIVATE_|Fictional Sam|Scanning keyword/);
+    assert.match(await f.page.locator('#plan-block-0-instructions').inputValue(), /Look, receive, choose/);
+    assert.doesNotMatch(await f.page.locator('#plan-block-0-instructions').inputValue(), /PRIVATE_|Fictional Sam|Scanning keyword/);
     assert.equal(count(f, '/plans/save'), 0, 'Adding a suggestion only changes the plan draft');
     await f.page.locator('#library-note-scope').selectOption(sam.playerId);
     assert.match(await recommendations.innerText(), /From your saved library · Passing keywords/); assert.doesNotMatch(await recommendations.innerText(), /PRIVATE_|Scanning keyword|Defending keyword/);

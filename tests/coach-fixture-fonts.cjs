@@ -10,6 +10,8 @@ module.exports = function addCoachFixtureFonts(assets) {
     ...['blocks','status','starters','presets'].flatMap(name=>['js','css'].map(ext=>['/workspace/assets/'+name+'.'+ext,'workspace-'+name+'.'+ext,ext==='js'?'text/javascript':'text/css'])),
     ['/workspace/assets/resources.js', 'workspace-resources.js', 'text/javascript'],
     ['/workspace/assets/resources.css', 'workspace-resources.css', 'text/css'],
+    ['/workspace/assets/navigation.js', 'workspace-navigation.js', 'text/javascript'],
+    ['/workspace/assets/goals.js', 'workspace-goals.js', 'text/javascript'],
     ['/workspace/assets/profiles.js', 'workspace-profiles.js', 'text/javascript'],
     ['/workspace/assets/profiles.css', 'workspace-profiles.css', 'text/css'],
     ['/workspace/assets/folders.js', 'workspace-folders.js', 'text/javascript'],

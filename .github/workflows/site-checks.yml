@@ -53,6 +53,8 @@ jobs:
           node tests/coach-focus-planner-ui.cjs
           node tests/coach-library-ui.cjs
           node tests/coach-profiles-ui.cjs
+          node tests/coach-goals-ui.cjs
+          node tests/coach-navigation-ui.cjs
           node tests/coach-resources-ui.cjs
           node tests/coachdesk-bundle-ui.cjs
           node tests/coach-mobile-entry-ui.cjs

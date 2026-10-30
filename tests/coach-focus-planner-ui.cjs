@@ -91,7 +91,7 @@ assets['/workspace/assets/library.css']={body:'',type:'text/css'};
   checks++;
 
   f.state.delaySave=true;await f.page.locator('#plan-focus').fill('Save this fictional session');
-  assert.equal(await f.page.locator('#planner-save').innerText(),'Save changes');
+  assert.equal(await f.page.locator('#planner-save').innerText(),'Save shared plan');
   assert.equal(await f.page.locator('#plan-form button[type="submit"]').isVisible(),true,'Footer save remains available');
   await f.page.locator('#planner-save').click();await f.page.waitForFunction(()=>document.getElementById('planner-home').disabled);
   assert.equal(f.requests.filter(r=>r.path.endsWith('/plans/save')).length,1,'Top action submits the existing plan form exactly once');
@@ -129,10 +129,18 @@ assets['/workspace/assets/library.css']={body:'',type:'text/css'};
   checks++;
 
   for(const width of [1365,390,320]){
-   await f.page.setViewportSize({width,height:900});
+   await f.page.setViewportSize({width,height:width===390?844:900});
+   await f.page.evaluate(()=>window.scrollTo(0,0));
    assert(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'No horizontal overflow at '+width);
    for(const id of ['planner-back','planner-home','planner-focus-date','planner-save','planner-open-notes','planner-open-tools','planner-open-run'])assert((await f.page.locator('#'+id).boundingBox()).height>=44,id+' touch target');
    assert.equal(await f.page.locator('#plan-focus').evaluate(el=>getComputedStyle(el).fontSize),'16px');
+   if(width===390){
+    const input=await f.page.locator('#plan-focus').boundingBox(),add=await f.page.locator('#plan-add-activity').boundingBox();
+    assert(input.y<500,'Session focus is reachable in the first phone viewport: '+input.y);
+    assert(add.y+add.height<760,'Primary activity action is reachable without scrolling: '+add.y);
+    assert.equal(await f.page.locator('#plan-supporting-notes').evaluate(el=>el.open),false,'Supporting notes start collapsed');
+    console.log('Phone planner geometry: focus '+Math.round(input.y)+'px, add activity '+Math.round(add.y)+'px at 390 × 844.');
+   }
    if(process.env.COACH_FOCUS_SCREENSHOT_DIR){fs.mkdirSync(process.env.COACH_FOCUS_SCREENSHOT_DIR,{recursive:true});await f.page.screenshot({path:require('node:path').join(process.env.COACH_FOCUS_SCREENSHOT_DIR,'coach-focus-'+width+'.png'),fullPage:true});}
   }
   await f.page.locator('#planner-home').click();await f.page.locator('#logout').click();await f.page.locator('#login').waitFor({state:'visible'});

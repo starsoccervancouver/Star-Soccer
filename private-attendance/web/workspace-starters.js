@@ -1,7 +1,7 @@
-/* Original public starter ideas. Selecting one only fills the existing unsaved drill editor. */
+/* Original starter ideas for the unified library. No persistence or network operations. */
 (() => {
   'use strict';
-  const mount=document.getElementById('library-more'); if(!mount)return;
+  if (!window.CoachLibrary) return;
   const rows=[
     ['Island parking','Ball control',5,8,'4–12',8,'warmup','One ball each; flat cones.','Scatter large cone islands inside a roomy square. Players dribble between islands and stop their ball beside a free island on a signal. Restart with a different route.','Keep the ball near your feet and look for free space. Leave room around each island.','Use fewer islands with space for two players; ask each pair to choose different exits.'],
     ['Mirror the leader','Coordination',5,8,'4–12',8,'warmup','One ball per pair; cones.','Give each pair a wide lane. A leader moves slowly with a ball while a partner mirrors the route from a safe distance. Swap after 30 seconds.','Change direction gradually. The follower watches the leader without crowding.','Give both partners a ball, or try the movement without balls first.'],
@@ -14,17 +14,23 @@
     ['Switch the point','Width',10,14,'8–14',12,'game','Balls; bibs; four cone targets.','Play a small-sided game with two wide cone targets at each end. Score by passing through either attacking target. Restart from the defending end after a score.','Look across the pitch when one side becomes crowded. Support behind the ball as well as ahead.','Add a neutral player, or require the team to try a different target after each score.'],
     ['Recover and reconnect','Transition',11,14,'6–12',12,'game','Balls; two colours of bibs; boundary cones.','Play a possession game in a generous rectangle. After losing the ball, the nearest player slows the new ball carrier while teammates recover into useful supporting positions. Pause briefly to show a clear example, then restart.','Communicate early and recover under control. Keep contact appropriate to the group.','Give the new team a short unopposed restart if immediate pressure makes the game too difficult.'],
   ];
-  const make=(tag,text,cls='')=>{const el=document.createElement(tag);el.textContent=text;el.className=cls;return el;};
-  const collection=make('details','','library-starters');collection.id='library-starters';collection.append(make('summary','Starter drill collection · 10 ideas'),make('p','Original starting points for ages 5–14. Adapt the space, numbers and challenge to your group. Preview an idea, then choose Use as draft.','small'));
-  const grid=make('div','','library-starter-grid');collection.append(grid);mount.after(collection);
-  for(const [title,skill,minAge,maxAge,players,minutes,target,equipment,setup,coaching,progression] of rows){
-    const card=make('details','','library-starter'),summary=make('summary','');summary.append(make('strong',title),make('span',`Ages ${minAge}–${maxAge} · ${players} players · ${minutes} min`,'small'));card.append(summary);
-    for(const [name,text] of [['Focus',skill],['Equipment',equipment],['Setup',setup],['Coach',coaching],['Adapt',progression]])card.append(make('p',name+': '+text));
-    const use=make('button','Use as draft','secondary');use.type='button';use.disabled=true;use.dataset.starterTitle=title;
-    use.addEventListener('click',()=>{if(use.disabled)return;window.dispatchEvent(new CustomEvent('coach:library-prefill',{detail:{source:'starter',drill:{title,skill,minutes,target,equipment,setup:`Ages ${minAge}–${maxAge}; ${players} players.\n${setup}`,coaching,progression}}}));});card.append(use);grid.append(card);
-  }
-  let introduced=false;
-  window.addEventListener('coach:library-state',event=>{for(const button of grid.querySelectorAll('button'))button.disabled=!event.detail?.starterEnabled;if(event.detail?.loaded&&!introduced){introduced=true;collection.open=event.detail.count===0;}});
-  window.addEventListener('coach:context',event=>{if(!event.detail?.profile){introduced=false;collection.open=false;for(const card of grid.querySelectorAll('details'))card.open=false;}});
-  window.dispatchEvent(new Event('coach:request-context'));
+  // Original schematic positions; adapt spacing to the players present.
+  const positions = [
+    [['cone',25,25],['cone',70,30],['cone',50,75],['home',20,50],['home',65,65],['ball',25,50],['ball',70,65]],
+    [['home',40,30],['home',25,30],['ball',45,30],['cone',15,15],['cone',85,45]],
+    [['home',25,50],['home',75,50],['ball',40,50],['cone',15,25],['cone',85,75]],
+    [['home',25,50],['ball',32,50],['goal',85,25],['goal',85,75],['cone',15,50]],
+    [['home',25,25],['home',75,25],['home',50,75],['cone',20,20],['cone',80,20],['cone',50,83],['ball',33,25]],
+    [['home',30,50],['away',55,50],['ball',38,50],['cone',15,25],['cone',85,25],['cone',15,75],['cone',85,75]],
+    [['home',25,25],['home',75,25],['home',75,75],['away',50,50],['cone',25,75],['ball',33,25]],
+    [['home',25,35],['home',45,70],['home',80,40],['away',60,30],['away',65,70],['away',35,55],['ball',30,35],['cone',85,12],['cone',85,88],['cone',15,12],['cone',15,88]],
+    [['home',25,50],['home',55,25],['home',65,75],['away',50,50],['away',70,35],['ball',30,50],['goal',90,20],['goal',90,80],['goal',10,20],['goal',10,80]],
+    [['home',30,35],['home',65,30],['home',50,75],['away',40,40],['away',70,70],['away',30,70],['ball',45,40]],
+  ];
+  window.CoachLibrary.registerCatalog('starter', rows.map(([title,skill,minAge,maxAge,players,minutes,target,equipment,setup,coaching,progression],index) => ({
+    id:'original-' + (index + 1), title, skill, minutes, target, equipment, coaching, progression,
+    band:maxAge <= 9 ? 'young' : maxAge <= 12 ? 'middle' : 'older', ages:minAge + '–' + maxAge, players:players + ' players',
+    setup:'Ages ' + minAge + '–' + maxAge + '; ' + players + ' players.\n' + setup,
+    diagram:window.CoachLibrary.createDiagram(title, positions[index]),
+  })));
 })();

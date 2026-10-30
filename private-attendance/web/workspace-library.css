@@ -5,3 +5,5 @@
 .library-diagram-preview svg { display:block; width:160px; max-width:100%; height:auto; border:1px solid var(--desk-line,#b6afa2); border-radius:8px; margin:8px 0; }
 .library-diagram { padding:12px 0; border-top:1px solid var(--desk-line,#b6afa2); }
 .library-diagram button { margin:4px 8px 4px 0; }
+
+.library-filters>label:first-child{grid-column:1/-1}.library-source-tag{justify-self:start;font-size:.72rem;font-weight:750;line-height:1.4;border-radius:999px;padding:.3rem .65rem;background:#e8edf2;color:#36536d}.library-card figure{margin:0}.library-card .library-diagram-preview{display:flex;gap:.7rem;align-items:center}.library-card .library-diagram-preview svg{flex:0 0 150px;width:150px}.library-card figcaption{max-width:15rem;font-size:.72rem}.library-standalone .library-filters{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:800px){.library-standalone .library-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.library-standalone .library-filters{grid-template-columns:minmax(0,1fr)}.library-card .library-diagram-preview{flex-wrap:wrap}}

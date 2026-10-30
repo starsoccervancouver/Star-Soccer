@@ -20,11 +20,19 @@ const drillFields=({title,skill='',minutes,target,setup,coaching='',progression=
 };
 const drillRow=row=>{if(!row)return null;const {archived,...value}=row;return {...value,diagram:row.diagram===null?null:JSON.parse(row.diagram)};};
 const drillSnapshot=value=>JSON.stringify(Object.fromEntries(['title','skill','minutes','target','setup','coaching','progression','equipment','diagram'].map(key=>[key,value[key]])));
+const goalFields=value=>{
+ if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!['successMeasure','status','evidence','drillId'].includes(key)))deny('INVALID_GOAL',400);
+ const {successMeasure='',status='planned',evidence='',drillId:linkedDrill=null}=value;
+ const text=(input,max)=>{if(typeof input!=='string'||input.length>max||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(input))deny('INVALID_GOAL',400);return input.trim();};
+ if(!['planned','in-progress','achieved'].includes(status)||linkedDrill!==null&&(typeof linkedDrill!=='string'||!/^drill_[A-Za-z0-9_-]{27}$/.test(linkedDrill)))deny('INVALID_GOAL',400);
+ return {successMeasure:text(successMeasure,1000),status,evidence:text(evidence,4000),drillId:linkedDrill};
+};
+const noteRow=row=>{if(!row)return null;const {goal_json,...note}=row;return {...note,goal:goal_json?JSON.parse(goal_json):null};};
 export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star Soccer Owner',clock=()=>new Date()}){
  ownerEmail=email(ownerEmail);ownerName=txt(ownerName,100);
  store.run(`CREATE TABLE IF NOT EXISTS coach_users(email TEXT PRIMARY KEY,name TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN('owner','admin','coach')),active INTEGER NOT NULL DEFAULT 1,session_version INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_assignments(email TEXT NOT NULL REFERENCES coach_users(email),session_id TEXT NOT NULL,assigned_by TEXT NOT NULL,PRIMARY KEY(email,session_id));
- CREATE TABLE IF NOT EXISTS coach_notes(id TEXT PRIMARY KEY,author_email TEXT NOT NULL REFERENCES coach_users(email),player_id TEXT,session_id TEXT,category TEXT NOT NULL,body TEXT NOT NULL,review_date TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,version INTEGER NOT NULL,archived INTEGER NOT NULL DEFAULT 0);
+ CREATE TABLE IF NOT EXISTS coach_notes(id TEXT PRIMARY KEY,author_email TEXT NOT NULL REFERENCES coach_users(email),player_id TEXT,session_id TEXT,category TEXT NOT NULL,body TEXT NOT NULL,review_date TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,version INTEGER NOT NULL,archived INTEGER NOT NULL DEFAULT 0,goal_json TEXT);
  CREATE TABLE IF NOT EXISTS coach_plans(session_id TEXT PRIMARY KEY,content TEXT NOT NULL,updated_by TEXT NOT NULL,updated_at TEXT NOT NULL,version INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_diagrams(id TEXT PRIMARY KEY,session_id TEXT NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,created_by TEXT NOT NULL,updated_by TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,version INTEGER NOT NULL,archived INTEGER NOT NULL DEFAULT 0);
  CREATE INDEX IF NOT EXISTS coach_diagrams_session ON coach_diagrams(session_id,archived);
@@ -33,6 +41,8 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
  CREATE TABLE IF NOT EXISTS coach_tasks(id TEXT PRIMARY KEY,author_email TEXT NOT NULL,session_id TEXT,title TEXT NOT NULL,due_date TEXT,status TEXT NOT NULL,version INTEGER NOT NULL,created_at TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_audit(id TEXT PRIMARY KEY,actor_email TEXT NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,occurred_at TEXT NOT NULL,detail TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_attendance_commands(id TEXT PRIMARY KEY,actor_email TEXT NOT NULL,session_id TEXT NOT NULL,attendance_id TEXT NOT NULL,payload TEXT NOT NULL,state TEXT NOT NULL,created_at TEXT NOT NULL);`);
+ // Additive and repeatable for existing local SQLite and Durable Object databases.
+ if(!store.all('PRAGMA table_info(coach_notes)').some(column=>column.name==='goal_json'))store.run('ALTER TABLE coach_notes ADD COLUMN goal_json TEXT');
  const stamp=()=>clock().toISOString(),audit=(actor,action,target,detail)=>store.run('INSERT INTO coach_audit VALUES(?,?,?,?,?,?)',token('audit_'),actor.email,action,target,stamp(),JSON.stringify(detail));
  const existingOwners=store.all("SELECT email FROM coach_users WHERE role='owner'");
  if(existingOwners.length>1||existingOwners.some(owner=>owner.email!==ownerEmail))throw Error('COACH_OWNER_CONFIGURATION_MISMATCH');
@@ -49,8 +59,29 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
   users(actor){api.owner(actor);return store.all('SELECT email,name,role,active,session_version FROM coach_users ORDER BY role,email').map(u=>({...u,assignments:store.all('SELECT session_id FROM coach_assignments WHERE email=?',u.email).map(s=>s.session_id)}));},
   saveUser(actor,{email:address,name,role,active=true,expectedVersion=null}){api.owner(actor);address=email(address);if(!['admin','coach'].includes(role)||address===ownerEmail||typeof active!=='boolean')deny('INVALID_ACCOUNT_CHANGE',400);name=txt(name,100);return store.transaction(()=>{const old=store.get('SELECT * FROM coach_users WHERE email=?',address);if(old&&expectedVersion!==old.session_version)deny('ACCOUNT_CHANGED',409);if(!old&&expectedVersion!==null)deny('ACCOUNT_CHANGED',409);if(old)store.run('UPDATE coach_users SET name=?,role=?,active=?,session_version=session_version+1 WHERE email=?',name,role,+active,address);else store.run('INSERT INTO coach_users(email,name,role,active,created_at) VALUES(?,?,?,?,?)',address,name,role,+active,stamp());audit(actor,old?'account-updated':'account-created',address,{role,active});return api.users(actor);});},
   assign(actor,{email:address,sessionId,assigned}){if(!api.full(actor))deny();const user=api.actor(address);if(user.role!=='coach'||typeof assigned!=='boolean')deny('INVALID_ASSIGNMENT',400);rid(sessionId);if(assigned)store.run('INSERT OR IGNORE INTO coach_assignments VALUES(?,?,?)',user.email,sessionId,actor.email);else store.run('DELETE FROM coach_assignments WHERE email=? AND session_id=?',user.email,sessionId);audit(actor,assigned?'coach-assigned':'coach-unassigned',sessionId,{email:user.email});return {saved:true};},
-  notes(actor,{sessionId=null,playerId=null}={}){if(sessionId)api.requireSession(actor,sessionId);if(playerId)rid(playerId);const clauses=['archived=0'],params=[];if(!api.full(actor)){clauses.push('author_email=?');params.push(actor.email);}if(sessionId){clauses.push('session_id=?');params.push(sessionId);}if(playerId){clauses.push('player_id=?');params.push(playerId);}return store.all('SELECT * FROM coach_notes WHERE '+clauses.join(' AND ')+' ORDER BY updated_at DESC LIMIT 200',...params);},
-  saveNote(actor,{id=null,playerId=null,sessionId,category='General',body,reviewDate=null,expectedVersion=0}){api.requireSession(actor,sessionId);rid(playerId,true);if(!['General','Technical','Tactical','Physical','Confidence','Goal','Session review'].includes(category))deny('INVALID_CATEGORY',400);body=txt(body);if(reviewDate!==null&&(!/^\d{4}-\d{2}-\d{2}$/.test(reviewDate)||new Date(reviewDate+'T00:00:00Z').toISOString().slice(0,10)!==reviewDate))deny('INVALID_DATE',400);return store.transaction(()=>{const old=id?store.get('SELECT * FROM coach_notes WHERE id=?',id):null;if(id&&(!old||old.archived||(!api.full(actor)&&old.author_email!==actor.email)))deny();if(old&&(old.session_id!==sessionId||old.player_id!==playerId))deny('NOTE_TARGET_CHANGED',409);if((old?.version||0)!==expectedVersion)deny('NOTE_CHANGED',409);id=old?.id||token('note_');const at=stamp();if(old)store.run('UPDATE coach_notes SET category=?,body=?,review_date=?,updated_at=?,version=version+1 WHERE id=?',category,body,reviewDate,at,id);else store.run('INSERT INTO coach_notes VALUES(?,?,?,?,?,?,?,?,?,1,0)',id,actor.email,playerId,sessionId,category,body,reviewDate,at,at);audit(actor,old?'note-updated':'note-created',id,{author:old?.author_email||actor.email,previousVersion:old?.version||0});return store.get('SELECT * FROM coach_notes WHERE id=?',id);});},
+  notes(actor,{sessionId=null,playerId=null}={}){if(sessionId)api.requireSession(actor,sessionId);if(playerId)rid(playerId);const clauses=['archived=0'],params=[];if(!api.full(actor)){clauses.push('author_email=?');params.push(actor.email);}if(sessionId){clauses.push('session_id=?');params.push(sessionId);}if(playerId){clauses.push('player_id=?');params.push(playerId);}return store.all('SELECT * FROM coach_notes WHERE '+clauses.join(' AND ')+' ORDER BY updated_at DESC LIMIT 200',...params).map(noteRow);},
+  saveNote(actor,{id=null,playerId=null,sessionId,category='General',body,reviewDate=null,expectedVersion=0,goal}){
+   api.requireSession(actor,sessionId);rid(playerId,true);
+   if(!['General','Technical','Tactical','Physical','Confidence','Goal','Session review'].includes(category))deny('INVALID_CATEGORY',400);
+   body=txt(body);if(reviewDate!==null&&(!/^\d{4}-\d{2}-\d{2}$/.test(reviewDate)||new Date(reviewDate+'T00:00:00Z').toISOString().slice(0,10)!==reviewDate))deny('INVALID_DATE',400);
+   if(goal!==undefined&&goal!==null){if(category!=='Goal'||!playerId)deny('INVALID_GOAL',400);goal=goalFields(goal);}
+   return store.transaction(()=>{
+    const old=id?store.get('SELECT * FROM coach_notes WHERE id=?',id):null;
+    if(id&&(!old||old.archived||(!api.full(actor)&&old.author_email!==actor.email)))deny();
+    if(old&&(old.session_id!==sessionId||old.player_id!==playerId))deny('NOTE_TARGET_CHANGED',409);
+    if((old?.version||0)!==expectedVersion)deny('NOTE_CHANGED',409);
+    const previousGoal=noteRow(old)?.goal,details=category==='Goal'?(goal===undefined?previousGoal??null:goal):null;
+    if(details?.drillId&&details.drillId!==previousGoal?.drillId){
+     const drill=store.get('SELECT author_email,archived FROM coach_drills WHERE id=?',details.drillId);
+     if(!drill||drill.archived||!api.full(actor)&&drill.author_email!==actor.email)deny('INVALID_GOAL_DRILL',400);
+    }
+    id=old?.id||token('note_');const at=stamp(),goalJSON=details===null?null:JSON.stringify(details);
+    if(old)store.run('UPDATE coach_notes SET category=?,body=?,review_date=?,updated_at=?,version=version+1,goal_json=? WHERE id=?',category,body,reviewDate,at,goalJSON,id);
+    else store.run('INSERT INTO coach_notes(id,author_email,player_id,session_id,category,body,review_date,created_at,updated_at,version,archived,goal_json) VALUES(?,?,?,?,?,?,?,?,?,1,0,?)',id,actor.email,playerId,sessionId,category,body,reviewDate,at,at,goalJSON);
+    audit(actor,old?'note-updated':'note-created',id,{author:old?.author_email||actor.email,previousVersion:old?.version||0});
+    return noteRow(store.get('SELECT * FROM coach_notes WHERE id=?',id));
+   });
+  },
   archiveNote(actor,{id,expectedVersion}){return store.transaction(()=>{const old=store.get('SELECT * FROM coach_notes WHERE id=?',id);if(!old||(!api.full(actor)&&old.author_email!==actor.email))deny();api.requireSession(actor,old.session_id);if(old.version!==expectedVersion)deny('NOTE_CHANGED',409);store.run('UPDATE coach_notes SET archived=1,version=version+1,updated_at=? WHERE id=?',stamp(),id);audit(actor,'note-archived',id,{version:old.version});return {saved:true};});},
   plan(actor,sessionId){api.requireSession(actor,sessionId);const p=store.get('SELECT * FROM coach_plans WHERE session_id=?',sessionId);return p?{...p,content:JSON.parse(p.content)}:{session_id:sessionId,version:0,content:{}};},
   savePlan(actor,{sessionId,content,expectedVersion}){api.requireSession(actor,sessionId);validatePlanContent(content);return store.transaction(()=>{const old=api.plan(actor,sessionId);if(old.version!==expectedVersion)deny('PLAN_CHANGED',409);store.run('INSERT INTO coach_plans VALUES(?,?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET content=excluded.content,updated_by=excluded.updated_by,updated_at=excluded.updated_at,version=excluded.version',sessionId,JSON.stringify(content),actor.email,stamp(),old.version+1);audit(actor,'plan-updated',sessionId,{version:old.version+1});return api.plan(actor,sessionId);});},

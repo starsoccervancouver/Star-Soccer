@@ -1,1 +1,70 @@
-.plan-blocks-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.plan-blocks-heading h3{margin:0}.plan-blocks-intro{margin:8px 0 14px;color:var(--muted,#53635a);font-size:.9rem}.plan-blocks-tools{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.plan-blocks-tools button,.plan-block-actions button{min-height:44px}.plan-block-list{display:grid;gap:12px;list-style:none;padding:0;margin:14px 0}.plan-block{border:1px solid #d9e5dd;border-radius:14px;padding:16px;background:#f8fbf9;min-width:0}.plan-block-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}.plan-block-head h4{margin:0;font-size:1rem}.plan-block-actions{display:flex;flex-wrap:wrap;gap:6px}.plan-block-actions button{font-size:.8rem;padding:7px 10px}.plan-block-fields{display:grid;grid-template-columns:minmax(0,1fr) 100px;gap:12px}.plan-block-fields label{min-width:0}.plan-block-fields input,.plan-block-fields select,.plan-block-fields textarea{box-sizing:border-box;width:100%;min-height:44px}.plan-block-wide{grid-column:1/-1}.plan-block-budget{padding:10px 12px;border-radius:10px;background:#e9f4ed;font-size:.9rem;margin:8px 0}.plan-block-budget.is-over-budget{background:#fff1db;color:#68420c}.plan-block-status:empty{display:none}.plan-block-empty{font-size:.9rem;color:var(--muted,#53635a);border:1px dashed #becfc3;padding:16px;border-radius:12px}.plan-blocks-note{font-size:.85rem;color:var(--muted,#53635a)}@media(max-width:600px){.plan-block{padding:12px}.plan-block-head{align-items:flex-start;flex-direction:column}.plan-block-actions{width:100%}.plan-block-actions button{flex:1}.plan-block-fields{grid-template-columns:minmax(0,1fr) 82px}.plan-blocks-tools button{flex:1 1 140px}.plan-blocks-heading{flex-direction:column}}
+/* The timed sequence is the main plan; written stage notes remain available. */
+.plan-blocks-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.plan-blocks-heading h3{margin:0;font-size:18px}
+.plan-blocks-heading .small{margin:0;font-size:12px;color:var(--desk-muted,#615d55)}
+.plan-blocks-tools{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.plan-blocks-tools button,.plan-block-actions button{min-height:44px}
+.plan-block-list{display:grid;gap:16px;list-style:none;padding:0;margin:12px 0}
+.plan-block{border-top:1px solid var(--desk-line,#b9b0a2);padding:16px 0 0;min-width:0}
+.plan-block-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.plan-block-head h4{margin:0;font-size:14px}
+.plan-block-actions{display:flex;flex-wrap:wrap;gap:6px}
+.plan-block-actions button{font-size:12px;padding:7px 10px}
+.plan-block-fields{display:grid;grid-template-columns:minmax(0,1fr) 100px;gap:10px}
+.plan-block-fields label{min-width:0;margin:0}
+.plan-block-fields input,.plan-block-fields select,.plan-block-fields textarea{box-sizing:border-box;width:100%;min-height:44px}
+.plan-block-wide{grid-column:1/-1}
+.plan-block-budget{padding:8px 0;font-size:13px;margin:4px 0;color:var(--desk-muted,#615d55)}
+.plan-block-budget.is-over-budget{color:#704015;font-weight:650}
+.plan-block-budget[hidden],.plan-block-status:empty{display:none}
+.plan-block-empty{font-size:13px;line-height:1.55;color:var(--desk-muted,#615d55);margin:8px 0 16px}
+.plan-supporting-notes{border-top:1px solid var(--desk-line,#b9b0a2);border-bottom:1px solid var(--desk-line,#b9b0a2);margin:12px 0}
+.plan-supporting-notes>summary{min-height:48px;padding:12px 0;box-sizing:border-box;font-size:14px;font-weight:650;cursor:pointer}
+.plan-supporting-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;padding-bottom:12px}
+.plan-supporting-grid>label:last-child{grid-column:1/-1}
+
+/* Compact focused workspace within the existing charcoal and beige canvas. */
+body.planner-focus-mode .planner-focus-exits{margin-bottom:12px}
+body.planner-focus-mode .planner-focus-heading{flex-wrap:wrap;gap:10px 18px;padding-bottom:12px}
+body.planner-focus-mode .planner-focus-heading .eyebrow{display:none}
+body.planner-focus-mode #app .planner-focus-heading h1{font-size:clamp(25px,3vw,34px);line-height:1.2}
+body.planner-focus-mode .planner-focus-heading .small{margin-top:6px;line-height:1.5}
+body.planner-focus-mode .session-workspace-tabs{margin-bottom:12px}
+body.planner-focus-mode #app #planner-workspace .planner-workspace-actions{display:flex;gap:8px;padding:0 0 14px;margin:0}
+body.planner-focus-mode #app .planner-workspace-actions button{min-height:44px;padding:9px 13px;border-radius:12px;font-size:12px}
+body.planner-focus-mode #app .desk-main .card.planner-plan-card{padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+body.planner-focus-mode .planner-plan-heading{margin-bottom:8px}
+body.planner-focus-mode .planner-plan-heading>.small{margin:0 0 8px;font-size:12px;line-height:1.4}
+body.planner-focus-mode .planner-plan-heading h2{font-size:19px}
+body.planner-focus-mode .planner-plan-card .privacy-message{padding:0;margin:6px 0;border:0;background:transparent;font-size:12px}
+body.planner-focus-mode .planner-plan-card #plan-form{row-gap:4px}
+body.planner-focus-mode .planner-plan-card #plan-form>label:first-child{margin-top:0;margin-bottom:14px}
+body.planner-focus-mode .planner-plan-card #plan-form textarea{padding:11px 13px;line-height:1.5}
+body.planner-focus-mode .planner-plan-card #plan-form #plan-focus{min-height:76px}
+body.planner-focus-mode #app .planner-save-row{gap:8px;padding-top:12px;margin-top:8px}
+body.planner-focus-mode .planner-save-row #plan-updated{margin-left:0}
+@media(max-width:600px){
+ .plan-block-fields{grid-template-columns:minmax(0,1fr) 82px}
+ .plan-block-head{align-items:flex-start;flex-direction:column;gap:4px}
+ .plan-block-actions{width:100%}
+ .plan-block-actions button{flex:1}
+ .plan-blocks-tools button{flex:1 1 130px;font-size:12px}
+ .plan-blocks-tools #plan-add-activity{flex-basis:100%}
+ .plan-blocks-heading{gap:8px;align-items:center}
+ .plan-blocks-heading h3{font-size:17px}
+ .plan-blocks-heading .small{text-align:right;font-size:11px}
+ .plan-supporting-grid{grid-template-columns:minmax(0,1fr);gap:8px}
+ body.planner-focus-mode #app .desk-main{padding:12px 14px 28px}
+ body.planner-focus-mode .planner-focus-exits{gap:8px;margin-bottom:10px}
+ body.planner-focus-mode .planner-focus-heading{gap:10px;padding-bottom:10px}
+ body.planner-focus-mode .planner-focus-heading .small{font-size:12px;max-width:none}
+ body.planner-focus-mode #app .planner-focus-heading h1{font-size:26px}
+ body.planner-focus-mode .planner-focus-controls{gap:8px}
+ body.planner-focus-mode .planner-focus-controls>button{min-height:44px;padding:9px 10px;font-size:12px}
+ body.planner-focus-mode #app #planner-workspace .planner-workspace-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding-bottom:12px}
+ body.planner-focus-mode #app .planner-workspace-actions button{gap:4px;padding:8px 5px;font-size:11px;line-height:1.35}
+ body.planner-focus-mode #planner-open-notes{grid-column:auto}
+ body.planner-focus-mode .planner-workspace-actions .planner-tool-icon{display:none}
+ body.planner-focus-mode #app .session-workspace-tabs button{min-height:44px}
+ body.planner-focus-mode .planner-save-row>button{width:auto}
+}

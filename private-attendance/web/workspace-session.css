@@ -50,6 +50,14 @@ body.field-view-open { overflow: hidden; }
 .field-roster-table th, .field-roster-table td { padding: 11px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--desk-line, #d9e2e7); overflow-wrap: anywhere; }
 .field-roster-table th { color: #536b7e; font-size: 12px; font-weight: 650; }
 .session-print-sheet { display: none; }
+/* Match the focused workspace without stacking extra panels before its actions. */
+#session-field-tools > .small { margin: 10px 0; line-height: 1.5; }
+#session-field-tools .field-entry-actions { margin-top: 0; }
+.field-view { font-family: Manrope, system-ui, sans-serif; }
+.field-activity, .field-roster, .field-time-budget { background: var(--desk-field, #e3dccf); border-color: var(--desk-line, #b9b0a2); }
+.field-saved-notice { background: var(--desk-inset, #d7cfc2); border-color: var(--desk-line, #b9b0a2); color: var(--desk-muted, #615d55); }
+.field-timer { background: #303235; }
+.field-timer .eyebrow, .field-timer .small { color: #e1dacf; }
 @media (max-width: 760px) {
   .field-view { width: calc(100% - 16px); max-height: calc(100dvh - 16px); padding: 19px; border-radius: 15px; }
   .field-view-heading { gap: 16px; flex-direction: column; }

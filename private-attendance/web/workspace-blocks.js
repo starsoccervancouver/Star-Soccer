@@ -6,7 +6,7 @@
   const stages = { warmup: 'Warm-up', technical: 'Technical', game: 'Game / application', other: 'Break / other' };
   const node = (tag, text = '', cls = '') => { const el = document.createElement(tag); el.textContent = text; if (cls) el.className = cls; return el; };
   const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
-  let saved, draft, session = null, enabled = false;
+  let saved, draft, session = null, context = null, loadedSessionId = null, enabled = false;
   const originals = new Map();
   for (const key of ['warmup', 'technical', 'game']) { const label = document.getElementById('plan-' + key)?.closest('label'); const text = label && [...label.childNodes].find(child => child.nodeType === 3 && child.textContent.trim()); if (text) originals.set(key, { text, value: text.textContent }); }
   function recordedMinutes(value) {
@@ -29,21 +29,28 @@
     el.textContent = total + ' minutes planned' + (slot === null ? ' · Session length not recorded.' : ' / ' + slot + '-minute session · ' + (total > slot ? (total - slot) + ' minutes over.' : total < slot ? (slot - total) + ' minutes available for transitions.' : 'Fits the session.'));
     el.classList.toggle('is-over-budget', slot !== null && total > slot);
   }
-  function labels() { for (const [key, value] of originals) value.text.textContent = draft?.length ? ({ warmup: 'Warm-up coaching notes', technical: 'Technical coaching notes', game: 'Game coaching notes' })[key] : value.value; }
+  function labels() {
+    for (const [key, value] of originals) value.text.textContent = ({ warmup: 'Warm-up notes', technical: 'Technical notes', game: 'Game notes' })[key];
+    const summary = document.querySelector('#plan-supporting-notes > summary');
+    if (summary) {
+      const count = ['warmup', 'technical', 'game'].filter(key => document.getElementById('plan-' + key)?.value.trim()).length;
+      summary.textContent = 'Supporting coaching notes' + (count ? ' · ' + count + ' filled' : '');
+    }
+  }
   function changed(message) {
     labels(); budget();
     const status = mount.querySelector('.plan-block-status'); if (status && message !== undefined) status.textContent = message;
     window.dispatchEvent(new CustomEvent('coach:blocks-changed'));
   }
-  function button(text, action, label) { const el = node('button', text, 'secondary'); el.type = 'button'; if (label) el.setAttribute('aria-label', label); el.addEventListener('click', () => { if (enabled) action(); }); return el; }
+  function button(text, action, label) { const el = node('button', text, 'secondary'); el.type = 'button'; if (label) el.setAttribute('aria-label', label); el.addEventListener('click', () => { if (enabled && !el.disabled && el.dataset.boundary !== 'true') action(); }); return el; }
   function setEnabled(value) {
     enabled = !!value;
     mount.querySelectorAll('input,textarea,select,button').forEach(el => { el.disabled = !enabled || el.dataset.boundary === 'true'; });
   }
   function render(focusIndex = -1, message = '') {
     mount.replaceChildren();
-    const heading = node('div', '', 'plan-blocks-heading'); heading.append(node('h3', 'Activity sequence'), node('span', 'Optional · saved with this plan', 'small'));
-    mount.append(heading, node('p', draft?.length ? 'These blocks set the running order and saved timer durations. The stage notes below are supporting coaching notes; they are not extra activities.' : 'Build a timed running order, or keep using the written sections below. Your existing plan stays as written until you add blocks.', 'plan-blocks-intro'));
+    const heading = node('div', '', 'plan-blocks-heading'); heading.append(node('h3', 'Activity sequence'), node('span', draft?.length ? draft.length + ' / 16 activities' : 'Timed running order', 'small'));
+    mount.append(heading);
     const tools = node('div', '', 'plan-blocks-tools');
     const add = button('Add activity', () => { draft = [...(draft || []), { title: '', duration: 10, stage: 'warmup', instructions: '', equipment: '' }]; render(draft.length - 1, 'Activity added to your draft. Save the shared plan when ready.'); changed(); }); add.id = 'plan-add-activity'; add.dataset.boundary = String((draft?.length || 0) >= 16); tools.append(add);
     if (!draft?.length) for (const [key, title] of [['touch', 'First-touch starter'], ['passing', 'Passing starter']]) tools.append(button(title, () => { draft = starter(key); render(0, 'Starter added to your draft. Adapt it for your group, then save the shared plan.'); changed(); }));
@@ -68,8 +75,7 @@
       item.append(fields); list.append(item);
     });
     mount.append(list);
-    if (!draft?.length) mount.append(node('p', 'No activity blocks. The written stages remain your session plan.', 'plan-block-empty'));
-    mount.append(node('p', 'Up to 16 activities. Changes are shared only when you select Save plan.', 'plan-blocks-note'));
+    if (!draft?.length) mount.append(node('p', 'Add an activity or choose a starter. Existing written plans are in Supporting coaching notes.', 'plan-block-empty'));
     const status = node('p', message, 'plan-block-status small'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); mount.append(status);
     labels(); budget(); setEnabled(enabled);
     if (focusIndex >= 0) document.getElementById('plan-block-' + focusIndex + '-title')?.focus();
@@ -83,13 +89,34 @@
       { title: 'Review & water', duration: 5, stage: 'other', instructions: 'Ask players what helped today and invite one example. Allow time for water and transitions.', equipment: '' },
     ];
   }
-  function load(content = {}, nextSession = null) { saved = clone(content.activities); draft = clone(saved); session = nextSession; render(); }
+  function load(content = {}, nextSession = null) { saved = clone(content.activities); draft = clone(saved); session = nextSession; loadedSessionId = nextSession?.id || null; render(); }
+  // Diagrams have their own existing tactics draft and save action. The activity
+  // schema intentionally holds only text, timing, stage and equipment.
+  function drillBlock(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const { target, text, title, minutes } = value;
+    if (!enabled || !context?.profile || context.tab !== 'plan' || !context.planReady || context.busy || !session?.id || context.selected !== session.id || loadedSessionId !== session.id || String(session.status).toLowerCase() === 'cancelled' || (draft?.length || 0) >= 16) return null;
+    if (!Object.hasOwn(stages, target) || typeof text !== 'string' || !text.trim() || text.length > 2000 || /[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(text)) return null;
+    const activityTitle = title === undefined ? text.split(/\r?\n/, 1)[0].replace(/\s*\(\d+ min(?: starting point)?\)\s*$/, '').trim() : title;
+    const duration = minutes === undefined ? 10 : minutes;
+    if (typeof activityTitle !== 'string' || !activityTitle.trim() || activityTitle.length > 120 || /[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(activityTitle) || !Number.isInteger(duration) || duration < 1 || duration > 120) return null;
+    return { title: activityTitle, duration, stage: target, instructions: text, equipment: '' };
+  }
+  function addDrill(value = {}) {
+    const block = drillBlock(value);
+    if (!block) return false;
+    draft = [...(draft || []), block];
+    render(draft.length - 1, 'Activity added to the sequence. Save the shared plan when ready.');
+    changed();
+    return true;
+  }
   window.CoachPlanBlocks = {
-    load, content: () => clone(draft), isDirty: () => JSON.stringify(draft) !== JSON.stringify(saved),
+    load, addDrill, canAddDrill: value => !!drillBlock(value), content: () => clone(draft), isDirty: () => JSON.stringify(draft) !== JSON.stringify(saved),
     discard: () => { draft = clone(saved); render(); }, copy: content => { draft = clone(content?.activities); render(-1, 'Activity sequence copied to your draft.'); },
     clear: () => { enabled = false; load(); }, setEnabled, recordedMinutes,
     validate: () => { for (const [index, block] of (draft || []).entries()) { if (!block.title.trim()) return 'Add a title for activity ' + (index + 1) + '.'; if (!Number.isInteger(block.duration) || block.duration < 1 || block.duration > 120) return 'Choose 1 to 120 whole minutes for activity ' + (index + 1) + '.'; } return ''; },
   };
-  window.addEventListener('coach:context', event => { const context = event.detail; if (!context?.profile) return window.CoachPlanBlocks.clear(); session = context.session; setEnabled(context.tab === 'plan' && context.planReady && !context.busy && context.session?.status !== 'Cancelled'); budget(); });
+  window.addEventListener('coach:context', event => { context = event.detail; if (!context?.profile) return window.CoachPlanBlocks.clear(); session = context.session; setEnabled(context.tab === 'plan' && context.planReady && !context.busy && !!session?.id && context.selected === session.id && loadedSessionId === session.id && String(session.status).toLowerCase() !== 'cancelled'); labels(); budget(); });
+  for (const key of ['warmup', 'technical', 'game']) document.getElementById('plan-' + key)?.addEventListener('input', labels);
   render();
 })();

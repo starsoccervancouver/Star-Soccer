@@ -118,10 +118,10 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert.equal(await p.page.locator('.preference-preview p').evaluate(el => parseFloat(getComputedStyle(el).fontSize)), normalSize);
     assert.equal(await p.page.evaluate(key => localStorage.getItem(key), key), null);
     await p.page.locator('#copy-workspace-link').click(); assert.equal(await p.page.evaluate(() => fixtureCopied), origin + '/workspace');
-    await p.page.reload(); await p.page.locator('#panel-home').waitFor({ state: 'visible' }); assert.deepEqual(p.errors, []); checks++;
+    await p.page.goto(origin + '/workspace'); await p.page.locator('#panel-home').waitFor({ state: 'visible' }); assert.deepEqual(p.errors, []); checks++;
     for (const start of ['profiles', 'library']) {
       await clickSettings(p); await p.page.locator('#preference-start').selectOption(start);
-      await p.page.reload(); await p.page.locator('#panel-' + start).waitFor({ state: 'visible' });
+      await p.page.goto(origin + '/workspace'); await p.page.locator('#panel-' + start).waitFor({ state: 'visible' });
     }
     assert.deepEqual(p.errors, []); checks++; await p.context.close();
 

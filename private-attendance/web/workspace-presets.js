@@ -1,7 +1,7 @@
 /* Public, paraphrased research presets. Only the existing private editor can save a coach's adaptation. */
 (() => {
   'use strict';
-  const mount = document.getElementById('library-more'); if (!mount) return;
+  if (!window.CoachLibrary) return;
   const fifa = 'https://www.fifatrainingcentre.com/en/practice/grassroots/';
   const essentials = fifa + 'grassroots-and-youth-football-essentials/grassroots-coaching-essentials/';
   const sources = {
@@ -28,40 +28,28 @@
     {id:'keep-switch',source:'keep',title:'2v1 keep-and-switch',skill:'Possession and choices',band:'middle',ages:'8–12',players:'3 per station',minutes:10,target:'technical',isNew:true,equipment:'One ball per three players; boundary cones.',setup:'Two attackers retain possession against one defender for an agreed time or number of passes. An attacker who loses possession changes places with the defender.',adapt:'Begin with generous space and no touch restriction. Rotate regularly so everyone experiences both roles. Progress into a 3v3 directional game so players can apply their choices toward a goal.',t:'Receive across your body when it creates a safer passing angle.',p:'Check the defender and your partner before the ball arrives.',d:'Pass when the lane opens; protect or carry when it closes.',reflection:'What did the defender do that changed your choice?'},
     {id:'wide-support',source:'support',title:'3v3 with wide support',skill:'Support and transition',band:'older',ages:'12–14',players:'8',minutes:12,target:'game',isNew:true,equipment:'Balls; bibs; cones for outside corridors; small goals for the adaptation.',setup:'Play 3v3 with two neutral players in outside corridors. Opponents cannot challenge the neutrals. The team in possession can combine with them to gain an attacking advantage.',adapt:'Add opposing small goals and continue immediately when possession changes; neutrals support the new attacking team. Rotate neutral roles. Goals and continuous transitions are our suggested progression.',t:'Shape the first touch to connect the next pass with a route forward.',p:'Check central pressure and both wide support options.',d:'On winning possession, choose an immediate attack or a secure support pass.',reflection:'What made attacking quickly the right choice?'},
   ];
-  const phases = {warmup:'Arrival & activation',technical:'Ball work & awareness',game:'Play, compete & reflect'};
-  const make = (tag, text = '', cls = '') => { const el = document.createElement(tag); el.textContent = text; el.className = cls; return el; };
-  const collection = make('details', '', 'library-presets'); collection.id = 'library-presets';
-  collection.append(make('summary', 'TPD drill presets · 10 practices'), make('p', 'Source-backed ideas, adapted for your group. Build from welcoming activation to aware ball work, then play and reflect.', 'small'));
-  const filters = make('div', '', 'preset-filters');
-  function filter(label, id, options) { const wrapper = make('label', label), select = make('select'); select.id = id; for (const [value, text] of options) { const option = make('option', text); option.value = value; select.append(option); } wrapper.append(select); filters.append(wrapper); return select; }
-  const band = filter('Suggested ages', 'preset-ages', [['','All ages'],['young','Younger · 5–9'],['middle','Developing · 8–12'],['older','Older · 12–14']]);
-  const phase = filter('Session phase', 'preset-phase', [['','Every phase'], ...Object.entries(phases)]);
-  const count = make('p', '', 'small'); count.id = 'preset-results'; count.setAttribute('aria-live', 'polite');
-  const grid = make('div', '', 'library-preset-grid'); collection.append(filters, count, grid, make('p', 'Ages, timings and TPD prompts are coaching suggestions. Check the published age band and adapt space, numbers and challenge for the players present. Source pages hold the original activities; these notes do not imply endorsement.', 'preset-footnote small')); (mount.parentElement.querySelector('.library-filters') || mount).before(collection);
-  const cards = []; let enabled = false, introduced = false;
-  function paragraph(card, label, text) { const p = make('p'); p.append(make('strong', label + ' '), document.createTextNode(text)); card.append(p); }
-  for (const row of rows) {
+  // These schematic positions are original sketches, not copied source diagrams.
+  const positions = {
+    'colour-control': [['home',25,25],['home',67,36],['home',40,75],['ball',29,28],['ball',71,39],['ball',44,78],['cone',12,12],['cone',88,88]],
+    'gate-pass': [['home',20,50],['home',80,50],['cone',50,38],['cone',50,62],['ball',27,50]],
+    'bib-tag': [['home',22,28],['home',70,25],['home',40,78],['away',55,50],['ball',27,30],['ball',75,28],['ball',45,80]],
+    'pass-move': [['home',25,25],['home',75,30],['home',50,78],['ball',32,25],['cone',17,17],['cone',83,23],['cone',50,86]],
+    'wide-gate-game': [['home',30,50],['home',50,25],['home',65,70],['away',65,40],['away',42,65],['away',70,80],['ball',35,50],['cone',50,8],['cone',50,23],['cone',50,77],['cone',50,92],['goal',7,50],['goal',93,50]],
+    'target-possession': [['home',30,35],['home',30,65],['home',10,50],['home',90,50],['away',65,30],['away',65,70],['away',50,10],['away',50,90],['ball',35,35]],
+    'challenging-grid': [['home',25,28],['away',40,28],['home',25,72],['away',40,72],['cone',65,12],['cone',65,88],['ball',30,28],['ball',30,72]],
+    'finishing-competition': [['goal',12,50],['goal',88,50],['home',30,35],['away',70,65],['ball',35,35],['ball',65,65]],
+    'keep-switch': [['home',22,28],['home',75,70],['away',52,46],['ball',29,30],['cone',10,10],['cone',90,90]],
+    'wide-support': [['home',25,35],['home',40,70],['home',65,50],['away',40,30],['away',70,30],['away',65,75],['home',50,10],['home',50,90],['ball',30,35],['goal',7,50],['goal',93,50]],
+  };
+  window.CoachLibrary.registerCatalog('preset', rows.map(row => {
     const [publisher, title, activity, sourceAges, url] = sources[row.source];
-    const playerLabel = row.players.replace(/^([0-9–]+)/, '$1 players');
-    const card = make('details', '', 'library-preset'); card.dataset.presetId = row.id;
-    const summary = make('summary'), meta = make('span', '', 'preset-meta');
-    meta.append(make('span', phases[row.target], 'preset-phase')); if (row.isNew) meta.append(make('span', 'New idea', 'preset-new'));
-    summary.append(meta, make('strong', row.title, 'preset-title'), make('span', `Ages ${row.ages} · ${row.minutes} min`, 'small'), make('span', playerLabel, 'small')); card.append(summary);
-    paragraph(card, 'Focus:', row.skill); paragraph(card, 'Equipment:', row.equipment); paragraph(card, 'Source setup:', row.setup); paragraph(card, 'Our adaptation:', row.adapt);
-    const cues = make('div', '', 'preset-tpd'); for (const [label, text] of [['Technical Intelligence',row.t],['Perception',row.p],['Decision Making',row.d]]) paragraph(cues, label + ':', text); card.append(cues);
-    paragraph(card, 'Ask the players:', row.reflection);
-    const source = make('p', '', 'preset-source'), link = make('a', publisher + ' · ' + title); link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; source.append(link, make('span', `${activity} · Published ages: ${sourceAges}`, 'small')); card.append(source);
-    const use = make('button', 'Use as draft', 'secondary'); use.type = 'button'; use.disabled = true; use.dataset.presetTitle = row.title; use.setAttribute('aria-label', 'Use ' + row.title + ' as draft');
-    use.addEventListener('click', () => {
-      if (!enabled || use.disabled) return;
-      const attribution = `${publisher}: ${title} — ${activity}. Published ages: ${sourceAges}.\n${url}`;
-      const drill = {title:row.title,skill:row.skill,minutes:row.minutes,target:row.target,equipment:row.equipment,setup:`Suggested ages ${row.ages}; ${playerLabel}.\nSource setup (paraphrased): ${row.setup}\n\nSource: ${attribution}`,coaching:`Technical Intelligence: ${row.t}\nPerception: ${row.p}\nDecision Making: ${row.d}\nAsk the players: ${row.reflection}`,progression:'Our suggested adaptation: ' + row.adapt};
-      window.dispatchEvent(new CustomEvent('coach:library-prefill', {detail:{source:'starter',drill}}));
-    }); card.append(use); grid.append(card); cards.push({row,card,use});
-  }
-  function render() { let visible = 0; for (const {row,card} of cards) { card.hidden = !!(band.value && row.band !== band.value || phase.value && row.target !== phase.value); if (!card.hidden) visible++; } count.textContent = visible ? `${visible} ${visible === 1 ? 'practice' : 'practices'} · Preview, adapt and save to your library.` : 'No practices match both filters. Try another age group or session phase.'; }
-  band.addEventListener('change', render); phase.addEventListener('change', render); render();
-  window.addEventListener('coach:library-state', event => { enabled = !!event.detail?.starterEnabled; for (const {use} of cards) use.disabled = !enabled; if (event.detail?.loaded && !introduced) { introduced = true; collection.open = event.detail.count === 0; } });
-  window.addEventListener('coach:context', event => { if (!event.detail?.profile) { enabled = introduced = false; collection.open = false; band.value = phase.value = ''; for (const {card,use} of cards) { card.open = false; use.disabled = true; } render(); } });
-  window.dispatchEvent(new Event('coach:request-context'));
+    const players = row.players.replace(/^([0-9–]+)/, '$1 players');
+    const attribution = publisher + ': ' + title + ' — ' + activity + '. Published ages: ' + sourceAges + '.\n' + url;
+    return { id:row.id, title:row.title, skill:row.skill, minutes:row.minutes, target:row.target, band:row.band, ages:row.ages, players, equipment:row.equipment,
+      setup:'Suggested ages ' + row.ages + '; ' + players + '.\nSource setup (paraphrased): ' + row.setup + '\n\nSource: ' + attribution,
+      coaching:'Technical Intelligence: ' + row.t + '\nPerception: ' + row.p + '\nDecision Making: ' + row.d + '\nAsk the players: ' + row.reflection,
+      progression:'Our suggested adaptation: ' + row.adapt,
+      attribution:{ label:publisher + ' · ' + title, url, detail:activity + ' · Published ages: ' + sourceAges },
+      diagram:window.CoachLibrary.createDiagram(row.title, positions[row.id]) };
+  }));
 })();

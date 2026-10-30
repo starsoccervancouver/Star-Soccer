@@ -46,10 +46,11 @@
   };
   let context = null, identity = '', pane = '', opener = null, noteSaving = false, uncertain = false;
   let historyLimit = 10, dateLimit = 20, focusedSession = '', focusEpoch = 0;
-  const dirty = () => !!$('planner-note-body')?.value.trim();
+  const dirty = () => !!$('planner-note-body')?.value.trim() || !!window.CoachGoals?.isDirty('planner-note');
   const busy = () => noteSaving;
   function resetDraft() {
     $('planner-note-form')?.reset();
+    window.CoachGoals?.reset('planner-note');
     if ($('planner-note-status')) $('planner-note-status').textContent = '';
     uncertain = false;
   }
@@ -105,7 +106,7 @@
     if (!active) closeDatePicker();
     for (const id of ['planner-back', 'planner-home', 'planner-focus-date']) $(id).disabled = locked();
     $('planner-save').disabled = !active || locked() || readOnly() || !context?.planReady;
-    $('planner-save').textContent = context?.planDirty ? 'Save changes' : 'Save plan';
+    $('planner-save').textContent = context?.planDirty ? 'Save shared plan' : 'Save plan';
     document.dispatchEvent(new Event('coach:dictation-state'));
   }
   function focusSession(sessionId) {
@@ -179,6 +180,8 @@
       const source = context.sessions.find(s => s.id === note.session_id), card = make('article', '', 'planner-note-card note-card');
       const date = source?.date ? label(source.date) : 'Previous session';
       card.append(make('span', note.category, 'tag'), make('h3', date), make('p', note.body, 'note-body'), make('p', (note.author_email === context.profile.email ? 'Your private note' : note.author_email) + (note.updated_at ? ' · ' + new Intl.DateTimeFormat('en-CA', { timeZone: club.timeZone, month: 'short', day: 'numeric' }).format(new Date(note.updated_at)) : ''), 'small'));
+      const goal = window.CoachGoals?.renderCard(note);
+      if (goal) card.append(goal);
       return card;
     });
     $('planner-notes-list').replaceChildren(heading, ...(cards.length ? cards : [make('p', query ? 'No notes match your search.' : playerId ? 'No notes for this player yet.' : 'No group notes yet. Add one for this session above.', 'empty-state')]));
@@ -221,7 +224,7 @@
     event.preventDefault();
     if (unavailable() || locked() || readOnly() || uncertain || !dirty()) return;
     const targetIdentity = identity, playerId = $('planner-notes-player').value || null;
-    const payload = { sessionId: current().id, playerId, category: $('planner-note-category').value, body: $('planner-note-body').value.trim() };
+    const payload = { sessionId: current().id, playerId, category: $('planner-note-category').value, body: $('planner-note-body').value.trim(), goal: playerId ? window.CoachGoals?.read('planner-note') || null : null };
     noteSaving = true; $('planner-note-status').textContent = 'Saving private note…'; renderNotes(); $('planner-close-drawer').disabled = true;
     try {
       await new Promise((resolve, reject) => emit('coach:planner-note-save', { payload, resolve, reject }));

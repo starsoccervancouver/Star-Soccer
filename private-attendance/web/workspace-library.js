@@ -9,6 +9,7 @@
   const blank = () => ({ id: null, title: '', skill: '', minutes: 10, target: 'technical', setup: '', coaching: '', progression: '', equipment: '', diagram: null, version: 0 });
   const clone = value => JSON.parse(JSON.stringify(value));
   let context = null, identity = '', epoch = 0, records = [], loaded = false, loading = false, writing = false;
+  const catalogs = new Map(), sourceNames = { saved: 'Private saved drill', preset: 'TPD preset', starter: 'Original starter' };
   let record = blank(), baseline = '', recovery = null, conflict = false, lastAttempt = null, historyLimit = 8, suggestionInputs = null;
   const permitted = drill => context?.profile && (['owner', 'admin'].includes(context.profile.role) || drill.author_email === context.profile.email);
   const standalone = () => context?.tab === 'library';
@@ -31,18 +32,20 @@
     renderState();
   }
   function discard() { if (writing) return; writeEditor(); if (standalone()) editor.hidden = true; notify(''); }
-  window.CoachLibrary = Object.freeze({ isDirty: dirty, isBusy: () => writing, discard });
+  window.CoachLibrary = Object.freeze({ isDirty: dirty, isBusy: () => writing, discard, registerCatalog, createDiagram });
 
   const newDrill = action('New drill', () => { if (locked() || recovery) return; if (dirty() && !confirm('Start a new drill and discard this draft?')) return; writeEditor(); editor.hidden = false; $('library-title').focus(); }, 'button'); newDrill.id = 'library-new';
   const disclosure = node('details', '', 'coaching-tools-disclosure library-disclosure'); disclosure.id = 'library-disclosure';
-  disclosure.append(node('summary', 'Your drill library & suggested practice'));
+  disclosure.append(node('summary', 'Drill library · saved, TPD presets & starters'));
   const body = node('div', '', 'library-body');
-  body.append(node('h2', 'Keep good drills close'), node('p', 'Save reusable practice ideas here. Your drills are private to you and approved full-access coaches. Add one to a session only when you choose.', 'small'));
+  body.append(node('h2', 'Find an activity for your session'), node('p', 'Search your private saved drills, 10 TPD presets and 10 original starters together. Add to a session or open an editable draft. Saving is always your choice.', 'small'));
   const status = node('p', '', 'library-status'); status.id = 'library-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); body.append(status);
-  const filters = node('div', '', 'library-filters'), search = node('input'); search.id = 'library-search'; search.type = 'search'; search.placeholder = 'Title, focus or setup'; search.autocomplete = 'off';
-  const focus = select('library-filter', [['all', 'Every plan section'], ...Object.entries(targets)]);
+  const filters = node('div', '', 'library-filters'), search = node('input'); search.id = 'library-search'; search.type = 'search'; search.placeholder = 'Title, focus, setup or source'; search.autocomplete = 'off';
+  const focus = select('library-filter', [['all', 'Every session phase'], ...Object.entries(targets)]);
+  const sourceFilter = select('library-source-filter', [['all', 'Every source'], ['saved', 'Private saved drills'], ['preset', 'TPD presets · 10'], ['starter', 'Original starters · 10']]);
+  const ageFilter = select('library-age-filter', [['', 'All suggested ages'], ['young', 'Younger · 5–9'], ['middle', 'Developing · 8–12'], ['older', 'Older · 12–14'], ['unspecified', 'Age not specified']]);
   const skillFilter = select('library-skill-filter', [['', 'Every skill focus']]), durationFilter = select('library-duration-filter', [['', 'Any duration'], ['short', 'Up to 10 minutes'], ['medium', '11–20 minutes'], ['long', 'Over 20 minutes']]);
-  filters.append(label('Find a saved drill', search), label('Plan section', focus), label('Skill focus', skillFilter), label('Duration', durationFilter));
+  filters.append(label('Find a drill', search), label('Source', sourceFilter), label('Suggested ages', ageFilter), label('Session phase', focus), label('Skill focus', skillFilter), label('Duration', durationFilter));
   const reload = action('Load saved drills', () => load(true)); reload.id = 'library-reload';
   filters.append(reload, newDrill); body.append(filters);
   const results = node('p', '', 'small'); results.id = 'library-results'; results.setAttribute('role', 'status'); body.append(results);
@@ -87,7 +90,7 @@
   }); capture.id = 'library-capture'; reuse.append(label('Turn a saved activity into a drill', source), capture); editor.append(reuse); body.append(editor); disclosure.append(body); mount.append(disclosure);
   for (const key of fields) $('library-' + key).addEventListener('input', renderState);
   search.addEventListener('input', () => { historyLimit = 8; renderList(); });
-  for (const filter of [focus, skillFilter, durationFilter]) filter.addEventListener('change', () => { historyLimit = 8; renderList(); });
+  for (const filter of [focus, sourceFilter, ageFilter, skillFilter, durationFilter]) filter.addEventListener('change', () => { historyLimit = 8; renderList(); });
   scope.addEventListener('change', renderSuggestions);
   disclosure.addEventListener('toggle', () => { if (disclosure.open && ready() && !loaded && !loading) load(); });
   editor.addEventListener('submit', event => {
@@ -108,18 +111,18 @@
     newDrill.hidden = !standalone(); newDrill.disabled = locked() || !!recovery;
     suggestions.hidden = reuse.hidden = standalone();
     capture.disabled = !canInsert() || !!recovery; reload.disabled = locked() || loading;
-    search.disabled = focus.disabled = skillFilter.disabled = durationFilter.disabled = scope.disabled = locked();
+    search.disabled = sourceFilter.disabled = ageFilter.disabled = focus.disabled = skillFilter.disabled = durationFilter.disabled = scope.disabled = locked();
     reload.textContent = loading ? 'Loading…' : loaded ? 'Refresh saved drills' : 'Load saved drills';
     save.textContent = writing ? 'Saving…' : record.id ? 'Save changes' : 'Save drill';
     for (const el of list.querySelectorAll('button')) { el.disabled = locked() || !!recovery || (el.dataset.insert === 'true' && !canInsert()); if (el.dataset.insert === 'true') el.hidden = standalone(); }
     for (const el of recommendationList.querySelectorAll('button')) el.disabled = !canInsert() || !!recovery;
-    emit('coach:library-state', { starterEnabled:standalone() && !locked() && !recovery, loaded, count:records.length });
+    emit('coach:library-state', { starterEnabled:ready() && !locked() && !recovery, insertEnabled:canInsert() && !recovery, loaded, count:records.length });
   }
   function insert(drill) {
     if (!canInsert() || recovery) return;
     const text = drill.title + ' (' + drill.minutes + ' min)\n' + drill.setup + (drill.coaching ? '\nCoach: ' + drill.coaching : '') + (drill.progression ? '\nAdapt: ' + drill.progression : '') + (drill.equipment ? '\nEquipment: ' + drill.equipment : '');
-    const addition = { target: drill.target, text, title: drill.title, diagram: drill.diagram || null };
-    emit('coach:insert-plan', addition); if (addition.inserted) notify(drill.diagram ? 'Instructions and diagram added to drafts. Save the plan and Save setup when ready.' : 'Activity offered to your plan draft. Review it and save the shared plan when ready.');
+    const addition = { target: drill.target, text, title: drill.title, minutes: drill.minutes, diagram: drill.diagram || null };
+    emit('coach:insert-plan', addition); if (addition.inserted) notify('Activity added to your session draft. Review it and save the plan when ready.');
   }
   function edit(drill) {
     if (locked() || recovery || !permitted(drill)) return;
@@ -131,34 +134,72 @@
     baseline = fingerprint(blank()); editor.hidden = false; renderState();
     notify('Unsaved drill copy. Review it and choose Save drill to keep it.'); $('library-title').focus();
   }
+  function registerCatalog(source, drills) {
+    if (!['preset', 'starter'].includes(source) || !Array.isArray(drills)) return;
+    catalogs.set(source, drills.map(drill => ({ ...clone(drill), source, id: source + ':' + drill.id })));
+    if (ready()) renderList();
+  }
+  // Original schematic positions, shared with the existing tactics board format.
+  function createDiagram(title, pieces) {
+    const items = pieces.map(([kind], index) => ({ id: 'piece_' + index, kind, label: kind === 'home' || kind === 'away' ? String(index + 1) : '' }));
+    return { schemaVersion: 1, pitch: 'full', items, frames: [{ id: 'start', title: title.slice(0, 60), duration: 3, positions: pieces.map(([, x, y], index) => ({ id: items[index].id, x, y })) }] };
+  }
+  function previewDiagram(drill) {
+    const existing = window.CoachTactics?.preview(drill.diagram); if (existing) return existing;
+    if (!drill.diagram?.frames?.[0]) return null;
+    const svg = (tag, attributes) => { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const [key, value] of Object.entries(attributes)) el.setAttribute(key, value); return el; };
+    const image = svg('svg', { viewBox: '0 0 200 130', 'aria-hidden': 'true' });
+    image.append(svg('rect', { width: 200, height: 130, fill: '#e3ebdc' }), svg('rect', { x: 5, y: 5, width: 190, height: 120, fill: 'none', stroke: '#8ea58b' }));
+    for (const piece of drill.diagram.items) {
+      const point = drill.diagram.frames[0].positions.find(item => item.id === piece.id); if (!point) continue;
+      const x = point.x * 2, y = point.y * 1.3;
+      image.append(piece.kind === 'cone' ? svg('path', { d: `M${x} ${y - 4}l-4 8h8z`, fill: '#b96a26' }) : piece.kind === 'goal' ? svg('rect', { x: x - 3, y: y - 9, width: 6, height: 18, fill: '#fff', stroke: '#59695c' }) : svg('circle', { cx: x, cy: y, r: piece.kind === 'ball' ? 2.5 : 4, fill: piece.kind === 'ball' ? '#fff' : piece.kind === 'away' ? '#c7784b' : '#365c7a', stroke: '#35453c' }));
+    }
+    return image;
+  }
+  function ageBand(drill) {
+    if (drill.band) return drill.band;
+    const ages = drill.setup.match(/\bages?\s+(\d+)\s*[–-]\s*(\d+)/i);
+    return ages ? Number(ages[2]) <= 9 ? 'young' : Number(ages[2]) <= 12 ? 'middle' : 'older' : 'unspecified';
+  }
   function renderList() {
     const query = search.value.trim().toLowerCase();
-    const available = records.filter(permitted), priorSkill = skillFilter.value, skills = new Map(available.filter(drill => drill.skill.trim()).map(drill => [drill.skill.trim().toLowerCase(), drill.skill.trim()]));
+    const available = [...records.filter(permitted).sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)) || a.title.localeCompare(b.title)).map(drill => ({ ...drill, source: 'saved' })), ...[...catalogs.values()].flat()], priorSkill = skillFilter.value, skills = new Map(available.filter(drill => drill.skill.trim()).map(drill => [drill.skill.trim().toLowerCase(), drill.skill.trim()]));
     skillFilter.replaceChildren(...select('', [['', 'Every skill focus'], ...[...skills].sort((a, b) => a[1].localeCompare(b[1]))]).options); skillFilter.value = skills.has(priorSkill) ? priorSkill : '';
-    const matching = available.filter(drill => (focus.value === 'all' || drill.target === focus.value) && (!skillFilter.value || drill.skill.trim().toLowerCase() === skillFilter.value) && (!durationFilter.value || (durationFilter.value === 'short' ? drill.minutes <= 10 : durationFilter.value === 'medium' ? drill.minutes > 10 && drill.minutes <= 20 : drill.minutes > 20)) && (!query || [drill.title, drill.skill, drill.setup, drill.coaching, drill.progression, drill.equipment].join(' ').toLowerCase().includes(query))).sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)) || a.title.localeCompare(b.title));
-    results.textContent = loaded ? Math.min(matching.length, historyLimit) + ' of ' + matching.length + ' matching drills' : 'Open or load your library to see saved drills.';
+    const matching = available.filter(drill => (sourceFilter.value === 'all' || sourceFilter.value === drill.source) && (!ageFilter.value || ageBand(drill) === ageFilter.value) && (focus.value === 'all' || drill.target === focus.value) && (!skillFilter.value || drill.skill.trim().toLowerCase() === skillFilter.value) && (!durationFilter.value || (durationFilter.value === 'short' ? drill.minutes <= 10 : durationFilter.value === 'medium' ? drill.minutes > 10 && drill.minutes <= 20 : drill.minutes > 20)) && (!query || [drill.title, drill.skill, drill.setup, drill.coaching, drill.progression, drill.equipment, sourceNames[drill.source]].join(' ').toLowerCase().includes(query)));
+    results.textContent = Math.min(matching.length, historyLimit) + ' of ' + matching.length + ' matching drills' + (loaded ? '' : ' · Load saved drills to include your private library.');
     list.replaceChildren();
     for (const drill of matching.slice(0, historyLimit)) {
-      const card = node('article', '', 'library-card'); card.dataset.drillId = drill.id;
+      const card = node('article', '', 'library-card' + (drill.source === 'saved' ? '' : ' library-' + drill.source)); card.dataset.drillId = drill.id; card.dataset.source = drill.source;
       const longSetup = drill.setup.length > 160;
-      card.append(node('h3', drill.title), node('p', [drill.skill, drill.minutes + ' min', targets[drill.target]].filter(Boolean).join(' · '), 'small'), node('p', longSetup ? drill.setup.slice(0, 157).trimEnd() + '…' : drill.setup, 'library-instructions'));
+      const sourceTag = node('span', sourceNames[drill.source], 'library-source-tag');
+      card.append(sourceTag, node('h3', drill.title), node('p', [drill.skill, drill.ages && 'Ages ' + drill.ages, drill.players, drill.minutes + ' min', targets[drill.target]].filter(Boolean).join(' · '), 'small'), node('p', longSetup ? drill.setup.slice(0, 157).trimEnd() + '…' : drill.setup, 'library-instructions'));
       if (longSetup || drill.coaching || drill.progression || drill.equipment) {
         const details = node('details', '', 'library-card-details'); details.append(node('summary', 'Drill details'));
         if (longSetup) details.append(node('p', drill.setup, 'library-instructions'));
         for (const [key, label] of [['coaching', 'Coach'], ['progression', 'Adapt'], ['equipment', 'Equipment']]) if (drill[key]) details.append(node('p', label + ': ' + drill[key], 'library-instructions'));
         card.append(details);
       }
-      card.append(node('p', drill.author_email === context.profile.email ? 'Your reusable drill' : 'Shared with full-access coaches · ' + drill.author_email, 'small'));
-      const actions = node('div', '', 'library-actions'), add = action('Add to ' + targets[drill.target].toLowerCase(), () => insert(drill)); add.dataset.insert = 'true';
-      const change = action('Edit drill', () => edit(drill)), archive = action('Archive drill', () => {
-        if (locked() || recovery || !permitted(drill)) return;
-        if (dirty()) return notify('Save or clear your current drill draft before archiving.', true);
-        if (confirm('Archive this reusable drill? Saved session plans will stay unchanged.')) persist({ operation: 'archive', payload: { id: drill.id, expectedVersion: drill.version } });
-      });
-      const duplicate = action('Duplicate drill', () => { if (locked() || recovery || !permitted(drill)) return; if (dirty() && !confirm('Discard your current unsaved drill and make a copy?')) return; copyDraft(drill); });
-      actions.append(add, change, duplicate, archive); const thumbnail = window.CoachTactics?.preview(drill.diagram); if (thumbnail) { const preview = node('div', '', 'library-diagram-preview'); preview.append(thumbnail); card.prepend(preview); } card.append(actions); list.append(card);
+      if (drill.attribution) {
+        const attribution = node('p', '', 'preset-source small'), link = node('a', drill.attribution.label); link.href = drill.attribution.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; attribution.append(link, node('span', drill.attribution.detail)); card.append(attribution);
+      }
+      card.append(node('p', drill.source === 'saved' ? drill.author_email === context.profile.email ? 'Your reusable drill' : 'Shared with full-access coaches · ' + drill.author_email : drill.source === 'preset' ? 'Ages, timings and TPD prompts are coaching suggestions. Source notes are paraphrased; no endorsement implied.' : 'Original Star Soccer starting point. Adapt for the players present.', 'small'));
+      const actions = node('div', '', 'library-actions'), add = action('Add to session', () => insert(drill)); add.dataset.insert = 'true'; add.setAttribute('aria-label', 'Add ' + drill.title + ' to session');
+      actions.append(add);
+      if (drill.source !== 'saved') {
+        const use = action('Use as draft', () => emit('coach:library-prefill', { source: drill.source, drill })); use.dataset[drill.source + 'Title'] = drill.title; use.setAttribute('aria-label', 'Use ' + drill.title + ' as draft'); actions.append(use);
+      } else {
+        const change = action('Edit drill', () => edit(drill)), archive = action('Archive drill', () => {
+          if (locked() || recovery || !permitted(drill)) return;
+          if (dirty()) return notify('Save or clear your current drill draft before archiving.', true);
+          if (confirm('Archive this reusable drill? Saved session plans will stay unchanged.')) persist({ operation: 'archive', payload: { id: drill.id, expectedVersion: drill.version } });
+        });
+        const duplicate = action('Duplicate drill', () => { if (locked() || recovery || !permitted(drill)) return; if (dirty() && !confirm('Discard your current unsaved drill and make a copy?')) return; copyDraft(drill); });
+        actions.append(change, duplicate, archive);
+      }
+      const thumbnail = previewDiagram(drill); if (thumbnail) { const preview = node('figure', '', 'library-diagram-preview'); preview.append(thumbnail); if (drill.source !== 'saved') preview.append(node('figcaption', 'Original sketch · illustrative starting positions', 'small')); card.append(preview); } card.append(actions); list.append(card);
     }
-    if (loaded && !matching.length) list.append(node('p', records.length ? 'No saved drills match these filters.' : 'Your library is empty. Save a useful activity below to reuse it.', 'empty-state'));
+    if (!matching.length) list.append(node('p', 'No drills match these filters. Try a different source, age group or session phase.', 'empty-state'));
     more.hidden = matching.length <= historyLimit; renderState();
   }
   function sameGroup(a, b) { return !!window.CoachGroups?.sameGroup(a, b); }
@@ -250,8 +291,9 @@
   }
   window.addEventListener('coach:library-prefill', event => {
     const value = event.detail || {}, drill = value.drill;
-    const starter = value.source === 'starter' && standalone();
-    if (!ready() || locked() || recovery || !starter && value.sessionId !== context.session?.id || !drill || !Object.hasOwn(targets, drill.target) || !Number.isInteger(drill.minutes) || drill.minutes < 1 || drill.minutes > 120) return;
+    const catalogIdea = catalogs.get(value.source)?.some(item => item.id === drill?.id);
+    const sessionIdea = !standalone() && !!context?.session?.id && value.sessionId === context.session.id;
+    if (!ready() || locked() || recovery || !catalogIdea && !sessionIdea || !drill || !Object.hasOwn(targets, drill.target) || !Number.isInteger(drill.minutes) || drill.minutes < 1 || drill.minutes > 120) return;
     const draft = { ...blank() };
     for (const key of fields) {
       const text = drill[key] ?? '';
@@ -259,6 +301,7 @@
       else { if (typeof text !== 'string' || text.length > (['title', 'skill'].includes(key) ? 80 : key === 'target' ? 20 : 2000)) return; draft[key] = text.trim(); }
     }
     if (!draft.title || !draft.setup) return;
+    if (catalogIdea && drill.diagram) draft.diagram = clone(drill.diagram);
     if (dirty() && !confirm('Replace your unsaved drill with this practice idea?')) return;
     writeEditor(draft); baseline = fingerprint(blank()); disclosure.open = true; editor.hidden = false; renderState();
     notify('Practice idea copied to a new drill draft. Review it and choose Save drill to keep it.'); $('library-title').focus();
@@ -267,7 +310,7 @@
     const next = event.detail, nextIdentity = next?.profile ? [next.profile.email, next.profile.role, next.profile.sessionVersion, next.session?.id || ''].join(':') : '';
     if (nextIdentity !== identity) {
       epoch++; writing = loading = false; records = []; loaded = false; recovery = lastAttempt = null; identity = nextIdentity; context = next;
-      disclosure.open = false; search.value = ''; focus.value = 'all'; skillFilter.value = durationFilter.value = ''; scope.value = ''; historyLimit = 8; suggestionInputs = null; writeEditor(); notify(''); list.replaceChildren(); recommendationList.replaceChildren(); results.textContent = ''; scope.replaceChildren(); skillFilter.replaceChildren(...select('', [['', 'Every skill focus']]).options);
+      disclosure.open = false; search.value = ''; focus.value = sourceFilter.value = 'all'; ageFilter.value = skillFilter.value = durationFilter.value = ''; scope.value = ''; historyLimit = 8; suggestionInputs = null; writeEditor(); notify(''); list.replaceChildren(); recommendationList.replaceChildren(); results.textContent = ''; scope.replaceChildren(); skillFilter.replaceChildren(...select('', [['', 'Every skill focus']]).options);
     } else context = next;
     if (!next?.profile) { mount.hidden = true; sessionAnchor.after(mount); return; }
     const root = standalone() ? $('standalone-drill-library') : sessionHome;
@@ -279,7 +322,7 @@
     }
     disclosure.querySelector('summary').hidden = standalone();
     mount.classList.toggle('library-standalone', standalone());
-    mount.hidden = false; renderState(); renderSuggestions();
+    mount.hidden = false; if (ready() && !list.children.length) renderList(); renderState(); renderSuggestions();
     if (standalone() && !loaded && !loading) { disclosure.open = true; load(); }
   });
   writeEditor(); emit('coach:request-context');

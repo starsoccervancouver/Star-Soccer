@@ -32,7 +32,7 @@
   document.body.append(sheet);
 
   const clubName = () => window.CoachClub?.name || 'Star Soccer';
-  const active = () => !!context?.profile && !!context.session && context.selected === context.session.id && context.tab === 'plan' && context.planReady && !context.busy && context.session.status !== 'Cancelled';
+  const active = () => !!context?.profile && !!context.session && context.selected === context.session.id && context.tab === 'plan' && context.planReady && !context.busy && String(context.session.status).toLowerCase() !== 'cancelled';
   const content = () => context?.plan?.content || {};
   const hasActivities = () => Array.isArray(content().activities) && content().activities.length > 0;
   const savedStages = () => hasActivities() ? content().activities.map((block, index) => ({ key: 'activity-' + index, title: block.title, minutes: block.duration, instructions: block.instructions, equipment: block.equipment, stage: block.stage })) : legacyStages;
@@ -307,14 +307,15 @@
   function renderEntry() {
     mount.replaceChildren();
     if (!context?.profile) return;
-    mount.append(unsavedWarning('field-unsaved-warning'), node('p', 'Take the saved session plan to the field, use an optional activity timer, or print the plan and full roster.', 'small'));
-    if (context.session) mount.append(budget('field-time-budget-entry'));
+    mount.append(unsavedWarning('field-unsaved-warning'));
     const actions = node('div', '', 'field-entry-actions');
     const open = makeButton('Open field view', 'open-field-view', openField, true);
     const print = makeButton('Print session sheet', 'print-session-sheet', printSession);
     open.disabled = print.disabled = !active();
     actions.append(open, print);
     mount.append(actions);
+    mount.append(node('p', 'Uses the saved shared plan and roster. Tactics setups are saved separately.', 'small'));
+    if (context.session) mount.append(budget('field-time-budget-entry'));
     if (!context.planReady) mount.append(node('p', 'Choose a session and wait for its saved plan to load.', 'small'));
     else if (!hasActivities() && !['focus', 'warmup', 'technical', 'game', 'equipment'].some(key => String(content()[key] || '').trim())) mount.append(node('p', 'No preparation plan has been saved for this session yet. The field view will show the recorded roster and empty plan sections.', 'small'));
     renderBudgets();

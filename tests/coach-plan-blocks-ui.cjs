@@ -18,6 +18,35 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
       window.print = () => { window.printed = document.querySelector('#session-print-sheet').textContent; };
     });
     assert.equal(await page.evaluate(() => CoachPlanBlocks.content()), undefined, 'Loading a legacy plan never converts it');
+    const insertion = await page.evaluate(() => {
+      const drill = { target: 'technical', title: 'Receive safely', text: '  Keep exact instructions\nwith a second line.  ', minutes: 12, diagram: { title: 'Separate tactics setup' } };
+      const canAdd = CoachPlanBlocks.canAddDrill(drill), unchangedBeforeAdd = CoachPlanBlocks.content() === undefined;
+      const result = CoachPlanBlocks.addDrill(drill), content = CoachPlanBlocks.content();
+      const isolated = CoachPlanBlocks.content(); isolated[0].title = 'External mutation';
+      const internalTitle = CoachPlanBlocks.content()[0].title;
+      CoachPlanBlocks.discard(); publish();
+      const invalid = [null, [], {}, { ...drill, target: 'equipment' }, { ...drill, text: 'x'.repeat(2001) }, { ...drill, text: 'bad\x00text' }, { ...drill, title: ' ' }, { ...drill, title: 'x'.repeat(121) }, { ...drill, minutes: 0 }, { ...drill, minutes: 121 }, { ...drill, minutes: 1.5 }, { ...drill, minutes: '12' }].map(value => CoachPlanBlocks.addDrill(value));
+      const guarded = [];
+      for (const patch of [{ busy: true }, { planReady: false }, { tab: 'home' }, { selected: 'other-session' }, { session: { ...fixture.session, status: 'cancelled' } }]) {
+        window.dispatchEvent(new CustomEvent('coach:context', { detail: { ...fixture, ...patch } }));
+        guarded.push(CoachPlanBlocks.addDrill(drill));
+      }
+      publish();
+      CoachPlanBlocks.load({ activities: Array.from({ length: 16 }, () => ({ ...content[0] })) }, fixture.session); publish();
+      const canAddAtLimit = CoachPlanBlocks.canAddDrill(drill), limited = CoachPlanBlocks.addDrill(drill), limitedCount = CoachPlanBlocks.content().length;
+      const disabledAtLimit = document.getElementById('plan-add-activity').disabled;
+      CoachPlanBlocks.load(fixture.plan.content, fixture.session); publish();
+      return { result, canAdd, unchangedBeforeAdd, canAddAtLimit, content, internalTitle, invalid, guarded, limited, limitedCount, disabledAtLimit, saves };
+    });
+    assert.equal(insertion.result, true); assert.equal(insertion.saves, 0, 'Insertion never saves');
+    assert.equal(insertion.canAdd, true); assert.equal(insertion.unchangedBeforeAdd, true, 'Preflight never changes a draft'); assert.equal(insertion.canAddAtLimit, false);
+    assert.equal(insertion.content[0].instructions, '  Keep exact instructions\nwith a second line.  ');
+    assert.equal(insertion.content[0].duration, 12); assert.equal(insertion.internalTitle, 'Receive safely');
+    assert.deepEqual(Object.keys(insertion.content[0]).sort(), ['duration', 'equipment', 'instructions', 'stage', 'title'], 'Diagram stays outside the activity schema');
+    assert(insertion.invalid.every(value => value === false), 'Invalid inputs fail without a partial draft');
+    assert(insertion.guarded.every(value => value === false), 'Busy, unloaded, cancelled or mismatched sessions reject insertion');
+    assert.equal(insertion.limited, false); assert.equal(insertion.limitedCount, 16); assert.equal(insertion.disabledAtLimit, true);
+    assert.equal(await page.evaluate(() => CoachPlanBlocks.content()), undefined, 'Guard tests preserve the legacy plan');
     await page.getByRole('button', { name: 'First-touch starter', exact: true }).click();
     assert.equal(await page.locator('.plan-block').count(), 4); assert.equal(await page.evaluate(() => saves), 0, 'Starters only edit the shared draft');
     assert.match(await page.locator('.plan-block-budget').innerText(), /55 minutes planned.*60-minute/);

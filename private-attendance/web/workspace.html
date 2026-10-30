@@ -31,6 +31,7 @@
 <script src="/workspace/assets/coaching.js" defer></script>
 <script src="/workspace/assets/session.js" defer></script>
 <script src="/workspace/assets/tactics.js" defer></script>
+<script src="/workspace/assets/goals.js" defer></script>
 <script src="/workspace/assets/planner.js" defer></script>
 <script src="/workspace/assets/library.js" defer></script>
 <script src="/workspace/assets/starters.js" defer></script>
@@ -38,6 +39,7 @@
 <script src="/workspace/assets/folders.js" defer></script>
 <script src="/workspace/assets/profiles.js" defer></script>
 <script src="/workspace/assets/resources.js" defer></script>
+<script src="/workspace/assets/navigation.js" defer></script>
 <link rel="stylesheet" href="/workspace/assets/resources.css">
 <link rel="stylesheet" href="/workspace/assets/profiles.css">
 </head>
@@ -382,15 +384,16 @@
 <button id="planner-open-run" class="secondary" type="button" aria-controls="planner-drawer" aria-expanded="false"><span class="planner-tool-icon" aria-hidden="true">▷</span><span>Run session</span></button>
 </div>
 <section class="card planner-plan-card">
-<div class="planner-plan-heading"><div><p class="eyebrow">The session plan</p><h2>What are we working on?</h2></div><span class="privacy-pill">Shared preparation</span></div>
-<p class="privacy-message shared">Shared with assigned coaches and full-access admins.</p>
-<p class="dictation-help small" id="plan-dictation-help"></p>
+<div class="planner-plan-heading"><p class="small">Shared plan · Assigned coaches and full-access admins</p></div>
+
+
 <div class="plan-load-feedback"><p id="plan-load-status" class="small" role="status" aria-live="polite" hidden></p><button type="button" class="secondary" id="plan-retry" hidden>Retry loading this plan</button></div>
 <form id="plan-form" class="plan-grid">
 <label class="full-width">Session focus<textarea id="plan-focus" data-dictation-label="Dictate session focus" rows="2" maxlength="2000" placeholder="The one thing we want players to take away">
 </textarea>
 </label>
 <section id="plan-activities" class="full-width" aria-label="Session activity sequence"></section>
+<details id="plan-supporting-notes" class="full-width plan-supporting-notes"><summary>Supporting coaching notes</summary><p class="dictation-help small" id="plan-dictation-help"></p><div class="plan-supporting-grid">
 <label>Warm-up<textarea id="plan-warmup" data-dictation-label="Dictate warm-up" rows="4" maxlength="2000" placeholder="Arrival activity, movement and ball work">
 </textarea>
 </label>
@@ -400,6 +403,7 @@
 <label>Game / application<textarea id="plan-game" data-dictation-label="Dictate game" rows="4" maxlength="2000" placeholder="How will players apply the skill?">
 </textarea>
 </label>
+</div></details>
 <label>Equipment / preparation<textarea id="plan-equipment" data-dictation-label="Dictate equipment" rows="4" maxlength="2000" placeholder="Balls, cones, bibs, goals and setup">
 </textarea>
 </label>
@@ -407,7 +411,7 @@
 </textarea>
 </label>
 <div class="full-width planner-save-row">
-<button class="button" type="submit">Save shared plan</button>
+<button class="secondary" type="submit">Save shared plan</button>
 <span class="form-state" id="plan-state" role="status" hidden>Unsaved changes</span>
 <span id="plan-updated" class="small">
 </span>

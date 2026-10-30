@@ -1,12 +1,14 @@
 // Tactics are bounded structured data, never SVG, HTML, external URLs or player records.
 const invalid=()=>{throw Object.assign(new Error('INVALID_DIAGRAM'),{code:'INVALID_DIAGRAM',status:400});};
-const object=(value,keys)=>{
- if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length!==keys.length||keys.some(key=>!Object.hasOwn(value,key)))invalid();
+const object=(value,keys,optional=[])=>{
+ if(!value||typeof value!=='object'||Array.isArray(value)||keys.some(key=>!Object.hasOwn(value,key))||Object.keys(value).some(key=>!keys.includes(key)&&!optional.includes(key)))invalid();
  return value;
 };
 const identifier=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9_-]{1,40}$/.test(value))invalid();return value;};
 const text=(value,max)=>{if(typeof value!=='string'||value.length>max||/[\x00-\x1f\x7f]/.test(value))invalid();return value.trim();};
 const coordinate=value=>{if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>100)invalid();return value;};
+const notes=value=>{if(typeof value!=='string'||value.length>1000||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value))invalid();return value;};
+const curve=value=>{if(typeof value!=='number'||!Number.isFinite(value)||value< -50||value>50)invalid();return value;};
 
 export function validateDiagram(content){
  object(content,['schemaVersion','pitch','items','frames']);
@@ -17,16 +19,26 @@ export function validateDiagram(content){
   if(itemIds.has(id)||!['home','away','cone','ball','goal'].includes(item.kind))invalid();
   itemIds.add(id);return {id,kind:item.kind,label:text(item.label,12)};
  });
+ const itemKinds=new Map(items.map(item=>[item.id,item.kind]));
  const frames=content.frames.map(frame=>{
-  object(frame,['id','title','duration','positions']);const id=identifier(frame.id);
+  object(frame,['id','title','duration','positions'],['notes']);const id=identifier(frame.id);
   if(frameIds.has(id)||typeof frame.duration!=='number'||!Number.isFinite(frame.duration)||frame.duration<0.5||frame.duration>20||!Array.isArray(frame.positions)||frame.positions.length!==items.length)invalid();
   frameIds.add(id);const seen=new Set();
   const positions=frame.positions.map(position=>{
-   object(position,['id','x','y']);const id=identifier(position.id);
+   object(position,['id','x','y'],['curve','attachedTo']);const id=identifier(position.id);
    if(!itemIds.has(id)||seen.has(id))invalid();seen.add(id);
-   return {id,x:coordinate(position.x),y:coordinate(position.y)};
+   const result={id,x:coordinate(position.x),y:coordinate(position.y)};
+   if(Object.hasOwn(position,'curve'))result.curve=curve(position.curve);
+   if(Object.hasOwn(position,'attachedTo')){
+    const attachedTo=identifier(position.attachedTo);
+    if(itemKinds.get(id)!=='ball'||!['home','away'].includes(itemKinds.get(attachedTo)))invalid();
+    result.attachedTo=attachedTo;
+   }
+   return result;
   });
-  return {id,title:text(frame.title,80),duration:frame.duration,positions};
+  const result={id,title:text(frame.title,80),duration:frame.duration,positions};
+  if(Object.hasOwn(frame,'notes'))result.notes=notes(frame.notes);
+  return result;
  });
  const result={schemaVersion:1,pitch:content.pitch,items,frames};
  if(new TextEncoder().encode(JSON.stringify(result)).length>56000)invalid();

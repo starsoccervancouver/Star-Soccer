@@ -32,8 +32,8 @@
   function request(operation, payload) { return new Promise((resolve, reject) => window.dispatchEvent(new CustomEvent('coach:tactics-request', { detail: { operation, payload, resolve, reject } }))); }
   function stopPlayback(reset = true) { running = false; cancelAnimationFrame(animation); animation = 0; if (reset) { elapsed = 0; renderedPositions = null; } renderPlayback(); }
   function mutate(fn, text) { if (!editable()) return; stopPlayback(); remember(); fn(); if (text) tell(text); render(); notifyDraft(); }
-  function clear(next = blank()) { stopPlayback(); record = clone(next); record.content = clone(next.content); frameIndex = 0; selectedItem = ''; undo = []; redo = []; lastAttempt = null; recoveryNeeded = false; baseline = snapshot(); render(); notifyDraft(); }
-  function discard() { stopPlayback(); const saved = JSON.parse(baseline); record.title = saved.title; record.content = saved.content; frameIndex = 0; selectedItem = ''; undo = []; redo = []; render(); notifyDraft(); }
+  function clear(next = blank()) { stopPlayback(); record = clone(next); record.content = clone(next.content); frameIndex = 0; selectedItem = ''; undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; lastAttempt = null; recoveryNeeded = false; baseline = snapshot(); render(); notifyDraft(); }
+  function discard() { stopPlayback(); const saved = JSON.parse(baseline); record.title = saved.title; record.content = saved.content; frameIndex = 0; selectedItem = ''; undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; render(); notifyDraft(); }
   window.CoachTactics = Object.freeze({ isDirty: dirty, isBusy: () => pending, discard,
     getDraft: () => active() && loaded && !pending && !running ? { sessionId: context.session.id, title: record.title, diagram: clone(record.content) } : null,
     preview: content => content?.frames?.[0] && Array.isArray(content.items) ? previewFrame(content.frames[0], content.items) : null,
@@ -72,23 +72,28 @@
   heading.append(field('Setup name', title), field('Field', pitch));
   const topActions = el('div', '', 'tactics-toolbar');
   const addGroup = el('div', '', 'tactics-pieces'); addGroup.setAttribute('role', 'group'); addGroup.setAttribute('aria-label', 'Add a piece');
-  for (const [kind, label] of Object.entries(kinds)) {
-    const add = button('+ ' + label, 'tactics-add-' + kind, () => mutate(() => {
-      if (record.content.items.length >= 40) return tell('This board has 40 pieces. Remove one before adding another.', true);
+  function addPiece(kind, destination) {
+    if (!kinds[kind] || !editable() || record.content.items.length >= 40) return;
+    mutate(() => {
       const item = { id: uid('piece_'), kind, label: ['home', 'away'].includes(kind) ? String(record.content.items.filter(i => i.kind === kind).length + 1) : '' };
       record.content.items.push(item); const offset = record.content.items.length % 6;
-      for (const frame of record.content.frames) frame.positions.push({ id: item.id, x: 43 + offset * 3, y: 42 + offset * 3 });
+      for (const frame of record.content.frames) frame.positions.push({ id: item.id, ...(destination || { x: 43 + offset * 3, y: 42 + offset * 3 }) });
       selectedItem = item.id;
-    }, label + ' added. Drag it, tap its destination, or use the position controls.'));
+    }, kinds[kind] + ' added. Drag it, tap its destination, or use the position controls.');
+  }
+  for (const [kind, label] of Object.entries(kinds)) {
+    const add = button('+ ' + label, 'tactics-add-' + kind, () => addPiece(kind));
+    add.draggable = true; add.title = 'Click to add, or drag onto the field';
+    add.addEventListener('dragstart', event => { if (!editable() || add.disabled) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', kind); event.dataTransfer.effectAllowed = 'copy'; });
     add.dataset.pieceKind = kind; addGroup.append(add);
   }
   topActions.append(addGroup);
   const boardLayout = el('div', '', 'tactics-board-layout');
   const canvasWrap = el('div', '', 'tactics-canvas-wrap');
-  const board = svg('svg', { id: 'tactics-pitch-board', viewBox: '0 0 1000 650', role: 'group', 'aria-label': 'Tactics field. Select a piece and drag, tap a destination, or use arrow keys.', tabindex: '0' });
+  const board = svg('svg', { id: 'tactics-pitch-board', viewBox: '-120 -100 1240 870', role: 'group', 'aria-label': 'Tactics field. Select a piece and drag, tap a destination, or use arrow keys.', tabindex: '0' });
   canvasWrap.append(board);
   const emptyHint = el('div', 'Add a player or try the passing triangle to begin.', 'tactics-empty-hint'); emptyHint.id = 'tactics-empty-hint'; canvasWrap.append(emptyHint);
-  const help = el('p', 'Drag, or select and tap to move. Arrows: move · Shift: farther · Ctrl/⌘ Z: undo · Delete: remove from all steps · Escape: deselect. Solid path: ball movement. Dashed path: player or equipment movement.', 'tactics-board-help');
+  const help = el('p', 'Drag pieces from the toolbar onto the field, or click to add. Select and drag or tap to move. Arrows: move · Shift: farther · Ctrl/⌘ Z: undo · Delete: remove from all steps · Escape: deselect. Paths lead to the next step: solid for a free ball, dashed for players. Cones and goals have no paths. Drag an attached ball to release it.', 'tactics-board-help');
   const side = el('div', '', 'tactics-piece-panel');
   const itemSelect = select('tactics-item', [['', 'Choose a piece']]);
   itemSelect.addEventListener('change', () => { if (!editable()) return; selectedItem = itemSelect.value; stopPlayback(); render(); });
@@ -101,7 +106,16 @@
   const coordinate = el('p', '', 'small'); coordinate.id = 'tactics-coordinate';
   const pathToggle = input('tactics-paths', 'checkbox'); pathToggle.checked = true; pathToggle.addEventListener('change', draw);
   const pathLabel = field('Show movement paths', pathToggle); pathLabel.className = 'tactics-check';
-  side.append(el('p', 'Select a piece on the field or use the list below. Drag to move; Escape clears selection.', 'tactics-selection-hint'), field('Selected piece', itemSelect), field('Short label', labelInput), nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const id = selectedItem; record.content.items = record.content.items.filter(i => i.id !== id); for (const f of record.content.frames) f.positions = f.positions.filter(p => p.id !== id); selectedItem = ''; }, 'Piece removed from every step. Undo restores it.')), pathLabel);
+  const carrier = select('tactics-ball-carrier', [['', 'Free ball']]);
+  carrier.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem); if (!p) return; if (carrier.value) { p.attachedTo = carrier.value; Object.assign(p, positionIn(currentFrame(), p.id)); } else detachBall(currentFrame(), p); }, carrier.value ? 'Ball attached for this step. It follows the player; drag it to release.' : 'Ball detached for this step.'));
+  const carrierField = field('Ball carrier · this step', carrier);
+  const detach = button('Detach ball', 'tactics-detach-ball', () => mutate(() => detachBall(currentFrame(), currentFrame().positions.find(p => p.id === selectedItem)), 'Ball detached for this step.'));
+  const bend = input('tactics-curve', 'range'); bend.min = '-50'; bend.max = '50'; bend.step = '5';
+  const bendValue = el('span', '', 'small'); bendValue.id = 'tactics-curve-value';
+  bend.addEventListener('input', () => { bendValue.textContent = Number(bend.value) === 0 ? 'Straight' : (Number(bend.value) < 0 ? 'Left' : 'Right') + ' bend · ' + Math.abs(Number(bend.value)); });
+  bend.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem); if (!p) return; const value = Number(bend.value); if (value) p.curve = value; else delete p.curve; }, 'Path updated. Play movement to preview it.'));
+  const bendField = field('Path to next step · left / right', bend); bendField.append(bendValue);
+  side.append(el('p', 'Select a piece on the field or use the list below. Drag to move; Escape clears selection.', 'tactics-selection-hint'), field('Selected piece', itemSelect), field('Short label', labelInput), carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const id = selectedItem; for (const f of record.content.frames) { for (const p of f.positions) if (p.attachedTo === id) detachBall(f, p); f.positions = f.positions.filter(p => p.id !== id); } record.content.items = record.content.items.filter(i => i.id !== id); selectedItem = ''; }, 'Piece removed from every step. Undo restores it.')), pathLabel);
   boardLayout.append(canvasWrap, side);
   const phases = el('section', '', 'tactics-phases'); phases.setAttribute('aria-label', 'Movement phases');
   const phaseHeading = el('div', '', 'tactics-phase-heading'); phaseHeading.append(el('h3', 'Movement sequence'), el('span', '', 'small')); phaseHeading.lastChild.id = 'tactics-sequence-summary';
@@ -110,6 +124,9 @@
   const frameTitle = input('tactics-frame-title'); frameTitle.maxLength = 80; let frameEditing = false;
   frameTitle.addEventListener('input', () => { if (!editable()) return; if (!frameEditing) { remember(); frameEditing = true; } currentFrame().title = frameTitle.value.trim() || 'Step ' + (frameIndex + 1); const selected = $('tactics-frame-' + frameIndex); if (selected) selected.lastChild.textContent = (frameIndex + 1) + '. ' + currentFrame().title; editedText(); });
   frameTitle.addEventListener('blur', () => { frameEditing = false; });
+  const phaseNotes = el('textarea'); phaseNotes.id = 'tactics-phase-notes'; phaseNotes.rows = 3; phaseNotes.maxLength = 1000; phaseNotes.placeholder = 'Coaching cues, instructions, or what happens in this step…'; let notesEditing = false;
+  phaseNotes.addEventListener('input', () => { if (!editable()) return; if (!notesEditing) { remember(); notesEditing = true; } if (phaseNotes.value) currentFrame().notes = phaseNotes.value; else delete currentFrame().notes; editedText(); });
+  phaseNotes.addEventListener('blur', () => { notesEditing = false; });
   const duration = input('tactics-duration', 'number'); duration.min = '.5'; duration.max = '20'; duration.step = '.5'; duration.inputMode = 'decimal';
   duration.addEventListener('change', () => { if (!editable()) return; const value = Number(duration.value); if (!Number.isFinite(value) || value < .5 || value > 20) { duration.value = String(currentFrame().duration); return tell('Choose a movement time between 0.5 and 20 seconds.', true); } if (value !== currentFrame().duration) { remember(); currentFrame().duration = value; scrub.max = String(totalSeconds()); $('tactics-sequence-summary').textContent = record.content.frames.length + ' / 12 steps · ' + totalSeconds() + 's · ' + record.content.items.length + ' / 40 pieces'; editedText(); } });
   const durationField = field('Seconds to next step', duration);
@@ -128,7 +145,7 @@
   const previewControls = el('div', '', 'tactics-preview-controls');
   previewControls.append(field('Playback speed', speed), field('Loop', loop), field('Animation position (seconds)', scrub));
   phases.append(previewControls);
-  phases.append(phaseHeading, frameButtons, frameSettings, phaseActions, previewControls, playback);
+  phases.append(phaseHeading, frameButtons, frameSettings, field('Notes for this step', phaseNotes), phaseActions, previewControls, playback);
   const footer = el('div', '', 'tactics-footer');
   const editingActions = el('div', '', 'tactics-toolbar');
   editingActions.append(button('Undo', 'tactics-undo', () => { if (!editable() || !undo.length) return; stopPlayback(); redo.push(capture()); apply(undo.pop()); render(); notifyDraft(); }), button('Redo', 'tactics-redo', () => { if (!editable() || !redo.length) return; stopPlayback(); undo.push(capture()); apply(redo.pop()); render(); notifyDraft(); }), button('Passing triangle', 'tactics-preset', preset));
@@ -152,31 +169,53 @@
   function editedText() { $('tactics-undo').disabled = !undo.length; $('tactics-redo').disabled = !redo.length; $('tactics-save').disabled = recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id); renderStatus(); notifyDraft(); }
   function duplicatePiece() {
     if (!selectedItem || record.content.items.length >= 40) return;
-    mutate(() => { const original = record.content.items.find(i => i.id === selectedItem), copy = { ...original, id: uid('piece_') }; record.content.items.push(copy); for (const f of record.content.frames) { const p = f.positions.find(v => v.id === original.id); f.positions.push({ ...p, id: copy.id, x: clamp(p.x + 5), y: clamp(p.y + 5) }); } selectedItem = copy.id; }, 'Piece copied into every step.');
+    mutate(() => { const original = record.content.items.find(i => i.id === selectedItem), copy = { ...original, id: uid('piece_') }; record.content.items.push(copy); for (const f of record.content.frames) { const p = f.positions.find(v => v.id === original.id), at = positionIn(f, original.id), next = { ...p, id: copy.id, x: clamp(at.x + 5), y: clamp(at.y + 5) }; delete next.attachedTo; f.positions.push(next); } selectedItem = copy.id; }, 'Piece copied into every step. A copied ball starts free.');
   }
   function reorderStep(direction) {
     const next = frameIndex + direction; if (next < 0 || next >= record.content.frames.length) return;
     mutate(() => { const [frame] = record.content.frames.splice(frameIndex, 1); record.content.frames.splice(next, 0, frame); frameIndex = next; }, 'Step moved. Review the movement before saving.');
   }
   function totalSeconds() { return record.content.frames.slice(0, -1).reduce((sum, f) => sum + f.duration, 0); }
+  function positionIn(frame, id) {
+    const p = frame.positions.find(p => p.id === id), player = p?.attachedTo && frame.positions.find(v => v.id === p.attachedTo);
+    return player ? { id, x: Math.min(100, player.x + 6), y: Math.min(100, player.y + 6) } : { id, x: p.x, y: p.y };
+  }
+  function detachBall(frame, p) { if (!p?.attachedTo) return; Object.assign(p, positionIn(frame, p.id)); delete p.attachedTo; }
+  function placePiece(frame, id, destination) {
+    const p = frame.positions.find(p => p.id === id); if (!p) return;
+    detachBall(frame, p); Object.assign(p, destination);
+    for (const ball of frame.positions) if (ball.attachedTo === id) Object.assign(ball, positionIn(frame, ball.id));
+  }
+  // The same quadratic curve drives the visible path, scrubbing and playback.
+  function curveControl(start, end, bend = 0) {
+    const dx = (end.x - start.x) * 10, dy = (end.y - start.y) * 6.5, length = Math.hypot(dx, dy) || 1;
+    return { x: Math.max(0, Math.min(1000, (start.x + end.x) * 5 - dy / length * bend * 4)), y: Math.max(0, Math.min(650, (start.y + end.y) * 3.25 + dx / length * bend * 4)) };
+  }
+  function motionPosition(from, to, id, t) {
+    const p = from.positions.find(p => p.id === id), q = to.positions.find(p => p.id === id);
+    if (p.attachedTo && p.attachedTo === q.attachedTo) { const player = motionPosition(from, to, p.attachedTo, t); return { id, x: Math.min(100, player.x + 6), y: Math.min(100, player.y + 6) }; }
+    const start = positionIn(from, id), end = positionIn(to, id), c = curveControl(start, end, p.curve), u = 1 - t;
+    return { id, x: u * u * start.x + 2 * u * t * c.x / 10 + t * t * end.x, y: u * u * start.y + 2 * u * t * c.y / 6.5 + t * t * end.y };
+  }
+  function motionPositions(from, to, t) { return from.positions.map(p => motionPosition(from, to, p.id, t)); }
   function seek(seconds) {
     if (!active() || !loaded || pending || context.busy || record.content.frames.length < 2) return;
     stopPlayback(); const frames = record.content.frames; frameIndex = 0;
     while (frameIndex < frames.length - 1 && seconds >= frames[frameIndex].duration) { seconds -= frames[frameIndex].duration; frameIndex++; }
-    if (frameIndex < frames.length - 1) { elapsed = seconds * 1000; const to = frames[frameIndex + 1], fraction = seconds / currentFrame().duration; renderedPositions = currentFrame().positions.map(p => { const q = to.positions.find(v => v.id === p.id); return { id: p.id, x: p.x + (q.x - p.x) * fraction, y: p.y + (q.y - p.y) * fraction }; }); }
+    if (frameIndex < frames.length - 1) { elapsed = seconds * 1000; renderedPositions = motionPositions(currentFrame(), frames[frameIndex + 1], seconds / currentFrame().duration); }
     render();
   }
   function previewFrame(frame, items = record.content.items) {
     const thumbnail = svg('svg', { viewBox: '0 0 1000 650', 'aria-hidden': 'true' });
     thumbnail.append(svg('rect', { width: 1000, height: 650, fill: '#e3ebdc' }), svg('rect', { x: 25, y: 25, width: 950, height: 600, fill: 'none', stroke: '#8ea58b', 'stroke-width': 8 }));
-    for (const p of frame.positions) { const item = items.find(i => i.id === p.id); if (!item) continue; thumbnail.append(svg('circle', { cx: p.x * 10, cy: p.y * 6.5, r: 24, fill: ({ home: '#255978', away: '#a9742a', cone: '#a8552e', ball: '#fff', goal: '#536e60' })[item.kind], stroke: '#293e37', 'stroke-width': 5 })); }
+    for (const raw of frame.positions) { const item = items.find(i => i.id === raw.id); if (!item) continue; const p = positionIn(frame, raw.id); thumbnail.append(svg('circle', { cx: p.x * 10, cy: p.y * 6.5, r: 24, fill: ({ home: '#255978', away: '#a9742a', cone: '#a8552e', ball: '#fff', goal: '#536e60' })[item.kind], stroke: '#293e37', 'stroke-width': 5 })); }
     return thumbnail;
   }
   function exportBoard() {
     const copy = board.cloneNode(true); copy.setAttribute('xmlns', ns); copy.setAttribute('width', '1600'); copy.setAttribute('height', '1040');
     copy.removeAttribute('id'); copy.removeAttribute('tabindex'); copy.removeAttribute('style');
     for (const n of copy.querySelectorAll('.tactics-hit')) n.remove();
-    return copy;
+    copy.prepend(svg('desc', {}, currentFrame().title + (currentFrame().notes ? '\n' + currentFrame().notes : ''))); return copy;
   }
   function exportImage() {
     if (!active() || !loaded || pending) return;
@@ -186,7 +225,7 @@
   function printDiagram() {
     if (!active() || !loaded || pending) return;
     const page = window.open('', '_blank'); if (!page) return tell('Allow this print window or use Export image.', true);
-    const doc = page.document; doc.title = 'Star Soccer drill'; const name = doc.createElement('h1'); name.textContent = record.title; const detail = doc.createElement('p'); detail.textContent = 'Step ' + (frameIndex + 1) + ': ' + currentFrame().title; const picture = doc.importNode(exportBoard(), true); picture.style.width = '100%'; picture.style.height = 'auto'; doc.body.append(name, detail, picture); page.focus(); page.print();
+    const doc = page.document; doc.title = 'Star Soccer drill'; const name = doc.createElement('h1'); name.textContent = record.title; const detail = doc.createElement('p'); detail.textContent = 'Step ' + (frameIndex + 1) + ': ' + currentFrame().title; const picture = doc.importNode(exportBoard(), true); picture.style.width = '100%'; picture.style.height = 'auto'; const notes = doc.createElement('p'); notes.textContent = currentFrame().notes || ''; notes.style.whiteSpace = 'pre-wrap'; doc.body.append(name, detail, picture, notes); page.focus(); page.print();
   }
 
   function renderReuseControls() {
@@ -245,13 +284,22 @@
     if (!record.content.items.some(i => i.id === selectedItem)) selectedItem = '';
     itemSelect.value = selectedItem; labelInput.value = record.content.items.find(i => i.id === selectedItem)?.label || '';
     const position = currentFrame().positions.find(p => p.id === selectedItem); coordinate.textContent = position ? 'Position: ' + Math.round(position.x) + '% across · ' + Math.round(position.y) + '% down' : 'Select a piece to position or label it.';
+    const selectedKind = record.content.items.find(i => i.id === selectedItem)?.kind;
+    carrier.replaceChildren(); const free = el('option', 'Free ball'); free.value = ''; carrier.append(free);
+    for (const player of record.content.items.filter(i => ['home', 'away'].includes(i.kind))) { const option = el('option', kinds[player.kind] + ' ' + player.label); option.value = player.id; carrier.append(option); }
+    carrier.value = position?.attachedTo || ''; carrierField.hidden = selectedKind !== 'ball'; detach.hidden = !position?.attachedTo;
+    const nextPosition = record.content.frames[frameIndex + 1]?.positions.find(p => p.id === selectedItem);
+    bendField.hidden = !['home', 'away', 'ball'].includes(selectedKind) || !nextPosition || !!position?.attachedTo && position.attachedTo === nextPosition.attachedTo;
+    bend.value = String(position?.curve || 0); bendValue.textContent = Number(bend.value) === 0 ? 'Straight' : (Number(bend.value) < 0 ? 'Left' : 'Right') + ' bend · ' + Math.abs(Number(bend.value));
     side.dataset.selected = String(!!selectedItem);
+    const phaseScroll = frameButtons.scrollLeft;
     frameButtons.replaceChildren(...record.content.frames.map((f, index) => { const b = button('', 'tactics-frame-' + index, () => { if (!editable()) return; stopPlayback(); frameIndex = index; render(); }); const preview = el('span', '', 'tactics-frame-preview'); preview.append(previewFrame(f)); b.append(preview, el('span', (index + 1) + '. ' + f.title)); b.dataset.tacticsFrame = index; b.setAttribute('aria-pressed', String(frameIndex === index)); return b; }));
-    frameTitle.value = currentFrame().title; duration.value = String(currentFrame().duration);
+    frameButtons.scrollLeft = phaseScroll;
+    frameTitle.value = currentFrame().title; duration.value = String(currentFrame().duration); phaseNotes.value = currentFrame().notes || '';
     durationField.hidden = frameIndex === record.content.frames.length - 1;
     $('tactics-sequence-summary').textContent = record.content.frames.length + ' / 12 steps · ' + totalSeconds() + 's · ' + record.content.items.length + ' / 40 pieces';
     const disabled = !editable();
-    for (const control of mount.querySelectorAll('button,input,select')) control.disabled = disabled;
+    for (const control of mount.querySelectorAll('button,input,select,textarea')) control.disabled = disabled;
     $('tactics-play').disabled = !active() || !loaded || pending || context.busy || record.content.frames.length < 2;
     $('tactics-reset').disabled = !active() || !loaded || pending || context.busy;
     speed.disabled = loop.disabled = scrub.disabled = !active() || !loaded || pending || context.busy || record.content.frames.length < 2;
@@ -288,41 +336,56 @@
     }
     board.append(lines);
     const defs = svg('defs'), marker = svg('marker', { id: 'tactics-arrow', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }); marker.append(svg('path', { d: 'M0 0 L10 5 L0 10z', fill: '#536e60' })); defs.append(marker); board.append(defs);
-    if (pathToggle.checked && record.content.frames.length > 1) {
-      const from = record.content.frames[frameIndex === 0 ? 0 : frameIndex - 1], to = record.content.frames[frameIndex === 0 ? 1 : frameIndex];
-      for (const start of from.positions) { const end = to.positions.find(p => p.id === start.id); if (!end || Math.hypot(end.x - start.x, end.y - start.y) < 1) continue; const ball = record.content.items.find(i => i.id === start.id)?.kind === 'ball'; board.append(svg('line', { x1: start.x * 10, y1: start.y * 6.5, x2: end.x * 10, y2: end.y * 6.5, stroke: '#536e60', 'stroke-width': 4, 'stroke-dasharray': ball ? 'none' : '9 7', 'marker-end': 'url(#tactics-arrow)', opacity: .85, 'pointer-events': 'none' })); }
+    if (pathToggle.checked && frameIndex < record.content.frames.length - 1) {
+      const from = currentFrame(), to = record.content.frames[frameIndex + 1];
+      for (const item of record.content.items) {
+        if (!['home', 'away', 'ball'].includes(item.kind)) continue;
+        const p = from.positions.find(p => p.id === item.id), q = to.positions.find(p => p.id === item.id);
+        if (p.attachedTo && p.attachedTo === q.attachedTo) continue;
+        const start = positionIn(from, item.id), end = positionIn(to, item.id); if (Math.hypot(end.x - start.x, end.y - start.y) < 1) continue;
+        const c = curveControl(start, end, p.curve);
+        board.append(svg('path', { d: 'M ' + start.x * 10 + ' ' + start.y * 6.5 + ' Q ' + c.x + ' ' + c.y + ' ' + end.x * 10 + ' ' + end.y * 6.5, 'data-tactics-path': item.id, fill: 'none', stroke: '#536e60', 'stroke-width': 4, 'stroke-dasharray': item.kind === 'ball' ? 'none' : '9 7', 'marker-end': 'url(#tactics-arrow)', opacity: .85, 'pointer-events': 'none' }));
+      }
     }
     const positions = renderedPositions || currentFrame().positions;
     for (const item of record.content.items) {
-      const p = positions.find(point => point.id === item.id); if (!p) continue;
+      const p = renderedPositions ? positions.find(point => point.id === item.id) : positionIn(currentFrame(), item.id); if (!p) continue;
       const piece = svg('g', { transform: 'translate(' + (p.x * 10) + ' ' + (p.y * 6.5) + ')', 'data-tactics-item': item.id, role: 'button', tabindex: editable() ? '0' : '-1', 'aria-label': kinds[item.kind] + (item.label ? ' ' + item.label : '') + ', position ' + Math.round(p.x) + ', ' + Math.round(p.y), 'aria-pressed': String(item.id === selectedItem), 'aria-disabled': String(!editable()) });
-      const art = svg('g', { class: 'tactics-piece-art' });
-      const mobileScale = matchMedia('(max-width: 520px)').matches ? 1.5 : 1;
-      const hitRadius = Math.max(30, 22 * 1000 / Math.max(1, board.getBoundingClientRect().width || 1000) / mobileScale);
+      const screenScale = Math.max(.01, board.getScreenCTM()?.a || 1), artScale = Math.max(1, .85 / screenScale);
+      const art = svg('g', { class: 'tactics-piece-art', transform: 'scale(' + artScale + ')' });
+      const hitRadius = Math.max(26, 22 / screenScale / artScale);
       piece.append(art); art.append(svg('circle', { r: hitRadius, fill: 'transparent', class: 'tactics-hit' }));
       if (item.id === selectedItem) art.append(svg('circle', { r: 28, fill: 'none', stroke: '#152d42', 'stroke-width': 3, 'stroke-dasharray': '4 3', 'pointer-events': 'none' }));
       if (['home', 'away'].includes(item.kind)) art.append(svg('circle', { r: 20, fill: item.kind === 'home' ? '#255978' : '#e7c59a', stroke: item.kind === 'home' ? '#fff' : '#704e29', 'stroke-width': 2.5 }));
       if (item.kind === 'cone') art.append(svg('path', { d: 'M0 -21 L20 18 L-20 18z', fill: '#c86e37', stroke: '#7e3c20', 'stroke-width': 2 }));
       if (item.kind === 'ball') art.append(svg('circle', { r: 15, fill: '#fff', stroke: '#253a48', 'stroke-width': 3 }), svg('path', { d: 'M0 -8 L8 -2 L5 7 L-5 7 L-8 -2z', fill: '#253a48' }));
       if (item.kind === 'goal') art.append(svg('rect', { x: -28, y: -15, width: 56, height: 30, fill: '#fff', stroke: '#536e60', 'stroke-width': 4 }), svg('path', { d: 'M-18 -15V15 M-7 -15V15 M7 -15V15 M18 -15V15 M-28 0H28', stroke: '#a5b5a2', 'stroke-width': 1.5 }));
-      if (item.label) art.append(svg('text', { x: 0, y: ['home', 'away'].includes(item.kind) ? 5 : 38, 'text-anchor': 'middle', 'font-family': 'Arial,sans-serif', 'font-size': item.label.length > 4 ? 12 : 16, 'font-weight': 700, fill: item.kind === 'home' ? '#fff' : '#173044', 'pointer-events': 'none' }, item.label));
+      if (item.label) {
+        const inside = ['home', 'away'].includes(item.kind) && item.label.length <= 3, width = Math.max(34, item.label.length * 8 + 12);
+        const labelX = inside ? 0 : Math.max((-116 - p.x * 10) / artScale + width / 2, Math.min(0, (1116 - p.x * 10) / artScale - width / 2));
+        const labelY = p.y * 6.5 + 47 * artScale > 766 ? -47 : 27;
+        if (!inside) art.append(svg('rect', { x: labelX - width / 2, y: labelY, width, height: 20, rx: 5, fill: '#f6f4ec', 'pointer-events': 'none' }));
+        art.append(svg('text', { x: labelX, y: inside ? 5 : labelY + 14, 'text-anchor': 'middle', 'font-family': 'Arial,sans-serif', 'font-size': inside ? 16 : 12, 'font-weight': 700, fill: inside && item.kind === 'home' ? '#fff' : '#173044', 'pointer-events': 'none' }, item.label));
+      }
       board.append(piece);
     }
   }
   const clamp = v => Math.max(4, Math.min(96, Math.round(v * 10) / 10));
-  function moveSelected(dx, dy) { mutate(() => { const p = currentFrame().positions.find(v => v.id === selectedItem); if (p) { p.x = clamp(p.x + dx); p.y = clamp(p.y + dy); } }); }
+  function moveSelected(dx, dy) { mutate(() => { if (!selectedItem) return; const p = positionIn(currentFrame(), selectedItem); placePiece(currentFrame(), selectedItem, { x: clamp(p.x + dx), y: clamp(p.y + dy) }); }); }
   function point(event) { const p = board.createSVGPoint(); p.x = event.clientX; p.y = event.clientY; const matrix = board.getScreenCTM(); if (!matrix) return null; const next = p.matrixTransform(matrix.inverse()); return { x: clamp(next.x / 10), y: clamp(next.y / 6.5) }; }
+  board.addEventListener('dragover', event => { if (editable() && event.dataTransfer.types.includes('application/x-coach-piece')) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } });
+  board.addEventListener('drop', event => { if (!editable()) return; const kind = event.dataTransfer.getData('application/x-coach-piece'), destination = point(event); if (!kinds[kind] || !destination) return; event.preventDefault(); addPiece(kind, destination); });
   board.addEventListener('pointerdown', event => {
     if (!editable() || event.button !== 0) return;
     const target = event.target.closest('[data-tactics-item]');
     if (target) { selectedItem = target.dataset.tacticsItem; stopPlayback(); pointer = { id: event.pointerId, before: capture(), moved: false }; board.setPointerCapture(event.pointerId); event.preventDefault(); render(); }
-    else if (selectedItem) { const destination = point(event); if (destination) mutate(() => Object.assign(currentFrame().positions.find(p => p.id === selectedItem), destination)); }
+    else if (selectedItem) { const destination = point(event); if (destination) mutate(() => placePiece(currentFrame(), selectedItem, destination)); }
   });
   board.addEventListener('pointermove', event => {
     if (!pointer || pointer.id !== event.pointerId || !editable()) return;
     const destination = point(event), p = currentFrame().positions.find(p => p.id === selectedItem); if (!destination || !p || p.x === destination.x && p.y === destination.y) return;
     if (!pointer.moved) { undo.push(pointer.before); if (undo.length > 30) undo.shift(); redo = []; pointer.moved = true; }
-    Object.assign(p, destination); draw(); renderStatus(); notifyDraft();
+    placePiece(currentFrame(), selectedItem, destination); draw(); renderStatus(); notifyDraft();
   });
   const endPointer = () => { if (!pointer) return; pointer = null; render(); };
   board.addEventListener('pointerup', endPointer); board.addEventListener('pointercancel', endPointer); board.addEventListener('lostpointercapture', endPointer);
@@ -348,12 +411,16 @@
     $('tactics-play').setAttribute('aria-pressed', String(running));
     $('tactics-playback-status').textContent = record.content.frames.length < 2 ? 'Add a next phase to animate movement.' : (running ? 'Playing · ' : elapsed ? 'Paused · ' : '') + 'Phase ' + (frameIndex + 1) + ' of ' + record.content.frames.length;
     scrub.value = String(record.content.frames.slice(0, frameIndex).reduce((sum, f) => sum + f.duration, 0) + elapsed / 1000);
+    for (const b of frameButtons.children) b.setAttribute('aria-pressed', String(Number(b.dataset.tacticsFrame) === frameIndex));
+    if (running) { frameTitle.value = currentFrame().title; phaseNotes.value = currentFrame().notes || ''; duration.value = currentFrame().duration; }
+    const current = frameButtons.children[frameIndex];
+    if (current) { const a = current.getBoundingClientRect(), b = frameButtons.getBoundingClientRect(); if (a.left < b.left) frameButtons.scrollLeft -= b.left - a.left; else if (a.right > b.right) frameButtons.scrollLeft += a.right - b.right; }
   }
   function tick(now) {
     if (!running) return;
     const frames = record.content.frames, durationMs = frames[frameIndex].duration * 1000, progress = Math.min(1, (elapsed + (now - started) * playbackSpeed) / durationMs);
     const from = frames[frameIndex], to = frames[frameIndex + 1];
-    renderedPositions = from.positions.map(p => { const destination = to.positions.find(q => q.id === p.id); return { id: p.id, x: p.x + (destination.x - p.x) * progress, y: p.y + (destination.y - p.y) * progress }; });
+    renderedPositions = motionPositions(from, to, progress);
     draw();
     scrub.value = String(frames.slice(0, frameIndex).reduce((sum, f) => sum + f.duration, 0) + progress * currentFrame().duration);
     if (progress >= 1) { frameIndex++; elapsed = 0; started = now; if (frameIndex >= frames.length - 1) { if (loopPlayback) { frameIndex = 0; renderedPositions = null; } else { stopPlayback(); render(); return; } } renderPlayback(); }
@@ -427,6 +494,7 @@
   window.addEventListener('pagehide', () => stopPlayback());
   let boardWidth = 0;
   new ResizeObserver(() => { const width = board.getBoundingClientRect().width; if (width && width !== boardWidth) { boardWidth = width; draw(); } }).observe(board);
+  new ResizeObserver(() => { const scroller = mount.closest('.planner-drawer-content'); if (scroller) scroller.style.scrollPaddingTop = (getComputedStyle(workbar).position === 'sticky' ? workbar.getBoundingClientRect().height + 12 : 12) + 'px'; }).observe(workbar);
   render();
   window.dispatchEvent(new CustomEvent('coach:request-context'));
 })();

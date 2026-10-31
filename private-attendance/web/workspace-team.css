@@ -1,0 +1,61 @@
+/* Read-only coaching team workspace. */
+#coaching-team { min-width: 0; color: var(--desk-ink, #292d33); }
+#coaching-team *, #coaching-team *::before, #coaching-team *::after { box-sizing: border-box; }
+#coaching-team [hidden] { display: none !important; }
+#coaching-team :is(button,input,section,aside,article,header,label,details,summary) { min-width: 0; max-width: 100%; }
+#coaching-team :is(button,input) { min-height: 44px; border-radius: 8px; }
+#coaching-team button { white-space: normal; overflow-wrap: anywhere; }
+#coaching-team :is(button,input,summary):focus-visible { outline: 3px solid var(--desk-navy-soft, #3c4046); outline-offset: 3px; }
+#coaching-team button:disabled { opacity: .55; cursor: not-allowed; }
+#coaching-team .coaching-team-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 18px; }
+#coaching-team .coaching-team-toolbar > label { flex: 1 1 240px; }
+#coaching-team label { display: block; font-size: 13px; font-weight: 650; }
+#coaching-team input { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; color: var(--desk-ink, #292d33); background: var(--desk-field, #e3ddd3); border: 1px solid var(--desk-line, #b6afa2); }
+#coaching-team .coaching-team-layout { display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1fr); gap: 20px; align-items: start; }
+#coaching-team :is(.coaching-team-sidebar,.coaching-team-detail) { padding: 16px; border: 1px solid var(--desk-line, #b6afa2); border-radius: 12px; background: var(--desk-surface, #dbd5ca); }
+#coaching-team .coaching-coach-list { display: grid; gap: 8px; }
+#coaching-team button.coaching-coach { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; text-align: left; color: var(--desk-ink, #292d33); background: var(--desk-field, #e3ddd3); border: 1px solid var(--desk-line, #b6afa2); }
+#coaching-team button.coaching-coach[aria-pressed="true"] { color: #fff; background: var(--desk-navy-soft, #3c4046); border-color: var(--desk-navy-soft, #3c4046); }
+#coaching-team .coaching-coach > span:not(.coaching-avatar) { min-width: 0; }
+#coaching-team .coaching-coach :is(strong,small) { display: block; overflow-wrap: anywhere; }
+#coaching-team .coaching-coach small { margin-top: 4px; font-size: 12px; line-height: 1.4; }
+#coaching-team .coaching-avatar { display: inline-flex; flex: 0 0 40px; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: var(--desk-inset, #d2cabc); color: var(--desk-ink, #292d33); font-weight: 700; object-fit: cover; }
+#coaching-team .coaching-coach-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; overflow-wrap: anywhere; }
+#coaching-team .coaching-coach-header > div { min-width: 0; }
+#coaching-team .coaching-coach-header :is(h2,h3,p) { margin: 0; }
+#coaching-team .coaching-coach-header small { display: block; margin-top: 4px; line-height: 1.5; }
+#coaching-team .coaching-stats { display: flex; flex-wrap: wrap; gap: 8px 16px; width: 100%; margin-top: 4px; font-size: 13px; }
+#coaching-team .coaching-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--desk-line, #b6afa2); }
+#coaching-team .coaching-tabs button { flex: 1 1 150px; padding: 10px 12px; }
+#coaching-team .coaching-tabs :is([aria-selected="true"],[aria-pressed="true"]) { background: var(--desk-navy-soft, #3c4046); border-color: var(--desk-navy-soft, #3c4046); color: #fff; }
+#coaching-team :is(.coaching-group-list,.coaching-note-list) { display: grid; gap: 12px; }
+#coaching-team :is(.coaching-group,.coaching-note) { padding: 0 14px 14px; border: 1px solid var(--desk-line, #b6afa2); border-radius: 10px; background: var(--desk-field, #e3ddd3); overflow-wrap: anywhere; }
+#coaching-team .coaching-group:not([open]) { padding-bottom: 0; }
+#coaching-team .coaching-group > summary { min-height: 44px; padding: 13px 0; font-weight: 650; line-height: 1.5; cursor: pointer; }
+#coaching-team .coaching-group > p { margin: 0 0 12px; line-height: 1.6; }
+#coaching-team .coaching-player-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 8px; padding: 0; margin: 12px 0 0; list-style: none; }
+#coaching-team .coaching-player-list li { min-width: 0; }
+#coaching-team .coaching-player-list button { width: 100%; padding: 10px; text-align: left; }
+#coaching-team .coaching-notes > label { margin-bottom: 14px; }
+#coaching-team .coaching-note { padding-top: 14px; }
+#coaching-team .coaching-note header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; font-size: 13px; line-height: 1.5; }
+#coaching-team .coaching-note-body { white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0; line-height: 1.6; }
+#coaching-team :is(.coaching-muted,.coaching-status) { color: var(--desk-muted, #4d4a45); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+#coaching-team .coaching-status { margin: 0; }
+#coaching-team .coaching-team-toolbar > .coaching-status { flex-basis: 100%; }
+#coaching-team .coaching-error { color: var(--desk-red, #923f35); }
+@media (max-width: 760px) {
+  #coaching-team .coaching-team-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  #coaching-team :is(.coaching-team-sidebar,.coaching-team-detail) { padding: 12px; }
+  #coaching-team .coaching-coach-list { max-height: 260px; overflow-y: auto; overscroll-behavior: contain; padding: 4px; }
+  #coaching-team button.coaching-coach { padding: 8px 10px; }
+}
+
+#coaching-team header { position: static; min-height: 0; width: auto; padding: 0; border: 0; background: transparent; color: var(--desk-ink,#292d33); box-shadow: none; }
+#coaching-team .coaching-coach[aria-pressed="true"] .coaching-muted { color: #eee7dc; }
+#coaching-team .coaching-tabs button[aria-pressed="true"] { background: #3c4046; border-color: #3c4046; color: #fff; }
+#coaching-team .coaching-group > summary strong { display: inline; }
+#coaching-team .coaching-group > summary .coaching-muted { display: block; margin-left: 16px; }
+#coaching-team .coaching-group > summary .coaching-muted { font-weight: 400; }
+#coaching-team :is(.coaching-group-list,.coaching-notes) > :is(h3,p) { margin: 0; }
+#coaching-team .coaching-notes > h3 { margin-bottom: 12px; }

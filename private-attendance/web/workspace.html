@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="/workspace/assets/views.css">
 <link rel="stylesheet" href="/workspace/assets/blocks.css">
 <link rel="stylesheet" href="/workspace/assets/status.css">
+<link rel="stylesheet" href="/workspace/assets/team.css">
 <script src="/workspace/assets/club-config.js" defer></script>
 <script src="/workspace/assets/passkeys.js" defer>
 </script>
@@ -39,6 +40,7 @@
 <script src="/workspace/assets/folders.js" defer></script>
 <script src="/workspace/assets/profiles.js" defer></script>
 <script src="/workspace/assets/resources.js" defer></script>
+<script src="/workspace/assets/team.js" defer></script>
 <script src="/workspace/assets/navigation.js" defer></script>
 <link rel="stylesheet" href="/workspace/assets/resources.css">
 <link rel="stylesheet" href="/workspace/assets/profiles.css">
@@ -111,6 +113,7 @@
 <button data-tab="profiles">Player profiles</button>
 <button data-tab="plan">Training groups</button>
 <button data-tab="library">Coach resources</button>
+<button data-tab="coaches" data-full hidden>Coaching team</button>
 
 <button data-tab="settings" class="nav-settings">Settings &amp; profile</button>
 </nav>
@@ -421,6 +424,7 @@
 </div>
 </div>
 </section>
+<section id="panel-coaches" class="tab-panel" hidden><div id="coaching-team"></div></section>
 <section id="panel-profiles" class="tab-panel" hidden><div id="player-profiles"></div></section>
 <section id="panel-library" class="tab-panel" hidden>
 <div id="coach-resources">

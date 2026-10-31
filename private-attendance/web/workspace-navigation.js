@@ -1,7 +1,7 @@
 /* Shareable private workspace locations; access is checked by the authenticated app. */
 (() => {
   'use strict';
-  const views = new Set(['home','plan','profiles','library','settings','team','activity','legacy']);
+  const views = new Set(['home','plan','profiles','library','coaches','settings','team','activity','legacy']);
   const parse = hash => {
     const p = new URLSearchParams(hash.replace(/^#/, '')), view = p.get('view');
     if (!views.has(view)) return null;

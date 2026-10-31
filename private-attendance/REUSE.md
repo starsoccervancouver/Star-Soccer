@@ -53,7 +53,7 @@ Drill ideas, animated tactics and the session run sheet open in drawers. Closing
 
 ## Profile and workspace preferences
 
-Settings & profile groups account details, Team & access, the activity log and existing coaching records. Owner/admin/coach permissions remain enforced by the same server routes. Only the owner can manage accounts; activity and legacy records remain restricted to full-access users.
+Settings & profile groups account details, Team & access, the activity log and existing coaching records. Owner/admin/coach permissions remain enforced by the same server routes. Only the owner can manage accounts; activity and legacy records remain restricted to full-access users. Coaching team is a separate read-only directory for owners and full-access admins, with explicit session assignments, deduplicated roster players and each coach's latest 200 non-archived notes. Its routes return no credentials or account-management controls; ordinary coaches cannot access them.
 
 The starting view, layout spacing and reduced interface motion are optional browser preferences. Only these three validated presentation choices are saved under `coach-desk-display-v1`; no names, emails, player data or permissions are written to browser storage. Preferences apply to that browser and can be restored to defaults. Profiles show existing account details rather than providing a second permission editor.
 

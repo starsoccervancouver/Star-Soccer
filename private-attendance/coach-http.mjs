@@ -47,8 +47,10 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,attendance,o
   if(path==='/workspace/api/desk'&&request.method==='GET'){const data=coaches.scope(actor,await overview({}));return json(200,{...data,notes:coaches.notes(actor),tasks:coaches.tasks(actor)});}
   if(path==='/workspace/api/audit'&&request.method==='GET')return json(200,{events:coaches.audit(actor)});
   if(path==='/workspace/api/users'&&request.method==='GET')return json(200,{users:coaches.users(actor),credentials:auth.credentialSummary(actor)});
+  if(path==='/workspace/api/coaching-team'&&request.method==='GET')return json(200,{coaches:coaches.coachingTeam(actor)});
   if(request.method!=='POST')deny('NOT_FOUND',404);
   if(path==='/workspace/api/logout'){await body(request,[]);auth.logout(raw);return json(200,{signedOut:true},{'Set-Cookie':'__Host-ss_staff=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'});}
+  if(path==='/workspace/api/coaching-team/notes'){const v=await body(request,['email']);return json(200,{notes:coaches.coachingNotes(actor,v.email)});}
   if(path==='/workspace/api/refresh'){await body(request,[]);return json(200,coaches.scope(actor,await overview({refresh:true})));}
   if(path==='/workspace/api/session'){const v=await body(request,['sessionId']);coaches.requireSession(actor,v.sessionId);return json(200,{plan:coaches.plan(actor,v.sessionId),notes:coaches.notes(actor,{sessionId:v.sessionId})});}
   if(path==='/workspace/api/notes/save'){

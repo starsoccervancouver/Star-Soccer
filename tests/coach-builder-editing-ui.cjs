@@ -208,26 +208,26 @@ const { chromium } = require('playwright');
     await page.evaluate(({ profile, session }) => {
       window.builderInsertions = [];
       window.addEventListener('coach:open-session', event => {
-        document.getElementById('tactics-disclosure').open = true;
         window.dispatchEvent(new CustomEvent('coach:context', { detail: { profile, session, selected: session.id, sessions: [session], tab: 'plan', busy: false, planReady: false } }));
         event.detail.resolve(true);
         setTimeout(() => window.dispatchEvent(new CustomEvent('coach:context', { detail: { profile, session, selected: session.id, sessions: [session], tab: 'plan', busy: false, planReady: true } })), 10);
       });
       window.addEventListener('coach:insert-plan', event => {
         const value = event.detail;
-        if (CoachTactics.useDraft({ sessionId: session.id, title: value.title, diagram: value.diagram })) { value.inserted = true; builderInsertions.push({ title: value.title, text: value.text, diagram: value.diagram }); }
+        value.inserted = true; builderInsertions.push({ title: value.title, text: value.text, diagram: value.diagram });
       });
     }, { profile, session });
-    await page.locator('#library-list').getByRole('button', { name: 'Use in session', exact: true }).click();
-    assert.equal(await page.locator('#library-session-choice option[value="cancelled-session"]').count(), 0);
-    await page.locator('#library-session-choice').selectOption(session.id);
-    await page.locator('#library-open-session').click();
+    await page.locator('#library-list [data-use-session]').click();
+    assert.equal(await page.locator('#library-session-grid [data-session-group]').count(), 1, 'Cancelled session is excluded');
+    await page.locator('#library-session-grid [data-session-group]').click();
+    assert.equal(await page.locator('[data-session-id="cancelled-session"]').count(), 0);
+    await page.locator('[data-session-id="' + session.id + '"]').click();
     await page.waitForFunction(() => builderInsertions.length === 1);
     assert.equal(await page.evaluate(() => builderInsertions[0].title), first.title);
     assert.match(await page.evaluate(() => builderInsertions[0].text), /Pass through the gate/);
-    assert.deepEqual(await page.evaluate(() => CoachTactics.getDraft().diagram), await page.evaluate(() => builderRecords[0].diagram));
-    assert(await page.evaluate(() => CoachTactics.isDirty()), 'Using a drill creates a reviewable session draft');
-    assert((await page.evaluate(() => builderTacticsCalls)).every(operation => operation === 'list'), 'Use in session makes no automatic writes');
+    assert.deepEqual(await page.evaluate(() => builderInsertions[0].diagram), await page.evaluate(() => builderRecords[0].diagram));
+    assert.equal(await page.locator('#tactics-disclosure').evaluate(el => el.open), false, 'Adding a drill needs no separate tactics drawer');
+    assert((await page.evaluate(() => builderTacticsCalls)).every(operation => operation === 'list'), 'Add to session makes no automatic writes');
     assert.deepEqual(errors, []); assert.deepEqual(networkErrors, []);
     await context.close();
     console.log('Drill workspace: unified saves, editable routes, place/record modes, mouse/touch group selection, duplication, possession, rotation, zoom, session insertion and draft safety passed. Fictional data only.');

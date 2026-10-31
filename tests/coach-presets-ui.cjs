@@ -34,14 +34,14 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
         const source=card.locator('.preset-source a'), href=await source.getAttribute('href');
         assert.match(href,/^https:\/\/(www\.fifatrainingcentre\.com|learn\.englandfootball\.com)\//); assert.equal(await source.getAttribute('rel'),'noopener noreferrer');
         if(index)page.once('dialog',dialog=>dialog.accept()); await card.locator('[data-preset-title]').click();
-        assert.equal(await page.locator('#library-title').inputValue(),await card.locator('h3').innerText()); assert((await page.locator('#library-setup').inputValue()).includes(href));
+        assert.equal(await page.locator('#library-title').inputValue(),(await card.locator('h3').innerText()).slice(0,68)+' (variation)'); assert((await page.locator('#library-setup').inputValue()).includes(href));
         assert.match(await page.locator('#library-coaching').inputValue(),/Technical Intelligence:.*\nPerception:.*\nDecision Making:.*\nAsk the players:/);
         assert.match(await page.locator('#library-progression').inputValue(),/^Our suggested adaptation:/); assert(await page.evaluate(()=>CoachLibrary.isDirty()));
         assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Open practice fits '+width); await card.locator('summary').click();
       }
       assert.equal(await page.evaluate(()=>calls.filter(call=>call.operation==='save').length),0,'Browsing and prefill never save');
       const first=page.locator('.library-preset').first(); page.once('dialog',dialog=>dialog.dismiss()); await first.locator('[data-preset-title]').click();
-      assert.equal(await page.locator('#library-title').inputValue(),'3v3 with wide support','Declining replacement preserves draft');
+      assert.equal(await page.locator('#library-title').inputValue(),'3v3 with wide support (variation)','Declining replacement preserves draft');
       await page.locator('#library-save').click(); await page.waitForFunction(()=>!CoachLibrary.isBusy()&&!CoachLibrary.isDirty());
       let writes=await page.evaluate(()=>calls.filter(call=>call.operation==='save')); assert.equal(writes.length,1); assert.match(writes[0].payload.setup,/optimising-game-application\.php/); assert.match(writes[0].payload.coaching,/Perception:/); assert.equal(writes[0].payload.diagram.frames.length,1); assert.deepEqual(validateDiagram(writes[0].payload.diagram),writes[0].payload.diagram,'Sketch round-trips through the server validator');
       await page.selectOption('#library-source-filter','saved'); assert.equal(await page.locator('.library-card').count(),1); assert.match(await page.locator('.library-source-tag').innerText(),/Private saved drill/);
@@ -56,7 +56,7 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
       await first.locator('[data-insert=true]').click(); const addition=await page.evaluate(()=>additions.at(-1));
       assert.equal(addition.title,'Colour-cue ball control'); assert.equal(addition.minutes,8); assert.equal(addition.target,'warmup'); assert.match(addition.text,/fifatrainingcentre\.com/); assert.equal(addition.diagram.schemaVersion,1);
       assert.equal(await page.evaluate(()=>calls.filter(call=>call.operation==='save').length),1,'Insertion does not save either draft');
-      await first.locator('[data-preset-title]').click(); assert.equal(await page.locator('#library-title').inputValue(),addition.title); assert(await page.evaluate(()=>CoachLibrary.isDirty()));
+      await first.locator('[data-preset-title]').click(); assert.equal(await page.locator('#library-title').inputValue(),addition.title+' (variation)'); assert(await page.evaluate(()=>CoachLibrary.isDirty()));
       await page.evaluate(()=>{fixture.busy=true;window.dispatchEvent(new CustomEvent('coach:context',{detail:fixture}));}); assert(await first.locator('[data-preset-title]').isDisabled()); assert(await first.locator('[data-insert=true]').isDisabled());
       await page.evaluate(()=>{fixture.busy=false;fixture.session.status='Cancelled';window.dispatchEvent(new CustomEvent('coach:context',{detail:fixture}));}); assert(await first.locator('[data-insert=true]').isDisabled(),'Cancelled session rejects insertion');
       await page.evaluate(()=>{fixture.session.status='Scheduled';failSave=true;window.dispatchEvent(new CustomEvent('coach:context',{detail:fixture}));}); await page.locator('#library-save').click(); await page.waitForFunction(()=>!CoachLibrary.isBusy());

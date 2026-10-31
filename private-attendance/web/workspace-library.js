@@ -13,7 +13,7 @@
   let record = blank(), baseline = '', recovery = null, conflict = false, lastAttempt = null, historyLimit = 8, suggestionInputs = null;
   let diagramOpen = false, diagramEpoch = 0;
   let editorStandalone = null;
-  let sessionChoice = null, pendingUse = null;
+  let sessionChoice = null, pendingUse = null, sessionGroup = null, sessionReturn = null;
   const accountKey = value => value?.profile ? [value.profile.email, value.profile.role, value.profile.sessionVersion].join(':') : '';
   const permitted = drill => context?.profile && (['owner', 'admin'].includes(context.profile.role) || drill.author_email === context.profile.email);
   const standalone = () => context?.tab === 'library';
@@ -59,7 +59,7 @@
   const status = node('p', '', 'library-status'); status.id = 'library-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); body.append(status);
   const filters = node('div', '', 'library-filters'), search = node('input'); search.id = 'library-search'; search.type = 'search'; search.placeholder = 'Title, focus, setup or source'; search.autocomplete = 'off';
   const focus = select('library-filter', [['all', 'Every session phase'], ...Object.entries(targets)]);
-  const sourceFilter = select('library-source-filter', [['all', 'Every source'], ['saved', 'Private saved drills'], ['preset', 'TPD presets · 10'], ['starter', 'Original starters · 10']]);
+  const sourceFilter = select('library-source-filter', [['all', 'Every source'], ['saved', 'Private drill library'], ['preset', 'TPD presets · 10'], ['starter', 'Original starters · 10']]);
   const ageFilter = select('library-age-filter', [['', 'All suggested ages'], ['young', 'Younger · 5–9'], ['middle', 'Developing · 8–12'], ['older', 'Older · 12–14'], ['unspecified', 'Age not specified']]);
   const skillFilter = select('library-skill-filter', [['', 'Every skill focus']]), durationFilter = select('library-duration-filter', [['', 'Any duration'], ['short', 'Up to 10 minutes'], ['medium', '11–20 minutes'], ['long', 'Over 20 minutes']]);
   filters.append(label('Find a drill', search), label('Source', sourceFilter), label('Suggested ages', ageFilter), label('Session phase', focus));
@@ -71,23 +71,64 @@
   const results = node('p', '', 'small'); results.id = 'library-results'; results.setAttribute('role', 'status'); body.append(results);
   const list = node('div', '', 'library-list'); list.id = 'library-list'; body.append(list);
   const more = action('Show more drills', () => { historyLimit += 8; renderList(); }); more.id = 'library-more'; more.hidden = true; body.append(more);
-  const sessionPicker = node('section', '', 'library-capture'); sessionPicker.id = 'library-session-picker'; sessionPicker.hidden = true;
-  const sessionChoiceTitle = node('p', '', 'small'), sessionSelect = select('library-session-choice', [['', 'Choose a session']]);
-  const openSession = action('Open session & add drill', () => {
+  const sessionPicker = node('dialog', '', 'library-session-picker'); sessionPicker.id = 'library-session-picker'; sessionPicker.setAttribute('aria-labelledby', 'library-session-title');
+  const sessionHeading = node('div', '', 'library-session-heading'), sessionChoiceTitle = node('h2'); sessionChoiceTitle.id = 'library-session-title';
+  const sessionClose = action('Close', () => closeSessionPicker()); sessionClose.id = 'library-session-close';
+  sessionHeading.append(sessionChoiceTitle, sessionClose);
+  const sessionIntro = node('p', '', 'small'), sessionBack = action('← Training groups', () => { sessionGroup = null; sessionPast.checked = false; renderSessionGrid(); sessionGrid.querySelector('button')?.focus(); }); sessionBack.id = 'library-session-back';
+  const sessionPast = node('input'); sessionPast.type = 'checkbox'; sessionPast.id = 'library-session-past';
+  const pastLabel = label('Show past dates', sessionPast); pastLabel.className = 'library-session-past';
+  const sessionTools = node('div', '', 'library-session-tools'); sessionTools.append(sessionBack, pastLabel);
+  const sessionGrid = node('div', '', 'library-session-grid'); sessionGrid.id = 'library-session-grid';
+  sessionPicker.append(sessionHeading, sessionIntro, sessionTools, sessionGrid); mount.append(sessionPicker);
+  sessionPast.addEventListener('change', renderSessionGrid);
+  sessionPicker.addEventListener('cancel', event => { event.preventDefault(); closeSessionPicker(); });
+  function closeSessionPicker(restore = true) {
+    sessionPicker.close(); sessionChoice = null; sessionGroup = null; sessionGrid.replaceChildren(); sessionChoiceTitle.textContent = sessionIntro.textContent = '';
+    const trigger = sessionReturn; sessionReturn = null; if (restore && trigger?.isConnected) trigger.focus();
+  }
+  const availableSessions = () => (context?.sessions || []).filter(session => !['cancelled', 'completed'].includes(String(session.status).toLowerCase()));
+  const localDate = () => new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const sessionDateLabel = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(value + 'T12:00:00Z')) : 'Date to confirm';
+  function sessionCard(title, detail, handler) {
+    const button = action('', handler, 'library-session-card'); button.append(node('strong', title), node('span', detail), node('span', 'Choose →', 'library-session-link')); return button;
+  }
+  function renderSessionGrid() {
+    sessionGrid.replaceChildren(); if (!sessionChoice) return;
+    const available = availableSessions(), today = localDate();
+    const groups = window.CoachGroups?.groups(available) || available.map(session => ({ key: session.id, label: session.label || sessionDateLabel(session.date), sessions: [session] }));
+    const group = groups.find(item => item.key === sessionGroup);
+    sessionBack.hidden = !group; pastLabel.hidden = !group || !group.sessions.some(session => session.date < today);
+    sessionChoiceTitle.textContent = 'Add “' + sessionChoice.title + '” to a session';
+    sessionIntro.textContent = group ? group.label + ' · Choose a date. The drill opens in the session plan for you to review and save.' : 'Choose a training group or camp week, then the date. Your library drill stays unchanged.';
+    if (!group) {
+      sessionGroup = null;
+      for (const item of groups) {
+        const next = item.sessions.find(session => session.date >= today);
+        const button = sessionCard(item.label, next ? 'Next: ' + sessionDateLabel(next.date) + ' · ' + (next.time || 'Time to confirm') : 'Past dates available', () => { sessionGroup = item.key; sessionPast.checked = !next; renderSessionGrid(); (sessionGrid.querySelector('button') || sessionBack).focus(); });
+        button.dataset.sessionGroup = item.key; sessionGrid.append(button);
+      }
+    } else {
+      for (const session of group.sessions.filter(item => sessionPast.checked || item.date >= today)) {
+        const button = sessionCard(sessionDateLabel(session.date), [session.time || 'Time to confirm', session.location || 'Venue to confirm'].join(' · '), () => openChosenSession(session.id));
+        button.dataset.sessionId = session.id; sessionGrid.append(button);
+      }
+    }
+    if (!sessionGrid.children.length) sessionGrid.append(node('p', group ? 'No upcoming dates in this group. Choose another group or show past dates.' : 'No available sessions. Ask an administrator to add or assign a session.', 'empty-state'));
+  }
+  function openChosenSession(sessionId) {
     if (locked() || recovery || !sessionChoice || pendingUse) return;
     if (dirty()) return notify('Save or clear your drill draft first', true);
-    const chosen = (context.sessions || []).find(session => session.id === sessionSelect.value && session.status !== 'Cancelled');
+    const chosen = availableSessions().find(session => session.id === sessionId);
     if (!chosen) return notify('Choose an available session first.', true);
     const attempt = { drill: clone(sessionChoice), sessionId: chosen.id, account: accountKey(context), fromSession: context.session?.id || '', accepted: false, inFlight: false };
-    pendingUse = attempt;
-    emit('coach:open-session', { sessionId: chosen.id, tab: 'plan', resolve: accepted => {
+    pendingUse = attempt; closeSessionPicker(false);
+    emit('coach:open-session', { sessionId: chosen.id, tab: 'plan', workspaceView: 'plan', resolve: accepted => {
       if (pendingUse !== attempt) return;
       if (!accepted) { pendingUse = null; notify('The session could not be opened. Your saved drill is unchanged.', true); renderState(); return; }
       attempt.accepted = true; finishSessionUse();
     } });
-  }); openSession.id = 'library-open-session';
-  sessionSelect.addEventListener('change', () => { pendingUse = null; renderState(); });
-  sessionPicker.append(sessionChoiceTitle, label('Session', sessionSelect), openSession); body.append(sessionPicker);
+  }
   const suggestions = node('section', '', 'library-suggestions'); suggestions.setAttribute('aria-labelledby', 'library-suggestions-title');
   const suggestionTitle = node('h3', 'Ideas from your coaching notes'); suggestionTitle.id = 'library-suggestions-title';
   suggestions.append(suggestionTitle, node('p', 'Simple keyword matches in notes you can access for this group or selected player. These are starting points to review, not assessments. Notes are not sent to an AI service or copied into the shared plan.', 'small'));
@@ -228,11 +269,11 @@
     capture.disabled = !canInsert() || !!recovery; reload.disabled = locked() || loading;
     search.disabled = sourceFilter.disabled = ageFilter.disabled = focus.disabled = skillFilter.disabled = durationFilter.disabled = scope.disabled = locked();
     reload.textContent = loading ? 'Loading…' : loaded ? 'Refresh saved drills' : 'Load saved drills';
-    save.textContent = writing ? 'Saving…' : record.id ? 'Save changes' : 'Save drill';
+    save.textContent = writing ? 'Saving…' : record.id ? 'Save changes' : record.variation ? 'Save private variation' : 'Save drill';
     for (const el of list.querySelectorAll('button')) { el.disabled = locked() || !!recovery || (el.dataset.insert === 'true' && !canInsert()); if (el.dataset.insert === 'true') el.hidden = standalone(); }
     for (const el of list.querySelectorAll('[data-use-session]')) el.hidden = !standalone();
-    sessionPicker.hidden = !standalone() || !sessionChoice;
-    sessionSelect.disabled = locked() || !!pendingUse; openSession.disabled = locked() || !!recovery || !!pendingUse || !sessionSelect.value;
+    if (sessionPicker.open && (!standalone() || !sessionChoice)) closeSessionPicker(false);
+    for (const el of sessionGrid.querySelectorAll('button')) el.disabled = locked() || !!recovery || !!pendingUse;
     for (const el of recommendationList.querySelectorAll('button')) el.disabled = !canInsert() || !!recovery;
     emit('coach:library-state', { starterEnabled:ready() && !locked() && !recovery, insertEnabled:canInsert() && !recovery, loaded, count:records.length });
     finishSessionUse();
@@ -242,25 +283,22 @@
     if (!attempt || !attempt.accepted || attempt.inFlight || accountKey(context) !== attempt.account || context?.tab !== 'plan' || context.session?.id !== attempt.sessionId || !canInsert()) return;
     attempt.inFlight = true;
     try {
-      const prepared = await window.CoachTactics?.prepareSession?.(attempt.sessionId);
+      // Let all context listeners enable the loaded plan before inserting its activity snapshot.
+      // The independent tactics drawer does not need to be opened or loaded.
+      await Promise.resolve();
       if (pendingUse !== attempt || accountKey(context) !== attempt.account || context?.tab !== 'plan' || context.session?.id !== attempt.sessionId) return;
       pendingUse = null; sessionChoice = null;
-      if (prepared && canInsert()) insert(attempt.drill);
+      if (canInsert()) insert(attempt.drill);
       else notify('The session is not ready. Open your saved drill again to add it.', true);
     } catch (error) {
       if (pendingUse === attempt) { pendingUse = null; notify('The session could not be prepared. Your saved drill is unchanged.', true); }
     }
   }
-  function chooseSession(drill) {
-    if (!standalone() || locked() || recovery || !permitted(drill)) return;
+  function chooseSession(drill, trigger) {
+    if (!standalone() || locked() || recovery || drill.source === 'saved' && !permitted(drill)) return;
     if (dirty()) return notify('Save or clear your drill draft first', true);
-    pendingUse = null; sessionChoice = clone(drill);
-    sessionChoiceTitle.textContent = 'Use “' + drill.title + '” in a session';
-    const available = (context.sessions || []).filter(session => session.status !== 'Cancelled');
-    sessionSelect.replaceChildren(...select('', [['', 'Choose a session'], ...available.map(session => [session.id, [session.date, session.time, session.location].filter(Boolean).join(' · ') || 'Session'])]).options);
-    sessionSelect.value = ''; renderState();
-    if (!available.length) notify('There are no available sessions to add this drill to.', true);
-    else sessionSelect.focus();
+    pendingUse = null; sessionChoice = clone(drill); sessionGroup = null; sessionReturn = trigger || document.activeElement; sessionPast.checked = false;
+    renderSessionGrid(); sessionPicker.showModal(); (sessionGrid.querySelector('button') || sessionClose).focus(); renderState();
   }
   function insert(drill) {
     if (!canInsert() || recovery) return;
@@ -338,13 +376,12 @@
       if (!publicIdea) card.append(node('p', drill.author_email === context.profile.email ? 'Your reusable drill' : 'Shared with full-access coaches · ' + drill.author_email, 'small'));
       const actions = node('div', '', 'library-actions'), add = action('Add to session', () => insert(drill)); add.dataset.insert = 'true'; add.setAttribute('aria-label', 'Add ' + drill.title + ' to session');
       const view = action('View drill', () => viewDrill(drill, view), 'button'); view.dataset.viewDrill = 'true'; actions.append(view, add);
+      const useSession = action('Add to session', () => chooseSession(drill, useSession)); useSession.dataset.useSession = 'true'; actions.append(useSession);
       if (drill.source !== 'saved') {
-        const use = action('Use as draft', () => emit('coach:library-prefill', { source: drill.source, drill })); use.dataset[drill.source + 'Title'] = drill.title; use.setAttribute('aria-label', 'Use ' + drill.title + ' as draft'); actions.append(use);
+        const use = action('Edit drill', () => emit('coach:library-prefill', { source: drill.source, drill })); use.dataset[drill.source + 'Title'] = drill.title; use.setAttribute('aria-label', 'Edit ' + drill.title); actions.append(use);
       } else {
         const change = action('Edit drill', () => edit(drill));
-        const duplicate = action('Duplicate drill', () => { if (locked() || recovery || !permitted(drill)) return; if (dirty() && !confirm('Discard your current unsaved drill and make a copy?')) return; copyDraft(drill); });
-        const useSession = action('Use in session', () => chooseSession(drill)); useSession.dataset.useSession = 'true';
-        actions.append(useSession, change, duplicate);
+        actions.append(change);
       }
       card.append(actions); list.append(card);
     }
@@ -419,13 +456,15 @@
   }
   async function persist(attempt) {
     if (locked()) return;
-    const ticket = ++epoch, started = identity; writing = true; recovery = null; renderState();
+    const ticket = ++epoch, started = identity, privateVariation = !!record.variation; writing = true; recovery = null; renderState();
     notify(attempt.operation === 'archive' ? 'Archiving drill…' : 'Saving drill…');
     try {
       const result = await request(attempt.operation, clone(attempt.payload)); if (ticket !== epoch || identity !== started) return;
       if (attempt.operation === 'save') {
         const saved = validateRows([result.drill])[0]; if (!matchesSaved(saved, attempt.payload)) throw Error('The save could not be verified. Refresh the library before changing this draft.');
-        records = [saved, ...records.filter(drill => drill.id !== saved.id)]; writeEditor(saved, true); notify('Reusable drill saved. Session plans stay unchanged until you add it.');
+        records = [saved, ...records.filter(drill => drill.id !== saved.id)]; writeEditor(saved, true);
+        if (privateVariation) { sourceFilter.value = 'saved'; focus.value = 'all'; search.value = ageFilter.value = skillFilter.value = durationFilter.value = ''; historyLimit = 8; }
+        notify('Reusable drill saved. Session plans stay unchanged until you add it.');
       } else {
         if (result.saved !== true) throw Error('The archive could not be verified.');
         records = records.filter(drill => drill.id !== attempt.payload.id); if (record.id === attempt.payload.id) writeEditor(); notify('Drill archived. Previously saved plans stay unchanged.');
@@ -453,15 +492,16 @@
     if (catalogIdea && drill.diagram) draft.diagram = clone(drill.diagram);
     if (dirty() && !confirm('Replace your unsaved drill with this practice idea?')) return;
     if (drill.diagram) draft.diagram = clone(drill.diagram);
+    if (catalogIdea) { draft.title = draft.title.slice(0, 68) + ' (variation)'; draft.variation = true; }
     writeEditor(draft); baseline = fingerprint(blank()); disclosure.open = true; editor.hidden = false; openDiagram(); renderState();
-    notify('Practice idea copied to a new drill draft. Review it and choose Save drill to keep it.'); focusEditor();
+    notify(catalogIdea ? 'Private variation draft. Your changes will stay in your private drill library; the original remains unchanged.' : 'Practice idea copied to a new drill draft. Review it and choose Save drill to keep it.'); focusEditor();
   });
   window.addEventListener('coach:context', event => {
     const next = event.detail, nextIdentity = next?.profile ? [next.profile.email, next.profile.role, next.profile.sessionVersion, next.session?.id || ''].join(':') : '';
     if (nextIdentity !== identity || next?.tab !== context?.tab) closeView(false);
     if (pendingUse && (accountKey(next) !== pendingUse.account || !['library', 'plan'].includes(next?.tab) || pendingUse.navigated && next.tab !== 'plan' || ![pendingUse.fromSession, pendingUse.sessionId].includes(next.session?.id || '') || next.tab === 'plan' && next.session?.id !== pendingUse.sessionId)) pendingUse = null;
     if (pendingUse && next.tab === 'plan' && next.session?.id === pendingUse.sessionId) pendingUse.navigated = true;
-    if (nextIdentity !== identity || next?.tab !== 'library') sessionChoice = null;
+    if (nextIdentity !== identity || next?.tab !== 'library') closeSessionPicker(false);
     if (nextIdentity !== identity || next?.tab !== 'library') closeDiagram();
     if (nextIdentity !== identity) {
       epoch++; writing = loading = false; records = []; loaded = false; recovery = lastAttempt = null; identity = nextIdentity; context = next;

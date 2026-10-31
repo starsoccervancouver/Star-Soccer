@@ -60,6 +60,10 @@ const { chromium } = require('playwright');
     await page.locator('#library-new').click();
     assert.equal(await draft(), null);
     assert.equal(await page.locator('#tactics-add-home,#tactics-add-away').count(), 0, 'The toolbar has one player tool instead of team-specific buttons');
+    assert.equal(await page.locator('#tactics-new-player').isVisible(), false, 'An empty drill shows Add player without the unused New colour tool');
+    assert.equal(await page.locator('#tactics-phase-popover').isVisible(), false, 'Movement phases start collapsed');
+    assert.equal(await page.locator('#tactics-frames').isVisible(), false, 'Phase thumbnails are unavailable until the phase dropdown opens');
+    assert.equal(await page.locator('#tactics-progress').isVisible(), false, 'The playback scrubber stays inside the closed phase dropdown');
 
     // A drawn arrow is useful even before players are placed, and must count as draft content.
     await draw({ x: 15, y: 20 }, { x: 70, y: 20 });
@@ -120,14 +124,26 @@ const { chromium } = require('playwright');
 
     // The first player asks for a colour. Further clicks repeat it; New colour changes it.
     assert.equal(await page.locator('#tactics-player-colors').isVisible(), false);
+    assert.equal(await page.locator('#tactics-new-player').isVisible(), false, 'Drawn arrows alone do not reveal New colour');
     await page.locator('#tactics-add-player').click();
     assert(await page.locator('#tactics-player-colors').isVisible());
     const palette = ['blue', 'gold', 'red', 'green', 'purple', 'white'];
     assert.deepEqual(await page.locator('[data-player-color]').evaluateAll(nodes => nodes.map(n => n.dataset.playerColor)), palette, 'Exactly six player colours are offered');
     assert.equal((await draft()).items.length, 0, 'Opening the palette does not add a player');
+    const beforeFirstColour = await draft();
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#tactics-player-colors').isVisible(), false, 'Escape closes the first colour palette');
+    assert(await page.locator('#tactics-add-player').evaluate(el => el === document.activeElement), 'Escape returns focus to Add player when New colour is hidden');
+    assert.deepEqual(await draft(), beforeFirstColour, 'Cancelling the first palette does not alter the diagram');
+    await page.locator('#tactics-add-player').click();
     await page.locator('[data-player-color="blue"]').click();
     assert.equal((await draft()).items.length, 1); assert.equal((await draft()).items[0].color, 'blue');
     assert.equal(await page.locator('#tactics-player-colors').isVisible(), false, 'Choosing a colour closes the palette');
+    assert(await page.locator('#tactics-new-player').isVisible(), 'New colour appears once the first player exists');
+    const firstColourDraft = await draft(); await page.locator('#tactics-undo').click();
+    assert.equal(await page.locator('#tactics-new-player').isVisible(), false, 'Undoing the only player hides New colour again');
+    await page.locator('#tactics-redo').click(); assert.deepEqual(await draft(), firstColourDraft);
+    assert(await page.locator('#tactics-new-player').isVisible(), 'Redo restores New colour with the player');
     await page.locator('#tactics-add-player').click();
     assert.deepEqual((await draft()).items.map(i => i.color), ['blue', 'blue'], 'Add player remembers the current colour');
     assert.equal(await page.locator('#tactics-player-colors').isVisible(), false);
@@ -166,8 +182,10 @@ const { chromium } = require('playwright');
       return r;
     };
     const resetScroll = () => page.evaluate(() => { window.scrollTo(0, 0); for (const el of document.querySelectorAll('#library-form,.tactics-inspector')) el.scrollTop = 0; });
-    // A real drill's playback strip must fit too, not just an empty one-phase board.
+    const openPhases = async () => { if (!await page.locator('#tactics-phase-popover').isVisible()) await page.locator('#tactics-phases-toggle').click(); };
+    // A real drill's phase dropdown must fit too, not just an empty one-phase board.
     for (let phase = 1; phase < 5; phase++) await page.locator('#tactics-add-frame').click();
+    assert.equal(await page.locator('#tactics-phase-popover').isVisible(), false, 'Adding phases leaves the dropdown closed');
     const layoutDraft = await draft();
     const viewports = [{width:1280,height:800}, {width:1440,height:1000}, {width:1920,height:1080}, {width:1024,height:768}, {width:390,height:844}, {width:320,height:700}, {width:844,height:390}];
     for (const viewport of viewports) {
@@ -175,13 +193,19 @@ const { chromium } = require('playwright');
       await page.setViewportSize(viewport); await resetScroll();
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'No document horizontal overflow at ' + size);
       await inViewport('#library-cancel', 'Back'); await inViewport('#library-save', 'Save');
+      assert.equal(await page.locator('#tactics-phase-popover').isVisible(), false, 'Phase dropdown remains closed at ' + size);
+      assert.equal(await page.locator('#tactics-frames').isVisible(), false, 'Closed thumbnails stay unavailable at ' + size);
+      assert.equal(await page.locator('#tactics-progress').isVisible(), false, 'Closed scrubber stays unavailable at ' + size);
+      assert(await page.locator('#tactics-play').isVisible(), 'Play remains on the toolbar at ' + size);
+      assert(await page.locator('#tactics-add-frame').isVisible(), 'Next phase remains on the toolbar at ' + size);
       if (viewport.width >= 1000) {
         const field = await inViewport('#tactics-pitch-board', 'The complete field');
         assert(field.width >= 500 && field.height >= 300, 'The normal desktop field remains a useful size at ' + size + ': ' + field.width + '×' + field.height);
-        await inViewport('.tactics-phases', 'The phase controls');
+        await inViewport('#tactics-phases-toggle', 'The phase dropdown toggle');
         await inViewport('#tactics-add-frame', 'Add phase');
-        await inViewport('#tactics-play', 'Playback'); await inViewport('#tactics-progress', 'Playback position');
-        assert((await rect('.tactics-phases')).height < 175, 'Five phases keep a compact timeline at ' + size);
+        await inViewport('#tactics-play', 'Playback');
+        assert((await rect('#tactics-item')).width >= 180, 'The desktop inspector keeps a readable full-width piece selector at ' + size);
+        for (const selector of ['#tactics-purpose', '#tactics-pitch']) assert((await rect(selector)).width >= 100, 'Inspector view choices remain readable at ' + size + ': ' + selector);
       }
       for (const target of await page.locator('#library-form button:visible,#library-form summary:visible').evaluateAll(elements => elements.map(el => { const r = el.getBoundingClientRect(); return { name:el.id || el.textContent.trim(), width:r.width, height:r.height }; }))) {
         assert(target.width >= 43.5 && target.height >= 43.5, size + ': ' + target.name + ' keeps a 44px touch target (' + target.width + '×' + target.height + ')');
@@ -195,6 +219,25 @@ const { chromium } = require('playwright');
       const screenshot = 'outputs/drill-creator-' + size + '.png'; await page.screenshot({ path: screenshot });
       if (size === '1280x800') fs.copyFileSync(screenshot, 'outputs/drill-creator-desktop.png');
       if (size === '390x844') fs.copyFileSync(screenshot, 'outputs/drill-creator-mobile.png');
+
+      await openPhases();
+      assert.equal(await page.locator('#tactics-phases-toggle').getAttribute('aria-expanded'), 'true');
+      await inViewport('#tactics-phase-popover', 'The open phase dropdown');
+      assert(await page.locator('#tactics-frames').isVisible(), 'Opening the dropdown reveals phase thumbnails at ' + size);
+      assert(await page.locator('#tactics-progress').isVisible(), 'Opening the dropdown reveals the scrubber at ' + size);
+      await page.locator('#tactics-progress').scrollIntoViewIfNeeded(); await inViewport('#tactics-progress', 'The open playback scrubber');
+      await page.locator('#tactics-phases-toggle').click();
+      assert.equal(await page.locator('#tactics-phase-popover').isVisible(), false, 'The phase toggle closes its dropdown at ' + size);
+      await openPhases(); await page.locator('#tactics-frame-0').click();
+      assert.equal(await page.locator('#tactics-frame-0').getAttribute('aria-pressed'), 'true', 'The first thumbnail remains selectable in the dropdown');
+      await openPhases(); await page.locator('#tactics-frame-4').click();
+      assert.equal(await page.locator('#tactics-frame-4').getAttribute('aria-pressed'), 'true', 'The final thumbnail remains selectable in the dropdown');
+      await openPhases(); await page.keyboard.press('Escape');
+      assert.equal(await page.locator('#tactics-phase-popover').isVisible(), false, 'Escape closes the phase dropdown at ' + size);
+      assert.equal(await page.locator('#tactics-phases-toggle').getAttribute('aria-expanded'), 'false');
+      assert(await page.locator('#tactics-phases-toggle').evaluate(el => el === document.activeElement), 'Escape restores phase-toggle focus');
+      assert.deepEqual(await draft(), layoutDraft, 'Opening, selecting and closing phases never changes the diagram at ' + size);
+      await resetScroll();
 
       if (viewport.width >= 1000) {
         // The existing expandable controls and a resized notes field create a long inspector.
@@ -212,7 +255,7 @@ const { chromium } = require('playwright');
         await page.waitForFunction(() => document.querySelector('.tactics-inspector').scrollTop > 0);
         const afterScroll = await page.evaluate(() => ({ form:document.getElementById('library-form').scrollTop, document:document.scrollingElement.scrollTop, field:document.getElementById('tactics-pitch-board').getBoundingClientRect().top }));
         assert.deepEqual(afterScroll, beforeScroll, 'Scrolling the long inspector leaves the field and creator stationary at ' + size);
-        await inViewport('.tactics-phases', 'Phases while the inspector scrolls');
+        await inViewport('#tactics-phases-toggle', 'Phases while the inspector scrolls');
         await page.locator('#tactics-phase-notes').evaluate((el, oldStyle) => { if (oldStyle === null) el.removeAttribute('style'); else el.setAttribute('style', oldStyle); }, oldNotesStyle);
         for (const selector of openedInspectorDetails) await page.locator(selector + ' > summary').click();
         await resetScroll();

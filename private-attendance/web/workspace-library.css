@@ -87,8 +87,8 @@ body.drill-creator-focus .library-editor-header :is(button,input):focus-visible{
 @media(min-width:1000px) and (min-height:640px) {
   body.drill-creator-focus .library-standalone .library-editor {
     grid-template-columns: minmax(0,1fr) clamp(260px,22vw,340px);
-    grid-template-rows: auto auto minmax(0,1fr) auto auto;
-    grid-template-areas: "header header" "tools tools" "field inspector" "extras details" "status status";
+    grid-template-rows: auto auto minmax(0,1fr) auto;
+    grid-template-areas: "header header" "tools tools" "field inspector" "status status";
     align-content: stretch; gap: 6px 10px; overflow: hidden;
     padding: 0 10px max(8px,env(safe-area-inset-bottom));
   }

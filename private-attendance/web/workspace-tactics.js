@@ -49,7 +49,7 @@
   function discard() { stopPlayback(); const saved = JSON.parse(baseline); record.title = saved.title; record.content = saved.content; frameIndex = 0; selectedItem = ''; selectedIds.clear(); undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; render(); notifyDraft(); }
   function openLibrary(binding) {
     if (!binding?.host || pending) return false;
-    stopPlayback();
+    stopPlayback(); closePhases(); closeColors();
     if (!libraryBinding) sessionDraft = { record: clone(record), baseline, frameIndex, selectedItem, selectedIds: selection(), undo: clone(undo), redo: clone(redo), loaded, loadAttempted, lastAttempt, recoveryNeeded, message, messageError, identity };
     libraryBinding = binding; libraryLocked = librarySaveBlocked = false; binding.host.append(mount);
     record = { ...blank(), title: binding.title || 'Drill diagram' }; if (binding.diagram) record.content = clone(binding.diagram);
@@ -58,7 +58,7 @@
   }
   function closeLibrary() {
     if (!libraryBinding) return;
-    stopPlayback(); pointer = null; libraryBinding = null; libraryLocked = librarySaveBlocked = false; homeAnchor.after(mount);
+    stopPlayback(); closePhases(); closeColors(); pointer = null; libraryBinding = null; libraryLocked = librarySaveBlocked = false; homeAnchor.after(mount);
     if (sessionDraft) { ({ record, baseline, frameIndex, selectedItem, undo, redo, loaded, loadAttempted, lastAttempt, recoveryNeeded, message, messageError } = sessionDraft); selectedIds = new Set(sessionDraft.selectedIds); }
     sessionDraft = null; render();
   }
@@ -124,15 +124,17 @@
   }
   const playerTools = el('div', '', 'tactics-player-tools'), colorMenu = el('div', '', 'tactics-player-colors'); colorMenu.id = 'tactics-player-colors'; colorMenu.hidden = true; colorMenu.setAttribute('role', 'group'); colorMenu.setAttribute('aria-label', 'Choose player colour');
   const currentColor = el('span', '', 'tactics-current-color'); currentColor.setAttribute('aria-hidden', 'true');
-  function choosePlayerColor() { if (!editable()) return; colorMenu.hidden = !colorMenu.hidden; newPlayer.setAttribute('aria-expanded', String(!colorMenu.hidden)); if (!colorMenu.hidden) colorMenu.querySelector('button').focus(); }
+  function closeColors() { colorMenu.hidden = true; newPlayer.setAttribute('aria-expanded', 'false'); addPlayerButton.setAttribute('aria-expanded', 'false'); }
+  function choosePlayerColor() { if (!editable()) return; colorMenu.hidden = !colorMenu.hidden; newPlayer.setAttribute('aria-expanded', String(!colorMenu.hidden)); addPlayerButton.setAttribute('aria-expanded', String(!colorMenu.hidden)); if (!colorMenu.hidden) colorMenu.querySelector('button').focus(); }
   function addPlayer(destination) { if (!currentPlayerColor) { choosePlayerColor(); return; } addPiece(currentPlayerColor === 'gold' ? 'away' : 'home', destination, currentPlayerColor); }
   const addPlayerButton = button('Add player', 'tactics-add-player', () => addPlayer()); addPlayerButton.prepend(currentColor); addPlayerButton.draggable = true; addPlayerButton.title = 'Add another player in the current colour, or drag onto the field';
   addPlayerButton.addEventListener('dragstart', event => { if (!editable() || !currentPlayerColor) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', 'player'); event.dataTransfer.effectAllowed = 'copy'; });
   const newPlayer = button('New colour', 'tactics-new-player', choosePlayerColor); newPlayer.setAttribute('aria-label', 'Add player in a new colour'); newPlayer.setAttribute('aria-expanded', 'false'); newPlayer.setAttribute('aria-controls', colorMenu.id);
-  for (const [color, fill] of Object.entries(playerColors)) { const swatch = button(color[0].toUpperCase() + color.slice(1), '', () => { currentPlayerColor = color; colorMenu.hidden = true; newPlayer.setAttribute('aria-expanded', 'false'); addPlayer(); addPlayerButton.focus(); }); swatch.dataset.playerColor = color; swatch.title = 'Add ' + color + ' player'; const dot = el('span', '', 'tactics-current-color'); dot.style.backgroundColor = fill; dot.setAttribute('aria-hidden', 'true'); swatch.prepend(dot); colorMenu.append(swatch); }
+  addPlayerButton.setAttribute('aria-controls', colorMenu.id); addPlayerButton.setAttribute('aria-expanded', 'false');
+  for (const [color, fill] of Object.entries(playerColors)) { const swatch = button(color[0].toUpperCase() + color.slice(1), '', () => { currentPlayerColor = color; closeColors(); addPlayer(); addPlayerButton.focus(); }); swatch.dataset.playerColor = color; swatch.title = 'Add ' + color + ' player'; const dot = el('span', '', 'tactics-current-color'); dot.style.backgroundColor = fill; dot.setAttribute('aria-hidden', 'true'); swatch.prepend(dot); colorMenu.append(swatch); }
   playerTools.append(addPlayerButton, newPlayer, colorMenu); addGroup.append(playerTools);
-  playerTools.addEventListener('keydown', event => { if (event.key === 'Escape' && !colorMenu.hidden) { event.preventDefault(); event.stopPropagation(); colorMenu.hidden = true; newPlayer.setAttribute('aria-expanded', 'false'); newPlayer.focus(); } });
-  playerTools.addEventListener('focusout', event => { if (!playerTools.contains(event.relatedTarget)) { colorMenu.hidden = true; newPlayer.setAttribute('aria-expanded', 'false'); } });
+  playerTools.addEventListener('keydown', event => { if (event.key === 'Escape' && !colorMenu.hidden) { event.preventDefault(); event.stopPropagation(); closeColors(); (newPlayer.hidden ? addPlayerButton : newPlayer).focus(); } });
+  playerTools.addEventListener('focusout', event => { if (!playerTools.contains(event.relatedTarget)) closeColors(); });
   for (const kind of ['ball', 'cone', 'goal', 'zone']) {
     const label = kinds[kind];
     const add = button('', 'tactics-add-' + kind, () => addPiece(kind)); add.setAttribute('aria-label', 'Add ' + label.toLowerCase());
@@ -267,7 +269,25 @@
   const editHistory = el('div', '', 'tactics-edit-history'); editHistory.setAttribute('role', 'group'); editHistory.setAttribute('aria-label', 'Edit history'); editHistory.append(undoControl, redoControl);
   const editTools = el('div', '', 'tactics-edit-tools'); editModes.replaceWith(editTools); editTools.append(editModes, editHistory);
   const sequenceActions = el('div', '', 'tactics-sequence-actions'); sequenceActions.setAttribute('role', 'group'); sequenceActions.setAttribute('aria-label', 'Playback and phases');
-  playback.prepend(playControl); sequenceActions.append(playback, phaseActions.querySelector('#tactics-add-frame')); phaseHeading.after(sequenceActions);
+  const phasePicker = el('div', '', 'tactics-phase-picker');
+  phases.id = 'tactics-phase-popover'; phases.hidden = true;
+  function closePhases(returnFocus = false) { phases.hidden = true; phaseToggle.setAttribute('aria-expanded', 'false'); if (returnFocus) phaseToggle.focus(); }
+  function placePhaseMenu() {
+    const anchor = phaseToggle.getBoundingClientRect(), width = Math.min(560, innerWidth - 24);
+    const below = innerHeight - anchor.bottom - 12, above = anchor.top - 12, useAbove = below < 180 && above > below;
+    phases.style.position = 'fixed'; phases.style.right = 'auto'; phases.style.width = width + 'px';
+    phases.style.maxHeight = Math.max(100, Math.min(440, useAbove ? above : below)) + 'px';
+    phases.style.left = Math.max(12, Math.min(innerWidth - width - 12, anchor.right - width)) + 'px';
+    phases.style.top = Math.max(8, useAbove ? anchor.top - phases.offsetHeight - 6 : anchor.bottom + 6) + 'px';
+  }
+  const phaseToggle = button('Phase 1 ▾', 'tactics-phases-toggle', () => { phases.hidden = !phases.hidden; phaseToggle.setAttribute('aria-expanded', String(!phases.hidden)); if (!phases.hidden) placePhaseMenu(); });
+  phaseToggle.setAttribute('aria-controls', phases.id); phaseToggle.setAttribute('aria-expanded', 'false');
+  phasePicker.append(phaseToggle, phases);
+  phasePicker.addEventListener('keydown', event => { if (event.key === 'Escape' && !phases.hidden) { event.preventDefault(); event.stopPropagation(); closePhases(true); } });
+  phasePicker.addEventListener('focusout', event => { if (!phasePicker.contains(event.relatedTarget)) closePhases(); });
+  document.addEventListener('pointerdown', event => { if (!phases.hidden && !phasePicker.contains(event.target)) closePhases(); });
+  window.addEventListener('resize', () => closePhases());
+  sequenceActions.append(phasePicker, playControl, phaseActions.querySelector('#tactics-add-frame')); topActions.append(sequenceActions);
   const extras = el('details', '', 'tactics-compact-details'); extras.append(el('summary', 'Templates & export'), heading, editingActions, saveActions,
     button('Export SVG image', 'tactics-export', exportImage), button('Print diagram', 'tactics-print', printDiagram),
     button('Save draft as new setup', 'tactics-save-copy', () => { if (!editable() || recoveryNeeded) return; const draft = clone(record); clear(); record.title = (draft.title.slice(0, 73) + ' (copy)').slice(0, 80); record.content = draft.content; render(); tell('New unsaved copy. Save setup to keep it.'); notifyDraft(); }), intro);
@@ -275,7 +295,7 @@
   extras.append(help);
   const fieldColumn = el('div', '', 'tactics-field-column'), inspector = el('aside', '', 'tactics-inspector'), phaseEditor = el('section', '', 'tactics-phase-editor');
   phaseEditor.append(el('h3', 'Selected phase'), frameSettings, phaseNotes.parentElement, phaseActions);
-  fieldColumn.append(canvasWrap, phases); inspector.append(phaseEditor, side); boardLayout.replaceChildren(fieldColumn, inspector);
+  fieldColumn.append(canvasWrap); inspector.append(viewOptions, side, phaseEditor, extras); boardLayout.replaceChildren(fieldColumn, inspector);
   const viewControls = el('div', '', 'tactics-view-controls'); viewControls.setAttribute('aria-label', 'Field view');
   const panControls = el('div', '', 'tactics-pan-controls'); panControls.setAttribute('role', 'group'); panControls.setAttribute('aria-label', 'Move zoomed view');
   const zoomValue = el('output', '100%', 'tactics-zoom-value'); zoomValue.id = 'tactics-zoom-value'; zoomValue.setAttribute('aria-label', 'Field zoom');
@@ -298,7 +318,7 @@
   for (const [name, text, dx, dy] of [['left', '←', -100, 0], ['up', '↑', 0, -80], ['down', '↓', 0, 80], ['right', '→', 100, 0]]) { const b = button(text, 'tactics-pan-' + name, () => setView(zoom, dx, dy)); b.setAttribute('aria-label', 'Pan field ' + name); b.title = 'Move view ' + name; panControls.append(b); }
   viewControls.append(panControls);
   pathCaption.before(viewControls);
-  editor.append(topActions, boardLayout, extras, recoveryActions);
+  editor.append(topActions, boardLayout, recoveryActions);
   mount.append(workbar, editor, library, reuse);
   function editedText() { $('tactics-undo').disabled = !undo.length; $('tactics-redo').disabled = !redo.length; $('tactics-save').disabled = recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id); renderStatus(); notifyDraft(); }
   function duplicatePiece() {
@@ -530,6 +550,7 @@
     for (const mode of ['place', 'record']) $('tactics-mode-' + mode).setAttribute('aria-pressed', String(editMode === mode));
     arrowTool.setAttribute('aria-pressed', String(editMode === 'arrow')); board.style.cursor = editMode === 'arrow' ? 'crosshair' : '';
     currentColor.style.backgroundColor = currentPlayerColor ? playerColors[currentPlayerColor] : 'transparent'; currentColor.hidden = !currentPlayerColor;
+    newPlayer.hidden = !record.content.items.some(item => ['home', 'away'].includes(item.kind));
     selectionCount.textContent = selection().length > 1 ? selection().length + ' selected · drag or duplicate together' : 'Shift-click pieces to select a group';
     librarySelect.replaceChildren(); const unsaved = el('option', 'New unsaved setup'); unsaved.value = ''; librarySelect.append(unsaved);
     for (const d of diagrams) { const option = el('option', d.title); option.value = d.id; librarySelect.append(option); }
@@ -561,7 +582,7 @@
     playerColorField.hidden = !['home','away'].includes(selectedKind); if (!playerColorField.hidden) playerColorSelect.value = playerColor(record.content.items.find(item => item.id === selectedItem));
     removeArrow.hidden = !selectedArrow;
     const phaseScroll = frameButtons.scrollLeft;
-    frameButtons.replaceChildren(...record.content.frames.map((f, index) => { const b = button('', 'tactics-frame-' + index, () => { if (!editable()) return; stopPlayback(); frameIndex = index; render(); }); const preview = el('span', '', 'tactics-frame-preview'); preview.append(previewFrame(f)); b.append(preview, el('span', (index + 1) + '. ' + f.title)); b.dataset.tacticsFrame = index; b.setAttribute('aria-pressed', String(frameIndex === index)); return b; }));
+    frameButtons.replaceChildren(...record.content.frames.map((f, index) => { const b = button('', 'tactics-frame-' + index, () => { if (!editable()) return; stopPlayback(); frameIndex = index; render(); closePhases(true); }); const preview = el('span', '', 'tactics-frame-preview'); preview.append(previewFrame(f)); b.append(preview, el('span', (index + 1) + '. ' + f.title)); b.dataset.tacticsFrame = index; b.setAttribute('aria-pressed', String(frameIndex === index)); return b; }));
     frameButtons.scrollLeft = phaseScroll;
     frameTitle.value = currentFrame().title; duration.value = String(currentFrame().duration); phaseNotes.value = currentFrame().notes || '';
     durationField.hidden = frameIndex === record.content.frames.length - 1;
@@ -569,6 +590,7 @@
     const disabled = !editable();
     for (const control of mount.querySelectorAll('button,input,select,textarea')) control.disabled = disabled;
     $('tactics-play').disabled = !active() || !loaded || pending || context.busy || record.content.frames.length < 2;
+    phaseToggle.disabled = !active() || !loaded || pending || context.busy;
     $('tactics-reset').disabled = !active() || !loaded || pending || context.busy;
     speed.disabled = loop.disabled = scrub.disabled = !active() || !loaded || pending || context.busy || record.content.frames.length < 2;
     scrub.max = String(totalSeconds());
@@ -819,6 +841,8 @@
   function renderPlayback() {
     if (!$('tactics-play')) return;
     $('tactics-play').textContent = running ? 'Pause movement' : elapsed ? 'Resume movement' : 'Play movement';
+    $('tactics-play').setAttribute('aria-label', $('tactics-play').textContent); $('tactics-play').title = $('tactics-play').textContent;
+    phaseToggle.textContent = 'Phase ' + (frameIndex + 1) + ' / ' + record.content.frames.length + ' ▾'; phaseToggle.title = currentFrame().title;
     $('tactics-play').setAttribute('aria-pressed', String(running));
     $('tactics-playback-status').textContent = record.content.frames.length < 2 ? 'Add a next phase to animate movement.' : (running ? 'Playing · ' : elapsed ? 'Paused · ' : '') + 'Phase ' + (frameIndex + 1) + ' of ' + record.content.frames.length;
     scrub.value = String(record.content.frames.slice(0, frameIndex).reduce((sum, f) => sum + f.duration, 0) + elapsed / 1000);

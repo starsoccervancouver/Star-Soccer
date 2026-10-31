@@ -96,20 +96,21 @@
   function renderSessionGrid() {
     sessionGrid.replaceChildren(); if (!sessionChoice) return;
     const available = availableSessions(), today = localDate();
+    const upcoming = session => window.CoachPlanner?.nextSession ? !!window.CoachPlanner.nextSession([session]) : session.date >= today;
     const groups = window.CoachGroups?.groups(available) || available.map(session => ({ key: session.id, label: session.label || sessionDateLabel(session.date), sessions: [session] }));
     const group = groups.find(item => item.key === sessionGroup);
-    sessionBack.hidden = !group; pastLabel.hidden = !group || !group.sessions.some(session => session.date < today);
+    sessionBack.hidden = !group; pastLabel.hidden = !group || !group.sessions.some(session => !upcoming(session));
     sessionChoiceTitle.textContent = 'Add “' + sessionChoice.title + '” to a session';
     sessionIntro.textContent = group ? group.label + ' · Choose a date. The drill opens in the session plan for you to review and save.' : 'Choose a training group or camp week, then the date. Your library drill stays unchanged.';
     if (!group) {
       sessionGroup = null;
       for (const item of groups) {
-        const next = item.sessions.find(session => session.date >= today);
+        const next = item.sessions.find(upcoming);
         const button = sessionCard(item.label, next ? 'Next: ' + sessionDateLabel(next.date) + ' · ' + (next.time || 'Time to confirm') : 'Past dates available', () => { sessionGroup = item.key; sessionPast.checked = !next; renderSessionGrid(); (sessionGrid.querySelector('button') || sessionBack).focus(); });
         button.dataset.sessionGroup = item.key; sessionGrid.append(button);
       }
     } else {
-      for (const session of group.sessions.filter(item => sessionPast.checked || item.date >= today)) {
+      for (const session of group.sessions.filter(item => sessionPast.checked || upcoming(item))) {
         const button = sessionCard(sessionDateLabel(session.date), [session.time || 'Time to confirm', session.location || 'Venue to confirm'].join(' · '), () => openChosenSession(session.id));
         button.dataset.sessionId = session.id; sessionGrid.append(button);
       }

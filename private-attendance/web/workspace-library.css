@@ -76,6 +76,14 @@ body.drill-creator-focus .library-drill-details { margin: 0; padding-top: 0; scr
 body.drill-creator-focus .library-drill-details > summary { min-height: 44px; padding: 10px 0; font-size: 13px; }
 body.drill-creator-focus .library-details-body { gap: 10px; padding: 0 0 12px; }
 /* A desktop workbench uses the available height; expanded details keep their own scroll. */
+body.drill-creator-focus .library-editor-header{background:#303a34;border-bottom:2px solid #788b6c;box-shadow:0 2px 8px #1f30252b;color:#f0f0e6}
+body.drill-creator-focus .library-editor-header>label,
+body.drill-creator-focus .library-editor-header .library-status{color:#e7ecdf}
+body.drill-creator-focus .library-editor-header .library-status[role=alert]{color:#ffd4bc}
+body.drill-creator-focus .library-editor-header :is(input,#library-cancel){background:#e5e5d9;color:#24342a;border-color:#8e9b86}
+body.drill-creator-focus .library-editor-header #library-save{background:#d5e2c7;color:#213428;border:1px solid #a7b997}
+body.drill-creator-focus .library-editor-header #library-save:hover:not(:disabled){background:#e3edd9}
+body.drill-creator-focus .library-editor-header :is(button,input):focus-visible{outline:3px solid #d3e6c1;outline-offset:3px}
 @media(min-width:1000px) and (min-height:640px) {
   body.drill-creator-focus .library-standalone .library-editor {
     grid-template-columns: minmax(0,1fr) clamp(260px,22vw,340px);

@@ -356,6 +356,17 @@ body.drill-creator-focus #tactics-board-tools .tactics-compact-details { margin:
 
 body.drill-creator-focus #tactics-board-tools .tactics-view-options>.tactics-field-view{grid-template-columns:minmax(0,1fr);grid-column:auto;grid-row:auto}
 
+/* Muted turf and charcoal framing keep attention on the field. */
+#tactics-board-tools .tactics-canvas-wrap{border-color:#34473c;box-shadow:0 2px 8px #26382d24;overflow:hidden}
+#tactics-board-tools #tactics-pitch-board{background:#30483a}
+#tactics-board-tools .tactics-path-caption{background:#30483a;color:#edf1e7;border-top:1px solid #607662}
+#tactics-board-tools :is(.tactics-piece-panel,.tactics-frame-settings,.tactics-phases){border-color:#777f70;box-shadow:inset 0 2px 0 #485346}
+#tactics-board-tools .tactics-main-toolbar{border-bottom:1px solid #7c8475;padding-bottom:6px}
+#tactics-board-tools .tactics-frame-list button[aria-pressed=true]{background:#30483a;border-color:#30483a;color:#f1f3e9}
+#tactics-board-tools .tactics-frame-list button[aria-pressed=true] .small{color:#e2e9d9}
+#tactics-board-tools :is(.tactics-body-tools,.tactics-advanced)>summary{color:#263b2d}
+#tactics-board-tools :is(button,summary,select,input):focus-visible{outline:3px solid #486f50;outline-offset:3px}
+
 /* Viewport-sized workbench: the field grows, controls stay nearby, and long tools scroll. */
 @media(min-width:1000px) and (min-height:640px) {
   body.drill-creator-focus #library-diagram-editor #tactics-board-tools,

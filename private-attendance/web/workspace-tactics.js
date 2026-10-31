@@ -598,16 +598,16 @@
   }
   function fieldArtwork(view) {
     const art = svg('g', { 'data-field-view': view, 'pointer-events': 'none' });
-    art.append(svg('rect', { width: 1000, height: 650, fill: '#eef2e8' }));
-    if (view !== 'blank') for (let i = 0; i < 10; i += 2) art.append(svg('rect', { x: i * 100, width: 100, height: 650, fill: '#e3ebdc' }));
-    const lines = svg('g', { fill: 'none', stroke: '#8ea58b', 'stroke-width': 2.5, 'pointer-events': 'none' });
+    art.append(svg('rect', { width: 1000, height: 650, fill: view === 'blank' ? '#e4e8de' : '#abc69d' }));
+    if (view !== 'blank') for (let i = 0; i < 10; i += 2) art.append(svg('rect', { x: i * 100, width: 100, height: 650, fill: '#9db98e' }));
+    const lines = svg('g', { fill: 'none', stroke: '#f0f5e8', 'stroke-width': 2.5, 'pointer-events': 'none' });
     if (view !== 'blank') {
       lines.append(svg('rect', { x: 25, y: 25, width: 950, height: 600, rx: 2 }));
-      if (view === 'full') lines.append(svg('line', { x1: 500, y1: 25, x2: 500, y2: 625 }), svg('circle', { cx: 500, cy: 325, r: 80 }), svg('circle', { cx: 500, cy: 325, r: 3, fill: '#8ea58b' }), svg('rect', { x: 25, y: 175, width: 150, height: 300 }), svg('rect', { x: 825, y: 175, width: 150, height: 300 }), svg('rect', { x: 25, y: 250, width: 55, height: 150 }), svg('rect', { x: 920, y: 250, width: 55, height: 150 }));
+      if (view === 'full') lines.append(svg('line', { x1: 500, y1: 25, x2: 500, y2: 625 }), svg('circle', { cx: 500, cy: 325, r: 80 }), svg('circle', { cx: 500, cy: 325, r: 3, fill: '#f0f5e8' }), svg('rect', { x: 25, y: 175, width: 150, height: 300 }), svg('rect', { x: 825, y: 175, width: 150, height: 300 }), svg('rect', { x: 25, y: 250, width: 55, height: 150 }), svg('rect', { x: 920, y: 250, width: 55, height: 150 }));
       else if (view === 'half') lines.append(svg('rect', { x: 25, y: 145, width: 220, height: 360 }), svg('rect', { x: 25, y: 235, width: 85, height: 180 }), svg('path', { d: 'M 975 245 A80 80 0 0 0 975 405' }));
       else {
         const end = svg('g', { 'data-field-goal': view === 'facing-goal' ? 'top' : 'bottom', transform: view === 'away-from-goal' ? 'translate(0 650) scale(1 -1)' : '' });
-        end.append(svg('rect', { x: 280, y: 25, width: 440, height: 200 }), svg('rect', { x: 390, y: 25, width: 220, height: 75 }), svg('circle', { cx: 500, cy: 180, r: 3, fill: '#8ea58b' }), svg('path', { d: 'M434 225 A80 80 0 0 0 566 225 M420 625 A80 80 0 0 1 580 625' }), svg('rect', { x: 440, y: 7, width: 120, height: 18, fill: '#f5f7ef', stroke: '#677b67' }), svg('path', { d: 'M460 7 V25 M480 7 V25 M500 7 V25 M520 7 V25 M540 7 V25 M440 16 H560', 'stroke-width': 1 }));
+        end.append(svg('rect', { x: 280, y: 25, width: 440, height: 200 }), svg('rect', { x: 390, y: 25, width: 220, height: 75 }), svg('circle', { cx: 500, cy: 180, r: 3, fill: '#f0f5e8' }), svg('path', { d: 'M434 225 A80 80 0 0 0 566 225 M420 625 A80 80 0 0 1 580 625' }), svg('rect', { x: 440, y: 7, width: 120, height: 18, fill: '#f5f7ef', stroke: '#677b67' }), svg('path', { d: 'M460 7 V25 M480 7 V25 M500 7 V25 M520 7 V25 M540 7 V25 M440 16 H560', 'stroke-width': 1 }));
         lines.append(end);
       }
     }

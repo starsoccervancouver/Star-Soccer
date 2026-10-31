@@ -234,6 +234,19 @@
 }
 
 /* Keep editing beside the field and playback beside the sequence. */
+#tactics-board-tools .tactics-view-options{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;min-width:0}
+#tactics-board-tools .tactics-view-options>label{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0;max-width:none;margin:0}
+#tactics-board-tools .tactics-view-options select{min-width:0;width:100%;margin:0}
+#tactics-board-tools .tactics-body-tools{padding:10px;border:1px solid var(--desk-line,#b6afa2);border-radius:10px;background:var(--desk-field,#e3ddd3)}
+#tactics-board-tools .tactics-body-tools>summary{min-height:44px;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:650;font-size:12px;list-style:none}
+#tactics-board-tools .tactics-body-tools>summary::before{content:'▸'}
+#tactics-board-tools .tactics-body-tools[open]>summary::before{content:'▾'}
+#tactics-board-tools .tactics-body-tools[open]>:not(summary){margin-top:8px}
+#tactics-board-tools .tactics-facing-compass{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+#tactics-board-tools .tactics-facing-compass button{min-height:44px;padding:8px;font-size:12px}
+#tactics-board-tools .tactics-body-tools input[type=range]{min-height:44px;width:100%}
+#tactics-board-tools [data-facing-handle]{cursor:grab}
+#tactics-board-tools [data-facing-handle]:focus{outline:none;stroke:#161f27;stroke-width:4px}
 #tactics-board-tools .tactics-edit-tools{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;min-width:0}
 #tactics-board-tools .tactics-edit-history{display:flex;gap:6px;border-left:1px solid var(--desk-line,#b6afa2);padding-left:10px}
 #tactics-board-tools .tactics-edit-history button{padding:8px 10px}
@@ -305,7 +318,7 @@ body.drill-creator-focus #tactics-board-tools .tactics-preview-controls input[ty
 body.drill-creator-focus #tactics-board-tools .tactics-playback-options[open] { align-self: start; }
 body.drill-creator-focus #tactics-board-tools .tactics-compact-details { margin: 4px 0; }
 @media(min-width:1101px) {
-  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar { grid-template-columns: minmax(0,1.05fr) minmax(180px,.52fr) minmax(0,1.05fr); align-items: center; }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar { grid-template-columns: minmax(0,1fr) minmax(300px,.9fr) minmax(0,1fr); align-items: center; }
   body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar > .tactics-selection-count { grid-column: 1/-1; }
 }
 @media(max-width:1100px) {
@@ -340,3 +353,5 @@ body.drill-creator-focus #tactics-board-tools .tactics-compact-details { margin:
   body.drill-creator-focus #tactics-board-tools .tactics-preview-controls { grid-template-columns: minmax(0,1fr); gap: 4px; }
   body.drill-creator-focus #tactics-board-tools .tactics-preview-controls > label { width: 100%; }
 }
+
+body.drill-creator-focus #tactics-board-tools .tactics-view-options>.tactics-field-view{grid-template-columns:minmax(0,1fr);grid-column:auto;grid-row:auto}

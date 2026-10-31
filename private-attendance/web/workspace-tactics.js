@@ -5,6 +5,7 @@
   if (!mount) return;
   const ns = 'http://www.w3.org/2000/svg';
   const clone = value => JSON.parse(JSON.stringify(value));
+  const encode = value => JSON.stringify(value, (_, item) => item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
   const uid = prefix => prefix + crypto.randomUUID().replaceAll('-', '').slice(0, 20);
   const kinds = { home: 'Blue player', away: 'Gold player', cone: 'Cone', ball: 'Ball', goal: 'Goal', zone: 'Zone' };
   const playerColors = { blue: '#326887', gold: '#d9ae63', red: '#b64d49', green: '#397561', purple: '#79549d', white: '#f5f2e9' };
@@ -29,7 +30,7 @@
   const homeAnchor = document.createComment('session tactics editor'); mount.before(homeAnchor);
   const selection = () => [...new Set([selectedItem, ...selectedIds])].filter(id => record.content.items.some(i => i.id === id));
   function selectPiece(id, additive = false) { selectedArrow = ''; if (!additive) selectedIds.clear(); else if (selectedIds.has(id)) { selectedIds.delete(id); selectedItem = [...selectedIds].at(-1) || ''; return; } selectedItem = id; if (id) selectedIds.add(id); }
-  const snapshot = () => JSON.stringify({ title: record.title, content: record.content });
+  const snapshot = () => encode({ title: record.title, content: record.content });
   baseline = snapshot();
   const dirty = () => !libraryBinding && !!identity && snapshot() !== baseline;
   const active = () => !!context?.profile && (libraryBinding ? context.tab === 'library' : !!context?.session && context.selected === context.session.id && context.tab === 'plan' && context.session.status !== 'Cancelled');
@@ -38,7 +39,7 @@
   const capture = () => ({ title: record.title, content: clone(record.content), frameIndex, selectedItem, selectedIds: selection(), selectedArrow });
   const apply = value => { record.title = value.title; record.content = clone(value.content); frameIndex = value.frameIndex; selectedItem = value.selectedItem; selectedIds = new Set(value.selectedIds || []); selectedArrow = value.selectedArrow || ''; };
   const remember = () => { undo.push(capture()); if (undo.length > 30) undo.shift(); redo = []; };
-  const libraryDiagram = () => libraryBinding && (record.content.items.length || record.content.frames.length > 1 || record.content.frames.some(f => f.notes || f.arrows?.length || f.title !== 'Starting positions') || record.content.pitch !== 'full') ? clone(record.content) : null;
+  const libraryDiagram = () => libraryBinding && (record.content.purpose === 'team-pattern' || record.content.items.length || record.content.frames.length > 1 || record.content.frames.some(f => f.notes || f.arrows?.length || f.title !== 'Starting positions') || record.content.pitch !== 'full') ? clone(record.content) : null;
   const notifyDraft = () => { if (libraryBinding) { libraryBinding.onChange?.(libraryDiagram()); renderStatus(); } window.dispatchEvent(new Event('coach:tactics-dirty')); };
   function tell(text, error = false) { message = text; messageError = error; renderStatus(); }
   function request(operation, payload) { return new Promise((resolve, reject) => window.dispatchEvent(new CustomEvent('coach:tactics-request', { detail: { operation, payload, resolve, reject } }))); }
@@ -102,6 +103,9 @@
   pitch.addEventListener('change', () => mutate(() => { record.content.pitch = pitch.value; }));
   heading.append(field('Setup name', title));
   const fieldView = field('Field view', pitch); fieldView.className = 'tactics-field-view';
+  const purpose = select('tactics-purpose', [['drill', 'Drill'], ['team-pattern', 'Team pattern']]);
+  purpose.addEventListener('change', () => mutate(() => { if (purpose.value === 'team-pattern') record.content.purpose = purpose.value; else delete record.content.purpose; }, purpose.value === 'team-pattern' ? 'Team pattern: show positioning, team movements and decisions.' : 'Drill: build a practice activity for your session.'));
+  const viewOptions = el('div', '', 'tactics-view-options'); viewOptions.append(field('Create', purpose), fieldView);
   const topActions = el('div', '', 'tactics-toolbar tactics-main-toolbar');
   const equipment = el('details', '', 'tactics-equipment'), equipmentOptions = el('div', '', 'tactics-equipment-options'); equipment.id = 'tactics-equipment';
   const equipmentSummary = el('summary', '⋯'); equipmentSummary.setAttribute('aria-label','More equipment'); equipmentSummary.title='More equipment'; equipment.append(equipmentSummary, equipmentOptions);
@@ -137,7 +141,7 @@
     add.addEventListener('dragstart', event => { if (!editable() || add.disabled) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', kind); event.dataTransfer.effectAllowed = 'copy'; });
     add.dataset.pieceKind = kind; (['goal', 'zone'].includes(kind) ? equipmentOptions : addGroup).append(add);
   }
-  addGroup.append(equipment); topActions.append(addGroup, fieldView);
+  addGroup.append(equipment); topActions.append(addGroup, viewOptions);
   const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
   for (const [mode, text] of [['place', 'Place pieces'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
   const arrowTool = button('↗ Arrow', 'tactics-draw-arrow', () => { if (!editable()) return; editMode = editMode === 'arrow' ? 'place' : 'arrow'; selectPiece(''); render(); tell(editMode === 'arrow' ? 'Drag on the field to draw an arrow. Or focus the field and press Enter. Arrows belong to this phase.' : 'Select and move pieces.'); }); arrowTool.setAttribute('aria-label', 'Draw arrow'); editModes.append(arrowTool);
@@ -197,6 +201,24 @@
   const rotation = input('tactics-rotation', 'number'); rotation.min = '0'; rotation.max = '360'; rotation.step = 'any';
   rotation.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem), value = Number(rotation.value); if (p && Number.isFinite(value) && value >= 0 && value < 360) p.rotation = value; }, 'Goal direction updated for this phase.'));
   const rotationField = field('Goal direction (degrees)', rotation); side.append(rotationField);
+  const bodyTools = el('details', '', 'tactics-body-tools'); bodyTools.id = 'tactics-player-tools'; bodyTools.append(el('summary', 'Body shape & cover shadow'));
+  const bodyEnabled = input('tactics-body-direction', 'checkbox'), bodyLabel = field('Show body direction', bodyEnabled); bodyLabel.className = 'tactics-check';
+  const facing = input('tactics-facing', 'range'); facing.min = '0'; facing.max = '359'; facing.step = '1';
+  const facingValue = el('span', '', 'small'), facingField = field('Facing direction', facing); facingValue.id = 'tactics-facing-value'; facingField.append(facingValue);
+  const playerPosition = () => currentFrame().positions.find(p => p.id === selectedItem);
+  const setFacing = angle => mutate(() => { const p = playerPosition(); if (p) p.facing = ((angle % 360) + 360) % 360; }, 'Body direction updated for this phase. Movement stays unchanged.');
+  bodyEnabled.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (bodyEnabled.checked) p.facing = p.facing || 0; else delete p.facing; }));
+  facing.addEventListener('input', () => { facingValue.textContent = facing.value + '° · 0° up, 90° right'; });
+  facing.addEventListener('change', () => setFacing(Number(facing.value)));
+  const compass = el('div', '', 'tactics-facing-compass');
+  for (const [angle, label] of [[0, '↑ Up'], [90, '→ Right'], [180, '↓ Down'], [270, '← Left']]) compass.append(button(label, 'tactics-face-' + angle, () => setFacing(angle)));
+  const faceBall = button('Face the ball', 'tactics-face-ball', () => { const p = playerPosition(), ball = nearestBall(p, currentFrame(), record.content.items); if (ball) setFacing(directionTo(p, ball)); });
+  const shadowEnabled = input('tactics-cover-shadow', 'checkbox'), shadowLabel = field('Show cover shadow', shadowEnabled); shadowLabel.className = 'tactics-check';
+  shadowEnabled.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (shadowEnabled.checked) p.shadow = { length: 25, width: 20 }; else delete p.shadow; }));
+  const shadowSize = el('div', '', 'tactics-shadow-size'), shadowLength = input('tactics-shadow-length', 'range'), shadowWidth = input('tactics-shadow-width', 'range');
+  for (const [control, key] of [[shadowLength, 'length'], [shadowWidth, 'width']]) { control.min = '5'; control.max = '60'; control.step = '1'; control.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (p?.shadow) p.shadow[key] = Number(control.value); })); }
+  shadowSize.append(field('Shadow length', shadowLength), field('Shadow width', shadowWidth), el('p', 'Extends away from the nearest ball. Without a ball, it follows behind the body direction.', 'small'));
+  bodyTools.append(bodyLabel, facingField, compass, faceBall, shadowLabel, shadowSize, el('p', 'These settings apply to this phase. Drag the round handle to turn a player.', 'small')); pieceActions.before(bodyTools);
   canvasWrap.append(pathCaption); boardLayout.append(canvasWrap, side);
   const phases = el('section', '', 'tactics-phases'); phases.setAttribute('aria-label', 'Movement phases');
   const phaseHeading = el('div', '', 'tactics-phase-heading'); phaseHeading.append(el('h3', 'Movement sequence'), el('span', '', 'small')); phaseHeading.lastChild.id = 'tactics-sequence-summary';
@@ -350,7 +372,30 @@
     let remaining = lengths.reduce((sum, v) => sum + v, 0) * t;
     for (let i = 0; i < lengths.length; i++) { if (remaining <= lengths[i] || i === lengths.length - 1) { const fraction = lengths[i] ? remaining / lengths[i] : 1, a = points[i], b = points[i + 1]; return { id, x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction }; } remaining -= lengths[i]; }
   }
-  function motionPositions(from, to, t) { return from.positions.map(p => motionPosition(from, to, p.id, t)); }
+  function motionPositions(from, to, t) {
+    return from.positions.map(p => { const q = to.positions.find(v => v.id === p.id), result = { ...(t >= 1 ? q : p), ...motionPosition(from, to, p.id, t) };
+      if (Number.isFinite(p.facing) && Number.isFinite(q.facing)) result.facing = (p.facing + ((q.facing - p.facing + 540) % 360 - 180) * t + 360) % 360;
+      return result;
+    });
+  }
+  function directionTo(from, to) { return (Math.atan2((to.x - from.x) * 10, -(to.y - from.y) * 6.5) * 180 / Math.PI + 360) % 360; }
+  function nearestBall(p, frame, items) {
+    if (!p) return null;
+    return items.filter(i => i.kind === 'ball').map(i => positionIn(frame, i.id)).filter(ball => routeDistance(p, ball) > .1).sort((a, b) => routeDistance(p, a) - routeDistance(p, b))[0] || null;
+  }
+  function playerArtwork(kind, position, color) {
+    if (!['home', 'away'].includes(kind) || !Number.isFinite(position?.facing)) return pieceArtwork(kind, color);
+    const art = svg('g', { 'data-symbol': kind, 'data-facing': position.facing, transform: 'rotate(' + position.facing + ')', 'aria-hidden': 'true' });
+    art.append(svg('ellipse', { rx: 24, ry: 18, cy: 5, fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 3 }), svg('circle', { cy: -12, r: 10, fill: kind === 'home' ? '#b8d2dd' : '#f1dfb9', stroke: '#253b46', 'stroke-width': 2 }), svg('path', { d: 'M-5-22 L0-29 L5-22Z', fill: '#253b46' }));
+    return art;
+  }
+  function shadowArtwork(item, frame, items) {
+    const p = frame.positions.find(v => v.id === item.id); if (!p?.shadow || !['home', 'away'].includes(item.kind)) return null;
+    const at = positionIn(frame, item.id), ball = nearestBall(at, frame, items), angle = ball ? directionTo(at, ball) : p.facing || 0;
+    const clipped = svg('svg', { x: 0, y: 0, width: 1000, height: 650, viewBox: '0 0 1000 650', overflow: 'hidden', 'pointer-events': 'none', 'data-cover-shadow': item.id, 'aria-hidden': 'true' });
+    clipped.append(svg('path', { d: 'M0 0 L' + (-p.shadow.width * 5) + ' ' + p.shadow.length * 10 + ' L' + p.shadow.width * 5 + ' ' + p.shadow.length * 10 + 'Z', transform: 'translate(' + at.x * 10 + ' ' + at.y * 6.5 + ') rotate(' + angle + ')', fill: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'fill-opacity': .18, stroke: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'stroke-opacity': .35, 'stroke-width': 1 }));
+    return clipped;
+  }
   function pieceArtwork(kind, color) {
     const art = svg('g', { 'aria-hidden': 'true', 'data-symbol': kind, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
     if (['home', 'away'].includes(kind)) {
@@ -398,13 +443,14 @@
     let remaining = Math.max(0, Math.min(total, Number(seconds) || 0)), index = 0;
     while (index < content.frames.length - 1 && remaining >= content.frames[index].duration) remaining -= content.frames[index++].duration;
     const frame = content.frames[index], next = content.frames[index + 1];
-    const positions = next && remaining > 0 ? motionPositions(frame, next, remaining / frame.duration).map(position => ({ ...position, rotation: frame.positions.find(p => p.id === position.id)?.rotation || 0 })) : frame.positions;
+    const positions = next && remaining > 0 ? motionPositions(frame, next, remaining / frame.duration) : frame.positions;
     return { image: previewFrame({ ...frame, positions }, content.items, content.pitch, true), index, total };
   }
   function previewFrame(frame, items = record.content.items, view = record.content.pitch, labelled = false) {
     const thumbnail = svg('svg', { viewBox: '0 0 1000 650', 'aria-hidden': 'true' });
     thumbnail.append(fieldArtwork(view));
-    for (const item of [...items].sort((a, b) => (b.kind === 'zone') - (a.kind === 'zone'))) { const p = positionIn(frame, item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1)', 'data-preview-piece': item.id }); const graphic = pieceArtwork(item.kind, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (frame.positions.find(v => v.id === item.id).rotation || 0) + ')'); symbol.append(graphic); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: playerInk(item) }, item.label)); thumbnail.append(symbol); } }
+    for (const item of items) { const shadow = shadowArtwork(item, frame, items); if (shadow) thumbnail.append(shadow); }
+    for (const item of [...items].sort((a, b) => (b.kind === 'zone') - (a.kind === 'zone'))) { const p = positionIn(frame, item.id), settings = frame.positions.find(v => v.id === item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1)', 'data-preview-piece': item.id }); const graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ')'); symbol.append(graphic); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: playerInk(item) }, item.label)); thumbnail.append(symbol); } }
     for (const arrow of frame.arrows || []) thumbnail.append(arrowArtwork(arrow));
     return thumbnail;
   }
@@ -412,7 +458,7 @@
     const copy = board.cloneNode(true); copy.setAttribute('xmlns', ns); copy.setAttribute('width', '1600'); copy.setAttribute('height', '1040');
     copy.removeAttribute('id'); copy.removeAttribute('tabindex'); copy.removeAttribute('style');
     copy.setAttribute('viewBox', '-60 -60 1120 770');
-    for (const n of copy.querySelectorAll('.tactics-hit,[data-route-handle]')) n.remove();
+    for (const n of copy.querySelectorAll('.tactics-hit,[data-route-handle],[data-facing-control]')) n.remove();
     copy.prepend(svg('desc', {}, currentFrame().title + (currentFrame().notes ? '\n' + currentFrame().notes : ''))); return copy;
   }
   function exportImage() {
@@ -473,7 +519,7 @@
   function render() {
     if (!context?.profile) { mount.replaceChildren(); return; }
     if (!mount.childElementCount) mount.append(workbar, editor, library, reuse);
-    title.value = record.title; pitch.value = record.content.pitch;
+    title.value = record.title; pitch.value = record.content.pitch; purpose.value = record.content.purpose || 'drill';
     workbar.firstElementChild.hidden = !!libraryBinding;
     library.hidden = reuse.hidden = recoveryActions.hidden = !!libraryBinding;
     $('tactics-archive').hidden = $('tactics-save-copy').hidden = !!libraryBinding;
@@ -496,6 +542,11 @@
     const selectedKind = record.content.items.find(i => i.id === selectedItem)?.kind;
     pieceLabel.firstChild.textContent = ['home', 'away'].includes(selectedKind) ? 'Shirt label' : 'Piece label';
     rotationField.hidden = selectedKind !== 'goal'; rotation.value = String(position?.rotation || 0);
+    bodyTools.hidden = !['home', 'away'].includes(selectedKind);
+    bodyEnabled.checked = Number.isFinite(position?.facing); facing.value = String(position?.facing || 0); facingValue.textContent = Math.round(Number(facing.value)) + '° · 0° up, 90° right';
+    facingField.hidden = compass.hidden = !bodyEnabled.checked;
+    shadowEnabled.checked = !!position?.shadow; shadowSize.hidden = !position?.shadow;
+    shadowLength.value = String(position?.shadow?.length || 25); shadowWidth.value = String(position?.shadow?.width || 20);
     carrier.replaceChildren(); const free = el('option', 'Free ball'); free.value = ''; carrier.append(free);
     for (const player of record.content.items.filter(i => ['home', 'away'].includes(i.kind))) { const option = el('option', pieceName(player) + ' ' + player.label); option.value = player.id; carrier.append(option); }
     carrier.value = position?.attachedTo || ''; carrierField.hidden = selectedKind !== 'ball'; detach.hidden = !position?.attachedTo;
@@ -526,6 +577,7 @@
     labelInput.disabled = disabled || !selectedItem;
     for (const control of side.querySelectorAll('button')) control.disabled = disabled || !selectedItem;
     removeArrow.disabled = disabled || !selectedArrow;
+    faceBall.disabled = disabled || bodyTools.hidden || !nearestBall(position, currentFrame(), record.content.items);
     $('tactics-duplicate-item').disabled = disabled || !selectedItem || record.content.items.length + selection().length > 40;
     $('tactics-duplicate-item').textContent = selection().length > 1 ? 'Duplicate selection' : 'Duplicate piece';
     $('tactics-step-earlier').disabled = disabled || frameIndex === 0;
@@ -568,6 +620,8 @@
     board.replaceChildren();
     board.append(fieldArtwork(record.content.pitch));
     for (const item of record.content.items.filter(i => i.kind === 'zone')) { const p = renderedPositions?.find(p => p.id === item.id) || positionIn(currentFrame(), item.id); board.append(zoneArtwork(item, p)); }
+    const visibleFrame = renderedPositions ? { ...currentFrame(), positions: renderedPositions } : currentFrame();
+    for (const item of record.content.items) { const shadow = shadowArtwork(item, visibleFrame, record.content.items); if (shadow) board.append(shadow); }
     const defs = svg('defs');
     for (const [kind, color] of [...Object.entries(playerColors), ['ball', '#303b42']]) { const marker = svg('marker', { id: 'tactics-arrow-' + kind, viewBox: '0 0 10 10', refX: 24, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto' }); marker.append(svg('path', { d: 'M0 0 L10 5 L0 10z', fill: kind === 'white' ? '#68747b' : color })); defs.append(marker); }
     board.append(defs);
@@ -594,7 +648,7 @@
       const hitRadius = Math.max(26, 22 / screenScale / artScale);
       piece.append(art); art.append(svg('circle', { r: hitRadius, fill: 'transparent', class: 'tactics-hit' }));
       if (selection().includes(item.id)) art.append(svg('circle', { r: 28, fill: 'none', stroke: '#152d42', 'stroke-width': 3, 'stroke-dasharray': '4 3', 'pointer-events': 'none' }));
-      const graphic = pieceArtwork(item.kind, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (currentFrame().positions.find(v => v.id === item.id).rotation || 0) + ')'); art.append(graphic);
+      const settings = visibleFrame.positions.find(v => v.id === item.id), graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ')'); art.append(graphic);
       if (['home', 'away'].includes(item.kind) && currentFrame().positions.some(v => v.attachedTo === item.id)) art.append(svg('circle', { cx: 22, cy: -23, r: 7, fill: '#fffdf7', stroke: '#203742', 'stroke-width': 2, 'data-possession': item.id }));
       if (item.label) {
         const inside = ['home', 'away'].includes(item.kind) && item.label.length <= 3, width = Math.max(34, item.label.length * 8 + 12);
@@ -606,10 +660,16 @@
       board.append(piece);
     }
     for (const arrow of currentFrame().arrows || []) board.append(arrowArtwork(arrow, true));
+    const facingPosition = visibleFrame.positions.find(p => p.id === selectedItem);
+    if (editable() && !renderedPositions && selection().length === 1 && Number.isFinite(facingPosition?.facing)) {
+      const at = positionIn(visibleFrame, selectedItem), angle = facingPosition.facing * Math.PI / 180, scale = Math.max(.01, board.getScreenCTM()?.a || 1), radius = 48 / scale;
+      const x = Math.max(-40, Math.min(1040, at.x * 10 + Math.sin(angle) * radius)), y = Math.max(-40, Math.min(690, at.y * 6.5 - Math.cos(angle) * radius));
+      const turn = svg('g', { 'data-facing-control': selectedItem }); turn.append(svg('line', { x1: at.x * 10 + Math.sin(angle) * 30 / scale, y1: at.y * 6.5 - Math.cos(angle) * 30 / scale, x2: x, y2: y, stroke: '#253b46', 'stroke-width': 1.5 / scale, 'pointer-events': 'none' }), svg('circle', { cx: x, cy: y, r: 22 / scale, fill: 'transparent', 'data-facing-handle': selectedItem }), svg('circle', { cx: x, cy: y, r: 8 / scale, fill: '#fffdf7', stroke: '#253b46', 'stroke-width': 2 / scale, 'data-facing-handle': selectedItem, role: 'slider', tabindex: 0, 'aria-label': 'Body direction. Drag to turn; arrow keys turn 15 degrees.', 'aria-valuemin': 0, 'aria-valuemax': 359, 'aria-valuenow': Math.round(facingPosition.facing) })); board.append(turn);
+    }
   }
   const clamp = v => Math.max(4, Math.min(96, Math.round(v * 10) / 10));
   function moveSelected(dx, dy) { mutate(() => { const ids = selection(), before = capture(); if (editMode === 'place') shiftLayout(ids, dx, dy, before); else for (const id of ids) { const p = positionIn(currentFrame(), id); if (currentFrame().positions.find(p => p.id === id).attachedTo && ids.includes(currentFrame().positions.find(p => p.id === id).attachedTo)) continue; placePiece(currentFrame(), id, { x: clamp(p.x + dx), y: clamp(p.y + dy) }); } }); }
-  function point(event) { const p = board.createSVGPoint(); p.x = event.clientX; p.y = event.clientY; const matrix = board.getScreenCTM(); if (!matrix) return null; const next = p.matrixTransform(matrix.inverse()); return { x: clamp(next.x / 10), y: clamp(next.y / 6.5) }; }
+  function point(event, bounded = true) { const p = board.createSVGPoint(); p.x = event.clientX; p.y = event.clientY; const matrix = board.getScreenCTM(); if (!matrix) return null; const next = p.matrixTransform(matrix.inverse()); return { x: bounded ? clamp(next.x / 10) : next.x / 10, y: bounded ? clamp(next.y / 6.5) : next.y / 6.5 }; }
   board.addEventListener('dragover', event => { if (editable() && event.dataTransfer.types.includes('application/x-coach-piece')) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } });
   board.addEventListener('drop', event => { if (!editable()) return; const kind = event.dataTransfer.getData('application/x-coach-piece'), destination = point(event); if ((!kinds[kind] && kind !== 'player') || !destination) return; event.preventDefault(); if (kind === 'player') addPlayer(destination); else addPiece(kind, destination); });
   function routeHandles(transition) {
@@ -645,6 +705,8 @@
   }
   board.addEventListener('pointerdown', event => {
     if (!editable() || event.button !== 0) return;
+    const facingHandle = event.target.closest('[data-facing-handle]');
+    if (facingHandle) { pointer = { id: event.pointerId, before: capture(), moved: false, facing: facingHandle.dataset.facingHandle, start: point(event, false) }; board.setPointerCapture(event.pointerId); event.preventDefault(); return; }
     const arrowTarget = event.target.closest('[data-tactics-arrow]'), arrowEnd = event.target.closest('[data-arrow-end]');
     if (arrowTarget) {
       const start = point(event); if (!start) return; selectPiece(''); selectedArrow = arrowTarget.dataset.tacticsArrow;
@@ -675,9 +737,10 @@
   });
   function dragPointer(event) {
     if (!pointer || pointer.id !== event.pointerId || !editable()) return;
-    const destination = point(event); if (!destination) return;
+    const destination = point(event, !pointer.facing); if (!destination) return;
     if (pointer.handle === undefined && routeDistance(pointer.start, destination) < .2 && !pointer.moved) return;
     if (!pointer.moved) { undo.push(pointer.before); if (undo.length > 30) undo.shift(); redo = []; pointer.moved = true; }
+    if (pointer.facing) { const p = currentFrame().positions.find(p => p.id === pointer.facing); p.facing = Math.round(directionTo(p, destination)) % 360; draw(); renderStatus(); notifyDraft(); return; }
     if (pointer.arrowId) {
       const arrow = currentFrame().arrows.find(item=>item.id===pointer.arrowId); if (!arrow) return;
       if (pointer.arrowHandle) { const end=pointer.arrowHandle==='start'?'1':'2'; arrow['x'+end]=destination.x; arrow['y'+end]=destination.y; }
@@ -710,7 +773,7 @@
     }
     if (pointer.moved && event.type === 'pointerup') {
       dragPointer(event);
-      if (pointer.handle === undefined && pointer.ids.length === 1 && record.content.items.find(i => i.id === selectedItem)?.kind === 'ball') {
+      if (!pointer.facing && pointer.handle === undefined && pointer.ids.length === 1 && record.content.items.find(i => i.id === selectedItem)?.kind === 'ball') {
         const p = currentFrame().positions.find(p => p.id === selectedItem);
         const target = record.content.items.filter(i => ['home', 'away'].includes(i.kind)).map(i => ({ id: i.id, distance: routeDistance(p, positionIn(currentFrame(), i.id)) })).filter(i => i.distance <= 7).sort((a, b) => a.distance - b.distance)[0];
         if (target) { p.attachedTo = target.id; Object.assign(p, positionIn(currentFrame(), p.id)); tell('Ball attached to the player. Drag the ball away to release it.'); } else tell('Ball released. Its recorded route is kept.');
@@ -721,6 +784,8 @@
   board.addEventListener('pointerup', endPointer); board.addEventListener('pointercancel', endPointer); board.addEventListener('lostpointercapture', endPointer);
   board.addEventListener('keydown', event => {
     if (!editable()) return;
+    const facingHandle = event.target.closest('[data-facing-handle]');
+    if (facingHandle && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); setFacing((playerPosition()?.facing || 0) + (['ArrowLeft', 'ArrowDown'].includes(event.key) ? -15 : 15)); board.querySelector('[data-facing-handle][role="slider"]')?.focus(); return; }
     const arrowTarget=event.target.closest('[data-tactics-arrow]'), arrowEnd=event.target.closest('[data-arrow-end]');
     if (arrowTarget && ['Enter',' '].includes(event.key)) { event.preventDefault(); selectPiece('');selectedArrow=arrowTarget.dataset.tacticsArrow;render();board.focus();return; }
     const arrowDirections={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
@@ -801,8 +866,8 @@
       if (!Array.isArray(result.diagrams) || result.diagrams.some(d => d.session_id !== sessionId)) throw Error('The saved setups could not be verified for this session.');
       diagrams = result.diagrams; loaded = true;
       if (recoveryNeeded && lastAttempt) {
-        const matches = diagrams.filter(d => (!lastAttempt.id || d.id === lastAttempt.id) && d.version === lastAttempt.expectedVersion + 1 && d.title === lastAttempt.title && JSON.stringify(d.content) === JSON.stringify(lastAttempt.content));
-        if (matches.length === 1) { const draftMatches = record.title.trim() === lastAttempt.title && JSON.stringify(record.content) === JSON.stringify(lastAttempt.content); if (draftMatches) { clear(matches[0]); tell('Your earlier save was found and verified.'); } else { record.id = matches[0].id; record.version = matches[0].version; baseline = JSON.stringify({ title: matches[0].title, content: matches[0].content }); recoveryNeeded = false; lastAttempt = null; tell('Your earlier save was found. Your newer edits remain unsaved.'); } }
+        const matches = diagrams.filter(d => (!lastAttempt.id || d.id === lastAttempt.id) && d.version === lastAttempt.expectedVersion + 1 && d.title === lastAttempt.title && encode(d.content) === encode(lastAttempt.content));
+        if (matches.length === 1) { const draftMatches = record.title.trim() === lastAttempt.title && encode(record.content) === encode(lastAttempt.content); if (draftMatches) { clear(matches[0]); tell('Your earlier save was found and verified.'); } else { record.id = matches[0].id; record.version = matches[0].version; baseline = encode({ title: matches[0].title, content: matches[0].content }); recoveryNeeded = false; lastAttempt = null; tell('Your earlier save was found. Your newer edits remain unsaved.'); } }
         else if (matches.length > 1) { tell('More than one matching setup exists. Open the saved setup you want before making further changes.', true); }
         else { recoveryNeeded = false; lastAttempt = null; tell('Saved setups refreshed. Review the list before saving your retained draft.'); }
       } else tell(diagrams.length ? 'Saved setups refreshed. Open the latest saved version to replace your draft.' : 'No saved setups yet. Add pieces or try the passing triangle.');
@@ -815,7 +880,7 @@
     if (!editable() || recoveryNeeded || !record.title.trim()) return;
     stopPlayback(); const ticket = requestEpoch, startedIdentity = identity, payload = { id: record.id, sessionId: context.session.id, title: record.title.trim(), content: clone(record.content), expectedVersion: record.version };
     pending = true; lastAttempt = clone(payload); tell('Saving setup…'); render();
-    try { const result = await request('save', payload); if (ticket !== requestEpoch || identity !== startedIdentity) return; const saved = result.diagram; if (!saved?.id || !saved.content || saved.session_id !== payload.sessionId || saved.version !== payload.expectedVersion + 1 || payload.id && payload.id !== saved.id || saved.title !== payload.title || JSON.stringify(saved.content) !== JSON.stringify(payload.content)) throw Error('The save could not be verified. Your changes are still here.'); diagrams = [saved, ...diagrams.filter(d => d.id !== saved.id)]; record = clone(saved); baseline = snapshot(); undo = []; redo = []; lastAttempt = null; recoveryNeeded = false; tell('Setup saved to this session.'); notifyDraft(); }
+    try { const result = await request('save', payload); if (ticket !== requestEpoch || identity !== startedIdentity) return; const saved = result.diagram; if (!saved?.id || !saved.content || saved.session_id !== payload.sessionId || saved.version !== payload.expectedVersion + 1 || payload.id && payload.id !== saved.id || saved.title !== payload.title || encode(saved.content) !== encode(payload.content)) throw Error('The save could not be verified. Your changes are still here.'); diagrams = [saved, ...diagrams.filter(d => d.id !== saved.id)]; record = clone(saved); baseline = snapshot(); undo = []; redo = []; lastAttempt = null; recoveryNeeded = false; tell('Setup saved to this session.'); notifyDraft(); }
     catch (error) { if (ticket === requestEpoch && identity === startedIdentity) { const conflict = error.code === 'DIAGRAM_CHANGED' || error.code === 'TACTICS_CHANGED'; recoveryNeeded = !error.code; tell(conflict ? 'Another coach changed this setup. Your edits are still here. Refresh saved setups, then open the latest saved version.' : error.code ? error.message : 'We could not verify the save. Your draft is still here. Refresh saved setups before retrying.', true); } }
     finally { if (ticket === requestEpoch && identity === startedIdentity) { pending = false; render(); } }
   }

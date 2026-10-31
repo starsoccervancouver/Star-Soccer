@@ -12,6 +12,7 @@ assets['/workspace/assets/passkeys.js']={body:fs.readFileSync('node_modules/@sim
 require('./coach-fixture-fonts.cjs')(assets);
 
 (async()=>{
+ const {validateDiagram}=await import('../private-attendance/tactics-validation.mjs');
  const browser=await chromium.launch();let checks=0;
  try{
   async function fixture(){
@@ -36,7 +37,7 @@ require('./coach-fixture-fonts.cjs')(assets);
      let mode=state.saveMode;if(mode==='delay')mode=await new Promise(resolve=>pending.push({path,payload,resolve}));
      if(mode==='fail'){status=503;value={error:'FICTIONAL_UNAVAILABLE',message:'Fictional save is unavailable. Your draft is retained.'};}
      else if(mode==='unauthorized'){status=401;value={error:'SIGN_IN_REQUIRED',message:'Sign in again.'};}
-     else{const diagram={...saved(payload.sessionId),id:payload.id||'diagram_'+'b'.repeat(27),title:payload.title,content:payload.content,version:payload.expectedVersion+1};state.diagrams=[diagram,...state.diagrams.filter(d=>d.id!==diagram.id)];value={diagram};}
+     else{const diagram={...saved(payload.sessionId),id:payload.id||'diagram_'+'b'.repeat(27),title:payload.title,content:validateDiagram(payload.content),version:payload.expectedVersion+1};state.diagrams=[diagram,...state.diagrams.filter(d=>d.id!==diagram.id)];value={diagram};}
     }else if(path.endsWith('/diagrams/archive')){state.diagrams=state.diagrams.filter(d=>d.id!==payload.id);value={saved:true};}
     else{errors.push('Unexpected fixture action '+request.method()+' '+path);status=500;value={error:'UNEXPECTED_FIXTURE'};}
     return route.fulfill({status,contentType:'application/json',body:JSON.stringify(value)});
@@ -68,6 +69,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   await f.page.setViewportSize({width:1440,height:1000});
   await f.page.locator('#tactics-add-frame').click();
   await f.page.locator('#tactics-item').selectOption('home_1');
+  await reveal(f,'#tactics-body-direction');await f.page.locator('#tactics-body-direction').check();await f.page.locator('#tactics-cover-shadow').check();
   await reveal(f,'#tactics-nudge-right');
   await f.page.locator('#tactics-nudge-right').click();
   await f.page.locator('#tactics-label').fill('WideName12345');
@@ -142,6 +144,8 @@ require('./coach-fixture-fonts.cjs')(assets);
   f.state.saveMode='success';await f.page.locator('#tactics-save').click();await f.page.waitForFunction(()=>!CoachTactics.isBusy()&&!CoachTactics.isDirty());
   assert.equal(count(f,'/diagrams/save'),2);assert.equal(await f.page.locator('#session').isEnabled(),true);assert.equal(await f.page.locator('#logout').isEnabled(),true);
   assert.equal(f.state.diagrams[0].title,'Unsaved fictional tactics');assert.equal(f.state.diagrams[0].version,2);
+  const submitted=f.requests.filter(r=>r.path.endsWith('/diagrams/save')).at(-1).payload.content;
+  assert.deepEqual(f.state.diagrams[0].content,submitted);assert.notEqual(JSON.stringify(f.state.diagrams[0].content),JSON.stringify(submitted),'Successful session save accepts server-normalized optional property order');
   assert.deepEqual(f.errors,[]);checks++;
   await f.context.close();
 

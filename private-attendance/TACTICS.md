@@ -1,14 +1,18 @@
 # Tactics board and animated drills
 
-Open **Coach Desk → Session planner → Tactics board & animated drills** after choosing a dated session.
+Open **Coach resources → Drills** to create a reusable activity, or open the builder from a dated session.
 
-1. Start a new board or use the passing-triangle starter.
+1. Choose **Drill** for a practice activity or **Team pattern** for positioning, team movements and decisions. Start a new board or use the passing-triangle starter.
 2. Add team markers, cones, balls and goals. Drag a piece, or select it and tap a destination. Arrow keys offer precise positioning.
 3. Add a phase, then move the pieces to their next positions. Repeat for the drill's progression.
 4. Play the sequence to rehearse the movement. Pause, return to a phase or reset to the beginning to explain it.
 5. Save the diagram to the session. The text plan saves separately.
 
-The board supports full-pitch, half-pitch and blank setups, labels, adjustable phase timing and undo/redo. Markers are generic; roster names are never inserted automatically. It animates straight movement between phases, not freehand curved paths, video analysis or an exported movie.
+The board supports full-field, half-field, facing-goal, away-from-goal and blank setups, labels, zones, adjustable phase timing and undo/redo. Dragged routes preserve curves for players and balls. Markers are generic; roster names are never inserted automatically.
+
+Select a player and open **Body shape & cover shadow** to set their facing direction for that phase. Use the compass, angle slider, **Face the ball**, or the round field handle; arrow keys turn the handle by 15 degrees. Body direction animates through the shortest turn without changing movement routes. Cover shadows extend away from the nearest ball, or behind the body direction when there is no ball. Their length and width can be adjusted per phase. Direction and shadows appear in previews, playback and exported diagrams.
+
+Existing diagrams remain compatible. Optional `purpose` is `drill` or `team-pattern`; absent means Drill. Player positions may include `facing` (0–359 degrees) and `shadow: {length, width}` (each 5–60). These values save with the existing diagram JSON; no database migration is required.
 
 ## Sharing and storage
 
@@ -22,4 +26,4 @@ The interaction follows common coaching patterns demonstrated by [TacticalPad's 
 
 ## Verification
 
-`node --test tests/coach-tactics.test.cjs` checks data bounds, permissions, version conflicts, archives, session limits and database persistence. The fictional browser suites `tests/coach-tactics-ui.cjs` and `tests/coach-tactics-integration.cjs` exercise the editor, animation, mobile layout, request bridge and draft protection. All browser test traffic is intercepted; tests never use live attendance or parent accounts.
+`node --test tests/coach-tactics.test.cjs tests/tactics-player-tools.test.cjs` checks data bounds, permissions, version conflicts, archives, session limits and database persistence. The fictional browser suites `tests/coach-tactics-ui.cjs`, `tests/coach-tactics-integration.cjs` and `tests/coach-builder-editing-ui.cjs` exercise the editor, player tools, animation, mobile layout, request bridge and draft protection. All browser test traffic is intercepted; tests never use live attendance or parent accounts.

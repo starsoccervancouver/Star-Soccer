@@ -56,6 +56,28 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
     assert(annotations.rendered.every(Boolean), 'Fallback preview renders each player and arrow colour');
     assert(annotations.invalid.every(value => value === false), 'Invalid annotations fail preflight and preview');
     assert.equal(annotations.unchanged, true); assert.equal(annotations.fallbackOnly, true); assert.equal(annotations.charcoal, '#38434a'); assert.deepEqual(annotations.endpoints, ['50', '65', '130', '65']);
+    const patternInsertion = await page.evaluate(() => {
+      const diagram = structuredClone(diagramFixture); diagram.purpose = 'team-pattern';
+      Object.assign(diagram.frames[0].positions[0], { facing: 270, shadow: { length: 40, width: 20 } });
+      const activity = value => ({ target: 'game', title: 'Fictional cover pattern', text: 'Face the ball and cover the passing lane.', minutes: 10, diagram: value });
+      const accepted = CoachPlanBlocks.addDrill(activity(diagram)), retained = CoachPlanBlocks.content()?.[0]?.diagram;
+      CoachPlanBlocks.discard(); publish();
+      const rejected = [], unchanged = [], check = mutate => {
+        const invalid = structuredClone(diagram); mutate(invalid);
+        rejected.push(CoachPlanBlocks.addDrill(activity(invalid)));
+        unchanged.push(CoachPlanBlocks.content() === undefined);
+        CoachPlanBlocks.discard(); publish();
+      };
+      for (const purpose of ['tactic', '', null, 1]) check(value => { value.purpose = purpose; });
+      check(value => { value.frames[0].positions[1].facing = 90; });
+      check(value => { value.frames[0].positions[1].shadow = { length: 20, width: 20 }; });
+      for (const dimension of ['length', 'width']) for (const invalid of [4, 61, '20', null]) check(value => { value.frames[0].positions[0].shadow[dimension] = invalid; });
+      return { accepted, diagram, retained, rejected, unchanged };
+    });
+    assert.equal(patternInsertion.accepted, true, 'A team pattern with player facing and cover shadow can be added to a plan');
+    assert.deepEqual(patternInsertion.retained, patternInsertion.diagram, 'Plan insertion retains purpose, facing, shadow, colours and arrows');
+    assert(patternInsertion.rejected.every(value => value === false), 'Invalid purpose, non-player facing/shadow and invalid shadow dimensions are rejected');
+    assert(patternInsertion.unchanged.every(Boolean), 'Rejected pattern insertions leave the legacy plan unchanged');
     const insertion = await page.evaluate(() => {
       const drill = { target: 'technical', title: 'Receive safely', text: '  Keep exact instructions\nwith a second line.  ', minutes: 12, diagram: structuredClone(diagramFixture) };
       const canAdd = CoachPlanBlocks.canAddDrill(drill), unchangedBeforeAdd = CoachPlanBlocks.content() === undefined;

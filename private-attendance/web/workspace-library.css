@@ -16,6 +16,9 @@
 .library-filters label,.library-advanced-grid label{gap:.3rem;font-size:.76rem}
 .library-filters input,.library-filters select,.library-advanced-grid select{min-height:44px;padding:.65rem .7rem;font-size:.82rem}
 .library-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:.5rem;align-items:start}
+.library-card-badges{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;min-width:0}
+.library-type-tag{font-size:.72rem;font-weight:750;line-height:1.4;border:1px solid var(--desk-line,#b6afa2);border-radius:999px;padding:.3rem .65rem;background:var(--desk-field,#e3ddd3);color:var(--desk-ink,#292d33);overflow-wrap:anywhere}
+.library-toolbar #library-new{max-width:100%;overflow-wrap:anywhere}
 .library-toolbar>*{min-width:0}
 .library-toolbar button{font-size:.76rem;padding:.55rem .75rem;min-height:44px}
 .library-advanced-filters{align-self:start}
@@ -24,7 +27,7 @@
 .library-advanced-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem;padding:.4rem 0 .6rem}
 .library-status,#library-results{font-size:.76rem;line-height:1.4}
 @media(max-width:850px){.library-filters,.library-standalone .library-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.library-filters>label:first-child{grid-column:1/-1}.library-filters>label:last-child{grid-column:1/-1}}
-@media(max-width:560px){.library-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) auto;gap:.4rem}.library-toolbar button{padding:.5rem .6rem}.library-advanced-grid{grid-template-columns:minmax(0,1fr)}.library-standalone .library-body{gap:.5rem}}
+@media(max-width:560px){.library-toolbar{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.5fr);gap:.4rem}.library-toolbar button{padding:.5rem .6rem}.library-advanced-grid{grid-template-columns:minmax(0,1fr)}.library-standalone .library-body{gap:.5rem}}
 
 .library-editor-header>.library-status{grid-column:1/-1}
 .library-session-picker{width:min(960px,calc(100vw - 2rem));max-height:calc(100dvh - 2rem);padding:1.4rem;border:1px solid var(--desk-line,#b6afa2);border-radius:24px;background:var(--desk-surface,#dbd5ca);color:var(--desk-ink,#292d33);box-shadow:0 24px 80px #0006;overflow:auto}

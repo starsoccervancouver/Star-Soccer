@@ -12,7 +12,8 @@ const curve=value=>{if(typeof value!=='number'||!Number.isFinite(value)||value< 
 const playerColors=['blue','gold','red','green','purple','white'];
 
 export function validateDiagram(content){
- object(content,['schemaVersion','pitch','items','frames']);
+ object(content,['schemaVersion','pitch','items','frames'],['purpose']);
+ if(Object.hasOwn(content,'purpose')&&!['drill','team-pattern'].includes(content.purpose))invalid();
  if(content.schemaVersion!==1||!['full','half','blank','facing-goal','away-from-goal'].includes(content.pitch)||!Array.isArray(content.items)||content.items.length>40||!Array.isArray(content.frames)||!content.frames.length||content.frames.length>12)invalid();
  const itemIds=new Set(),frameIds=new Set();
  const items=content.items.map(item=>{
@@ -36,9 +37,19 @@ export function validateDiagram(content){
   if(frameIds.has(id)||typeof frame.duration!=='number'||!Number.isFinite(frame.duration)||frame.duration<0.5||frame.duration>20||!Array.isArray(frame.positions)||frame.positions.length!==items.length)invalid();
   frameIds.add(id);const seen=new Set();
   const positions=frame.positions.map(position=>{
-   object(position,['id','x','y'],['curve','attachedTo','trail','rotation']);const id=identifier(position.id);
+   object(position,['id','x','y'],['curve','attachedTo','trail','rotation','facing','shadow']);const id=identifier(position.id);
    if(!itemIds.has(id)||seen.has(id))invalid();seen.add(id);
    const result={id,x:coordinate(position.x),y:coordinate(position.y)};
+   if(Object.hasOwn(position,'shadow')){
+    if(!['home','away'].includes(itemKinds.get(id)))invalid();
+    const shadow=object(position.shadow,['length','width']);
+    for(const value of [shadow.length,shadow.width])if(typeof value!=='number'||!Number.isFinite(value)||value<5||value>60)invalid();
+    result.shadow={length:shadow.length,width:shadow.width};
+   }
+   if(Object.hasOwn(position,'facing')){
+    if(!['home','away'].includes(itemKinds.get(id))||typeof position.facing!=='number'||!Number.isFinite(position.facing)||position.facing<0||position.facing>=360)invalid();
+    result.facing=position.facing;
+   }
    if(Object.hasOwn(position,'rotation')){
     if(itemKinds.get(id)!=='goal'||typeof position.rotation!=='number'||!Number.isFinite(position.rotation)||position.rotation<0||position.rotation>=360)invalid();
     result.rotation=position.rotation;
@@ -70,6 +81,7 @@ export function validateDiagram(content){
   return result;
  });
  const result={schemaVersion:1,pitch:content.pitch,items,frames};
+ if(Object.hasOwn(content,'purpose'))result.purpose=content.purpose;
  if(new TextEncoder().encode(JSON.stringify(result)).length>56000)invalid();
  return result;
 }

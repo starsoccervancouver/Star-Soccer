@@ -71,14 +71,15 @@ require('./coach-fixture-fonts.cjs')(assets);
       return { page, context, state, requests, errors, pending, pendingLists, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
     }
     const count = (f, suffix) => f.requests.filter(r => r.path.endsWith(suffix)).length;
-    const open = async f => { await f.page.locator('#library-disclosure > summary').click(); await f.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh saved drills'); };
+    const open = async f => { await f.page.locator('#library-disclosure > summary').click(); await f.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh library'); };
     const clean = async f => { assert.deepEqual(f.errors, []); await f.context.close(); };
     const fill = async (f, title) => { await f.page.locator('#library-title').fill(title); if (!(await f.page.locator('#library-drill-details').evaluate(el => el.open))) await f.page.locator('#library-drill-details > summary').click(); await f.page.locator('#library-setup').fill('Pairs pass through wide gates.'); };
 
     const standalone = await fixture({standalone:true,noSessions:true,width:390});
-    await standalone.page.waitForFunction(()=>document.getElementById('library-reload').textContent==='Refresh saved drills');
+    await standalone.page.waitForFunction(()=>document.getElementById('library-reload').textContent==='Refresh library');
     assert.equal(await standalone.page.locator('#panel-library').isVisible(),true);
     assert.equal(await standalone.page.locator('#library-form').isVisible(),false);
+    assert.deepEqual(await standalone.page.locator('#library-list .library-type-tag').allTextContents(), Array(8).fill('Drill'), 'Legacy records without diagram purpose default to Drill');
     assert.equal(count(standalone,'/session'),0,'Standalone library needs no session');
     const unavailableAdd = standalone.page.locator('#library-list [data-use-session]').first();
     await unavailableAdd.click();
@@ -113,7 +114,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert.equal(await standalone.page.locator('#library-list').textContent(),''); await clean(standalone); checks++;
 
     const viewing = await fixture({ standalone: true, width: 390 });
-    await viewing.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh saved drills');
+    await viewing.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh library');
     const viewed = viewing.state.drills[0];
     viewed.title = 'Fictional preview drill'; viewed.coaching = 'Scan before receiving.';
     viewed.diagram = { schemaVersion: 1, pitch: 'blank', items: [{ id: 'runner', kind: 'home', label: '9' }, { id: 'ball', kind: 'ball', label: '' }, { id: 'goal', kind: 'goal', label: '' }], frames: [
@@ -163,7 +164,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     await clean(viewing); checks++;
 
     const choosing = await fixture({ standalone: true, role: 'coach', width: 390 });
-    await choosing.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh saved drills');
+    await choosing.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh library');
     choosing.state.drills[0].diagram = { schemaVersion: 1, pitch: 'half', items: [{ id: 'player_1', kind: 'home', label: '1' }], frames: [{ id: 'phase_1', title: 'Start', duration: 3, positions: [{ id: 'player_1', x: 20, y: 40 }] }] };
     await choosing.page.locator('#library-reload').click(); await choosing.page.waitForFunction(() => !document.getElementById('library-reload').disabled);
     const choosingCard = choosing.page.locator('.library-card[data-drill-id="' + choosing.state.drills[0].id + '"]');
@@ -216,10 +217,19 @@ require('./coach-fixture-fonts.cjs')(assets);
     await clean(choosing); checks++;
 
     const copies = await fixture({ standalone: true });
-    await copies.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh saved drills');
-    const original = copies.state.drills[0]; original.minutes = 25; original.setup = 'Long setup instruction. '.repeat(12); original.diagram = { schemaVersion:1,pitch:'half',items:[{id:'player_1',kind:'home',label:'1'}],frames:[{id:'phase_1',title:'Start',duration:3,positions:[{id:'player_1',x:20,y:40}]}] };
+    await copies.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh library');
+    const original = copies.state.drills[0]; original.minutes = 25; original.setup = 'Long setup instruction. '.repeat(12); original.diagram = { schemaVersion:1,purpose:'team-pattern',pitch:'half',items:[{id:'player_1',kind:'home',label:'1'}],frames:[{id:'phase_1',title:'Start',duration:3,positions:[{id:'player_1',x:20,y:40}]}] };
     await copies.page.locator('#library-reload').click(); await copies.page.waitForFunction(() => !document.getElementById('library-reload').disabled);
     await copies.page.locator('#library-advanced-filters > summary').click();
+    await copies.page.locator('#library-type-filter').selectOption('team-pattern');
+    assert.equal(await copies.page.locator('.library-card').count(), 1, 'Team pattern filter uses the saved diagram purpose');
+    assert.equal(await copies.page.locator('.library-card .library-type-tag').textContent(), 'Team pattern');
+    assert.equal(await copies.page.locator('.library-card').getAttribute('data-drill-id'), original.id);
+    await copies.page.locator('#library-type-filter').selectOption('drill');
+    assert.equal(await copies.page.locator('.library-card[data-purpose="team-pattern"]').count(), 0);
+    assert.equal(await copies.page.locator('.library-card').count(), 8, 'Drill filter keeps the paginated legacy records');
+    assert((await copies.page.locator('.library-type-tag').allTextContents()).every(value => value === 'Drill'));
+    await copies.page.locator('#library-type-filter').selectOption('');
     await copies.page.locator('#library-skill-filter').selectOption('unique finishing'); assert.equal(await copies.page.locator('.library-card').count(), 1);
     await copies.page.locator('#library-duration-filter').selectOption('long'); assert.equal(await copies.page.locator('.library-card').count(), 0);
     await copies.page.locator('#library-skill-filter').selectOption(''); assert.equal(await copies.page.locator('.library-card').count(), 1);
@@ -229,7 +239,11 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert.equal(await originalCard.getByRole('button', { name: 'Duplicate drill', exact: true }).count(), 0);
     checks++;
 
-    await originalCard.getByRole('button', { name: 'Edit drill', exact: true }).click(); await copies.page.locator('#library-title').fill('My conflict draft');
+    await originalCard.getByRole('button', { name: 'Edit team pattern', exact: true }).click();
+    assert.equal(await copies.page.locator('#library-save').textContent(), 'Save changes', 'An existing team pattern saves changes to its own record');
+    assert.equal(await copies.page.getByLabel('Team pattern name', { exact: true }).inputValue(), original.title);
+    assert.equal(await copies.page.locator('#library-drill-details > summary').textContent(), 'Team pattern details');
+    await copies.page.locator('#library-title').fill('My conflict draft');
     original.title = 'Latest shared drill'; original.version = 2; copies.state.mode = 'reject';
     await copies.page.locator('#library-save').click(); await copies.page.locator('#library-open-latest').waitFor({ state: 'visible' });
     assert.equal(await copies.page.locator('#library-title').inputValue(), 'My conflict draft'); assert.equal(await copies.page.locator('#library-save').isEnabled(), false);
@@ -241,18 +255,21 @@ require('./coach-fixture-fonts.cjs')(assets);
     copies.state.mode = 'success'; await copies.page.locator('#library-title').fill('Updated latest drill'); await copies.page.locator('#library-save').click(); await copies.page.waitForFunction(() => !CoachLibrary.isBusy());
     assert.equal(copies.requests.filter(r => r.path.endsWith('/drills/save')).at(-1).payload.expectedVersion, 2);
     await copies.page.locator('#library-cancel').click();
-    await originalCard.getByRole('button', { name: 'Edit drill', exact: true }).click(); await copies.page.locator('#library-title').fill('Keep these changes'); copies.state.mode = 'reject';
+    await originalCard.getByRole('button', { name: 'Edit team pattern', exact: true }).click(); await copies.page.locator('#library-title').fill('Keep these changes'); copies.state.mode = 'reject';
     await copies.page.locator('#library-save').click(); await copies.page.locator('#library-keep-copy').waitFor({ state: 'visible' });
     await copies.page.locator('#library-keep-copy').click(); assert.equal(await copies.page.locator('#library-title').inputValue(), 'Keep these changes (copy)');
+    assert.equal(await copies.page.locator('#library-save').textContent(), 'Save team pattern');
+    assert.equal(await copies.page.getByLabel('Team pattern name', { exact: true }).inputValue(), 'Keep these changes (copy)');
     assert.equal(await copies.page.evaluate(() => CoachLibrary.isDirty()), true); copies.state.mode = 'success';
     await copies.page.locator('#library-save').click(); await copies.page.waitForFunction(() => !CoachLibrary.isBusy());
     const kept = copies.requests.filter(r => r.path.endsWith('/drills/save')).at(-1).payload;
     assert.equal(kept.id, null); assert.equal(kept.expectedVersion, 0); assert.deepEqual(kept.diagram, original.diagram);
+    assert.equal(kept.diagram.purpose, 'team-pattern', 'Saving a new copy preserves team pattern classification');
     assert.equal(copies.state.drills.find(d => d.id === original.id).title, 'Updated latest drill'); await clean(copies); checks++;
 
     for (const role of ['coach', 'admin', 'owner']) {
       const variations = await fixture({ standalone: true, role });
-      await variations.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh saved drills');
+      await variations.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh library');
       const savedBefore = JSON.stringify(variations.state.drills);
       for (const source of role === 'coach' ? ['preset', 'starter'] : ['preset']) {
         await variations.page.locator('#library-source-filter').selectOption(source);

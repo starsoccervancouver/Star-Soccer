@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const { chromium } = require('playwright');
 
 (async () => {
+  const {validateDiagram}=await import('../private-attendance/tactics-validation.mjs');
   const origin = 'https://builder.example.test';
   const profile = { email: 'builder@example.test', name: 'Fictional Builder', role: 'owner', sessionVersion: 1 };
   const standalone = { profile, tab: 'library', session: null, selected: '', sessions: [], notes: [], busy: false, planReady: false };
@@ -16,17 +17,19 @@ const { chromium } = require('playwright');
   const browser = await chromium.launch();
   try {
     const context = await browser.newContext({ viewport: { width: 1400, height: 1100 } });
+    await context.exposeFunction('validateBuilderDiagram', diagram => diagram === null ? null : validateDiagram(diagram));
     await context.addInitScript(profile => {
       window.CoachClub = { name: 'Fictional Club', timeZone: 'America/Vancouver' };
       window.builderConfirm = true; window.builderPrompts = [];
       window.confirm = message => { builderPrompts.push(message); return builderConfirm; };
       window.builderCalls = []; window.builderRecords = []; window.builderTacticsCalls = [];
-      window.addEventListener('coach:library-request', event => {
+      window.addEventListener('coach:library-request', async event => {
         const { operation, payload, resolve, reject } = event.detail;
         builderCalls.push({ operation, payload: structuredClone(payload) });
         if (operation === 'list') return resolve({ drills: structuredClone(builderRecords) });
         if (operation !== 'save') return reject(new Error('Unexpected fictional operation: ' + operation));
         const drill = { ...structuredClone(payload), id: payload.id || 'fictional-drill-1', version: payload.expectedVersion + 1, request_id: payload.requestId || builderRecords[0]?.request_id, author_email: profile.email, updated_by: profile.email, created_at: '2026-10-30T18:00:00Z', updated_at: '2026-10-30T18:00:00Z' };
+        try { drill.diagram = await validateBuilderDiagram(drill.diagram); } catch (error) { reject(error); return; }
         builderRecords = [drill, ...builderRecords.filter(row => row.id !== drill.id)]; resolve({ drill: structuredClone(drill) });
       });
       window.addEventListener('coach:tactics-request', event => {
@@ -200,9 +203,59 @@ const { chromium } = require('playwright');
     await page.locator('#tactics-zoom-fit').click(); assert.deepEqual(await view(), { x:-60,y:-60,width:1120,height:770 });
     assert(await page.locator('#tactics-zoom-out').isDisabled()); assert.equal(await page.locator('.tactics-pan-controls').isVisible(), false);
     assert.deepEqual(await draft(), diagramBeforeView, 'View controls never edit a drill or its recorded movement');
-    await save();
-    for (const selector of ['#library-drill-details', '.tactics-advanced', '#tactics-phase-options', '#tactics-playback-options']) { const details = page.locator(selector); if (await details.evaluate(n => n.open)) await details.locator(':scope > summary').click(); }
+    // Body shape and cover shadows remain independent of recorded movement.
+    await page.locator('#tactics-purpose').selectOption('team-pattern');
+    await page.locator('#tactics-item').selectOption(home);
+    const movementOnly = content => content.frames.map(frame => frame.positions.map(({ facing, shadow, ...position }) => position));
+    const movementBeforeTurning = movementOnly(await draft());
+    await reveal('#tactics-body-direction'); await page.locator('#tactics-body-direction').check();
+    await reveal('#tactics-player-color'); await page.locator('#tactics-player-color').selectOption('red');
+    assert.deepEqual(await page.evaluate(home => { const content=CoachTactics.libraryDiagram(),preview=CoachTactics.previewAt(content,content.frames[0].duration).image; return [document.querySelector('[data-tactics-item="'+home+'"] [data-facing] ellipse').getAttribute('fill'),preview.querySelector('[data-preview-piece="'+home+'"] [data-facing] ellipse').getAttribute('fill')]; },home),['#b64d49','#b64d49'],'Body direction preserves explicit red player colour on the field and in previews');
+    for (const angle of [0,90,180,270]) { await page.locator('#tactics-face-' + angle).click(); assert.equal((await at(home)).facing, angle); }
+    await page.locator('#tactics-face-ball').click();
+    const facingBall = await at(home), ballPosition = await at(ball);
+    const expectedFacing = (Math.atan2((ballPosition.x-facingBall.x)*10,-(ballPosition.y-facingBall.y)*6.5)*180/Math.PI+360)%360;
+    assert(Math.abs(facingBall.facing-expectedFacing)<.001, 'Face ball uses the displayed field proportions');
+    const beforeTurn = await draft();
+    await page.locator('#tactics-face-90').click();
+    await page.locator('#tactics-undo').click(); assert.deepEqual(await draft(), beforeTurn, 'Turning is one undo action');
+    await page.locator('#tactics-redo').click(); assert.equal((await at(home)).facing,90);
+    const turnHandle = page.locator('[data-facing-handle][role="slider"]');
+    await turnHandle.focus(); await page.keyboard.press('ArrowRight'); assert.equal((await at(home)).facing,105,'On-field keyboard turns the player');
+    await page.locator('#tactics-pitch-board').scrollIntoViewIfNeeded();
+    const turnBox = await turnHandle.boundingBox(), turnCenter = await screen(await at(home));
+    await page.mouse.move(turnBox.x+turnBox.width/2,turnBox.y+turnBox.height/2);await page.mouse.down();
+    await page.mouse.move(turnCenter.x,turnCenter.y-65,{steps:6});await page.mouse.up();
+    assert.equal((await at(home)).facing,0,'Dragging the body handle upward turns toward the top');
+    await fill('#tactics-facing','10');
+    await page.locator('#tactics-cover-shadow').check();
+    await fill('#tactics-shadow-length','35');await fill('#tactics-shadow-width','20');
+    assert.deepEqual((await at(home)).shadow,{length:35,width:20});
+    assert.equal(await page.locator('#tactics-pitch-board [data-cover-shadow="'+home+'"]').count(),1);
+    await page.locator('#tactics-frame-0').click();
+    assert.equal((await at(home,0)).facing,undefined,'Later phase body settings do not change the starting phase');
+    await page.locator('#tactics-body-direction').check();await fill('#tactics-facing','350');
+    await page.locator('#tactics-cover-shadow').check();await fill('#tactics-shadow-length','35');await fill('#tactics-shadow-width','20');
+    assert.equal((await at(home)).facing,10);
+    await page.locator('#tactics-frame-1').click();
+    assert.deepEqual(movementOnly(await draft()),movementBeforeTurning,'Turning and shadow controls preserve every coordinate and recorded trail');
+    const previewBefore = await draft();
+    const midpoint = await page.evaluate(home => {
+      const content=CoachTactics.libraryDiagram(),result=CoachTactics.previewAt(content,content.frames[0].duration/2),image=result.image;
+      return {facing:Number(image.querySelector('[data-preview-piece="'+home+'"] [data-facing]').getAttribute('data-facing')),shadows:image.querySelectorAll('[data-cover-shadow="'+home+'"]').length};
+    },home);
+    assert(Math.min(midpoint.facing,360-midpoint.facing)<.001,'350 to 10 degrees follows the shortest turn through zero');
+    assert.equal(midpoint.shadows,1,'Playback previews include cover shadows');assert.deepEqual(await draft(),previewBefore,'Preview leaves editor data unchanged');
+    const bodySaved=await save();
+    assert.equal(bodySaved.diagram.purpose,'team-pattern');assert.deepEqual(validateDiagram(bodySaved.diagram),bodySaved.diagram);
+    assert.notEqual(JSON.stringify(bodySaved.diagram),JSON.stringify(await page.evaluate(()=>builderRecords[0].diagram)),'Fixture verifies a real server-normalized property order');
+    for (const selector of ['#library-drill-details', '.tactics-advanced', '#tactics-phase-options', '#tactics-playback-options','#tactics-player-tools']) { const details = page.locator(selector); if (await details.evaluate(n => n.open)) await details.locator(':scope > summary').click(); }
     fs.mkdirSync('outputs', { recursive: true });
+    await page.locator('#tactics-player-tools > summary').click();
+    await page.evaluate(() => { window.scrollTo(0,0); document.getElementById('library-form').scrollTop=0; });
+    await page.screenshot({ path: 'outputs/coach-player-tools-desktop.png', fullPage: true });
+    await page.locator('#tactics-player-tools > summary').click();
+    await page.evaluate(() => window.scrollTo(0,0));
     await page.locator('#library-form').screenshot({ path: 'outputs/coach-builder-simplified-desktop.png' });
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
@@ -218,12 +271,14 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#library-diagram-editor #tactics-pitch-board').count(), 0, 'Leaving library releases its editor');
     assert.equal(await page.locator('#tactics-disclosure #tactics-pitch-board').count(), 1, 'Session editor returns to its own mount');
     await publish(standalone);
-    await page.locator('#library-list').getByRole('button', { name: 'Edit drill', exact: true }).click();
+    await page.locator('#library-list').getByRole('button', { name: 'Edit team pattern', exact: true }).click();
     await page.locator('#tactics-frame-1').click();
     assert.equal(await page.locator('#tactics-phase-notes').inputValue(), second.diagram.frames[1].notes);
     assert.deepEqual(await page.evaluate(() => CoachTactics.libraryDiagram()), await page.evaluate(() => builderRecords[0].diagram));
     assert.equal(await page.evaluate(() => CoachLibrary.isDirty()), false);
     assert.equal(await page.locator('#tactics-pitch').inputValue(), 'facing-goal', 'Reopened drill restores the field orientation');
+    assert.equal(await page.locator('#tactics-purpose').inputValue(),'team-pattern','Reopening preserves the activity purpose');
+    assert.deepEqual(await draft(),bodySaved.diagram,'Body direction and cover shadows survive saving and reopening');
     // Choosing a saved drill must wait for the selected session and never write a session automatically.
     await publish({ ...standalone, sessions: [session, { ...session, id: 'cancelled-session', status: 'Cancelled' }] });
     await page.evaluate(({ profile, session }) => {

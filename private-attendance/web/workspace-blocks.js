@@ -17,7 +17,7 @@
     const id = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(value);
     const text = (value, max, multiline = false) => typeof value === 'string' && value.length <= max && !(multiline ? /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/ : /[\x00-\x1f\x7f]/).test(value);
     const number = (value, min, max) => typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
-    if (!object(value, ['schemaVersion', 'pitch', 'items', 'frames']) || value.schemaVersion !== 1 || !['full', 'half', 'blank', 'facing-goal', 'away-from-goal'].includes(value.pitch) || !Array.isArray(value.items) || value.items.length > 40 || !Array.isArray(value.frames) || !value.frames.length || value.frames.length > 12) return null;
+    if (!object(value, ['schemaVersion', 'pitch', 'items', 'frames'], ['purpose']) || Object.hasOwn(value, 'purpose') && !['drill', 'team-pattern'].includes(value.purpose) || value.schemaVersion !== 1 || !['full', 'half', 'blank', 'facing-goal', 'away-from-goal'].includes(value.pitch) || !Array.isArray(value.items) || value.items.length > 40 || !Array.isArray(value.frames) || !value.frames.length || value.frames.length > 12) return null;
     const kinds = new Map(), frames = new Set();
     for (const item of value.items) {
       if (!object(item, ['id', 'kind', 'label'], ['zone', 'color']) || !id(item.id) || kinds.has(item.id) || !['home', 'away', 'cone', 'ball', 'goal', 'zone'].includes(item.kind) || !text(item.label, 12)) return null;
@@ -31,8 +31,10 @@
       if (!object(frame, ['id', 'title', 'duration', 'positions'], ['notes', 'arrows']) || !id(frame.id) || frames.has(frame.id) || !text(frame.title, 80) || !number(frame.duration, .5, 20) || !Array.isArray(frame.positions) || frame.positions.length !== value.items.length || Object.hasOwn(frame, 'notes') && !text(frame.notes, 1000, true)) return null;
       frames.add(frame.id); const seen = new Set();
       for (const position of frame.positions) {
-        if (!object(position, ['id', 'x', 'y'], ['curve', 'attachedTo', 'trail', 'rotation']) || !kinds.has(position.id) || seen.has(position.id) || !number(position.x, 0, 100) || !number(position.y, 0, 100) || Object.hasOwn(position, 'curve') && !number(position.curve, -50, 50)) return null;
+        if (!object(position, ['id', 'x', 'y'], ['curve', 'attachedTo', 'trail', 'rotation', 'facing', 'shadow']) || !kinds.has(position.id) || seen.has(position.id) || !number(position.x, 0, 100) || !number(position.y, 0, 100) || Object.hasOwn(position, 'curve') && !number(position.curve, -50, 50)) return null;
         seen.add(position.id);
+        if (Object.hasOwn(position, 'facing') && (!['home', 'away'].includes(kinds.get(position.id)) || !number(position.facing, 0, 360) || position.facing === 360)) return null;
+        if (Object.hasOwn(position, 'shadow') && (!['home', 'away'].includes(kinds.get(position.id)) || !object(position.shadow, ['length', 'width']) || !number(position.shadow.length, 5, 60) || !number(position.shadow.width, 5, 60))) return null;
         if (Object.hasOwn(position, 'rotation') && (kinds.get(position.id) !== 'goal' || !number(position.rotation, 0, 360) || position.rotation === 360)) return null;
         if (Object.hasOwn(position, 'attachedTo') && (kinds.get(position.id) !== 'ball' || !['home', 'away'].includes(kinds.get(position.attachedTo)))) return null;
         if (Object.hasOwn(position, 'trail') && (!['home', 'away', 'ball'].includes(kinds.get(position.id)) || !Array.isArray(position.trail) || !position.trail.length || position.trail.length > 32 || position.trail.some(point => !object(point, ['x', 'y']) || !number(point.x, 0, 100) || !number(point.y, 0, 100)))) return null;

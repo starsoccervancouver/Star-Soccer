@@ -40,6 +40,7 @@ jobs:
           node tests/coach-tactics-ui.cjs
           node tests/coach-tactics-integration.cjs
           node tests/coach-builder-editing-ui.cjs
+          node tests/coach-drill-tools-ui.cjs
       - name: Check coach settings, account views and browser preferences
         run: node tests/coach-settings-ui.cjs
       - name: Check day-first planning, private notes and tool drawers

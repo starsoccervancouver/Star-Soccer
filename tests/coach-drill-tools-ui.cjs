@@ -159,10 +159,71 @@ const { chromium } = require('playwright');
       const id = (await draft()).items.at(-1).id; await drag((await draft()).frames[0].positions.find(p => p.id === id), point);
     }
     fs.mkdirSync('outputs', { recursive: true });
-    for (const [name, viewport] of [['desktop', {width:1280,height:800}], ['mobile', {width:390,height:844}]]) {
-      await page.setViewportSize(viewport); await page.locator('#library-form').evaluate(el => el.scrollTop = 0);
-      await page.screenshot({ path: 'outputs/drill-creator-' + name + '.png' });
+    const rect = selector => page.locator(selector).evaluate(el => { const r = el.getBoundingClientRect(); return { x:r.x, y:r.y, width:r.width, height:r.height, right:r.right, bottom:r.bottom }; });
+    const inViewport = async (selector, label) => {
+      const r = await rect(selector), viewport = page.viewportSize();
+      assert(r.width > 0 && r.height > 0 && r.x >= -.5 && r.y >= -.5 && r.right <= viewport.width + .5 && r.bottom <= viewport.height + .5, label + ' stays entirely inside ' + viewport.width + '×' + viewport.height + ': ' + JSON.stringify(r));
+      return r;
+    };
+    const resetScroll = () => page.evaluate(() => { window.scrollTo(0, 0); for (const el of document.querySelectorAll('#library-form,.tactics-inspector')) el.scrollTop = 0; });
+    const layoutDraft = await draft();
+    const viewports = [{width:1280,height:800}, {width:1440,height:1000}, {width:1920,height:1080}, {width:1024,height:768}, {width:390,height:844}, {width:320,height:700}, {width:844,height:390}];
+    for (const viewport of viewports) {
+      const size = viewport.width + 'x' + viewport.height;
+      await page.setViewportSize(viewport); await resetScroll();
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'No document horizontal overflow at ' + size);
+      await inViewport('#library-cancel', 'Back'); await inViewport('#library-save', 'Save');
+      if (viewport.width >= 1000) {
+        const field = await inViewport('#tactics-pitch-board', 'The complete field');
+        assert(field.width >= 500 && field.height >= 300, 'The normal desktop field remains a useful size at ' + size + ': ' + field.width + '×' + field.height);
+        await inViewport('.tactics-phases', 'The phase controls');
+        await inViewport('#tactics-add-frame', 'Add phase');
+      }
+      for (const target of await page.locator('#library-form button:visible,#library-form summary:visible').evaluateAll(elements => elements.map(el => { const r = el.getBoundingClientRect(); return { name:el.id || el.textContent.trim(), width:r.width, height:r.height }; }))) {
+        assert(target.width >= 43.5 && target.height >= 43.5, size + ': ' + target.name + ' keeps a 44px touch target (' + target.width + '×' + target.height + ')');
+      }
+      await page.locator('#tactics-new-player').click();
+      for (const color of palette) await inViewport('[data-player-color="' + color + '"]', color + ' palette choice');
+      for (const target of await page.locator('[data-player-color]').evaluateAll(elements => elements.map(el => { const r = el.getBoundingClientRect(); return { color:el.dataset.playerColor, width:r.width, height:r.height }; }))) {
+        assert(target.width >= 43.5 && target.height >= 43.5, size + ': ' + target.color + ' swatch keeps a 44px touch target');
+      }
+      await page.locator('#tactics-new-player').click(); await resetScroll();
+      const screenshot = 'outputs/drill-creator-' + size + '.png'; await page.screenshot({ path: screenshot });
+      if (size === '1280x800') fs.copyFileSync(screenshot, 'outputs/drill-creator-desktop.png');
+      if (size === '390x844') fs.copyFileSync(screenshot, 'outputs/drill-creator-mobile.png');
+
+      if (viewport.width >= 1000) {
+        // The existing expandable controls and a resized notes field create a long inspector.
+        const openedInspectorDetails = [];
+        for (const selector of ['#tactics-phase-options', '.tactics-advanced']) {
+          if (await page.locator(selector + ' > summary').isVisible() && !await page.locator(selector).evaluate(el => el.open)) { await page.locator(selector + ' > summary').click(); openedInspectorDetails.push(selector); }
+        }
+        const oldNotesStyle = await page.locator('#tactics-phase-notes').getAttribute('style');
+        await page.locator('#tactics-phase-notes').evaluate(el => el.style.height = '700px');
+        await resetScroll();
+        const inspector = await inViewport('.tactics-inspector', 'The independent inspector');
+        assert(await page.locator('.tactics-inspector').evaluate(el => el.scrollHeight > el.clientHeight + 20 && ['auto', 'scroll'].includes(getComputedStyle(el).overflowY)), 'Long inspector has its own scroll area at ' + size);
+        const beforeScroll = await page.evaluate(() => ({ form:document.getElementById('library-form').scrollTop, document:document.scrollingElement.scrollTop, field:document.getElementById('tactics-pitch-board').getBoundingClientRect().top }));
+        await page.mouse.move(inspector.right - 3, inspector.y + Math.min(100, inspector.height / 2)); await page.mouse.wheel(0, 600);
+        await page.waitForFunction(() => document.querySelector('.tactics-inspector').scrollTop > 0);
+        const afterScroll = await page.evaluate(() => ({ form:document.getElementById('library-form').scrollTop, document:document.scrollingElement.scrollTop, field:document.getElementById('tactics-pitch-board').getBoundingClientRect().top }));
+        assert.deepEqual(afterScroll, beforeScroll, 'Scrolling the long inspector leaves the field and creator stationary at ' + size);
+        await inViewport('.tactics-phases', 'Phases while the inspector scrolls');
+        await page.locator('#tactics-phase-notes').evaluate((el, oldStyle) => { if (oldStyle === null) el.removeAttribute('style'); else el.setAttribute('style', oldStyle); }, oldNotesStyle);
+        for (const selector of openedInspectorDetails) await page.locator(selector + ' > summary').click();
+        await resetScroll();
+      }
+
+      // Written details remain reachable and editable after the space-saving layout closes them.
+      await page.locator('#library-drill-details > summary').click(); await page.locator('#library-setup').click();
+      const setup = await inViewport('#library-setup', 'The focused setup field'), header = await rect('.library-editor-header');
+      assert(setup.y >= header.bottom - 1, 'The reopened setup field clears the sticky header at ' + size);
+      assert(await page.locator('#library-setup').evaluate(el => document.activeElement === el), 'Reopened details can receive focus at ' + size);
+      await inViewport('#library-cancel', 'Back with details open'); await inViewport('#library-save', 'Save with details open');
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Open details do not cause horizontal overflow at ' + size);
+      await page.locator('#library-drill-details > summary').click(); await resetScroll();
     }
+    assert.deepEqual(await draft(), layoutDraft, 'Viewport, palette, inspector and written-details checks never change the diagram');
     await page.setViewportSize({ width: 1440, height: 1000 });
     const beforeSave = await draft();
     await page.locator('#library-save').click();

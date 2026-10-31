@@ -355,3 +355,64 @@ body.drill-creator-focus #tactics-board-tools .tactics-compact-details { margin:
 }
 
 body.drill-creator-focus #tactics-board-tools .tactics-view-options>.tactics-field-view{grid-template-columns:minmax(0,1fr);grid-column:auto;grid-row:auto}
+
+/* Viewport-sized workbench: the field grows, controls stay nearby, and long tools scroll. */
+@media(min-width:1000px) and (min-height:640px) {
+  body.drill-creator-focus #library-diagram-editor #tactics-board-tools,
+  body.drill-creator-focus #tactics-board-tools .tactics-editor,
+  body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-board-layout { display: contents; }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar {
+    grid-area: tools; grid-template-columns: auto minmax(220px,1fr) auto;
+    align-items: center; margin: 0; gap: 4px 12px;
+  }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar > .tactics-pieces { grid-column: auto; }
+  body.drill-creator-focus #tactics-board-tools .tactics-view-options > :is(label,.tactics-field-view) { grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 6px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-tools { flex-wrap: nowrap; }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-modes { flex-wrap: nowrap; }
+  body.drill-creator-focus #tactics-board-tools .tactics-field-column {
+    grid-area: field; display: grid; grid-template-rows: minmax(0,1fr) auto;
+    align-content: stretch; min-height: 0; gap: 6px;
+  }
+  body.drill-creator-focus #tactics-board-tools .tactics-canvas-wrap { display: grid; grid-template-rows: minmax(0,1fr) auto; min-height: 0; }
+  body.drill-creator-focus #tactics-pitch-board { width: 100%; height: 100%; min-height: 0; max-height: none; aspect-ratio: auto; }
+  body.drill-creator-focus #tactics-board-tools .tactics-inspector {
+    grid-area: inspector; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-gutter: stable; padding-right: 3px; scroll-padding: 8px;
+  }
+  body.drill-creator-focus #tactics-board-tools .tactics-phases { gap: 4px 8px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-phase-heading { display: grid; }
+  body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions { justify-content: end; }
+  body.drill-creator-focus #tactics-board-tools .tactics-compact-details {
+    grid-area: extras; align-self: end; max-height: 42dvh; overflow: auto; margin: 0;
+    padding: 0 10px; border: 1px solid var(--desk-line,#b6afa2); border-radius: 10px;
+    background: var(--desk-inset,#d2cabc); scroll-padding-top: 48px;
+  }
+  body.drill-creator-focus #tactics-board-tools .tactics-compact-details > summary { position: sticky; top: 0; z-index: 1; min-height: 44px; padding: 10px 0; background: var(--desk-inset,#d2cabc); }
+  body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-workbar { grid-area: status; margin: 0; padding: 0; }
+  body.drill-creator-focus #tactics-board-tools .tactics-workbar .tactics-status { font-size: 11px; line-height: 1.3; }
+}
+@media(min-width:1000px) and (max-width:1230px) and (min-height:640px) {
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar { grid-template-columns: minmax(0,1fr) auto; }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar > :is(.tactics-field-view,.tactics-view-options) { grid-column: 1; grid-row: 2; }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar > .tactics-edit-tools { grid-column: 2; grid-row: 1/3; flex-direction: column; align-items: end; }
+}
+@media(max-width:760px) {
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar > .tactics-view-options { grid-column: 1/-1; grid-row: 2; }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-modes { grid-column: 1; grid-row: 3; grid-template-columns: minmax(44px,1fr) minmax(74px,1.25fr) minmax(44px,1fr); }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-history { grid-column: 2; grid-row: 3; }
+  body.drill-creator-focus #tactics-board-tools .tactics-pieces { gap: 3px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-player-tools { gap: 3px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-player-tools > button { padding: 8px 5px; font-size: 11px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-modes button { padding: 6px 4px; font-size: 11px; }
+}
+@media(min-width:761px) and (max-width:999px) and (max-height:639px) {
+  body.drill-creator-focus .library-editor-header > label { grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 6px; }
+  body.drill-creator-focus #library-diagram-editor #tactics-board-tools { display: flex; flex-direction: column; }
+  body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-workbar { order: 2; margin: 0; }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar { grid-template-columns: auto minmax(0,1fr); gap: 4px 10px; margin-top: 0; }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar > .tactics-pieces { grid-column: 1; }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar > .tactics-edit-tools { grid-column: 1/-1; }
+  body.drill-creator-focus #tactics-board-tools .tactics-view-options > :is(label,.tactics-field-view) { grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 4px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-selection-count { grid-column: 1/-1; }
+  body.drill-creator-focus #tactics-pitch-board { height: max(210px,calc(100dvh - 190px)); max-height: none; }
+}

@@ -5,6 +5,8 @@
   if (!mount) return;
   const ns = 'http://www.w3.org/2000/svg';
   const clone = value => JSON.parse(JSON.stringify(value));
+  const possessionPoint = player => ({ x: Math.min(100, player.x + 2), y: Math.min(100, player.y + 2) });
+  const minimumRecordedDrag = 3;
   const encode = value => JSON.stringify(value, (_, item) => item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
   const uid = prefix => prefix + crypto.randomUUID().replaceAll('-', '').slice(0, 20);
   const kinds = { home: 'Blue player', away: 'Gold player', cone: 'Cone', ball: 'Ball', goal: 'Goal', zone: 'Zone' };
@@ -192,7 +194,7 @@
   const pathToggle = input('tactics-paths', 'checkbox'); pathToggle.checked = true; pathToggle.addEventListener('change', draw);
   const pathLabel = field('Show movement paths', pathToggle); pathLabel.className = 'tactics-check';
   const carrier = select('tactics-ball-carrier', [['', 'Free ball']]);
-  carrier.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem); if (!p) return; if (carrier.value) { p.attachedTo = carrier.value; Object.assign(p, positionIn(currentFrame(), p.id)); } else detachBall(currentFrame(), p); }, carrier.value ? 'Ball attached for this step. It follows the player; drag it to release.' : 'Ball detached for this step.'));
+  carrier.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem); if (!p) return; if (carrier.value) attachBall(p.id, carrier.value, false); else detachBall(currentFrame(), p); }, carrier.value ? 'Ball attached for this step. It follows the player; drag it to release.' : 'Ball detached for this step.'));
   const carrierField = field('Ball carrier · this step', carrier);
   const detach = button('Detach ball', 'tactics-detach-ball', () => mutate(() => detachBall(currentFrame(), currentFrame().positions.find(p => p.id === selectedItem)), 'Ball detached for this step.'));
   const bend = input('tactics-curve', 'range'); bend.min = '-50'; bend.max = '50'; bend.step = '5';
@@ -392,9 +394,14 @@
   function totalSeconds() { return record.content.frames.slice(0, -1).reduce((sum, f) => sum + f.duration, 0); }
   function positionIn(frame, id) {
     const p = frame.positions.find(p => p.id === id), player = p?.attachedTo && frame.positions.find(v => v.id === p.attachedTo);
-    return player ? { id, x: Math.min(100, player.x + 3), y: Math.min(100, player.y + 3) } : { id, x: p.x, y: p.y };
+    return player ? { id, ...possessionPoint(player) } : { id, x: p.x, y: p.y };
   }
   function detachBall(frame, p) { if (!p?.attachedTo) return; Object.assign(p, positionIn(frame, p.id)); delete p.attachedTo; }
+  function attachBall(id, playerId, recording) {
+    const p = currentFrame().positions.find(p => p.id === id), destination = possessionPoint(positionIn(currentFrame(), playerId));
+    if (!recording) { const at = positionIn(currentFrame(), id); shiftLayout([id], destination.x - at.x, destination.y - at.y, capture()); }
+    p.attachedTo = playerId; Object.assign(p, destination);
+  }
   function constrainZone(frame, item) {
     const p = frame.positions.find(p => p.id === item.id); if (!p || !item.zone) return;
     p.x = Math.max(item.zone.width / 2, Math.min(100 - item.zone.width / 2, p.x)); p.y = Math.max(item.zone.height / 2, Math.min(100 - item.zone.height / 2, p.y));
@@ -437,7 +444,7 @@
   }
   function routePoints(from, to, id) {
     const p = from.positions.find(p => p.id === id), q = to.positions.find(p => p.id === id);
-    if (p.attachedTo && p.attachedTo === q.attachedTo) return routePoints(from, to, p.attachedTo).map(p => ({ x: Math.min(100, p.x + 3), y: Math.min(100, p.y + 3) }));
+    if (p.attachedTo && p.attachedTo === q.attachedTo) return routePoints(from, to, p.attachedTo).map(possessionPoint);
     const start = positionIn(from, id), end = positionIn(to, id);
     if (q.trail?.length) return [start, ...q.trail, end];
     if (!p.curve) return [start, end];
@@ -446,7 +453,7 @@
   }
   function motionPosition(from, to, id, t) {
     const p = from.positions.find(p => p.id === id), q = to.positions.find(p => p.id === id);
-    if (p.attachedTo && p.attachedTo === q.attachedTo) { const carrier = motionPosition(from, to, p.attachedTo, t); return { id, x: Math.min(100, carrier.x + 3), y: Math.min(100, carrier.y + 3) }; }
+    if (p.attachedTo && p.attachedTo === q.attachedTo) return { id, ...possessionPoint(motionPosition(from, to, p.attachedTo, t)) };
     const points = routePoints(from, to, id), lengths = points.slice(1).map((p, i) => routeDistance(points[i], p));
     let remaining = lengths.reduce((sum, v) => sum + v, 0) * t;
     for (let i = 0; i < lengths.length; i++) { if (remaining <= lengths[i] || i === lengths.length - 1) { const fraction = lengths[i] ? remaining / lengths[i] : 1, a = points[i], b = points[i + 1]; return { id, x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction }; } remaining -= lengths[i]; }
@@ -823,7 +830,7 @@
       stopPlayback();
       const ids = selection(), routes = {};
       if (editMode === 'record' && frameIndex > 0) for (const id of ids) if (['home', 'away', 'ball'].includes(record.content.items.find(i => i.id === id).kind)) routes[id] = routePoints(record.content.frames[frameIndex - 1], currentFrame(), id).map(p => ({ x: p.x, y: p.y }));
-      pointer = { id: event.pointerId, before: capture(), moved: false, start: point(event), ids, routes };
+      pointer = { id: event.pointerId, before: capture(), history: { undo: undo.slice(), redo: redo.slice() }, moved: false, start: point(event), ids, routes };
       board.setPointerCapture(event.pointerId); event.preventDefault(); render();
     } else if (selectedItem) { const destination = point(event), start = positionIn(currentFrame(), selectedItem); if (destination) moveSelected(destination.x - start.x, destination.y - start.y); }
   });
@@ -847,7 +854,12 @@
     }
     if (pointer.handle !== undefined) { updateRouteHandle(pointer.handle, destination, pointer.handles); draw(); renderStatus(); notifyDraft(); return; }
     const dx = destination.x - pointer.start.x, dy = destination.y - pointer.start.y;
-    if (editMode === 'place') shiftLayout(pointer.ids, dx, dy, pointer.before);
+    if (!pointer.recording && editMode === 'record' && frameIndex > 0 && routeDistance(pointer.start, destination) >= minimumRecordedDrag) {
+      // Discard the temporary layout adjustment before recording the actual drag.
+      record.content.frames.forEach((frame, index) => { frame.positions = clone(pointer.before.content.frames[index].positions); });
+      pointer.recording = true;
+    }
+    if (!pointer.recording) shiftLayout(pointer.ids, dx, dy, pointer.before);
     else for (const id of pointer.ids) {
       const original = pointer.before.content.frames[frameIndex], at = positionIn(original, id), p = original.positions.find(p => p.id === id);
       if (p.attachedTo && pointer.ids.includes(p.attachedTo)) continue;
@@ -864,6 +876,7 @@
   board.addEventListener('pointermove', dragPointer);
   const endPointer = event => {
     if (!pointer) return;
+    if (pointer.ids && event.type === 'pointercancel') { undo = pointer.history.undo; redo = pointer.history.redo; apply(pointer.before); pointer = null; render(); notifyDraft(); return; }
     if(pointer.resizeZone){if(event.type==='pointercancel'){undo=pointer.history.undo;redo=pointer.history.redo;apply(pointer.before);}else if(pointer.moved&&event.type==='pointerup')dragPointer(event);pointer=null;render();notifyDraft();return;}
     if (pointer.arrowId) {
       if (event.type === 'pointercancel' || pointer.arrowNew && !pointer.moved) { undo=pointer.history.undo;redo=pointer.history.redo;apply(pointer.before); }
@@ -875,7 +888,11 @@
       if (!pointer.facing && pointer.handle === undefined && pointer.ids.length === 1 && record.content.items.find(i => i.id === selectedItem)?.kind === 'ball') {
         const p = currentFrame().positions.find(p => p.id === selectedItem);
         const target = record.content.items.filter(i => ['home', 'away'].includes(i.kind)).map(i => ({ id: i.id, distance: routeDistance(p, positionIn(currentFrame(), i.id)) })).filter(i => i.distance <= 7).sort((a, b) => a.distance - b.distance)[0];
-        if (target) { p.attachedTo = target.id; Object.assign(p, positionIn(currentFrame(), p.id)); tell('Ball attached to the player. Drag the ball away to release it.'); } else tell('Ball released. Its recorded route is kept.');
+        if (target) {
+          if (!pointer.recording && pointer.before.content.frames[frameIndex].positions.find(p => p.id === selectedItem).attachedTo === target.id) { record.content.frames.forEach((frame, index) => { frame.positions = clone(pointer.before.content.frames[index].positions); }); undo = pointer.history.undo; redo = pointer.history.redo; }
+          else attachBall(selectedItem, target.id, !!pointer.recording);
+          tell(pointer.recording ? 'Ball attached. Its recorded route is kept.' : 'Ball placed with the player. No movement recorded.');
+        } else tell(pointer.recording ? 'Ball released. Its recorded route is kept.' : 'Ball placed. No movement recorded.');
       }
     }
     pointer = null; render(); notifyDraft();

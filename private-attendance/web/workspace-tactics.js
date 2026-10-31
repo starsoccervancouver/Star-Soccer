@@ -373,7 +373,7 @@
     for (let i = 0; i < lengths.length; i++) { if (remaining <= lengths[i] || i === lengths.length - 1) { const fraction = lengths[i] ? remaining / lengths[i] : 1, a = points[i], b = points[i + 1]; return { id, x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction }; } remaining -= lengths[i]; }
   }
   function motionPositions(from, to, t) {
-    return from.positions.map(p => { const q = to.positions.find(v => v.id === p.id), result = { ...(t >= 1 ? q : p), ...motionPosition(from, to, p.id, t) };
+    return from.positions.map(p => { const q = to.positions.find(v => v.id === p.id), result = { ...(t >= 1 ? q : p), ...motionPosition(from, to, p.id, t) }; delete result.attachedTo;
       if (Number.isFinite(p.facing) && Number.isFinite(q.facing)) result.facing = (p.facing + ((q.facing - p.facing + 540) % 360 - 180) * t + 360) % 360;
       return result;
     });

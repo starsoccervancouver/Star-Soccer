@@ -246,6 +246,11 @@ const { chromium } = require('playwright');
     },home);
     assert(Math.min(midpoint.facing,360-midpoint.facing)<.001,'350 to 10 degrees follows the shortest turn through zero');
     assert.equal(midpoint.shadows,1,'Playback previews include cover shadows');assert.deepEqual(await draft(),previewBefore,'Preview leaves editor data unchanged');
+    const releasedBallPreview = await page.evaluate(() => {
+      const content = {schemaVersion:1,pitch:'blank',items:[{id:'p',kind:'home',label:'1'},{id:'b',kind:'ball',label:''}],frames:[{id:'a',title:'Start',duration:2,positions:[{id:'p',x:20,y:20,facing:0},{id:'b',x:26,y:26,attachedTo:'p'}]},{id:'z',title:'Pass',duration:2,positions:[{id:'p',x:20,y:20,facing:90},{id:'b',x:80,y:26}]}]};
+      return CoachTactics.previewAt(content,1).image.querySelector('[data-preview-piece="b"]').getAttribute('transform');
+    });
+    assert.match(releasedBallPreview,/translate\(530 169\)/,'A released ball follows its pass during preview instead of reattaching to the carrier');
     const bodySaved=await save();
     assert.equal(bodySaved.diagram.purpose,'team-pattern');assert.deepEqual(validateDiagram(bodySaved.diagram),bodySaved.diagram);
     assert.notEqual(JSON.stringify(bodySaved.diagram),JSON.stringify(await page.evaluate(()=>builderRecords[0].diagram)),'Fixture verifies a real server-normalized property order');

@@ -130,6 +130,68 @@
     notify(String(text).length > 2000 ? 'The first 2,000 characters were copied. Review the draft, remove personal details, then save.' : 'Copied from the saved plan. Review the draft and remove personal details before saving.'); renderState();
   }); capture.id = 'library-capture'; reuse.append(label('Turn a saved activity into a drill', source), capture); editor.append(reuse); body.append(editor); disclosure.append(body); mount.append(disclosure);
   for (const key of fields) $('library-' + key).addEventListener('input', renderState);
+  const viewer = node('dialog', '', 'library-viewer'); viewer.id = 'library-viewer'; viewer.setAttribute('aria-labelledby', 'library-view-title');
+  const viewHeader = node('header', '', 'library-view-header'), viewTitle = node('h2'); viewTitle.id = 'library-view-title';
+  const viewClose = action('Close preview', () => closeView()); viewClose.id = 'library-view-close';
+  viewHeader.append(viewTitle, viewClose);
+  const viewMeta = node('p', '', 'library-view-meta'), viewLayout = node('div', '', 'library-view-layout'), viewVisual = node('section', '', 'library-view-visual');
+  const viewBoard = node('div', '', 'library-view-board'); viewBoard.id = 'library-view-board'; viewBoard.setAttribute('role', 'img');
+  const viewControls = node('div', '', 'library-view-controls'), viewPlay = action('Play movement', toggleViewPlayback, 'button'), viewRestart = action('Back to start', () => seekView(0));
+  viewPlay.id = 'library-view-play'; viewPlay.setAttribute('aria-pressed', 'false'); viewRestart.id = 'library-view-restart';
+  const viewProgress = node('input'); viewProgress.id = 'library-view-progress'; viewProgress.type = 'range'; viewProgress.min = '0'; viewProgress.step = '.01';
+  const viewScrub = label('Playback position', viewProgress), viewPhases = node('div', '', 'library-view-phases'); viewPhases.id = 'library-view-phases'; viewPhases.setAttribute('role', 'group'); viewPhases.setAttribute('aria-label', 'Drill phases');
+  const viewPhaseTitle = node('h3'), viewPhaseNotes = node('p', '', 'library-instructions'); viewPhaseTitle.id = 'library-view-phase-title'; viewPhaseNotes.id = 'library-view-phase-notes';
+  const viewInstructions = node('section', '', 'library-view-instructions'); viewInstructions.id = 'library-view-instructions'; viewInstructions.setAttribute('aria-label', 'Drill instructions');
+  viewControls.append(viewPlay, viewRestart); viewVisual.append(viewBoard, viewControls, viewScrub, viewPhases, viewPhaseTitle, viewPhaseNotes); viewLayout.append(viewVisual, viewInstructions); viewer.append(viewHeader, viewMeta, viewLayout); mount.append(viewer);
+  let viewedDrill = null, viewOrigin = null, viewTime = 0, viewTotal = 0, viewAnimation = 0, viewPlaying = false, viewLastTime = 0, viewPhaseIndex = -1;
+  function pauseView() { cancelAnimationFrame(viewAnimation); viewAnimation = 0; viewPlaying = false; viewPlay.textContent = 'Play movement'; viewPlay.setAttribute('aria-pressed', 'false'); }
+  function clearView() { pauseView(); viewedDrill = null; viewTime = viewTotal = 0; viewPhaseIndex = -1; viewTitle.textContent = viewMeta.textContent = viewPhaseTitle.textContent = viewPhaseNotes.textContent = ''; viewBoard.replaceChildren(); viewBoard.removeAttribute('aria-label'); viewPhases.replaceChildren(); viewInstructions.replaceChildren(); }
+  function closeView(restoreFocus = true) { const origin = viewOrigin; viewOrigin = null; clearView(); if (viewer.open) viewer.close(); if (restoreFocus && origin?.isConnected) origin.focus(); }
+  viewer.addEventListener('cancel', event => { event.preventDefault(); closeView(); });
+  viewer.addEventListener('close', clearView);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pauseView(); });
+  viewProgress.addEventListener('input', () => seekView(Number(viewProgress.value)));
+  function renderView() {
+    if (!viewedDrill) return;
+    let result = null;
+    try { result = window.CoachTactics?.previewAt?.(viewedDrill.diagram, viewTime); } catch { /* Keep instructions available for an invalid legacy diagram. */ }
+    viewBoard.replaceChildren(result ? result.image : node('p', viewedDrill.diagram ? 'This diagram could not be previewed. The drill instructions are below.' : 'No diagram saved for this drill. Follow the instructions to set it up.', 'small'));
+    viewProgress.value = String(viewTime);
+    viewProgress.setAttribute('aria-valuetext', Math.round(viewTime) + ' of ' + viewTotal + ' seconds');
+    viewBoard.setAttribute('aria-label', result ? viewedDrill.title + ' — ' + viewedDrill.diagram.frames[result.index].title : 'Drill diagram unavailable');
+    viewControls.hidden = viewScrub.hidden = !result || !viewTotal; viewPhases.hidden = !result;
+    const index = result?.index ?? -1;
+    if (index !== viewPhaseIndex) {
+      viewPhaseIndex = index; const phase = viewedDrill.diagram?.frames?.[index];
+      viewPhaseTitle.textContent = phase ? 'Phase ' + (index + 1) + ': ' + phase.title : '';
+      viewPhaseNotes.textContent = phase?.notes || '';
+      [...viewPhases.children].forEach((button, i) => button.setAttribute('aria-pressed', String(i === index)));
+    }
+  }
+  function seekView(seconds) { pauseView(); viewTime = Math.max(0, Math.min(viewTotal, seconds)); renderView(); }
+  function toggleViewPlayback() {
+    if (viewPlaying) return pauseView();
+    if (!viewedDrill || !viewTotal || !viewer.open) return;
+    if (viewTime >= viewTotal) viewTime = 0;
+    viewPlaying = true; viewPlay.textContent = 'Pause movement'; viewPlay.setAttribute('aria-pressed', 'true'); viewLastTime = performance.now();
+    const tick = now => {
+      if (!viewPlaying || !viewer.open || !viewedDrill) return;
+      viewTime = Math.min(viewTotal, viewTime + (now - viewLastTime) / 1000); viewLastTime = now; renderView();
+      if (viewTime >= viewTotal) pauseView(); else viewAnimation = requestAnimationFrame(tick);
+    };
+    viewAnimation = requestAnimationFrame(tick);
+  }
+  function viewDrill(drill, origin) {
+    if (locked() || recovery || drill.source === 'saved' && !permitted(drill)) return;
+    clearView(); viewedDrill = clone(drill); viewOrigin = origin; viewTitle.textContent = drill.title;
+    viewMeta.textContent = [sourceNames[drill.source], drill.skill, drill.minutes + ' min', targets[drill.target], 'Read-only preview'].filter(Boolean).join(' · ');
+    let time = 0;
+    for (const [index, phase] of (viewedDrill.diagram?.frames || []).entries()) { const start = time; const choice = action((index + 1) + '. ' + phase.title, () => seekView(start)); choice.setAttribute('aria-pressed', 'false'); viewPhases.append(choice); if (index < viewedDrill.diagram.frames.length - 1) time += phase.duration; }
+    viewTotal = time; viewProgress.max = String(time);
+    for (const [key, title] of [['setup', 'Setup & instructions'], ['coaching', 'Coaching points'], ['progression', 'Adaptations'], ['equipment', 'Equipment']]) if (drill[key]) viewInstructions.append(node('h3', title), node('p', drill[key], 'library-instructions'));
+    if (drill.attribution) { const link = node('a', 'Source: ' + drill.attribution.label); link.href = drill.attribution.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; viewInstructions.append(link); }
+    renderView(); viewer.showModal(); viewClose.focus();
+  }
   search.addEventListener('input', () => { historyLimit = 8; renderList(); });
   for (const filter of [focus, sourceFilter, ageFilter, skillFilter, durationFilter]) filter.addEventListener('change', () => { historyLimit = 8; renderList(); });
   scope.addEventListener('change', renderSuggestions);
@@ -275,18 +337,14 @@
       }
       if (!publicIdea) card.append(node('p', drill.author_email === context.profile.email ? 'Your reusable drill' : 'Shared with full-access coaches · ' + drill.author_email, 'small'));
       const actions = node('div', '', 'library-actions'), add = action('Add to session', () => insert(drill)); add.dataset.insert = 'true'; add.setAttribute('aria-label', 'Add ' + drill.title + ' to session');
-      actions.append(add);
+      const view = action('View drill', () => viewDrill(drill, view), 'button'); view.dataset.viewDrill = 'true'; actions.append(view, add);
       if (drill.source !== 'saved') {
         const use = action('Use as draft', () => emit('coach:library-prefill', { source: drill.source, drill })); use.dataset[drill.source + 'Title'] = drill.title; use.setAttribute('aria-label', 'Use ' + drill.title + ' as draft'); actions.append(use);
       } else {
-        const change = action('Edit drill', () => edit(drill)), archive = action('Archive drill', () => {
-          if (locked() || recovery || !permitted(drill)) return;
-          if (dirty()) return notify('Save or clear your current drill draft before archiving.', true);
-          if (confirm('Archive this reusable drill? Saved session plans will stay unchanged.')) persist({ operation: 'archive', payload: { id: drill.id, expectedVersion: drill.version } });
-        });
+        const change = action('Edit drill', () => edit(drill));
         const duplicate = action('Duplicate drill', () => { if (locked() || recovery || !permitted(drill)) return; if (dirty() && !confirm('Discard your current unsaved drill and make a copy?')) return; copyDraft(drill); });
         const useSession = action('Use in session', () => chooseSession(drill)); useSession.dataset.useSession = 'true';
-        actions.append(useSession, change, duplicate, archive);
+        actions.append(useSession, change, duplicate);
       }
       card.append(actions); list.append(card);
     }
@@ -400,6 +458,7 @@
   });
   window.addEventListener('coach:context', event => {
     const next = event.detail, nextIdentity = next?.profile ? [next.profile.email, next.profile.role, next.profile.sessionVersion, next.session?.id || ''].join(':') : '';
+    if (nextIdentity !== identity || next?.tab !== context?.tab) closeView(false);
     if (pendingUse && (accountKey(next) !== pendingUse.account || !['library', 'plan'].includes(next?.tab) || pendingUse.navigated && next.tab !== 'plan' || ![pendingUse.fromSession, pendingUse.sessionId].includes(next.session?.id || '') || next.tab === 'plan' && next.session?.id !== pendingUse.sessionId)) pendingUse = null;
     if (pendingUse && next.tab === 'plan' && next.session?.id === pendingUse.sessionId) pendingUse.navigated = true;
     if (nextIdentity !== identity || next?.tab !== 'library') sessionChoice = null;

@@ -62,6 +62,7 @@
     setLibraryTitle: value => { if (libraryBinding) { record.title = String(value || 'Drill diagram').slice(0, 80); renderStatus(); } },
     getDraft: () => !libraryBinding && active() && loaded && !pending && !running ? { sessionId: context.session.id, title: record.title, diagram: clone(record.content) } : null,
     preview: content => content?.frames?.[0] && Array.isArray(content.items) ? previewFrame(content.frames[0], content.items, content.pitch) : null,
+    previewAt,
     useDraft });
   function useDraft(value) {
     if (libraryBinding || !editable() || recoveryNeeded || value.sessionId !== context.session.id || value.diagram?.schemaVersion !== 1 || !Array.isArray(value.diagram.items) || !value.diagram.frames?.length) return false;
@@ -351,10 +352,20 @@
     if (frameIndex < frames.length - 1) { elapsed = seconds * 1000; renderedPositions = motionPositions(currentFrame(), frames[frameIndex + 1], seconds / currentFrame().duration); }
     render();
   }
-  function previewFrame(frame, items = record.content.items, view = record.content.pitch) {
+  // Pure playback renderer for the library viewer; never changes the active editor.
+  function previewAt(content, seconds = 0) {
+    if (!content?.frames?.length || !Array.isArray(content.items)) return null;
+    const total = content.frames.slice(0, -1).reduce((sum, frame) => sum + frame.duration, 0);
+    let remaining = Math.max(0, Math.min(total, Number(seconds) || 0)), index = 0;
+    while (index < content.frames.length - 1 && remaining >= content.frames[index].duration) remaining -= content.frames[index++].duration;
+    const frame = content.frames[index], next = content.frames[index + 1];
+    const positions = next && remaining > 0 ? motionPositions(frame, next, remaining / frame.duration).map(position => ({ ...position, rotation: frame.positions.find(p => p.id === position.id)?.rotation || 0 })) : frame.positions;
+    return { image: previewFrame({ ...frame, positions }, content.items, content.pitch, true), index, total };
+  }
+  function previewFrame(frame, items = record.content.items, view = record.content.pitch, labelled = false) {
     const thumbnail = svg('svg', { viewBox: '0 0 1000 650', 'aria-hidden': 'true' });
     thumbnail.append(fieldArtwork(view));
-    for (const item of [...items].sort((a, b) => (b.kind === 'zone') - (a.kind === 'zone'))) { const p = positionIn(frame, item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1.6)' }); const graphic = pieceArtwork(item.kind); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (frame.positions.find(v => v.id === item.id).rotation || 0) + ')'); symbol.append(graphic); thumbnail.append(symbol); } }
+    for (const item of [...items].sort((a, b) => (b.kind === 'zone') - (a.kind === 'zone'))) { const p = positionIn(frame, item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1.6)', 'data-preview-piece': item.id }); const graphic = pieceArtwork(item.kind); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (frame.positions.find(v => v.id === item.id).rotation || 0) + ')'); symbol.append(graphic); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: '#fff' }, item.label)); thumbnail.append(symbol); } }
     return thumbnail;
   }
   function exportBoard() {

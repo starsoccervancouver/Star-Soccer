@@ -99,6 +99,56 @@ require('./coach-fixture-fonts.cjs')(assets);
     await standalone.page.locator('#logout').click(); await standalone.page.locator('#login').waitFor({state:'visible'});
     assert.equal(await standalone.page.locator('#library-list').textContent(),''); await clean(standalone); checks++;
 
+    const viewing = await fixture({ standalone: true, width: 390 });
+    await viewing.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh saved drills');
+    const viewed = viewing.state.drills[0];
+    viewed.title = 'Fictional preview drill'; viewed.coaching = 'Scan before receiving.';
+    viewed.diagram = { schemaVersion: 1, pitch: 'blank', items: [{ id: 'runner', kind: 'home', label: '9' }, { id: 'ball', kind: 'ball', label: '' }, { id: 'goal', kind: 'goal', label: '' }], frames: [
+      { id: 'start', title: 'Possession', notes: 'Open passing angles.', duration: .5, positions: [{ id: 'runner', x: 20, y: 50 }, { id: 'ball', x: 26, y: 56, attachedTo: 'runner' }, { id: 'goal', x: 90, y: 50, rotation: 90 }] },
+      { id: 'break', title: 'Transition', notes: 'Run forward together.', duration: .5, positions: [{ id: 'runner', x: 60, y: 50, trail: [{ x: 40, y: 30 }] }, { id: 'ball', x: 66, y: 56, attachedTo: 'runner' }, { id: 'goal', x: 90, y: 50, rotation: 90 }] },
+      { id: 'finish', title: 'Shoot', notes: 'Choose the open corner.', duration: 3, positions: [{ id: 'runner', x: 65, y: 50 }, { id: 'ball', x: 90, y: 50 }, { id: 'goal', x: 90, y: 50, rotation: 90 }] }
+    ] };
+    const savedSnapshot = JSON.stringify(viewing.state.drills);
+    await viewing.page.locator('#library-reload').click(); await viewing.page.waitForFunction(() => !document.getElementById('library-reload').disabled);
+    const viewCard = viewing.page.locator('.library-card[data-drill-id="' + viewed.id + '"]'), viewButton = viewCard.getByRole('button', { name: 'View drill', exact: true });
+    assert.equal(await viewing.page.getByRole('button', { name: 'Archive drill', exact: true }).count(), 0);
+    await viewButton.click();
+    assert.equal(await viewing.page.getByRole('dialog', { name: viewed.title }).isVisible(), true);
+    assert.equal(await viewing.page.locator('#library-view-close').evaluate(e => e === document.activeElement), true);
+    assert.match(await viewing.page.locator('#library-view-instructions').innerText(), /Scan before receiving/);
+    assert.match(await viewing.page.locator('#library-view-board svg').textContent(), /9/);
+    assert.equal(await viewing.page.locator('#library-viewer input:not([type=range]),#library-viewer textarea').count(), 0);
+    assert.equal(await viewing.page.evaluate(() => CoachLibrary.isDirty() || CoachTactics.isDirty()), false);
+    await viewing.page.locator('#library-view-progress').evaluate(el => { el.value = '0.25'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+    const animated = await viewing.page.locator('#library-view-board [data-preview-piece="runner"]').evaluate(e => e.getAttribute('transform'));
+    assert.match(animated, /translate\(400 195\)/, 'Preview follows the saved non-linear route');
+    assert.match(await viewing.page.locator('#library-view-board [data-preview-piece="ball"]').getAttribute('transform'), /translate\(460 234\)/, 'Attached ball follows the runner');
+    assert.equal(await viewing.page.locator('#library-view-board [data-preview-piece="goal"] [data-symbol=goal]').getAttribute('transform'), 'rotate(90)');
+    await viewing.page.locator('#library-view-play').click();
+    await viewing.page.waitForFunction(() => document.getElementById('library-view-phase-title').textContent === 'Phase 3: Shoot' && document.getElementById('library-view-play').getAttribute('aria-pressed') === 'false');
+    assert.equal(await viewing.page.locator('#library-view-phase-notes').textContent(), 'Choose the open corner.');
+    await viewing.page.locator('#library-view-restart').click(); await viewing.page.locator('#library-view-play').click();
+    await viewing.page.getByRole('button', { name: '2. Transition', exact: true }).click();
+    assert.equal(await viewing.page.locator('#library-view-play').getAttribute('aria-pressed'), 'false', 'Phase selection pauses playback');
+    assert.equal(await viewing.page.locator('#library-view-progress').inputValue(), '0.5');
+    assert.equal(await viewing.page.locator('#library-viewer').evaluate(e => e.scrollWidth <= e.clientWidth), true, 'Mobile preview does not overflow');
+    await viewing.page.keyboard.press('Escape');
+    assert.equal(await viewing.page.locator('#library-viewer').isVisible(), false);
+    assert.equal(await viewButton.evaluate(e => e === document.activeElement), true, 'Escape restores focus');
+    await viewButton.click(); assert.equal(await viewing.page.locator('#library-view-progress').inputValue(), '0', 'Reopening starts at the first phase');
+    await viewing.page.locator('#library-view-close').click();
+    await viewing.page.getByRole('button', { name: 'View drill', exact: true }).nth(1).click();
+    assert.match(await viewing.page.locator('#library-view-board').textContent(), /No diagram saved/);
+    assert.equal(await viewing.page.locator('#library-view-play').isVisible(), false);
+    await viewing.page.locator('#library-view-close').click();
+    assert.equal(JSON.stringify(viewing.state.drills), savedSnapshot, 'Viewing never changes saved drills');
+    assert.equal(count(viewing, '/drills/save') + count(viewing, '/drills/archive') + count(viewing, '/plans/save'), 0, 'Preview has no write requests');
+    await viewButton.click();
+    await viewing.page.evaluate(() => window.dispatchEvent(new CustomEvent('coach:context', { detail: { profile: null, tab: 'library' } })));
+    assert.equal(await viewing.page.locator('#library-viewer').isVisible(), false);
+    assert.doesNotMatch(await viewing.page.locator('#library-viewer').textContent(), /Fictional preview|Scan before/);
+    await clean(viewing); checks++;
+
     const copies = await fixture({ standalone: true });
     await copies.page.waitForFunction(() => document.getElementById('library-reload').textContent === 'Refresh saved drills');
     const original = copies.state.drills[0]; original.minutes = 25; original.setup = 'Long setup instruction. '.repeat(12); original.diagram = { schemaVersion:1,pitch:'half',items:[{id:'player_1',kind:'home',label:'1'}],frames:[{id:'phase_1',title:'Start',duration:3,positions:[{id:'player_1',x:20,y:40}]}] };
@@ -227,9 +277,10 @@ require('./coach-fixture-fonts.cjs')(assets);
     const update = f.requests.filter(r => r.path.endsWith('/drills/save')).at(-1).payload;
     assert.equal(update.id, f.state.drills[0].id); assert.equal(update.expectedVersion, 1); assert.equal(update.requestId, undefined); assert.equal(f.state.drills[0].version, 2);
     await f.page.locator('#library-cancel').click();
-    const archivedId = f.state.drills[0].id; await f.page.locator('#library-search').fill('Updated reusable practice'); await f.answer(true);
-    await f.page.locator('.library-card[data-drill-id="' + archivedId + '"]').getByRole('button', { name: 'Archive drill', exact: true }).click();
-    await f.page.waitForFunction(() => !CoachLibrary.isBusy()); assert.equal(f.state.drills.some(d => d.id === archivedId), false); assert.equal(count(f, '/plans/save'), 0); await f.page.locator('#library-search').fill(''); checks++;
+    const viewedId = f.state.drills[0].id; await f.page.locator('#library-search').fill('Updated reusable practice');
+    await f.page.locator('.library-card[data-drill-id="' + viewedId + '"]').getByRole('button', { name: 'View drill', exact: true }).click();
+    assert.equal(await f.page.locator('#library-viewer').isVisible(), true); await f.page.locator('#library-view-close').click();
+    assert.equal(f.state.drills.some(d => d.id === viewedId), true); assert.equal(count(f, '/drills/archive'), 0); assert.equal(count(f, '/plans/save'), 0); await f.page.locator('#library-search').fill(''); checks++;
 
     await f.page.locator('#library-source-section').selectOption('technical'); await f.page.locator('#library-capture').click(); assert.equal(await f.page.locator('#library-setup').inputValue(), 'Saved receiving activity');
     assert.equal(await f.page.evaluate(() => CoachLibrary.isDirty()), true); assert.equal(count(f, '/drills/save'), 2, 'Capturing a saved plan creates only an unsaved drill');

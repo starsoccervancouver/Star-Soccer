@@ -14,9 +14,11 @@ export function createCoachAttendance({store,coaches,baseId,tableId,token,writes
   const today=dayFormatter.format(clock());if(status!=='Not marked'&&(session.date>today||session.status==='Cancelled'))deny('SESSION_NOT_STARTED',409);
   const payload=JSON.stringify({sessionId,attendanceId,playerId,status,expectedStatus}),old=store.get('SELECT * FROM coach_attendance_commands WHERE id=?',commandId);
   if(old&&(old.actor_email!==actor.email||old.payload!==payload))deny('COMMAND_CONFLICT',409);
-  if(old?.state==='confirmed')return {saved:true,duplicate:true,status};
   const inspect=r=>{if(r?.id!==attendanceId||links(r.fields?.[fields.player]).length!==1||links(r.fields?.[fields.session]).length!==1||links(r.fields[fields.player])[0]!==playerId||links(r.fields[fields.session])[0]!==sessionId||r.fields[fields.coverage]!=='Active'||r.fields[fields.date]!==session.date||(!Array.isArray(r.fields[fields.linkedDate])||r.fields[fields.linkedDate].length!==1||r.fields[fields.linkedDate][0].slice(0,10)!==session.date)||(r.fields[fields.sessionStatus]||[]).includes('Cancelled'))deny('ATTENDANCE_IDENTITY_CHANGED',409);return r.fields[fields.status]||'Not marked';};
-  const before=inspect(await request(attendanceId));if(old&&before===status){store.run("UPDATE coach_attendance_commands SET state='confirmed' WHERE id=?",commandId);coaches.recordAudit(actor,'attendance-recovered',attendanceId,{status,sessionId});return {saved:true,recovered:true,status};}
+  const before=inspect(await request(attendanceId));if(!['Not marked','Present','Absent'].includes(before))deny('ATTENDANCE_CHANGED',409);
+  // A retried acknowledgement must not restore an older answer in the client or roster cache.
+  if(old?.state==='confirmed')return {saved:true,duplicate:true,status:before,...(before!==status?{superseded:true}:{})};
+  if(old&&before===status){store.run("UPDATE coach_attendance_commands SET state='confirmed' WHERE id=?",commandId);coaches.recordAudit(actor,'attendance-recovered',attendanceId,{status,sessionId});return {saved:true,recovered:true,status};}
   if(before!==expectedStatus)deny('ATTENDANCE_CHANGED',409);if(before===status)return {saved:true,noChange:true,status};
   if(!old)store.run('INSERT INTO coach_attendance_commands VALUES(?,?,?,?,?,?,?)',commandId,actor.email,sessionId,attendanceId,payload,'pending',clock().toISOString());
   try{await request(attendanceId,'PATCH',{fields:{[fields.status]:status}});if(inspect(await request(attendanceId))!==status)throw Error('ATTENDANCE_SYNC_PENDING');}catch{deny('ATTENDANCE_SYNC_PENDING',503);}

@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { chromium } = require('playwright');
-const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixture-navigation.cjs');
+const { openSession, openView, openFolder, leaveGroup, openDestination } = require('./coach-fixture-navigation.cjs');
 
 (async () => {
   const origin = 'https://attendance.starsoccer.ca', now = '2026-10-29T19:00:00Z';
@@ -88,14 +88,14 @@ const { openSession, openView, openFolder, leaveGroup } = require('./coach-fixtu
       await page.setViewportSize({ width, height: 844 });
       for (const tab of ['home','profiles','plan']) {
         if (await page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) await page.locator('#planner-home').click();
-        await page.locator('#navigation [data-tab="'+tab+'"]').click();
+        await openDestination(page, tab);
         if (tab === 'plan' || tab === 'notes') await openSession(page, sessions, rid(1), tab === 'notes' ? 'notes' : 'plan');
         assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'No overflow: ' + tab + ' at ' + width);
       }
     } checks++;
     assert.equal(requests.filter(r => /attendance$|save$|archive$|invite$|assign$/.test(r.path)).length, 0, 'Review/navigation tools never mutate records');
     assert.deepEqual(errors, []); checks++;
-    profile.role='owner'; tasks.forEach(t=>t.status='done'); notes.forEach(n=>n.review_date='2027-01-01'); sessions.forEach(s=>s.players.forEach(p=>p.actualAttendance='Present')); sessions[0].issues=[{reason:'Parent email missing',player:'Preview Maya'}]; await page.reload(); await page.locator('#app').waitFor({state:'visible'}); await page.locator('.priority-roster-details summary').click(); assert.match(await page.locator('#home-priorities').innerText(),/Parent email missing: Preview Maya/); assert.doesNotMatch(await page.locator('#home-priorities').innerText(),/Nothing needs attention/); checks++;
+    profile.role='owner'; tasks.forEach(t=>t.status='done'); notes.forEach(n=>n.review_date='2027-01-01'); sessions.forEach(s=>s.players.forEach(p=>p.actualAttendance='Present')); sessions[0].issues=[{reason:'Parent email missing',player:'Preview Maya'}]; await page.reload(); await page.locator('#app').waitFor({state:'visible'}); await leaveGroup(page); await openDestination(page, 'home'); await page.locator('.priority-roster-details summary').click(); assert.match(await page.locator('#home-priorities').innerText(),/Parent email missing: Preview Maya/); assert.doesNotMatch(await page.locator('#home-priorities').innerText(),/Nothing needs attention/); checks++;
     await page.getByRole('button', { name: 'Sign out', exact: true }).click();
     await page.locator('#login').waitFor({ state: 'visible' });
     for (const id of ['home-priorities','task-list','note-list','session-field-tools']) assert.equal(await page.locator('#'+id).innerText(), '', 'Clears private '+id);

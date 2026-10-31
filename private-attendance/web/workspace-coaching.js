@@ -90,7 +90,7 @@
     for (const group of groups) {
       const members = group.sessions.filter(session => validDate(session.date) && session.status !== 'Cancelled');
       const next = window.CoachPlanner?.nextSession ? window.CoachPlanner.nextSession(members) : members.find(session => session.date >= start);
-      const session = next || members.at(-1) || group.sessions.at(-1);
+      const session = next || members.at(-1) || group.sessions.filter(session => validDate(session.date)).at(-1);
       const row = element('article', '', 'coaching-agenda-row' + (group.sessionIds.includes(context.selected) ? ' is-current' : ''));
       row.dataset.groupKey = group.key;
       const details = element('div', '', 'coaching-agenda-details');

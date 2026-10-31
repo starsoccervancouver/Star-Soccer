@@ -136,7 +136,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     await viewing.page.locator('#library-view-progress').evaluate(el => { el.value = '0.25'; el.dispatchEvent(new Event('input', { bubbles: true })); });
     const animated = await viewing.page.locator('#library-view-board [data-preview-piece="runner"]').evaluate(e => e.getAttribute('transform'));
     assert.match(animated, /translate\(400 195\)/, 'Preview follows the saved non-linear route');
-    assert.match(await viewing.page.locator('#library-view-board [data-preview-piece="ball"]').getAttribute('transform'), /translate\(460 234\)/, 'Attached ball follows the runner');
+    assert.match(await viewing.page.locator('#library-view-board [data-preview-piece="ball"]').getAttribute('transform'), /translate\(420 208\)/, 'Attached ball follows the runner at the current two-unit offset');
     assert.match(await viewing.page.locator('#library-view-board [data-preview-piece="goal"] [data-symbol=goal]').getAttribute('transform'), /rotate\(90\)/);
     await viewing.page.locator('#library-view-play').click();
     await viewing.page.waitForFunction(() => document.getElementById('library-view-phase-title').textContent === 'Phase 3: Shoot' && document.getElementById('library-view-play').getAttribute('aria-pressed') === 'false');

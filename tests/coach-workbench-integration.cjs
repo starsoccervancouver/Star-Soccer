@@ -76,7 +76,8 @@ const { openView, openFolder } = require('./coach-fixture-navigation.cjs');
 
     await page.locator('.practice-activity[data-drill-id="traffic"] summary').click();
     await page.locator('.practice-activity[data-drill-id="traffic"]').getByRole('button', { name: 'Add to warm-up', exact: true }).click();
-    assert.match(await page.locator('#plan-warmup').inputValue(), /^Target warm-up\n\nMove, turn, find space/);
+    assert.equal(await page.locator('#plan-warmup').inputValue(), 'Target warm-up', 'Adding a drill preserves existing preparation');
+    assert.match(await page.evaluate(() => JSON.stringify(CoachPlanBlocks.content())), /Move, turn, find space/, 'The drill is inserted into the editable activity sequence');
     assert.equal(await page.locator('#plan-state').isVisible(), true);
     assert.equal(requests.filter(request => request.path.endsWith('/plans/save')).length, 0);
     checks++;
@@ -118,7 +119,7 @@ const { openView, openFolder } = require('./coach-fixture-navigation.cjs');
     checks++;
 
     await page.locator('#planner-close-drawer').click();
-    await page.getByRole('button', { name: 'Save shared plan', exact: true }).click();
+    await page.locator('#planner-save').click();
     await page.getByText('Shared session plan saved.', { exact: true }).waitFor();
     assert.equal(requests.filter(request => request.path.endsWith('/plans/save')).length, 1);
     assert.equal(savedPayload.content.focus, 'Source focus');

@@ -72,13 +72,14 @@ export function createService({store,origin='http://127.0.0.1:8785',approvedOrig
     if(old&&(snap.revision<old.revision||(snap.revision===old.revision&&(old.fingerprint!==fingerprint||old.observed_at!==snap.observedAt))))fail('ROSTER_VERSION_CONFLICT',409);
     store.run(`INSERT INTO sessions(id,label,start_at,end_at,location,capacity,status,owner_expected,revision,observed_at,snapshot_id,fingerprint,approved,complete) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,1,1)
       ON CONFLICT(id) DO UPDATE SET label=excluded.label,start_at=excluded.start_at,end_at=excluded.end_at,location=excluded.location,status=excluded.status,owner_expected=excluded.owner_expected,revision=excluded.revision,observed_at=excluded.observed_at,snapshot_id=excluded.snapshot_id,fingerprint=excluded.fingerprint,approved=1,complete=1`,s.id,s.label,s.startAt,s.endAt,s.location,20,s.status,s.ownerExpected,snap.revision,snap.observedAt,snap.snapshotId,fingerprint);
-    if(old&&(old.start_at!==s.startAt||old.status!==s.status))store.run('UPDATE invitations SET revoked=1 WHERE session_id=?',s.id);
+    // Session lifecycle changes close attendance replies; the separate opt-out capability keeps its 30-day lifetime.
+    if(old&&(old.start_at!==s.startAt||old.status!==s.status))store.run("UPDATE invitations SET revoked=1 WHERE session_id=? AND purpose='rsvp'",s.id);
     store.run('UPDATE roster SET active=0 WHERE session_id=?',s.id);
     for(const p of s.entries){const was=store.get('SELECT * FROM roster WHERE session_id=? AND player_id=?',s.id,p.playerId);if(was&&(was.family_id!==p.familyId||was.attendance_id!==p.attendanceId))fail('ROSTER_IDENTITY_CONFLICT',409);
      store.run(`INSERT INTO roster(session_id,player_id,family_id,attendance_id,name,guardian_name,email_verified,kind,reserved,eligible,reminder_preference,active) VALUES(?,?,?,?,?,?,?,?,?,?,?,1)
        ON CONFLICT(session_id,player_id) DO UPDATE SET name=excluded.name,guardian_name=excluded.guardian_name,email_verified=excluded.email_verified,kind=excluded.kind,reserved=excluded.reserved,eligible=excluded.eligible,reminder_preference=excluded.reminder_preference,active=1`,s.id,p.playerId,p.familyId,p.attendanceId,p.name,p.guardianName,p.emailVerified,p.kind,p.reserved,p.eligible,p.reminderPreference);
     }
-    store.run(`UPDATE invitations SET revoked=1 WHERE session_id=? AND player_id IN (SELECT player_id FROM roster WHERE session_id=? AND (active=0 OR eligible=0 OR reserved=0 OR email_verified=0 OR kind!='dropin'))`,s.id,s.id);
+    store.run(`UPDATE invitations SET revoked=1 WHERE session_id=? AND purpose='rsvp' AND player_id IN (SELECT player_id FROM roster WHERE session_id=? AND (active=0 OR eligible=0 OR reserved=0 OR email_verified=0 OR kind!='dropin'))`,s.id,s.id);
    }return {imported:snap.sessions.length,revision:snap.revision,source:input.source,businessWrites:0};
   });},
   issueInvitation({playerId,sessionId,rotate=false}){return store.transaction(()=>{
@@ -86,7 +87,7 @@ export function createService({store,origin='http://127.0.0.1:8785',approvedOrig
    const pref=store.get('SELECT * FROM preferences WHERE family_id=? AND player_id=?',p.family_id,p.player_id);if(p.reminder_preference!=='enabled'||pref?.weekly_enabled===0)fail('RECURRING_EMAILS_DISABLED',409);
    if(capacity(s).blocked)fail('CAPACITY_REVIEW_REQUIRED',409);
    if(ms(s.start_at)-now()>7*86400000)fail('INVITATION_TOO_EARLY',409);
-   const active=store.get('SELECT token_hash FROM invitations WHERE session_id=? AND player_id=? AND revoked=0 AND expires_at>? LIMIT 1',sessionId,playerId,stamp());
+   const active=store.get("SELECT token_hash FROM invitations WHERE session_id=? AND player_id=? AND purpose='rsvp' AND revoked=0 AND expires_at>? LIMIT 1",sessionId,playerId,stamp());
    if(active&&!rotate)fail('INVITATION_ALREADY_ISSUED',409);
    store.run('UPDATE invitations SET revoked=1 WHERE session_id=? AND player_id=?',sessionId,playerId);
    const token=random(),optOutToken=random(),issuedAt=stamp();

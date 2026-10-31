@@ -25,7 +25,7 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
       assert.equal(await page.locator('.library-preset svg').count(),10,'Every preset has an original sketch');
       assert.equal(await page.locator('[data-insert=true]:visible').count(),0,'Standalone drafts have no session insertion');
       for(const [band,count] of [['young',4],['middle',3],['older',3]]) { await page.selectOption('#library-age-filter',band); assert.equal(await page.locator('.library-preset').count(),count); }
-      await page.selectOption('#library-filter','warmup'); assert.equal(await page.locator('.library-preset').count(),0); assert.match(await page.locator('#library-list').innerText(),/No drills match/);
+      await page.selectOption('#library-filter','warmup'); assert.equal(await page.locator('.library-preset').count(),0); assert.match(await page.locator('#library-list').innerText(),/No drills or team patterns match/);
       await page.selectOption('#library-age-filter',''); await page.selectOption('#library-filter','all');
       await page.locator('#library-search').fill('FIFA'); assert.match(await page.locator('#library-results').innerText(),/8 of 8 matching drills/);
       await page.locator('#library-search').fill(''); await page.locator('#library-more').click();
@@ -47,7 +47,7 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
       await page.locator('#library-save').click(); await page.waitForFunction(()=>!CoachLibrary.isBusy()&&!CoachLibrary.isDirty());
       let writes=await page.evaluate(()=>calls.filter(call=>call.operation==='save')); assert.equal(writes.length,1); assert.match(writes[0].payload.setup,/optimising-game-application\.php/); assert.match(writes[0].payload.coaching,/Perception:/); assert.equal(writes[0].payload.diagram.frames.length,1); assert.deepEqual(validateDiagram(writes[0].payload.diagram),writes[0].payload.diagram,'Sketch round-trips through the server validator');
       await page.locator('#library-cancel').click(); assert(await page.locator('#library-list').isVisible());
-      await page.selectOption('#library-source-filter','saved'); assert.equal(await page.locator('.library-card').count(),1); assert.match(await page.locator('.library-source-tag').innerText(),/Private saved drill/);
+      await page.selectOption('#library-source-filter','saved'); assert.equal(await page.locator('.library-card').count(),1); assert.match(await page.locator('.library-source-tag').innerText(),/Private library/);
       await page.evaluate(()=>saved.push({...saved[0],id:'foreign-drill',title:'PRIVATE_COACH_MARKER',author_email:'another-coach@example.test'}));
       await page.locator('#library-reload').click(); await page.waitForFunction(()=>!document.querySelector('#library-reload').disabled);
       assert.equal(await page.locator('.library-card').count(),role==='owner'?2:1,'Private author restriction survives unified rendering');

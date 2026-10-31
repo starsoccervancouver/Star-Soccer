@@ -392,6 +392,25 @@
     partialForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,50));
     check(partialCalls===2 && partialForm.querySelector('[type="submit"]').disabled && partialForm.elements.namedItem('email').disabled && doc.querySelector('#receipt').hidden,'Partial family acceptance freezes the form and prevents resending the received child');
     check(doc.querySelector('.registration-recovery').textContent.includes('Alex Example — request received') && doc.querySelector('.registration-recovery').textContent.includes('Sam Example — receipt not confirmed'),'Partial family submission reports each child’s actual submission state');
+    for(const page of ['registration.html?sessionId=friday&type=dropin','christmas-camp-registration.html']) {
+      doc=await load(page,320);
+      const familyForm=doc.querySelector('#training-registration,#camp-registration'),familyWindow=frame.contentWindow;
+      for(const [name,value] of [['email','family@example.invalid'],['Player name','Alex Example'],['Player age','8'],['Experience','new']])if(familyForm.elements.namedItem(name))familyForm.elements.namedItem(name).value=value;
+      for(let i=0;i<2;i++){
+        doc.querySelector('.family-add-player').click();
+        const player=doc.querySelector('.family-player:last-child');
+        player.querySelector('[data-player-field="name"]').value='Sam Example';player.querySelector('[data-player-field="age"]').value='9';
+        if(player.querySelector('select'))player.querySelector('select').value='some';
+      }
+      const remaining=doc.querySelector('.family-player:last-child'),payloads=[];
+      familyWindow.fetch=async(url,options)=>{payloads.push(Object.fromEntries(options.body.entries()));return {ok:true,json:async()=>({success:true})};};
+      familyForm.requestSubmit();
+      check(payloads.length===0 && !remaining.querySelector('[data-player-field="name"]').validity.valid,page+' blocks duplicate additional players');
+      doc.querySelector('.family-remove-player').click();
+      check(remaining.querySelector('[data-player-field="name"]').validity.valid,page+' clears a duplicate-name error when the other duplicate is removed');
+      familyForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,50));
+      check(payloads.length===2 && payloads.map(p=>p['Player name']).join(',')==='Alex Example,Sam Example' && familyForm.hidden,page+' submits the corrected family without requiring another name edit');
+    }
     doc=await load('program-private-small-group.html?coach=romeo');
     check(doc.querySelector('[name="Preferred coach"]').value==='romeo','Coach preference survives the inquiry link');
     check(doc.querySelector('[name="Referral source"]') && !doc.querySelector('[name="Referral source"]').required,'Private inquiry also offers optional referral source');

@@ -164,6 +164,7 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     // Planner voice controls are field-specific and one microphone session may be active at a time.
     await openView(page, 'plan');
     await page.waitForFunction(() => !document.querySelector('#plan-focus').disabled);
+    await page.locator('#plan-supporting-notes > summary').click();
     const focusButton = page.locator('#dictation-plan-focus'), warmupButton = page.locator('#dictation-plan-warmup');
     await focusButton.click();
     await page.evaluate(() => fixtureSpeech.capture(6));

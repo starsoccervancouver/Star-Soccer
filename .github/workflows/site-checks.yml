@@ -50,6 +50,11 @@ jobs:
           node tests/coach-audit-safety-ui.cjs
           node tests/coach-notes-drawer-ui.cjs
           node tests/coach-reuse-budget-ui.cjs
+      - name: Check recovery from interrupted attendance and note saves
+        run: |
+          node tests/attendance-recovery-ui.cjs
+          node tests/coach-note-recovery-ui.cjs
+          node tests/coach-attendance-week-ui.cjs
       - name: Check focused session planning and private reusable drills
         run: |
           node tests/coach-focus-planner-ui.cjs

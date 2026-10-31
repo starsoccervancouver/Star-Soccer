@@ -39,7 +39,7 @@ const { chromium } = require('playwright');
     session(1, '2026-12-31', players),
     session(2, '2027-01-01', [player(4, 'Fictional Friday Player', 'Not marked')]),
   ];
-  const { openSession, leaveGroup } = require('./coach-fixture-navigation.cjs');
+  const { openSession, leaveGroup, openDestination } = require('./coach-fixture-navigation.cjs');
   const users = [
     { ...profile, active: true, assignments: [] },
     { email: 'coach@example.test', name: 'Fixture Coach', role: 'coach', active: true, assignments: [rid(1)] },
@@ -152,7 +152,7 @@ const { chromium } = require('playwright');
     assert.equal(await clear.isVisible(), true);
     checks++;
 
-    await leaveGroup(page); await page.getByRole('button', { name: 'Settings & profile', exact: true }).click();
+    await leaveGroup(page); await openDestination(page, 'settings');
     await page.getByRole('button', { name: 'Team & access', exact: true }).click();
     await page.locator('#user-list .account-row').first().waitFor();
     const signinLinks = page.getByRole('button', { name: 'Copy sign-in link', exact: true });

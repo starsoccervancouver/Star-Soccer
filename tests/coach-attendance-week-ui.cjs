@@ -23,13 +23,13 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
       if (url.pathname.endsWith('/bootstrap')) value = { profile: { ...profile, role }, csrfToken: 'fictional-csrf', googleEnabled: true };
       else if (url.pathname.endsWith('/desk')) value = { profile: { ...profile, role }, sessions: rows, notes: [], tasks: [], observedAt: now };
       else if (url.pathname.endsWith('/session')) value = { plan: { version: 0, content: {} } };
-      else if (allowMark && url.pathname.endsWith('/attendance')) { const payload = request.postDataJSON(); writes.push(payload); await new Promise(resolve => { releaseMark = resolve; }); value = { saved: true, status: payload.status }; }
+      else if (allowMark && url.pathname.endsWith('/attendance')) { const payload = request.postDataJSON(); writes.push(payload); const result = await new Promise(resolve => { releaseMark = resolve; }); releaseMark = null; if (result === 'lost') return route.abort(); value = result || { saved: true, status: payload.status }; }
       else throw Error('Unexpected fixture request: ' + url.pathname);
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
     });
     const page = await context.newPage(); page.setDefaultTimeout(6000); page.on('pageerror', e => errors.push(e.message));
     await page.goto(origin + '/workspace'); await page.locator('#app').waitFor({ state: 'visible' });
-    return { page, context, writes, errors, release: () => releaseMark?.() };
+    return { page, context, writes, errors, release: result => releaseMark?.(result) };
   }
   try {
     const f = await fixture(), page = f.page;
@@ -75,6 +75,21 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     pending.release(); await pending.page.locator('#roster button.current').getByText('Present', { exact: true }).waitFor();
     assert.equal(await pending.page.locator('#planner-back').isDisabled(), false);
     assert.deepEqual(pending.errors, []); await pending.context.close(); checks++;
+    const superseded = await fixture(pendingRows, 'owner', true);
+    await openSession(superseded.page, pendingRows, rid(2), 'attendance');
+    await superseded.page.locator('#roster').getByRole('button', { name: 'Present', exact: true }).click();
+    await superseded.page.waitForFunction(() => document.querySelector('#planner-back').disabled);
+    superseded.release('lost');
+    await superseded.page.locator('#global-error').waitFor({ state: 'visible' });
+    await superseded.page.locator('#roster').getByRole('button', { name: 'Present', exact: true }).click();
+    await superseded.page.waitForFunction(() => document.querySelector('#planner-back').disabled);
+    superseded.release({ saved: true, duplicate: true, superseded: true, status: 'Absent' });
+    await superseded.page.locator('#roster button.current').getByText('Absent', { exact: true }).waitFor();
+    assert.equal(superseded.writes.length, 2);
+    assert.equal(superseded.writes[0].commandId, superseded.writes[1].commandId, 'A lost response reuses the original command');
+    assert.match(await superseded.page.locator('#notice').innerText(), /attendance changed after your earlier action\. Current status: absent\./);
+    assert.doesNotMatch(await superseded.page.locator('#notice').innerText(), /marked present/);
+    assert.deepEqual(superseded.errors, []); await superseded.context.close(); checks++;
     console.log('Attendance group/history UI: ' + checks + ' isolated group, date, cancellation, role-scope, pending-save and mobile checks passed.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

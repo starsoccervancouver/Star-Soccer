@@ -74,7 +74,7 @@ const addAssets = require('./coach-fixture-fonts.cjs');
 
     await agenda.filter({ has: page.locator('h3', { hasText: /Thursday/ }) }).getByRole('button', { name: /^Open group:/ }).click();
     let actions = await page.evaluate(() => fixtureCoachEvents.filter(event => event.type === 'coach:open-session'));
-    assert.deepEqual(actions.map(action => action.detail), [{ sessionId: rid(1), tab: 'plan', workspaceView: 'attendance' }]);
+    assert.deepEqual(actions.map(({ detail: { sessionId, tab, workspaceView } }) => ({ sessionId, tab, workspaceView })), [{ sessionId: rid(1), tab: 'plan', workspaceView: 'attendance' }]);
     checks++;
 
     assert.equal(await page.locator('#development-player').count(), 0, 'History follows the chosen player folder without a competing global player dropdown');

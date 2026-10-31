@@ -37,7 +37,13 @@
       const notes=input('Note for this player (optional)','textarea','notes',key+'-notes');fieldset.append(notes.label);
       const remove=doc.createElement('button');remove.type='button';remove.className='flow-text-link family-remove-player';remove.textContent='Remove player';fieldset.append(remove);
       const record={key,state:'pending',reference:'',name:name.el,age:age.el,experience:exp,notes:notes.el,fieldset};records.push(record);section.append(fieldset);
-      remove.addEventListener('click',()=>{if(locked)return;records.splice(records.indexOf(record),1);fieldset.remove();onChange();add.focus();});
+      remove.addEventListener('click',()=>{
+        if(locked)return;
+        records.splice(records.indexOf(record),1);fieldset.remove();
+        // Removing a duplicate must allow native validation to reach validate() again.
+        records.forEach(p=>p.name.setCustomValidity(''));
+        onChange();add.focus();
+      });
       fieldset.addEventListener('input',()=>{for(const p of records)p.name.setCustomValidity('');});
       onChange();name.el.focus();
     });

@@ -110,6 +110,39 @@ test('late readers can opt out using a separate expiring preference token after 
  const csrfSession=browser(),p=service.preview({token:inv.optOutToken,action:'optout',csrfSession});assert.equal(service.optOut({token:inv.optOutToken,challenge:p.challenge,csrfSession,idempotencyKey:browser()}).weeklyEmailsEnabled,false);
  assert.equal(store.get('SELECT COUNT(*) n FROM responses').n,0);setClock(inv.optOutExpiresAt);error(()=>service.preview({token:inv.optOutToken,action:'optout',csrfSession}),'INVITATION_EXPIRED');
 });
+
+test('session and roster lifecycle updates revoke RSVP without breaking the 30-day opt-out link',async t=>{
+ for(const change of ['completed','cancelled','rescheduled','removed','pass','unverified']){
+  const {service,input,store,setClock}=await setup(t),inv=issue(service);input.revision=2;
+  if(['completed','cancelled'].includes(change))input.sessions[0].status=change;
+  else if(change==='rescheduled'){input.sessions[0].startAt='2026-11-04T16:00:00-07:00';input.sessions[0].endAt='2026-11-04T17:30:00-07:00';}
+  else if(change==='removed')input.sessions[0].entries.shift();
+  else if(change==='pass')input.sessions[0].entries[0].kind='pass';
+  else input.sessions[0].entries[0].emailVerified=false;
+  service.importRoster(input);error(()=>preview(service,inv),'INVALID_INVITATION');
+  const csrfSession=browser(),p=service.preview({token:inv.optOutToken,action:'optout',csrfSession});
+  assert.equal(service.optOut({token:inv.optOutToken,challenge:p.challenge,csrfSession,idempotencyKey:browser()}).weeklyEmailsEnabled,false,change);
+  assert.equal(store.get('SELECT COUNT(*) n FROM responses').n,0);assert.equal(store.get('SELECT COUNT(*) n FROM preferences').n,1);
+  input.revision=3;service.importRoster(input);assert.equal(store.get('SELECT weekly_enabled FROM preferences').weekly_enabled,0);
+  setClock(inv.optOutExpiresAt);error(()=>service.preview({token:inv.optOutToken,action:'optout',csrfSession}),'INVITATION_EXPIRED');
+ }
+});
+
+test('explicit invitation rotation still revokes both the previous RSVP and opt-out capabilities',async t=>{
+ const {service}=await setup(t),first=issue(service),next=service.issueInvitation({playerId:'demo_player_0',sessionId:'demo_session',rotate:true});
+ error(()=>preview(service,first),'INVALID_INVITATION');
+ error(()=>service.preview({token:first.optOutToken,action:'optout',csrfSession:browser()}),'INVALID_INVITATION');
+ assert.equal(preview(service,next).currentResponse,null);
+ const csrfSession=browser(),p=service.preview({token:next.optOutToken,action:'optout',csrfSession});
+ assert.equal(service.optOut({token:next.optOutToken,challenge:p.challenge,csrfSession,idempotencyKey:browser()}).weeklyEmailsEnabled,false);
+});
+
+test('a retained opt-out link does not block issuing the replacement RSVP for a rescheduled session',async t=>{
+ const {service,input}=await setup(t),first=issue(service);input.revision=2;input.sessions[0].startAt='2026-11-04T16:00:00-07:00';service.importRoster(input);
+ const replacement=issue(service);assert.notEqual(replacement.token,first.token);assert.equal(preview(service,replacement).startAt,'2026-11-04T23:00:00.000Z');
+ error(()=>service.preview({token:first.optOutToken,action:'optout',csrfSession:browser()}),'INVALID_INVITATION');
+ error(()=>issue(service),'INVITATION_ALREADY_ISSUED');
+});
 test('roster imports reject duplicates, identity changes and stale revisions atomically',async t=>{
  const {service,input}=await setup(t);const dup=structuredClone(input);dup.revision=2;dup.sessions[0].entries.push(dup.sessions[0].entries[0]);error(()=>service.importRoster(dup),'DUPLICATE_PLAYER_SESSION');
  const changed=structuredClone(input);changed.sessions[0].label='Changed';error(()=>service.importRoster(changed),'ROSTER_VERSION_CONFLICT');

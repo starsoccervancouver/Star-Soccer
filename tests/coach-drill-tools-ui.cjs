@@ -166,6 +166,8 @@ const { chromium } = require('playwright');
       return r;
     };
     const resetScroll = () => page.evaluate(() => { window.scrollTo(0, 0); for (const el of document.querySelectorAll('#library-form,.tactics-inspector')) el.scrollTop = 0; });
+    // A real drill's playback strip must fit too, not just an empty one-phase board.
+    for (let phase = 1; phase < 5; phase++) await page.locator('#tactics-add-frame').click();
     const layoutDraft = await draft();
     const viewports = [{width:1280,height:800}, {width:1440,height:1000}, {width:1920,height:1080}, {width:1024,height:768}, {width:390,height:844}, {width:320,height:700}, {width:844,height:390}];
     for (const viewport of viewports) {
@@ -178,6 +180,8 @@ const { chromium } = require('playwright');
         assert(field.width >= 500 && field.height >= 300, 'The normal desktop field remains a useful size at ' + size + ': ' + field.width + '×' + field.height);
         await inViewport('.tactics-phases', 'The phase controls');
         await inViewport('#tactics-add-frame', 'Add phase');
+        await inViewport('#tactics-play', 'Playback'); await inViewport('#tactics-progress', 'Playback position');
+        assert((await rect('.tactics-phases')).height < 175, 'Five phases keep a compact timeline at ' + size);
       }
       for (const target of await page.locator('#library-form button:visible,#library-form summary:visible').evaluateAll(elements => elements.map(el => { const r = el.getBoundingClientRect(); return { name:el.id || el.textContent.trim(), width:r.width, height:r.height }; }))) {
         assert(target.width >= 43.5 && target.height >= 43.5, size + ': ' + target.name + ' keeps a 44px touch target (' + target.width + '×' + target.height + ')');

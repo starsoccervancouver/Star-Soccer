@@ -379,9 +379,13 @@ body.drill-creator-focus #tactics-board-tools .tactics-view-options>.tactics-fie
     grid-area: inspector; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
     scrollbar-gutter: stable; padding-right: 3px; scroll-padding: 8px;
   }
-  body.drill-creator-focus #tactics-board-tools .tactics-phases { gap: 4px 8px; }
-  body.drill-creator-focus #tactics-board-tools .tactics-phase-heading { display: grid; }
-  body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions { justify-content: end; }
+  body.drill-creator-focus #tactics-board-tools .tactics-phases { grid-template-columns: minmax(0,1fr) minmax(230px,.6fr); gap: 4px 8px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-phase-heading { display: grid; grid-column: 1; grid-row: 1; width: 145px; justify-self: start; }
+  body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions { grid-column: 1/-1; grid-row: 1; justify-content: end; padding-left: 150px; }
+  body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-frame-list { grid-column: 1; grid-row: 2; }
+  body.drill-creator-focus #tactics-board-tools .tactics-preview-controls { grid-column: 2; grid-row: 2; gap: 6px; align-items: center; }
+  body.drill-creator-focus #tactics-board-tools .tactics-preview-controls input[type=range] { margin: 0; }
+  body.drill-creator-focus #tactics-board-tools .tactics-playback-options { max-width: 120px; }
   body.drill-creator-focus #tactics-board-tools .tactics-compact-details {
     grid-area: extras; align-self: end; max-height: 42dvh; overflow: auto; margin: 0;
     padding: 0 10px; border: 1px solid var(--desk-line,#b6afa2); border-radius: 10px;

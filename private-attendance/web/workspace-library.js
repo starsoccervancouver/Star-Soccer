@@ -208,8 +208,8 @@
   function renderState() {
     if (editorStandalone !== standalone()) {
       editorStandalone = standalone(); drillDetails.open = !editorStandalone;
-      if (editorStandalone) { editorHeader.append(editorActions); editorHeader.after(diagramEditor, drillDetails); body.prepend(editor); }
-      else { editor.append(editorActions, reuse); editorHeader.after(drillDetails, diagramBox, diagramEditor); body.append(editor); }
+      if (editorStandalone) { editorHeader.prepend(cancel); editorHeader.append(editorActions); editorHeader.after(diagramEditor, drillDetails); body.prepend(editor); }
+      else { editorActions.append(cancel); editor.append(editorActions, reuse); editorHeader.after(drillDetails, diagramBox, diagramEditor); body.append(editor); }
     }
     editorTitle.hidden = standalone(); cancel.textContent = standalone() ? 'Back to drills' : 'Clear draft';
     if (standalone() && !editor.hidden) editorHeader.append(status); else if (status.parentNode !== body) filters.before(status);

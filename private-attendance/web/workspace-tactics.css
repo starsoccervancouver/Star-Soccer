@@ -232,3 +232,17 @@
   #tactics-board-tools .tactics-main-toolbar .tactics-pieces { grid-template-columns: repeat(3,minmax(0,1fr)); }
   #tactics-board-tools .tactics-equipment { grid-column: span 2; }
 }
+
+/* Keep editing beside the field and playback beside the sequence. */
+#tactics-board-tools .tactics-edit-tools{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;min-width:0}
+#tactics-board-tools .tactics-edit-history{display:flex;gap:6px;border-left:1px solid var(--desk-line,#b6afa2);padding-left:10px}
+#tactics-board-tools .tactics-edit-history button{padding:8px 10px}
+#tactics-board-tools .tactics-sequence-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
+#tactics-board-tools .tactics-sequence-actions .tactics-playback{display:flex;flex:1 1 220px;flex-wrap:wrap;align-items:center;gap:6px;padding:0;margin:0}
+#tactics-board-tools .tactics-sequence-actions #tactics-playback-status{flex-basis:100%;font-size:12px}
+#tactics-board-tools .tactics-sequence-actions #tactics-add-frame{flex:0 0 auto;margin-left:auto}
+#library-diagram-editor #tactics-board-tools .tactics-workbar{padding:0;margin:0 0 8px}
+#library-diagram-editor #tactics-board-tools .tactics-workbar .tactics-status{margin:0;font-size:12px}
+:is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools :is(.tactics-main-toolbar,.tactics-sequence-actions) button,#tactics-board-tools .tactics-equipment>summary{border-radius:999px}
+@media(min-width:1001px){#tactics-board-tools .tactics-main-toolbar{grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr)}}
+@media(max-width:600px){#tactics-board-tools .tactics-edit-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}#tactics-board-tools .tactics-edit-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#tactics-board-tools .tactics-edit-history{justify-content:flex-end;border-left:0;padding-left:0}#tactics-board-tools .tactics-edit-tools button{padding:8px;font-size:12px}#tactics-board-tools .tactics-sequence-actions .tactics-playback{flex-basis:100%}#tactics-board-tools .tactics-sequence-actions #tactics-add-frame{margin-left:0}}

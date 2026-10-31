@@ -66,10 +66,17 @@ const { chromium } = require('playwright');
     assert(initialLayout.detailsTop > initialLayout.fieldTop, 'Written details are below the builder');
     assert.equal(await page.locator('#tactics-equipment').evaluate(n => n.open), false);
     assert.equal(await page.locator('#tactics-save').isVisible(), false, 'One visible Save drill action');
+    assert.equal(await page.locator('.tactics-edit-history #tactics-undo,.tactics-edit-history #tactics-redo').count(), 2, 'Undo and redo stay beside field editing');
+    assert.equal(await page.locator('.tactics-sequence-actions #tactics-play,.tactics-sequence-actions #tactics-reset,.tactics-sequence-actions #tactics-add-frame').count(), 3, 'Playback and phase creation share the sequence controls');
+    assert.equal(await page.locator('.tactics-inspector #tactics-add-frame').count(), 0, 'No duplicate phase creation in the inspector');
+    assert.equal(await page.locator('.library-editor-header > #library-cancel').count(), 1, 'Back is separate from the save actions');
     for (const width of [390, 1280]) {
       await page.setViewportSize({ width, height: 844 }); await page.locator('#library-new').click();
       assert(await page.locator('#tactics-pitch-board').evaluate(n => n.getBoundingClientRect().top < 600), 'New drill shows the field near the top at ' + width + 'px');
       assert(await page.getByLabel('Field view', { exact: true }).isVisible());
+      assert(await page.locator('#tactics-add-frame').isVisible(), 'Next phase remains available for a blank drill');
+      const header = await page.evaluate(() => { const back = document.getElementById('library-cancel').getBoundingClientRect(), save = document.getElementById('library-save').getBoundingClientRect(); return { back:back.x, save:save.x }; });
+      assert(header.back < header.save, 'Back is left of Save at ' + width + 'px');
     }
     await fill('#library-title', 'Fictional passing and finish');
     await fill('#library-setup', 'Pass through the gate and finish into the small goal.');
@@ -179,6 +186,9 @@ const { chromium } = require('playwright');
     await page.locator('#library-form').screenshot({ path: 'outputs/coach-builder-simplified-desktop.png' });
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    await page.locator('#tactics-phase-notes').scrollIntoViewIfNeeded();
+    const pinned = await page.locator('.library-editor-header').evaluate(el => { const r = el.getBoundingClientRect(), save = document.getElementById('library-save').getBoundingClientRect(); return {top:r.top,saveBottom:save.bottom,sticky:getComputedStyle(el).position}; });
+    assert.equal(pinned.sticky, 'sticky'); assert(pinned.top >= 0 && pinned.saveBottom < 844, 'Save stays available while editing notes on mobile');
     await page.locator('#library-form').screenshot({ path: 'outputs/coach-builder-simplified-mobile.png' });
     await page.setViewportSize({ width: 1280, height: 1050 });
 

@@ -216,7 +216,11 @@
   footer.append(editingActions, saveActions, status, recoveryActions);
   const workbar = el('div', '', 'tactics-workbar');
   const undoControl = editingActions.children[0], redoControl = editingActions.children[1], playControl = playback.firstElementChild, saveControl = saveActions.firstElementChild;
-  workbar.append(heading.firstChild, undoControl, redoControl, playControl, saveControl, status);
+  workbar.append(heading.firstChild, saveControl, status);
+  const editHistory = el('div', '', 'tactics-edit-history'); editHistory.setAttribute('role', 'group'); editHistory.setAttribute('aria-label', 'Edit history'); editHistory.append(undoControl, redoControl);
+  const editTools = el('div', '', 'tactics-edit-tools'); editModes.replaceWith(editTools); editTools.append(editModes, editHistory);
+  const sequenceActions = el('div', '', 'tactics-sequence-actions'); sequenceActions.setAttribute('role', 'group'); sequenceActions.setAttribute('aria-label', 'Playback and phases');
+  playback.prepend(playControl); sequenceActions.append(playback, phaseActions.querySelector('#tactics-add-frame')); phaseHeading.after(sequenceActions);
   const extras = el('details', '', 'tactics-compact-details'); extras.append(el('summary', 'Templates & export'), heading, editingActions, saveActions,
     button('Export SVG image', 'tactics-export', exportImage), button('Print diagram', 'tactics-print', printDiagram),
     button('Save draft as new setup', 'tactics-save-copy', () => { if (!editable() || recoveryNeeded) return; const draft = clone(record); clear(); record.title = (draft.title.slice(0, 73) + ' (copy)').slice(0, 80); record.content = draft.content; render(); tell('New unsaved copy. Save setup to keep it.'); notifyDraft(); }), intro);

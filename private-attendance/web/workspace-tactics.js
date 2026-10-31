@@ -347,6 +347,14 @@
   for (const [name, text, dx, dy] of [['left', '←', -100, 0], ['up', '↑', 0, -80], ['down', '↓', 0, 80], ['right', '→', 100, 0]]) { const b = button(text, 'tactics-pan-' + name, () => setView(zoom, dx, dy)); b.setAttribute('aria-label', 'Pan field ' + name); b.title = 'Move view ' + name; panControls.append(b); }
   viewControls.append(panControls);
   const fieldDock = el('div', '', 'tactics-field-dock'); fieldDock.append(cameraTools, viewControls); fieldColumn.append(fieldDock);
+  function placeFieldDock() {
+    const header = libraryBinding?.host.closest('form')?.querySelector('.library-editor-header');
+    const wide = header && document.body.classList.contains('drill-creator-focus') && innerWidth >= 1000 && innerHeight >= 640;
+    fieldColumn.dataset.dock = wide ? 'panel' : 'bottom';
+    if (wide) { if (fieldDock.parentElement !== inspector) inspector.prepend(fieldDock); const actions = header.querySelector('.library-actions'); if (focusField.parentElement !== header || focusField.nextElementSibling !== actions) header.insertBefore(focusField, actions); }
+    else { if (fieldDock.parentElement !== fieldColumn) fieldColumn.append(fieldDock); if (focusField.parentElement !== cameraTools) cameraTools.append(focusField); }
+  }
+  new ResizeObserver(() => { if (active() && loaded) draw(); }).observe(fieldColumn);
   const guidance = el('details', '', 'tactics-guidance'); guidance.append(el('summary','Field controls'), pathCaption, help); inspector.append(guidance);
   editor.append(topActions, boardLayout, recoveryActions);
   mount.append(workbar, editor, library, reuse);
@@ -661,6 +669,7 @@
     return art;
   }
   function draw() {
+    placeFieldDock();
     const geometry = cameraGeometry(), bounds = viewBounds();
     viewCenter = { x: Math.max(bounds.left, Math.min(bounds.right, viewCenter.x)), y: Math.max(bounds.top, Math.min(bounds.bottom, viewCenter.y)) };
     updateViewControls();
@@ -699,7 +708,7 @@
       const hitRadius = Math.max(26, 22 / screenScale / artScale);
       piece.append(art); art.append(svg('circle', { r: hitRadius, fill: 'transparent', class: 'tactics-hit' }));
       if (selection().includes(item.id)) art.append(svg('circle', { r: 28, fill: 'none', stroke: '#152d42', 'stroke-width': 3, 'stroke-dasharray': '4 3', 'pointer-events': 'none' }));
-      const settings = visibleFrame.positions.find(v => v.id === item.id), graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ')'); art.append(graphic);
+      const settings = visibleFrame.positions.find(v => v.id === item.id), graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ')'); else if (item.kind === 'cone' || ['home','away'].includes(item.kind) && !Number.isFinite(settings.facing)) graphic.setAttribute('transform','rotate('+(-geometry.angle)+')'); art.append(graphic);
       if (['home', 'away'].includes(item.kind) && currentFrame().positions.some(v => v.attachedTo === item.id)) art.append(svg('circle', { cx: 22, cy: -23, r: 7, fill: '#fffdf7', stroke: '#203742', 'stroke-width': 2, 'data-possession': item.id }));
       if (item.label) {
         const inside = ['home', 'away'].includes(item.kind) && item.label.length <= 3, width = Math.max(34, item.label.length * 8 + 12);

@@ -97,6 +97,24 @@ test('zones require bounded dimensions and supported shape and colour',async()=>
  for(const value of [undefined,null,{...zone,width:0},{...zone,width:91},{...zone,height:'20'},{...zone,height:Infinity},{...zone,shape:'script'},{...zone,color:'#fff'},{...zone,extra:true}])await reject(c=>{c.items[3]={id:'cone',kind:'zone',label:'Zone',zone:value};});
 });
 
+test('optional zone outlines preserve both boolean values and unchanged legacy output',async()=>{
+ const {validateDiagram}=await validator;
+ for(const shape of ['rect','ellipse'])for(const outline of [undefined,false,true]){
+  const content=diagram(),zone={shape,width:25,height:30,color:'blue'};
+  if(outline!==undefined)zone.outline=outline;
+  content.items[3]={id:'cone',kind:'zone',label:'',zone};
+  assert.deepStrictEqual(validateDiagram(content),content);
+  assert.equal(JSON.stringify(validateDiagram(content)),JSON.stringify(content));
+ }
+});
+
+test('zone outlines reject nonboolean values and extra fields',async()=>{
+ const zone={shape:'rect',width:25,height:25,color:'blue'};
+ for(const outline of [null,undefined,0,1,'true','false',{},[]])await reject(content=>{content.items[3]={id:'cone',kind:'zone',label:'',zone:{...zone,outline}};});
+ await reject(content=>{content.items[3]={id:'cone',kind:'zone',label:'',zone:{...zone,outline:true,stroke:'unsafe'}};});
+ await reject(content=>{content.items[3].outline=true;});
+});
+
 test('optional goal rotation round trips exactly within schema version 1',async()=>{
  const {validateDiagram}=await validator,content=diagram();
  content.items.push({id:'goal',kind:'goal',label:''});

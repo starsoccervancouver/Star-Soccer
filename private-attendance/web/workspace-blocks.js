@@ -24,7 +24,7 @@
       if (Object.hasOwn(item, 'color') && (!['home', 'away'].includes(item.kind) || typeof item.color !== 'string' || !Object.hasOwn(playerColors, item.color))) return null;
       kinds.set(item.id, item.kind);
       if (item.kind === 'zone') {
-        if (!object(item.zone, ['shape', 'width', 'height', 'color']) || !['rect', 'ellipse'].includes(item.zone.shape) || !['blue', 'gold', 'green'].includes(item.zone.color) || !number(item.zone.width, 5, 90) || !number(item.zone.height, 5, 90)) return null;
+        if (!object(item.zone, ['shape', 'width', 'height', 'color'], ['outline']) || Object.hasOwn(item.zone, 'outline') && typeof item.zone.outline !== 'boolean' || !['rect', 'ellipse'].includes(item.zone.shape) || !['blue', 'gold', 'green'].includes(item.zone.color) || !number(item.zone.width, 5, 90) || !number(item.zone.height, 5, 90)) return null;
       } else if (Object.hasOwn(item, 'zone')) return null;
     }
     for (const frame of value.frames) {
@@ -66,7 +66,7 @@
       image.append(svg('rect', { width: 200, height: 130, fill: '#e3ebdc' }), svg('rect', { x: 5, y: 5, width: 190, height: 120, fill: 'none', stroke: '#8ea58b' }));
       for (const item of diagram.items) {
         const p = diagram.frames[0].positions.find(position => position.id === item.id), x = p.x * 2, y = p.y * 1.3;
-        if (item.kind === 'zone') { image.append(svg(item.zone.shape === 'ellipse' ? 'ellipse' : 'rect', item.zone.shape === 'ellipse' ? { cx: x, cy: y, rx: item.zone.width, ry: item.zone.height * .65, fill: '#537b782b', stroke: '#537b78' } : { x: x - item.zone.width, y: y - item.zone.height * .65, width: item.zone.width * 2, height: item.zone.height * 1.3, fill: '#537b782b', stroke: '#537b78' })); continue; }
+        if (item.kind === 'zone') { image.append(svg(item.zone.shape === 'ellipse' ? 'ellipse' : 'rect', item.zone.shape === 'ellipse' ? { cx: x, cy: y, rx: item.zone.width, ry: item.zone.height * .65, fill: item.zone.outline ? 'none' : '#537b782b', stroke: '#537b78' } : { x: x - item.zone.width, y: y - item.zone.height * .65, width: item.zone.width * 2, height: item.zone.height * 1.3, fill: item.zone.outline ? 'none' : '#537b782b', stroke: '#537b78' })); continue; }
         image.append(svg(item.kind === 'cone' ? 'path' : item.kind === 'goal' ? 'rect' : 'circle', item.kind === 'cone' ? { d: 'M' + x + ' ' + (y - 5) + 'l-4 9h8z', fill: '#bf762c' } : item.kind === 'goal' ? { x: x - 7, y: y - 4, width: 14, height: 8, fill: 'none', stroke: '#414849' } : { cx: x, cy: y, r: item.kind === 'ball' ? 3 : 5, fill: item.kind === 'ball' ? '#fff' : playerColors[item.color || (item.kind === 'home' ? 'blue' : 'gold')], stroke: '#414849' }));
         if (item.label) image.append(svg('text', { x, y: y - 7, 'text-anchor': 'middle', 'font-size': 7, fill: '#263332' }, item.label));
       }

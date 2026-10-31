@@ -14,6 +14,10 @@ Choose **Draw** and drag on the field to draw a smooth route that ends with an a
 
 Select a player and open **Body shape & cover shadow** to set their facing direction for that phase. Use the compass, angle slider, **Face the ball**, or the round field handle; arrow keys turn the handle by 15 degrees. Body direction animates through the shortest turn without changing movement routes. Cover shadows extend away from the nearest ball, or behind the body direction when there is no ball. Their length and width can be adjusted per phase. Direction and shadows appear in previews, playback and exported diagrams.
 
+**Body** and **Shadow** in the toolbar add players with these tools already enabled. Drag either tool onto an existing player to attach it for the selected phase. Body direction and shadow follow the player; the shadow also responds to the nearest ball. Attached balls sit close to the player's feet during placement and playback.
+
+**Training field** keeps green turf and a boundary without match markings. Camera-view choices are available only on **Full field**; other layouts retain zoom and the thirds guide. **Box** adds a clear rectangular outline instead of four cones. Move the box or drag its corner to resize it; arrow keys also resize the focused corner. Dimensions apply to every phase, and the Outline only checkbox switches between a line box and a shaded zone. Existing zones remain compatible through optional `zone.outline`.
+
 Existing diagrams remain compatible. Optional `purpose` is `drill` or `team-pattern`; absent means Drill. Player positions may include `facing` (0–359 degrees) and `shadow: {length, width}` (each 5–60). These values save with the existing diagram JSON; no database migration is required.
 
 ## Sharing and storage

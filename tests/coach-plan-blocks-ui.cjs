@@ -100,6 +100,27 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
     assert.equal(curvedArrow.arrowhead.trim().split(/\s+/).length, 3, 'Curved paths retain a triangular arrowhead');
     assert(curvedArrow.rejected.every(value => value === false), 'Empty, oversized and malformed curve points fail insertion and preview');
     assert(curvedArrow.unchanged.every(Boolean), 'Rejected curves leave the legacy plan unchanged');
+    const outlinedZone = await page.evaluate(() => {
+      const diagram = structuredClone(diagramFixture);
+      diagram.items.push({ id: 'box_1', kind: 'zone', label: '', zone: { shape: 'rect', width: 30, height: 20, color: 'blue', outline: true } });
+      diagram.frames[0].positions.push({ id: 'box_1', x: 50, y: 50 });
+      const activity = value => ({ target: 'technical', title: 'Fictional outlined area', text: 'Keep the passing area clear.', minutes: 10, diagram: value });
+      const accepted = CoachPlanBlocks.addDrill(activity(diagram)), retained = CoachPlanBlocks.content()?.[0]?.diagram;
+      const fill = CoachPlanBlocks.previewDiagram(diagram)?.querySelector('rect[width="60"][height="26"]')?.getAttribute('fill');
+      CoachPlanBlocks.discard(); publish();
+      const rejected = [], unchanged = [];
+      for (const outline of ['true', 1, null, {}, []]) {
+        const invalid = structuredClone(diagram); invalid.items.at(-1).zone.outline = outline;
+        rejected.push(CoachPlanBlocks.addDrill(activity(invalid)), CoachPlanBlocks.previewDiagram(invalid) !== null);
+        unchanged.push(CoachPlanBlocks.content() === undefined); CoachPlanBlocks.discard(); publish();
+      }
+      return { accepted, diagram, retained, fill, rejected, unchanged };
+    });
+    assert.equal(outlinedZone.accepted, true, 'Outlined boxes can be added to the plan');
+    assert.deepEqual(outlinedZone.retained, outlinedZone.diagram, 'Plan snapshots preserve the outlined box');
+    assert.equal(outlinedZone.fill, 'none', 'Fallback preview leaves the outlined box unfilled');
+    assert(outlinedZone.rejected.every(value => value === false), 'Nonboolean outline values fail insertion and preview');
+    assert(outlinedZone.unchanged.every(Boolean), 'Rejected outlined boxes do not change the plan');
     const insertion = await page.evaluate(() => {
       const drill = { target: 'technical', title: 'Receive safely', text: '  Keep exact instructions\nwith a second line.  ', minutes: 12, diagram: structuredClone(diagramFixture) };
       const canAdd = CoachPlanBlocks.canAddDrill(drill), unchangedBeforeAdd = CoachPlanBlocks.content() === undefined;

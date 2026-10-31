@@ -25,9 +25,10 @@ export function validateDiagram(content){
    result.color=item.color;
   }
   if(item.kind==='zone'){
-   const zone=object(item.zone,['shape','width','height','color']);
+   const zone=object(item.zone,['shape','width','height','color'],['outline']);
    if(!['rect','ellipse'].includes(zone.shape)||!['blue','gold','green'].includes(zone.color)||typeof zone.width!=='number'||!Number.isFinite(zone.width)||zone.width<5||zone.width>90||typeof zone.height!=='number'||!Number.isFinite(zone.height)||zone.height<5||zone.height>90)invalid();
    result.zone={shape:zone.shape,width:zone.width,height:zone.height,color:zone.color};
+   if(Object.hasOwn(zone,'outline')){if(typeof zone.outline!=='boolean')invalid();result.zone.outline=zone.outline;}
   }else if(Object.hasOwn(item,'zone'))invalid();
   return result;
  });

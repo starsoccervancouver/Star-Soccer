@@ -248,11 +248,26 @@ const { chromium } = require('playwright');
     },home);
     assert(Math.min(midpoint.facing,360-midpoint.facing)<.001,'350 to 10 degrees follows the shortest turn through zero');
     assert.equal(midpoint.shadows,1,'Playback previews include cover shadows');assert.deepEqual(await draft(),previewBefore,'Preview leaves editor data unchanged');
-    const releasedBallPreview = await page.evaluate(() => {
-      const content = {schemaVersion:1,pitch:'blank',items:[{id:'p',kind:'home',label:'1'},{id:'b',kind:'ball',label:''}],frames:[{id:'a',title:'Start',duration:2,positions:[{id:'p',x:20,y:20,facing:0},{id:'b',x:26,y:26,attachedTo:'p'}]},{id:'z',title:'Pass',duration:2,positions:[{id:'p',x:20,y:20,facing:90},{id:'b',x:80,y:26}]}]};
-      return CoachTactics.previewAt(content,1).image.querySelector('[data-preview-piece="b"]').getAttribute('transform');
+    const ballPreviews = await page.evaluate(() => {
+      const content = {schemaVersion:1,pitch:'blank',items:[{id:'p',kind:'home',label:'1'},{id:'b',kind:'ball',label:''}],frames:[{id:'a',title:'Start',duration:2,positions:[{id:'p',x:20,y:20,facing:0},{id:'b',x:23,y:23,attachedTo:'p'}]},{id:'z',title:'Pass',duration:2,positions:[{id:'p',x:20,y:20,facing:90},{id:'b',x:80,y:23}]}]};
+      const transform=seconds=>CoachTactics.previewAt(content,seconds).image.querySelector('[data-preview-piece="b"]').getAttribute('transform');
+      const released=transform(1);content.frames[1].positions[1].trail=[{x:40,y:60},{x:65,y:60}];
+      const releasedCurve=transform(1);delete content.frames[0].positions[1].attachedTo;
+      const freeCurve=transform(1);content.frames[0].positions[1].attachedTo='p';
+      content.frames[1].positions=[{id:'p',x:60,y:40},{id:'b',x:63,y:43,attachedTo:'p'}];
+      return {released,releasedCurve,freeCurve,attachedStart:transform(0),attachedMidpoint:transform(1),attachedEnd:transform(2)};
     });
-    assert.match(releasedBallPreview,/translate\(530 169\)/,'A released ball follows its pass during preview instead of reattaching to the carrier');
+    assert.match(ballPreviews.released,/translate\(515 149\.5\)/,'Released ball starts its pass at the closer three-unit carrier offset');
+    assert.equal(ballPreviews.releasedCurve,ballPreviews.freeCurve,'Releasing possession retains the free curved pass');
+    assert.notEqual(ballPreviews.releasedCurve,ballPreviews.released,'Recorded curve is not flattened on release');
+    assert.match(ballPreviews.attachedStart,/translate\(230 149\.5\)/);assert.match(ballPreviews.attachedMidpoint,/translate\(430 214\.5\)/);assert.match(ballPreviews.attachedEnd,/translate\(630 279\.5\)/,'Attached playback keeps the three-unit offset throughout movement');
+    for(const [selector,shadow]of [['#tactics-add-body',false],['#tactics-add-shadow',true]]){
+      const before=await draft();await reveal(selector);await page.locator(selector).click();
+      const after=await draft(),created=after.items.at(-1),position=after.frames[1].positions.find(p=>p.id===created.id);
+      assert.equal(after.items.length,before.items.length+1);assert(['home','away'].includes(created.kind));assert.equal(position.facing,0);
+      assert.equal(!!position.shadow,shadow,'Toolbar creates the requested player tool');
+      await page.locator('#tactics-undo').click();assert.deepEqual(await draft(),before,'Player toolbar creation is one undo');
+    }
     const bodySaved=await save();
     assert.equal(bodySaved.diagram.purpose,'team-pattern');assert.deepEqual(validateDiagram(bodySaved.diagram),bodySaved.diagram);
     assert.notEqual(JSON.stringify(bodySaved.diagram),JSON.stringify(await page.evaluate(()=>builderRecords[0].diagram)),'Fixture verifies a real server-normalized property order');

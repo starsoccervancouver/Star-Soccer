@@ -291,7 +291,7 @@ const { chromium } = require('playwright');
     await seekTo(.5);
     const runnerMid=await rendered('runner'), ballMid=await rendered('ball');
     assert(Math.abs(runnerMid.x-50)<.1 && runnerMid.y>40,'Scrubbing follows the curved route instead of the straight chord');
-    assert(Math.abs(ballMid.x-runnerMid.x-6)<.1 && Math.abs(ballMid.y-runnerMid.y-6)<.1,'Attached ball follows the same curve');
+    assert(Math.abs(ballMid.x-runnerMid.x-3)<.1 && Math.abs(ballMid.y-runnerMid.y-3)<.1,'Attached ball follows the same curve with the closer three-unit offset');
     assert.deepEqual(await draft(),curvedDraft,'Preview never rewrites the saved positions');
     await phaseClick('#tactics-reset');
     await reveal('#tactics-speed'); await page.locator('#tactics-speed').selectOption('1');

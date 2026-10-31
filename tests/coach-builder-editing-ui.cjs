@@ -202,7 +202,7 @@ const { chromium } = require('playwright');
     }
     await page.locator('#tactics-zoom-out').click(); const wider = await view();
     assert(wider.x + wider.width <= 1060.001 && wider.y + wider.height <= 710.001, 'Zooming out reclamps a panned viewport');
-    await page.locator('#tactics-zoom-fit').click(); assert.deepEqual(await view(), { x:-60,y:-60,width:1120,height:770 });
+    await page.locator('#tactics-zoom-fit').click(); assert.deepEqual(await view(), { x:-22,y:-22,width:1044,height:694 });
     assert(await page.locator('#tactics-zoom-out').isDisabled()); assert.equal(await page.locator('.tactics-pan-controls').isVisible(), false);
     assert.deepEqual(await draft(), diagramBeforeView, 'View controls never edit a drill or its recorded movement');
     // Body shape and cover shadows remain independent of recorded movement.

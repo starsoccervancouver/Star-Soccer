@@ -40,7 +40,7 @@ const { chromium } = require('playwright');
     page.on('pageerror', error => errors.push(error.message));
     const draft = () => page.evaluate(() => CoachTactics.libraryDiagram());
     const reveal = async selector => { const closed = page.locator(selector).locator('xpath=ancestor::details[not(@open)]'); while (await closed.count()) await closed.first().locator(':scope > summary').click(); };
-    const screen = point => page.locator('#tactics-pitch-board').evaluate((board, point) => { const p = board.createSVGPoint(); p.x = point.x * 10; p.y = point.y * 6.5; const s = p.matrixTransform(board.getScreenCTM()); return { x: s.x, y: s.y }; }, point);
+    const screen = point => page.locator('#tactics-pitch-board').evaluate((board, point) => { const p = board.createSVGPoint(); p.x = point.x * 10; p.y = point.y * 6.5; const s = p.matrixTransform((board.querySelector('[data-camera-scene]') || board).getScreenCTM()); return { x: s.x, y: s.y }; }, point);
     const drag = async (from, to) => {
       await page.locator('#tactics-pitch-board').scrollIntoViewIfNeeded();
       const a = await screen(from), b = await screen(to);
@@ -64,6 +64,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#tactics-phase-popover').isVisible(), false, 'Movement phases start collapsed');
     assert.equal(await page.locator('#tactics-frames').isVisible(), false, 'Phase thumbnails are unavailable until the phase dropdown opens');
     assert.equal(await page.locator('#tactics-progress').isVisible(), false, 'The playback scrubber stays inside the closed phase dropdown');
+    assert.equal(await page.locator('.tactics-compact-details').isVisible(), false, 'Templates and export are absent from the library creator');
 
     // A drawn arrow is useful even before players are placed, and must count as draft content.
     await draw({ x: 15, y: 20 }, { x: 70, y: 20 });
@@ -187,6 +188,44 @@ const { chromium } = require('playwright');
     for (let phase = 1; phase < 5; phase++) await page.locator('#tactics-add-frame').click();
     assert.equal(await page.locator('#tactics-phase-popover').isVisible(), false, 'Adding phases leaves the dropdown closed');
     const layoutDraft = await draft();
+    const surfaceBeforeCamera = await page.locator('#tactics-pitch').inputValue(), cameras = ['full', 'left-half', 'right-half', 'facing-goal', 'away-from-goal'], cameraViews = [];
+    assert.deepEqual(await page.locator('#tactics-camera option').evaluateAll(nodes => nodes.map(el => el.value)), cameras, 'The camera offers all five views');
+    for (const camera of cameras) {
+      await page.locator('#tactics-camera').selectOption(camera);
+      cameraViews.push(await page.locator('#tactics-pitch-board').evaluate(el => el.outerHTML));
+      assert.deepEqual(await draft(), layoutDraft, camera + ' camera preserves every phase, position and arrow');
+      assert.equal(await page.locator('#tactics-pitch').inputValue(), surfaceBeforeCamera, 'Camera changes preserve the actual field surface');
+    }
+    assert.equal(new Set(cameraViews).size, cameras.length, 'Each camera renders a distinct view');
+    const rotatedPlayerId = playerIds[3];
+    await page.locator('#tactics-camera').selectOption('facing-goal'); await page.locator('#tactics-item').selectOption(rotatedPlayerId);
+    await drag(layoutDraft.frames[4].positions.find(p => p.id === rotatedPlayerId), { x:68, y:55 });
+    const rotatedPlayer = (await draft()).frames[4].positions.find(p => p.id === rotatedPlayerId);
+    closeTo(rotatedPlayer.x, 68, 'Rotated camera drag maps back to model x'); closeTo(rotatedPlayer.y, 55, 'Rotated camera drag maps back to model y');
+    await page.locator('#tactics-undo').click(); assert.deepEqual(await draft(), layoutDraft, 'Undo restores a drag made in a rotated camera');
+    const beforeNudge = layoutDraft.frames[4].positions.find(p => p.id === rotatedPlayerId);
+    await page.locator('#tactics-pitch-board').press('ArrowRight');
+    let nudged = (await draft()).frames[4].positions.find(p => p.id === rotatedPlayerId);
+    closeTo(nudged.x, beforeNudge.x, 'Rotated keyboard right preserves model x'); assert(nudged.y > beforeNudge.y, 'Keyboard right follows the visible camera');
+    await page.locator('#tactics-undo').click();
+    await reveal('#tactics-nudge-up'); await page.locator('#tactics-nudge-up').click();
+    nudged = (await draft()).frames[4].positions.find(p => p.id === rotatedPlayerId);
+    assert(nudged.x > beforeNudge.x, 'Inspector nudge follows the visible camera'); closeTo(nudged.y, beforeNudge.y, 'Rotated nudge preserves model y');
+    await page.locator('#tactics-undo').click(); assert.deepEqual(await draft(), layoutDraft);
+    await page.locator('#tactics-camera').selectOption('away-from-goal');
+    await draw({x:60,y:20}, {x:85,y:35});
+    const rotatedArrow = (await draft()).frames[4].arrows.at(-1);
+    assert.equal((await draft()).frames[4].arrows.length, layoutDraft.frames[4].arrows.length + 1);
+    closeTo(rotatedArrow.x1, 60, 'Rotated drawing maps its start x'); closeTo(rotatedArrow.y1, 20, 'Rotated drawing maps its start y');
+    closeTo(rotatedArrow.x2, 85, 'Rotated drawing maps its end x'); closeTo(rotatedArrow.y2, 35, 'Rotated drawing maps its end y');
+    await page.locator('#tactics-undo').click(); assert.deepEqual(await draft(), layoutDraft, 'Undo restores a drawing made in a rotated camera');
+    await page.locator('#tactics-camera').selectOption('full');
+    const beforeGrid = await page.locator('#tactics-pitch-board').innerHTML();
+    await page.locator('#tactics-grid').click();
+    assert.notEqual(await page.locator('#tactics-pitch-board').innerHTML(), beforeGrid, 'The thirds guide changes the visible field');
+    assert.deepEqual(await draft(), layoutDraft, 'The thirds guide is visual only');
+    await page.locator('#tactics-grid').click();
+    assert.equal(await page.locator('#tactics-pitch-board').innerHTML(), beforeGrid, 'Turning the guide off restores the field');
     const viewports = [{width:1280,height:800}, {width:1440,height:1000}, {width:1920,height:1080}, {width:1024,height:768}, {width:390,height:844}, {width:320,height:700}, {width:844,height:390}];
     for (const viewport of viewports) {
       const size = viewport.width + 'x' + viewport.height;
@@ -219,6 +258,20 @@ const { chromium } = require('playwright');
       const screenshot = 'outputs/drill-creator-' + size + '.png'; await page.screenshot({ path: screenshot });
       if (size === '1280x800') fs.copyFileSync(screenshot, 'outputs/drill-creator-desktop.png');
       if (size === '390x844') fs.copyFileSync(screenshot, 'outputs/drill-creator-mobile.png');
+
+      const fieldBeforeFocus = await rect('#tactics-pitch-board');
+      await page.locator('#tactics-focus-field').click();
+      assert.equal(await page.locator('.tactics-inspector').isVisible(), false, 'Field focus hides the inspector at ' + size);
+      await inViewport('#tactics-focus-field', 'The control to restore the inspector');
+      if (viewport.width >= 1000) {
+        const focusedField = await inViewport('#tactics-pitch-board', 'The focused field');
+        assert(focusedField.width > fieldBeforeFocus.width + 100, 'Field focus reclaims inspector space at ' + size);
+      }
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Focused field has no horizontal overflow at ' + size);
+      assert.deepEqual(await draft(), layoutDraft, 'Field focus does not alter the drill at ' + size);
+      await page.locator('#tactics-focus-field').click();
+      assert(await page.locator('.tactics-inspector').isVisible(), 'The inspector returns at ' + size);
+      await resetScroll();
 
       await openPhases();
       assert.equal(await page.locator('#tactics-phases-toggle').getAttribute('aria-expanded'), 'true');

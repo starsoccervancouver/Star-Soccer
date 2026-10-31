@@ -480,3 +480,31 @@ body.drill-creator-focus #tactics-board-tools .tactics-inspector > .tactics-view
   body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-workbar { order: 2; margin-top: 6px; }
   body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-workbar:has(.tactics-error) { order: -1; }
 }
+
+/* Camera controls use the pitch edge; the drawing area has no toolbar overlays. */
+#tactics-board-tools .tactics-field-dock { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:6px 12px; padding:6px; background:#303a34; border:1px solid #425047; border-radius:12px; }
+#tactics-board-tools .tactics-camera-tools { display:flex; flex-wrap:wrap; align-items:center; gap:5px; min-width:0; }
+#tactics-board-tools .tactics-camera-tools select { width:auto; min-width:160px; min-height:44px; margin:0; padding:8px 28px 8px 10px; border-radius:9px; font-size:12px; }
+#tactics-board-tools .tactics-camera-tools button { padding:8px 10px; font-size:12px; border-radius:9px; }
+#tactics-board-tools .tactics-camera-tools button[aria-pressed=true] { background:#c8d8ba; color:#263b2d; border-color:#c8d8ba; }
+body.drill-creator-focus #tactics-board-tools .tactics-field-dock .tactics-view-controls,
+#tactics-board-tools .tactics-field-dock .tactics-view-controls { position:static; display:flex; flex-wrap:wrap; max-width:100%; margin:0; padding:0; border:0; background:transparent; box-shadow:none; gap:4px; }
+#tactics-board-tools .tactics-field-dock .tactics-zoom-value { color:#eef0e7; min-width:40px; text-align:center; }
+#tactics-board-tools .tactics-field-dock .tactics-pan-controls { color:#eef0e7; margin:0; }
+#tactics-board-tools .tactics-guidance { border:1px solid var(--desk-line,#b6afa2); border-radius:10px; padding:0 10px; font-size:12px; }
+#tactics-board-tools .tactics-guidance summary { padding:12px 0; min-height:44px; }
+#tactics-board-tools .tactics-guidance .tactics-path-caption { border:0; border-radius:8px; padding:8px; }
+#tactics-board-tools .tactics-guidance .tactics-board-help { margin:8px 0; }
+body.tactics-field-focus #tactics-board-tools .tactics-board-layout { grid-template-columns:minmax(0,1fr); }
+body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-field-column { grid-template-rows:minmax(0,1fr) auto; gap:6px; }
+body.drill-creator-focus #tactics-board-tools .tactics-canvas-wrap { grid-template-rows:minmax(0,1fr); background:#30483a; }
+@media(min-width:1000px) and (min-height:640px) {
+  body.drill-creator-focus.tactics-field-focus #library-form { grid-template-columns:minmax(0,1fr); grid-template-areas:'header' 'tools' 'field' 'status'; }
+}
+@media(max-width:760px) {
+  #tactics-board-tools .tactics-field-dock { gap:5px; }
+  #tactics-board-tools .tactics-camera-tools { width:100%; }
+  #tactics-board-tools .tactics-camera-tools select { flex:1; min-width:120px; }
+  #tactics-board-tools .tactics-camera-tools button { padding:8px 6px; font-size:11px; }
+  #tactics-board-tools .tactics-field-dock .tactics-view-controls { width:100%; justify-content:center; }
+}

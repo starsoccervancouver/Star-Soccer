@@ -7,6 +7,10 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   const uid = prefix => prefix + crypto.randomUUID().replaceAll('-', '').slice(0, 20);
   const kinds = { home: 'Blue player', away: 'Gold player', cone: 'Cone', ball: 'Ball', goal: 'Goal', zone: 'Zone' };
+  const playerColors = { blue: '#326887', gold: '#d9ae63', red: '#b64d49', green: '#397561', purple: '#79549d', white: '#f5f2e9' };
+  const playerColor = item => item.color || (item.kind === 'away' ? 'gold' : 'blue');
+  const playerInk = item => ['gold', 'white'].includes(playerColor(item)) ? '#203039' : '#fff';
+  const pieceName = item => ['home', 'away'].includes(item.kind) ? playerColor(item)[0].toUpperCase() + playerColor(item).slice(1) + ' player' : kinds[item.kind];
   const el = (tag, text = '', className = '') => { const n = document.createElement(tag); n.textContent = text; if (className) n.className = className; return n; };
   const svg = (tag, attributes = {}, text = '') => { const n = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attributes)) n.setAttribute(key, String(value)); if (text) n.textContent = text; return n; };
   const button = (text, id, fn, primary = false) => { const n = el('button', text, primary ? '' : 'secondary'); n.type = 'button'; n.id = id; n.addEventListener('click', fn); return n; };
@@ -21,25 +25,26 @@
   let libraryBinding = null, sessionDraft = null, libraryLocked = false, librarySaveBlocked = false;
   let currentLoad = null;
   let editMode = 'record', selectedIds = new Set(), zoom = 1, viewCenter = { x: 500, y: 325 };
+  let currentPlayerColor = null, selectedArrow = '';
   const homeAnchor = document.createComment('session tactics editor'); mount.before(homeAnchor);
   const selection = () => [...new Set([selectedItem, ...selectedIds])].filter(id => record.content.items.some(i => i.id === id));
-  function selectPiece(id, additive = false) { if (!additive) selectedIds.clear(); else if (selectedIds.has(id)) { selectedIds.delete(id); selectedItem = [...selectedIds].at(-1) || ''; return; } selectedItem = id; if (id) selectedIds.add(id); }
+  function selectPiece(id, additive = false) { selectedArrow = ''; if (!additive) selectedIds.clear(); else if (selectedIds.has(id)) { selectedIds.delete(id); selectedItem = [...selectedIds].at(-1) || ''; return; } selectedItem = id; if (id) selectedIds.add(id); }
   const snapshot = () => JSON.stringify({ title: record.title, content: record.content });
   baseline = snapshot();
   const dirty = () => !libraryBinding && !!identity && snapshot() !== baseline;
   const active = () => !!context?.profile && (libraryBinding ? context.tab === 'library' : !!context?.session && context.selected === context.session.id && context.tab === 'plan' && context.session.status !== 'Cancelled');
   const editable = () => active() && loaded && !pending && !context.busy && !running && !libraryLocked;
   const currentFrame = () => record.content.frames[frameIndex];
-  const capture = () => ({ title: record.title, content: clone(record.content), frameIndex, selectedItem, selectedIds: selection() });
-  const apply = value => { record.title = value.title; record.content = clone(value.content); frameIndex = value.frameIndex; selectedItem = value.selectedItem; selectedIds = new Set(value.selectedIds || []); };
+  const capture = () => ({ title: record.title, content: clone(record.content), frameIndex, selectedItem, selectedIds: selection(), selectedArrow });
+  const apply = value => { record.title = value.title; record.content = clone(value.content); frameIndex = value.frameIndex; selectedItem = value.selectedItem; selectedIds = new Set(value.selectedIds || []); selectedArrow = value.selectedArrow || ''; };
   const remember = () => { undo.push(capture()); if (undo.length > 30) undo.shift(); redo = []; };
-  const libraryDiagram = () => libraryBinding && (record.content.items.length || record.content.frames.length > 1 || record.content.frames.some(f => f.notes || f.title !== 'Starting positions') || record.content.pitch !== 'full') ? clone(record.content) : null;
+  const libraryDiagram = () => libraryBinding && (record.content.items.length || record.content.frames.length > 1 || record.content.frames.some(f => f.notes || f.arrows?.length || f.title !== 'Starting positions') || record.content.pitch !== 'full') ? clone(record.content) : null;
   const notifyDraft = () => { if (libraryBinding) { libraryBinding.onChange?.(libraryDiagram()); renderStatus(); } window.dispatchEvent(new Event('coach:tactics-dirty')); };
   function tell(text, error = false) { message = text; messageError = error; renderStatus(); }
   function request(operation, payload) { return new Promise((resolve, reject) => window.dispatchEvent(new CustomEvent('coach:tactics-request', { detail: { operation, payload, resolve, reject } }))); }
   function stopPlayback(reset = true) { running = false; cancelAnimationFrame(animation); animation = 0; if (reset) { elapsed = 0; renderedPositions = null; } renderPlayback(); }
   function mutate(fn, text) { if (!editable()) return; stopPlayback(); remember(); fn(); if (text) tell(text); render(); notifyDraft(); }
-  function clear(next = blank()) { stopPlayback(); record = clone(next); record.content = clone(next.content); frameIndex = 0; selectedItem = ''; selectedIds.clear(); undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; lastAttempt = null; recoveryNeeded = false; baseline = snapshot(); render(); notifyDraft(); }
+  function clear(next = blank()) { stopPlayback(); record = clone(next); record.content = clone(next.content); frameIndex = 0; selectedItem = selectedArrow = ''; currentPlayerColor = null; selectedIds.clear(); undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; lastAttempt = null; recoveryNeeded = false; baseline = snapshot(); render(); notifyDraft(); }
   function discard() { stopPlayback(); const saved = JSON.parse(baseline); record.title = saved.title; record.content = saved.content; frameIndex = 0; selectedItem = ''; selectedIds.clear(); undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; render(); notifyDraft(); }
   function openLibrary(binding) {
     if (!binding?.host || pending) return false;
@@ -47,7 +52,7 @@
     if (!libraryBinding) sessionDraft = { record: clone(record), baseline, frameIndex, selectedItem, selectedIds: selection(), undo: clone(undo), redo: clone(redo), loaded, loadAttempted, lastAttempt, recoveryNeeded, message, messageError, identity };
     libraryBinding = binding; libraryLocked = librarySaveBlocked = false; binding.host.append(mount);
     record = { ...blank(), title: binding.title || 'Drill diagram' }; if (binding.diagram) record.content = clone(binding.diagram);
-    baseline = snapshot(); frameIndex = 0; selectPiece(''); undo = []; redo = []; loaded = true; recoveryNeeded = false; lastAttempt = null;
+    baseline = snapshot(); frameIndex = 0; selectPiece(''); currentPlayerColor = null; undo = []; redo = []; loaded = true; recoveryNeeded = false; lastAttempt = null;
     zoom = 1; viewCenter = { x: 500, y: 325 }; tell('Diagram and phase notes save with this drill.'); render(); return true;
   }
   function closeLibrary() {
@@ -98,29 +103,44 @@
   heading.append(field('Setup name', title));
   const fieldView = field('Field view', pitch); fieldView.className = 'tactics-field-view';
   const topActions = el('div', '', 'tactics-toolbar tactics-main-toolbar');
-  const equipment = el('details', '', 'tactics-equipment'), equipmentOptions = el('div', '', 'tactics-equipment-options'); equipment.id = 'tactics-equipment'; equipment.append(el('summary', 'More equipment'), equipmentOptions);
+  const equipment = el('details', '', 'tactics-equipment'), equipmentOptions = el('div', '', 'tactics-equipment-options'); equipment.id = 'tactics-equipment';
+  const equipmentSummary = el('summary', '⋯'); equipmentSummary.setAttribute('aria-label','More equipment'); equipmentSummary.title='More equipment'; equipment.append(equipmentSummary, equipmentOptions);
   const addGroup = el('div', '', 'tactics-pieces'); addGroup.setAttribute('role', 'group'); addGroup.setAttribute('aria-label', 'Add a piece');
-  function addPiece(kind, destination) {
+  function addPiece(kind, destination, color) {
     if (!kinds[kind] || !editable() || record.content.items.length >= 40) return;
+    if (editMode === 'arrow') editMode = 'place';
     mutate(() => {
-      const item = { id: uid('piece_'), kind, label: ['home', 'away'].includes(kind) ? String(record.content.items.filter(i => i.kind === kind).length + 1) : '' };
+      const item = { id: uid('piece_'), kind, label: ['home', 'away'].includes(kind) ? String(record.content.items.filter(i => ['home', 'away'].includes(i.kind) && playerColor(i) === (color || (kind === 'away' ? 'gold' : 'blue'))).length + 1) : '' };
+      if (['home', 'away'].includes(kind) && color) item.color = color;
       if (kind === 'zone') { item.label = 'Zone'; item.zone = { shape: 'rect', width: 25, height: 25, color: 'blue' }; }
       record.content.items.push(item); const offset = record.content.items.length % 6;
       for (const frame of record.content.frames) { frame.positions.push({ id: item.id, ...(destination || { x: 43 + offset * 3, y: 42 + offset * 3 }) }); if (kind === 'zone') constrainZone(frame, item); }
       selectPiece(item.id);
-    }, kinds[kind] + ' added.'); equipment.open = false;
+    }, (color ? color[0].toUpperCase() + color.slice(1) + ' player' : kinds[kind]) + ' added.'); equipment.open = false;
   }
-  for (const kind of ['home', 'away', 'ball', 'cone', 'goal', 'zone']) {
+  const playerTools = el('div', '', 'tactics-player-tools'), colorMenu = el('div', '', 'tactics-player-colors'); colorMenu.id = 'tactics-player-colors'; colorMenu.hidden = true; colorMenu.setAttribute('role', 'group'); colorMenu.setAttribute('aria-label', 'Choose player colour');
+  const currentColor = el('span', '', 'tactics-current-color'); currentColor.setAttribute('aria-hidden', 'true');
+  function choosePlayerColor() { if (!editable()) return; colorMenu.hidden = !colorMenu.hidden; newPlayer.setAttribute('aria-expanded', String(!colorMenu.hidden)); if (!colorMenu.hidden) colorMenu.querySelector('button').focus(); }
+  function addPlayer(destination) { if (!currentPlayerColor) { choosePlayerColor(); return; } addPiece(currentPlayerColor === 'gold' ? 'away' : 'home', destination, currentPlayerColor); }
+  const addPlayerButton = button('Add player', 'tactics-add-player', () => addPlayer()); addPlayerButton.prepend(currentColor); addPlayerButton.draggable = true; addPlayerButton.title = 'Add another player in the current colour, or drag onto the field';
+  addPlayerButton.addEventListener('dragstart', event => { if (!editable() || !currentPlayerColor) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', 'player'); event.dataTransfer.effectAllowed = 'copy'; });
+  const newPlayer = button('New colour', 'tactics-new-player', choosePlayerColor); newPlayer.setAttribute('aria-label', 'Add player in a new colour'); newPlayer.setAttribute('aria-expanded', 'false'); newPlayer.setAttribute('aria-controls', colorMenu.id);
+  for (const [color, fill] of Object.entries(playerColors)) { const swatch = button(color[0].toUpperCase() + color.slice(1), '', () => { currentPlayerColor = color; colorMenu.hidden = true; newPlayer.setAttribute('aria-expanded', 'false'); addPlayer(); addPlayerButton.focus(); }); swatch.dataset.playerColor = color; swatch.title = 'Add ' + color + ' player'; const dot = el('span', '', 'tactics-current-color'); dot.style.backgroundColor = fill; dot.setAttribute('aria-hidden', 'true'); swatch.prepend(dot); colorMenu.append(swatch); }
+  playerTools.append(addPlayerButton, newPlayer, colorMenu); addGroup.append(playerTools);
+  playerTools.addEventListener('keydown', event => { if (event.key === 'Escape' && !colorMenu.hidden) { event.preventDefault(); event.stopPropagation(); colorMenu.hidden = true; newPlayer.setAttribute('aria-expanded', 'false'); newPlayer.focus(); } });
+  playerTools.addEventListener('focusout', event => { if (!playerTools.contains(event.relatedTarget)) { colorMenu.hidden = true; newPlayer.setAttribute('aria-expanded', 'false'); } });
+  for (const kind of ['ball', 'cone', 'goal', 'zone']) {
     const label = kinds[kind];
-    const add = button('+ ' + label, 'tactics-add-' + kind, () => addPiece(kind));
-    const icon = svg('svg', { viewBox: '-36 -32 72 64', width: 24, height: 24, 'aria-hidden': 'true' }); icon.append(pieceArtwork(kind)); add.prepend(icon);
-    add.draggable = true; add.title = 'Click to add, or drag onto the field';
+    const add = button('', 'tactics-add-' + kind, () => addPiece(kind)); add.setAttribute('aria-label', 'Add ' + label.toLowerCase());
+    const icon = svg('svg', { viewBox: '-36 -32 72 64', width: 22, height: 22, 'aria-hidden': 'true' }); icon.append(pieceArtwork(kind)); add.prepend(icon);
+    add.draggable = true; add.title = 'Add ' + label.toLowerCase() + ' · drag onto field';
     add.addEventListener('dragstart', event => { if (!editable() || add.disabled) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', kind); event.dataTransfer.effectAllowed = 'copy'; });
     add.dataset.pieceKind = kind; (['goal', 'zone'].includes(kind) ? equipmentOptions : addGroup).append(add);
   }
   addGroup.append(equipment); topActions.append(addGroup, fieldView);
   const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
   for (const [mode, text] of [['place', 'Place pieces'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
+  const arrowTool = button('↗ Arrow', 'tactics-draw-arrow', () => { if (!editable()) return; editMode = editMode === 'arrow' ? 'place' : 'arrow'; selectPiece(''); render(); tell(editMode === 'arrow' ? 'Drag on the field to draw an arrow. Or focus the field and press Enter. Arrows belong to this phase.' : 'Select and move pieces.'); }); arrowTool.setAttribute('aria-label', 'Draw arrow'); editModes.append(arrowTool);
   const selectionCount = el('p', '', 'tactics-selection-count'); selectionCount.id = 'tactics-selection-count';
   const multiSelect = input('tactics-multiselect', 'checkbox'), multiLabel = field('Select multiple', multiSelect); multiLabel.className = 'tactics-check';
   multiSelect.addEventListener('change', () => tell(multiSelect.checked ? 'Tap pieces to add them to the selection. Drag a selected piece to move the group.' : 'Click a piece to select it. Shift-click adds or removes pieces.'));
@@ -137,6 +157,10 @@
   itemSelect.addEventListener('change', () => { if (!editable()) return; selectPiece(itemSelect.value); stopPlayback(); render(); });
   const labelInput = input('tactics-label'); labelInput.maxLength = 12;
   const pieceLabel = field('Shirt label', labelInput);
+  const playerColorSelect = select('tactics-player-color', Object.keys(playerColors).map(color => [color, color[0].toUpperCase() + color.slice(1)]));
+  const playerColorField = field('Player colour', playerColorSelect);
+  playerColorSelect.addEventListener('change', () => mutate(() => { for (const item of record.content.items) if (selection().includes(item.id) && ['home', 'away'].includes(item.kind)) item.color = playerColorSelect.value; currentPlayerColor = playerColorSelect.value; }, 'Player colour updated in every phase.'));
+  const removeArrow = button('Delete arrow', 'tactics-remove-arrow', () => mutate(() => { currentFrame().arrows = (currentFrame().arrows || []).filter(arrow => arrow.id !== selectedArrow); selectedArrow = ''; }, 'Arrow removed from this phase.'));
   let labelEditing = false;
   labelInput.addEventListener('input', () => { if (!editable()) return; const item = record.content.items.find(i => i.id === selectedItem); if (!item) return; if (!labelEditing) { remember(); labelEditing = true; } item.label = labelInput.value.trim(); draw(); editedText(); });
   labelInput.addEventListener('blur', () => { labelEditing = false; });
@@ -167,6 +191,7 @@
   zoneControls.append(field('Zone shape', zoneShape), field('Zone colour', zoneColor), field('Zone width', zoneWidth), field('Zone height', zoneHeight), el('p', 'Drag the zone to move it. Shape and size apply to every phase.', 'small'));
   side.append(el('p', 'Select a player or object to edit it.', 'tactics-selection-hint'), field('Selected piece', itemSelect), pieceLabel, carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')), pathLabel);
   side.insertBefore(zoneControls, nudge); side.insertBefore(routeActions, nudge);
+  side.insertBefore(playerColorField, pieceLabel.nextSibling); side.prepend(removeArrow);
   const advanced = el('details', '', 'tactics-advanced'); advanced.append(el('summary', 'Advanced positioning'), multiLabel, nudge, coordinate, carrierField, routeActions, bendField, pathLabel); side.append(advanced);
   const pieceActions = el('div', '', 'tactics-piece-actions'); for (const id of ['tactics-duplicate-item', 'tactics-remove-item']) pieceActions.append(side.querySelector('#' + id)); advanced.before(pieceActions);
   const rotation = input('tactics-rotation', 'number'); rotation.min = '0'; rotation.max = '360'; rotation.step = 'any';
@@ -326,11 +351,11 @@
     for (let i = 0; i < lengths.length; i++) { if (remaining <= lengths[i] || i === lengths.length - 1) { const fraction = lengths[i] ? remaining / lengths[i] : 1, a = points[i], b = points[i + 1]; return { id, x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction }; } remaining -= lengths[i]; }
   }
   function motionPositions(from, to, t) { return from.positions.map(p => motionPosition(from, to, p.id, t)); }
-  function pieceArtwork(kind) {
+  function pieceArtwork(kind, color) {
     const art = svg('g', { 'aria-hidden': 'true', 'data-symbol': kind, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
     if (['home', 'away'].includes(kind)) {
-      const fill = kind === 'home' ? '#326887' : '#d9ae63';
-      art.append(svg('path', { d: 'M-9-22 L-24-13 L-17-1 L-11-5 V23 H11 V-5 L17-1 L24-13 L9-22 Q0-13-9-22Z', fill, stroke: '#f8faf8', 'stroke-width': 3 }), svg('path', { d: 'M-9-22 Q0-7 9-22 M-11 18 H11', fill: 'none', stroke: kind === 'home' ? '#a5c5d7' : '#826333', 'stroke-width': 2 }));
+      const fill = playerColors[color || (kind === 'away' ? 'gold' : 'blue')];
+      art.append(svg('path', { d: 'M-9-22 L-24-13 L-17-1 L-11-5 V23 H11 V-5 L17-1 L24-13 L9-22 Q0-13-9-22Z', fill, stroke: '#45515a', 'stroke-width': 2 }), svg('path', { d: 'M-9-22 Q0-7 9-22 M-11 18 H11', fill: 'none', stroke: '#ffffff70', 'stroke-width': 2 }));
     } else if (kind === 'cone') {
       art.append(svg('ellipse', { cx: 0, cy: 19, rx: 25, ry: 7, fill: '#8d482d' }), svg('path', { d: 'M-18 17 L-5-23 Q0-28 5-23 L18 17 Q0 26-18 17Z', fill: '#df8950', stroke: '#85482e', 'stroke-width': 2 }), svg('path', { d: 'M-11-3 Q0 3 11-3 L14 6 Q0 13-14 6Z', fill: '#fff4dc' }), svg('path', { d: 'M0-20 L-9 16', fill: 'none', stroke: '#f8bd83', 'stroke-width': 3 }));
     } else if (kind === 'ball') {
@@ -339,6 +364,16 @@
       art.append(svg('path', { d: 'M-30 21 L-24-20 H24 L30 21Z', fill: '#eef3f2', stroke: '#667a7c', 'stroke-width': 2 }), svg('path', { d: 'M-24-20 L-30-9 H30 L24-20 M-30-9 V21 H30 V-9 M-18-18 L-21 21 M-6-19 L-7 21 M6-19 L7 21 M18-18 L21 21 M-27 1 H27 M-29 11 H29', fill: 'none', stroke: '#9caca9', 'stroke-width': 1.5 }), svg('path', { d: 'M-30 21 V-9 H30 V21', fill: 'none', stroke: '#344b57', 'stroke-width': 6 }), svg('path', { d: 'M-30 21 V-9 H30 V21', fill: 'none', stroke: '#fffdf5', 'stroke-width': 3 }));
     } else if (kind === 'zone') art.append(svg('rect', { x: -29, y: -22, width: 58, height: 44, rx: 3, fill: '#668ab32b', stroke: '#53789d', 'stroke-width': 3, 'stroke-dasharray': '5 4' }));
     return art;
+  }
+  function arrowArtwork(arrow, interactive = false) {
+    const x1 = arrow.x1 * 10, y1 = arrow.y1 * 6.5, x2 = arrow.x2 * 10, y2 = arrow.y2 * 6.5;
+    const angle = Math.atan2(y2 - y1, x2 - x1), color = playerColors[arrow.color] || '#38434a';
+    const scale = interactive ? Math.max(.1, board.getScreenCTM()?.a || 1) : 1, head = Math.min(18 / scale, Math.hypot(x2-x1,y2-y1) * .45);
+    const group = svg('g', interactive ? { 'data-tactics-arrow': arrow.id, role:'button', tabindex: editable() ? '0' : '-1', 'aria-label':'Drawn arrow. Select to adjust or delete.', 'aria-pressed':String(selectedArrow === arrow.id) } : { 'data-preview-arrow': arrow.id });
+    if (interactive) group.append(svg('line', { x1,y1,x2,y2,stroke:'transparent','stroke-width':18/scale,'pointer-events':'stroke' }));
+    group.append(svg('line', { x1,y1,x2,y2,stroke:color,'stroke-width':2.5/scale,'pointer-events':'none' }),svg('polygon',{points:[[x2,y2],[x2-head*Math.cos(angle-.45),y2-head*Math.sin(angle-.45)],[x2-head*Math.cos(angle+.45),y2-head*Math.sin(angle+.45)]].map(p=>p.join(',')).join(' '),fill:color,'pointer-events':'none'}));
+    if (interactive && selectedArrow === arrow.id && editable()) for (const [end,x,y] of [['start',x1,y1],['end',x2,y2]]) group.append(svg('circle',{cx:x,cy:y,r:7/scale,fill:'#fffdf5',stroke:color,'stroke-width':2/scale,'data-arrow-end':end,tabindex:0,role:'button','aria-label':'Arrow '+end+'. Drag or use arrow keys.'}));
+    return group;
   }
   function zoneArtwork(item, p, preview = false) {
     const width = item.zone.width * 10, height = item.zone.height * 6.5, color = { blue: '#426f9b', gold: '#956b20', green: '#397561' }[item.zone.color];
@@ -369,7 +404,8 @@
   function previewFrame(frame, items = record.content.items, view = record.content.pitch, labelled = false) {
     const thumbnail = svg('svg', { viewBox: '0 0 1000 650', 'aria-hidden': 'true' });
     thumbnail.append(fieldArtwork(view));
-    for (const item of [...items].sort((a, b) => (b.kind === 'zone') - (a.kind === 'zone'))) { const p = positionIn(frame, item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1.6)', 'data-preview-piece': item.id }); const graphic = pieceArtwork(item.kind); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (frame.positions.find(v => v.id === item.id).rotation || 0) + ')'); symbol.append(graphic); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: '#fff' }, item.label)); thumbnail.append(symbol); } }
+    for (const item of [...items].sort((a, b) => (b.kind === 'zone') - (a.kind === 'zone'))) { const p = positionIn(frame, item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1)', 'data-preview-piece': item.id }); const graphic = pieceArtwork(item.kind, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (frame.positions.find(v => v.id === item.id).rotation || 0) + ')'); symbol.append(graphic); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: playerInk(item) }, item.label)); thumbnail.append(symbol); } }
+    for (const arrow of frame.arrows || []) thumbnail.append(arrowArtwork(arrow));
     return thumbnail;
   }
   function exportBoard() {
@@ -446,12 +482,14 @@
     selectionCount.hidden = selection().length < 2;
     phaseOptions.hidden = previewControls.hidden = playback.hidden = record.content.frames.length < 2;
     for (const mode of ['place', 'record']) $('tactics-mode-' + mode).setAttribute('aria-pressed', String(editMode === mode));
+    arrowTool.setAttribute('aria-pressed', String(editMode === 'arrow')); board.style.cursor = editMode === 'arrow' ? 'crosshair' : '';
+    currentColor.style.backgroundColor = currentPlayerColor ? playerColors[currentPlayerColor] : 'transparent'; currentColor.hidden = !currentPlayerColor;
     selectionCount.textContent = selection().length > 1 ? selection().length + ' selected · drag or duplicate together' : 'Shift-click pieces to select a group';
     librarySelect.replaceChildren(); const unsaved = el('option', 'New unsaved setup'); unsaved.value = ''; librarySelect.append(unsaved);
     for (const d of diagrams) { const option = el('option', d.title); option.value = d.id; librarySelect.append(option); }
     librarySelect.value = record.id || '';
     itemSelect.replaceChildren(); const none = el('option', 'Choose a piece'); none.value = ''; itemSelect.append(none);
-    for (const item of record.content.items) { const option = el('option', kinds[item.kind] + (item.label ? ' · ' + item.label : '')); option.value = item.id; itemSelect.append(option); }
+    for (const item of record.content.items) { const option = el('option', pieceName(item) + (item.label ? ' · ' + item.label : '')); option.value = item.id; itemSelect.append(option); }
     if (!record.content.items.some(i => i.id === selectedItem)) selectedItem = '';
     itemSelect.value = selectedItem; labelInput.value = record.content.items.find(i => i.id === selectedItem)?.label || '';
     const position = currentFrame().positions.find(p => p.id === selectedItem); coordinate.textContent = position ? 'Position: ' + Math.round(position.x) + '% across · ' + Math.round(position.y) + '% down' : 'Select a piece to position or label it.';
@@ -459,7 +497,7 @@
     pieceLabel.firstChild.textContent = ['home', 'away'].includes(selectedKind) ? 'Shirt label' : 'Piece label';
     rotationField.hidden = selectedKind !== 'goal'; rotation.value = String(position?.rotation || 0);
     carrier.replaceChildren(); const free = el('option', 'Free ball'); free.value = ''; carrier.append(free);
-    for (const player of record.content.items.filter(i => ['home', 'away'].includes(i.kind))) { const option = el('option', kinds[player.kind] + ' ' + player.label); option.value = player.id; carrier.append(option); }
+    for (const player of record.content.items.filter(i => ['home', 'away'].includes(i.kind))) { const option = el('option', pieceName(player) + ' ' + player.label); option.value = player.id; carrier.append(option); }
     carrier.value = position?.attachedTo || ''; carrierField.hidden = selectedKind !== 'ball'; detach.hidden = !position?.attachedTo;
     const transition = shownTransition(), routeStart = transition?.from.positions.find(p => p.id === selectedItem), routeEnd = transition?.to.positions.find(p => p.id === selectedItem);
     bendField.hidden = !['home', 'away', 'ball'].includes(selectedKind) || !routeEnd || !!routeStart?.attachedTo && routeStart.attachedTo === routeEnd.attachedTo;
@@ -467,7 +505,10 @@
     bend.value = String(routeStart?.curve || 0); bendValue.textContent = routeEnd?.trail?.length ? 'Recorded drag route' : Number(bend.value) === 0 ? 'Straight' : (Number(bend.value) < 0 ? 'Left' : 'Right') + ' bend · ' + Math.abs(Number(bend.value));
     zoneControls.hidden = selectedKind !== 'zone';
     if (!zoneControls.hidden) { const zone = record.content.items.find(i => i.id === selectedItem).zone; zoneShape.value = zone.shape; zoneColor.value = zone.color; zoneWidth.value = zone.width; zoneHeight.value = zone.height; }
-    side.dataset.selected = String(!!selectedItem);
+    if (!currentFrame().arrows?.some(arrow => arrow.id === selectedArrow)) selectedArrow = '';
+    side.dataset.selected = String(!!selectedItem || !!selectedArrow);
+    playerColorField.hidden = !['home','away'].includes(selectedKind); if (!playerColorField.hidden) playerColorSelect.value = playerColor(record.content.items.find(item => item.id === selectedItem));
+    removeArrow.hidden = !selectedArrow;
     const phaseScroll = frameButtons.scrollLeft;
     frameButtons.replaceChildren(...record.content.frames.map((f, index) => { const b = button('', 'tactics-frame-' + index, () => { if (!editable()) return; stopPlayback(); frameIndex = index; render(); }); const preview = el('span', '', 'tactics-frame-preview'); preview.append(previewFrame(f)); b.append(preview, el('span', (index + 1) + '. ' + f.title)); b.dataset.tacticsFrame = index; b.setAttribute('aria-pressed', String(frameIndex === index)); return b; }));
     frameButtons.scrollLeft = phaseScroll;
@@ -484,6 +525,7 @@
     pathToggle.disabled = !active() || !loaded;
     labelInput.disabled = disabled || !selectedItem;
     for (const control of side.querySelectorAll('button')) control.disabled = disabled || !selectedItem;
+    removeArrow.disabled = disabled || !selectedArrow;
     $('tactics-duplicate-item').disabled = disabled || !selectedItem || record.content.items.length + selection().length > 40;
     $('tactics-duplicate-item').textContent = selection().length > 1 ? 'Duplicate selection' : 'Duplicate piece';
     $('tactics-step-earlier').disabled = disabled || frameIndex === 0;
@@ -497,7 +539,7 @@
     reopen.hidden = !record.id; reopen.disabled = disabled || !record.id || !diagrams.some(d => d.id === record.id);
     $('tactics-undo').disabled = disabled || !undo.length; $('tactics-redo').disabled = disabled || !redo.length;
     for (const control of addGroup.querySelectorAll('button')) control.disabled = disabled || record.content.items.length >= 40;
-    emptyHint.hidden = !!record.content.items.length;
+    emptyHint.hidden = !!record.content.items.length || !!currentFrame().arrows?.length || editMode === 'arrow';
     mount.setAttribute('aria-busy', String(pending));
     renderReuse();
     renderStatus(); draw(); renderPlayback();
@@ -527,47 +569,49 @@
     board.append(fieldArtwork(record.content.pitch));
     for (const item of record.content.items.filter(i => i.kind === 'zone')) { const p = renderedPositions?.find(p => p.id === item.id) || positionIn(currentFrame(), item.id); board.append(zoneArtwork(item, p)); }
     const defs = svg('defs');
-    for (const [kind, color] of [['home', '#355d79'], ['away', '#92651c'], ['ball', '#303b42']]) { const marker = svg('marker', { id: 'tactics-arrow-' + kind, viewBox: '0 0 10 10', refX: 24, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto' }); marker.append(svg('path', { d: 'M0 0 L10 5 L0 10z', fill: color })); defs.append(marker); }
+    for (const [kind, color] of [...Object.entries(playerColors), ['ball', '#303b42']]) { const marker = svg('marker', { id: 'tactics-arrow-' + kind, viewBox: '0 0 10 10', refX: 24, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto' }); marker.append(svg('path', { d: 'M0 0 L10 5 L0 10z', fill: kind === 'white' ? '#68747b' : color })); defs.append(marker); }
     board.append(defs);
     const transition = shownTransition();
-    pathCaption.textContent = transition ? 'Movement: ' + transition.from.title + ' → ' + transition.to.title + ' · Dashed: player · Solid: ball' : 'Starting positions · Add a next phase, then drag players and balls to record their route.';
+    pathCaption.textContent = editMode === 'arrow' ? 'Drag to draw · Select an arrow to adjust its ends · Delete removes it from this phase' : transition ? 'Movement: ' + transition.from.title + ' → ' + transition.to.title + ' · Dashed: player · Solid: ball' : 'Starting positions · Add a next phase, then drag players and balls to record their route.';
     if (pathToggle.checked && transition) {
       const { from, to } = transition;
       for (const item of record.content.items) {
         if (!['home', 'away', 'ball'].includes(item.kind)) continue;
         const points = routePoints(from, to, item.id), length = points.slice(1).reduce((sum, p, i) => sum + routeDistance(points[i], p), 0); if (length < .3) continue;
         const scale = Math.max(.01, board.getScreenCTM()?.a || 1);
-        board.append(svg('path', { d: points.map((p, i) => (i ? 'L ' : 'M ') + p.x * 10 + ' ' + p.y * 6.5).join(' '), 'data-tactics-path': item.id, fill: 'none', stroke: { home: '#355d79', away: '#92651c', ball: '#303b42' }[item.kind], opacity: selectedItem && !selection().includes(item.id) ? .28 : 1, 'stroke-width': 2.5 / scale, 'stroke-dasharray': item.kind === 'ball' ? 'none' : (7 / scale) + ' ' + (5 / scale), 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'marker-end': length * 10 * scale > 35 ? 'url(#tactics-arrow-' + item.kind + ')' : 'none', 'pointer-events': 'none' }));
+        const color = item.kind === 'ball' ? 'ball' : playerColor(item);
+        board.append(svg('path', { d: points.map((p, i) => (i ? 'L ' : 'M ') + p.x * 10 + ' ' + p.y * 6.5).join(' '), 'data-tactics-path': item.id, fill: 'none', stroke: color === 'ball' ? '#303b42' : color === 'white' ? '#68747b' : playerColors[color], opacity: selectedItem && !selection().includes(item.id) ? .28 : 1, 'stroke-width': 2.5 / scale, 'stroke-dasharray': item.kind === 'ball' ? 'none' : (7 / scale) + ' ' + (5 / scale), 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'marker-end': length * 10 * scale > 35 ? 'url(#tactics-arrow-' + color + ')' : 'none', 'pointer-events': 'none' }));
       }
     }
     drawRouteHandles(transition);
     const positions = renderedPositions || currentFrame().positions;
-    for (const item of record.content.items) {
+    for (const item of [...record.content.items].sort((a,b)=>Number(selection().includes(a.id))-Number(selection().includes(b.id)))) {
       if (item.kind === 'zone') continue;
       const p = renderedPositions ? positions.find(point => point.id === item.id) : positionIn(currentFrame(), item.id); if (!p) continue;
-      const piece = svg('g', { transform: 'translate(' + (p.x * 10) + ' ' + (p.y * 6.5) + ')', 'data-tactics-item': item.id, role: 'button', tabindex: editable() ? '0' : '-1', 'aria-label': kinds[item.kind] + (item.label ? ' ' + item.label : '') + ', position ' + Math.round(p.x) + ', ' + Math.round(p.y), 'aria-pressed': String(selection().includes(item.id)), 'aria-disabled': String(!editable()) });
-      const screenScale = Math.max(.01, board.getScreenCTM()?.a || 1), artScale = Math.max(1, .85 / screenScale);
+      const piece = svg('g', { transform: 'translate(' + (p.x * 10) + ' ' + (p.y * 6.5) + ')', 'data-tactics-item': item.id, role: 'button', tabindex: editable() ? '0' : '-1', 'aria-label': pieceName(item) + (item.label ? ' ' + item.label : '') + ', position ' + Math.round(p.x) + ', ' + Math.round(p.y), 'aria-pressed': String(selection().includes(item.id)), 'aria-disabled': String(!editable()) });
+      const screenScale = Math.max(.01, board.getScreenCTM()?.a || 1), artScale = Math.max(.62, .48 / screenScale);
       const art = svg('g', { class: 'tactics-piece-art', transform: 'scale(' + artScale + ')' });
       const hitRadius = Math.max(26, 22 / screenScale / artScale);
       piece.append(art); art.append(svg('circle', { r: hitRadius, fill: 'transparent', class: 'tactics-hit' }));
       if (selection().includes(item.id)) art.append(svg('circle', { r: 28, fill: 'none', stroke: '#152d42', 'stroke-width': 3, 'stroke-dasharray': '4 3', 'pointer-events': 'none' }));
-      const graphic = pieceArtwork(item.kind); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (currentFrame().positions.find(v => v.id === item.id).rotation || 0) + ')'); art.append(graphic);
+      const graphic = pieceArtwork(item.kind, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (currentFrame().positions.find(v => v.id === item.id).rotation || 0) + ')'); art.append(graphic);
       if (['home', 'away'].includes(item.kind) && currentFrame().positions.some(v => v.attachedTo === item.id)) art.append(svg('circle', { cx: 22, cy: -23, r: 7, fill: '#fffdf7', stroke: '#203742', 'stroke-width': 2, 'data-possession': item.id }));
       if (item.label) {
         const inside = ['home', 'away'].includes(item.kind) && item.label.length <= 3, width = Math.max(34, item.label.length * 8 + 12);
         const labelX = inside ? 0 : Math.max((-56 - p.x * 10) / artScale + width / 2, Math.min(0, (1056 - p.x * 10) / artScale - width / 2));
         const labelY = p.y * 6.5 + 47 * artScale > 706 ? -47 : 27;
         if (!inside) art.append(svg('rect', { x: labelX - width / 2, y: labelY, width, height: 20, rx: 5, fill: '#f6f4ec', 'pointer-events': 'none' }));
-        art.append(svg('text', { x: labelX, y: inside ? 5 : labelY + 14, 'text-anchor': 'middle', 'font-family': 'Arial,sans-serif', 'font-size': inside ? 16 : 12, 'font-weight': 700, fill: inside && item.kind === 'home' ? '#fff' : '#173044', 'pointer-events': 'none' }, item.label));
+        art.append(svg('text', { x: labelX, y: inside ? 5 : labelY + 14, 'text-anchor': 'middle', 'font-family': 'Arial,sans-serif', 'font-size': inside ? 16 : 12, 'font-weight': 700, fill: inside ? playerInk(item) : '#173044', 'pointer-events': 'none' }, item.label));
       }
       board.append(piece);
     }
+    for (const arrow of currentFrame().arrows || []) board.append(arrowArtwork(arrow, true));
   }
   const clamp = v => Math.max(4, Math.min(96, Math.round(v * 10) / 10));
   function moveSelected(dx, dy) { mutate(() => { const ids = selection(), before = capture(); if (editMode === 'place') shiftLayout(ids, dx, dy, before); else for (const id of ids) { const p = positionIn(currentFrame(), id); if (currentFrame().positions.find(p => p.id === id).attachedTo && ids.includes(currentFrame().positions.find(p => p.id === id).attachedTo)) continue; placePiece(currentFrame(), id, { x: clamp(p.x + dx), y: clamp(p.y + dy) }); } }); }
   function point(event) { const p = board.createSVGPoint(); p.x = event.clientX; p.y = event.clientY; const matrix = board.getScreenCTM(); if (!matrix) return null; const next = p.matrixTransform(matrix.inverse()); return { x: clamp(next.x / 10), y: clamp(next.y / 6.5) }; }
   board.addEventListener('dragover', event => { if (editable() && event.dataTransfer.types.includes('application/x-coach-piece')) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } });
-  board.addEventListener('drop', event => { if (!editable()) return; const kind = event.dataTransfer.getData('application/x-coach-piece'), destination = point(event); if (!kinds[kind] || !destination) return; event.preventDefault(); addPiece(kind, destination); });
+  board.addEventListener('drop', event => { if (!editable()) return; const kind = event.dataTransfer.getData('application/x-coach-piece'), destination = point(event); if ((!kinds[kind] && kind !== 'player') || !destination) return; event.preventDefault(); if (kind === 'player') addPlayer(destination); else addPiece(kind, destination); });
   function routeHandles(transition) {
     const item = record.content.items.find(i => i.id === selectedItem);
     if (!transition || !item || !['home', 'away', 'ball'].includes(item.kind)) return [];
@@ -601,6 +645,19 @@
   }
   board.addEventListener('pointerdown', event => {
     if (!editable() || event.button !== 0) return;
+    const arrowTarget = event.target.closest('[data-tactics-arrow]'), arrowEnd = event.target.closest('[data-arrow-end]');
+    if (arrowTarget) {
+      const start = point(event); if (!start) return; selectPiece(''); selectedArrow = arrowTarget.dataset.tacticsArrow;
+      pointer = { id:event.pointerId, before:capture(), history:{undo:undo.slice(),redo:redo.slice()}, moved:false, start, arrowId:selectedArrow, arrowHandle:arrowEnd?.dataset.arrowEnd };
+      board.setPointerCapture(event.pointerId); event.preventDefault(); render(); return;
+    }
+    if (editMode === 'arrow') {
+      if ((currentFrame().arrows?.length || 0) >= 24) return tell('Use up to 24 drawn arrows per phase.',true);
+      const start = point(event); if (!start) return; const before = capture(); selectPiece(''); selectedArrow = uid('arrow_');
+      currentFrame().arrows ||= []; currentFrame().arrows.push({id:selectedArrow,x1:start.x,y1:start.y,x2:start.x,y2:start.y,color:'charcoal'});
+      pointer = {id:event.pointerId,before,history:{undo:undo.slice(),redo:redo.slice()},moved:false,start,arrowId:selectedArrow,arrowHandle:'end',arrowNew:true};
+      board.setPointerCapture(event.pointerId); event.preventDefault(); draw(); return;
+    }
     const handle = event.target.closest('[data-route-handle]');
     if (handle) { pointer = { id: event.pointerId, before: capture(), moved: false, handle: Number(handle.dataset.routeHandle), handles: routeHandles(shownTransition()) }; board.setPointerCapture(event.pointerId); event.preventDefault(); return; }
     const target = event.target.closest('[data-tactics-item]');
@@ -621,6 +678,12 @@
     const destination = point(event); if (!destination) return;
     if (pointer.handle === undefined && routeDistance(pointer.start, destination) < .2 && !pointer.moved) return;
     if (!pointer.moved) { undo.push(pointer.before); if (undo.length > 30) undo.shift(); redo = []; pointer.moved = true; }
+    if (pointer.arrowId) {
+      const arrow = currentFrame().arrows.find(item=>item.id===pointer.arrowId); if (!arrow) return;
+      if (pointer.arrowHandle) { const end=pointer.arrowHandle==='start'?'1':'2'; arrow['x'+end]=destination.x; arrow['y'+end]=destination.y; }
+      else { const original=pointer.before.content.frames[frameIndex].arrows.find(item=>item.id===pointer.arrowId),dx=destination.x-pointer.start.x,dy=destination.y-pointer.start.y; for(const end of ['1','2']){arrow['x'+end]=clamp(original['x'+end]+dx);arrow['y'+end]=clamp(original['y'+end]+dy);} }
+      draw(); renderStatus(); notifyDraft(); return;
+    }
     if (pointer.handle !== undefined) { updateRouteHandle(pointer.handle, destination, pointer.handles); draw(); renderStatus(); notifyDraft(); return; }
     const dx = destination.x - pointer.start.x, dy = destination.y - pointer.start.y;
     if (editMode === 'place') shiftLayout(pointer.ids, dx, dy, pointer.before);
@@ -640,6 +703,11 @@
   board.addEventListener('pointermove', dragPointer);
   const endPointer = event => {
     if (!pointer) return;
+    if (pointer.arrowId) {
+      if (event.type === 'pointercancel' || pointer.arrowNew && !pointer.moved) { undo=pointer.history.undo;redo=pointer.history.redo;apply(pointer.before); }
+      else if (pointer.moved && event.type === 'pointerup') dragPointer(event);
+      pointer = null; render(); notifyDraft(); return;
+    }
     if (pointer.moved && event.type === 'pointerup') {
       dragPointer(event);
       if (pointer.handle === undefined && pointer.ids.length === 1 && record.content.items.find(i => i.id === selectedItem)?.kind === 'ball') {
@@ -653,6 +721,18 @@
   board.addEventListener('pointerup', endPointer); board.addEventListener('pointercancel', endPointer); board.addEventListener('lostpointercapture', endPointer);
   board.addEventListener('keydown', event => {
     if (!editable()) return;
+    const arrowTarget=event.target.closest('[data-tactics-arrow]'), arrowEnd=event.target.closest('[data-arrow-end]');
+    if (arrowTarget && ['Enter',' '].includes(event.key)) { event.preventDefault(); selectPiece('');selectedArrow=arrowTarget.dataset.tacticsArrow;render();board.focus();return; }
+    const arrowDirections={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+    if (selectedArrow && arrowDirections[event.key]) {
+      event.preventDefault(); const end=arrowEnd?.dataset.arrowEnd, [dx,dy]=arrowDirections[event.key];
+      mutate(()=>{const arrow=currentFrame().arrows.find(item=>item.id===selectedArrow);if(!arrow)return;for(const key of end?[end==='start'?'1':'2']:['1','2']){arrow['x'+key]=clamp(arrow['x'+key]+dx);arrow['y'+key]=clamp(arrow['y'+key]+dy);}});
+      (end?board.querySelector('[data-tactics-arrow="'+selectedArrow+'"] [data-arrow-end="'+end+'"]'):board)?.focus();return;
+    }
+    if (editMode==='arrow' && event.key==='Enter' && event.target===board && !selectedArrow) {
+      event.preventDefault(); if((currentFrame().arrows?.length||0)>=24)return tell('Use up to 24 drawn arrows per phase.',true);
+      mutate(()=>{selectPiece('');selectedArrow=uid('arrow_');currentFrame().arrows||=[];currentFrame().arrows.push({id:selectedArrow,x1:35,y1:50,x2:65,y2:50,color:'charcoal'});},'Arrow added. Use arrow keys to move it, or drag either end.');board.focus();return;
+    }
     const target = event.target.closest('[data-tactics-item]');
     if (target && ['Enter', ' '].includes(event.key)) { event.preventDefault(); selectPiece(target.dataset.tacticsItem, event.shiftKey); render(); board.focus(); return; }
     const handle = event.target.closest('[data-route-handle]');
@@ -665,7 +745,9 @@
     let control;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') control = event.shiftKey ? 'tactics-redo' : 'tactics-undo';
     else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') control = 'tactics-redo';
+    else if (event.key === 'Delete' && selectedArrow) control = 'tactics-remove-arrow';
     else if (event.key === 'Delete' && selectedItem) control = 'tactics-remove-item';
+    else if (event.key === 'Escape' && (selectedArrow || editMode === 'arrow')) { event.preventDefault();event.stopPropagation();selectedArrow='';editMode='place';render();board.focus();return; }
     else if (event.key === 'Escape' && selectedItem) { event.preventDefault(); event.stopPropagation(); selectPiece(''); render(); board.focus(); return; }
     if (control) { event.preventDefault(); $(control).click(); board.focus(); }
   });

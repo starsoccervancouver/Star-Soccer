@@ -4,6 +4,7 @@
   const mount = document.getElementById('plan-activities');
   if (!mount) return;
   const stages = { warmup: 'Warm-up', technical: 'Technical', game: 'Game / application', other: 'Break / other' };
+  const playerColors = { blue: '#326887', gold: '#d9ae63', red: '#b64d49', green: '#397561', purple: '#79549d', white: '#f5f2e9' };
   const node = (tag, text = '', cls = '') => { const el = document.createElement(tag); el.textContent = text; if (cls) el.className = cls; return el; };
   const clone = value => value === undefined ? undefined : JSON.parse(JSON.stringify(value));
   const maxPlanBytes = 62000;
@@ -16,17 +17,18 @@
     const id = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(value);
     const text = (value, max, multiline = false) => typeof value === 'string' && value.length <= max && !(multiline ? /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/ : /[\x00-\x1f\x7f]/).test(value);
     const number = (value, min, max) => typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
-    if (!object(value, ['schemaVersion', 'pitch', 'items', 'frames']) || value.schemaVersion !== 1 || !['full', 'half', 'blank'].includes(value.pitch) || !Array.isArray(value.items) || value.items.length > 40 || !Array.isArray(value.frames) || !value.frames.length || value.frames.length > 12) return null;
+    if (!object(value, ['schemaVersion', 'pitch', 'items', 'frames']) || value.schemaVersion !== 1 || !['full', 'half', 'blank', 'facing-goal', 'away-from-goal'].includes(value.pitch) || !Array.isArray(value.items) || value.items.length > 40 || !Array.isArray(value.frames) || !value.frames.length || value.frames.length > 12) return null;
     const kinds = new Map(), frames = new Set();
     for (const item of value.items) {
-      if (!object(item, ['id', 'kind', 'label'], ['zone']) || !id(item.id) || kinds.has(item.id) || !['home', 'away', 'cone', 'ball', 'goal', 'zone'].includes(item.kind) || !text(item.label, 12)) return null;
+      if (!object(item, ['id', 'kind', 'label'], ['zone', 'color']) || !id(item.id) || kinds.has(item.id) || !['home', 'away', 'cone', 'ball', 'goal', 'zone'].includes(item.kind) || !text(item.label, 12)) return null;
+      if (Object.hasOwn(item, 'color') && (!['home', 'away'].includes(item.kind) || typeof item.color !== 'string' || !Object.hasOwn(playerColors, item.color))) return null;
       kinds.set(item.id, item.kind);
       if (item.kind === 'zone') {
         if (!object(item.zone, ['shape', 'width', 'height', 'color']) || !['rect', 'ellipse'].includes(item.zone.shape) || !['blue', 'gold', 'green'].includes(item.zone.color) || !number(item.zone.width, 5, 90) || !number(item.zone.height, 5, 90)) return null;
       } else if (Object.hasOwn(item, 'zone')) return null;
     }
     for (const frame of value.frames) {
-      if (!object(frame, ['id', 'title', 'duration', 'positions'], ['notes']) || !id(frame.id) || frames.has(frame.id) || !text(frame.title, 80) || !number(frame.duration, .5, 20) || !Array.isArray(frame.positions) || frame.positions.length !== value.items.length || Object.hasOwn(frame, 'notes') && !text(frame.notes, 1000, true)) return null;
+      if (!object(frame, ['id', 'title', 'duration', 'positions'], ['notes', 'arrows']) || !id(frame.id) || frames.has(frame.id) || !text(frame.title, 80) || !number(frame.duration, .5, 20) || !Array.isArray(frame.positions) || frame.positions.length !== value.items.length || Object.hasOwn(frame, 'notes') && !text(frame.notes, 1000, true)) return null;
       frames.add(frame.id); const seen = new Set();
       for (const position of frame.positions) {
         if (!object(position, ['id', 'x', 'y'], ['curve', 'attachedTo', 'trail', 'rotation']) || !kinds.has(position.id) || seen.has(position.id) || !number(position.x, 0, 100) || !number(position.y, 0, 100) || Object.hasOwn(position, 'curve') && !number(position.curve, -50, 50)) return null;
@@ -34,6 +36,14 @@
         if (Object.hasOwn(position, 'rotation') && (kinds.get(position.id) !== 'goal' || !number(position.rotation, 0, 360) || position.rotation === 360)) return null;
         if (Object.hasOwn(position, 'attachedTo') && (kinds.get(position.id) !== 'ball' || !['home', 'away'].includes(kinds.get(position.attachedTo)))) return null;
         if (Object.hasOwn(position, 'trail') && (!['home', 'away', 'ball'].includes(kinds.get(position.id)) || !Array.isArray(position.trail) || !position.trail.length || position.trail.length > 32 || position.trail.some(point => !object(point, ['x', 'y']) || !number(point.x, 0, 100) || !number(point.y, 0, 100)))) return null;
+      }
+      if (Object.hasOwn(frame, 'arrows')) {
+        if (!Array.isArray(frame.arrows) || frame.arrows.length > 24) return null;
+        const arrowIds = new Set();
+        for (const arrow of frame.arrows) {
+          if (!object(arrow, ['id', 'x1', 'y1', 'x2', 'y2', 'color']) || !id(arrow.id) || arrowIds.has(arrow.id) || !['x1', 'y1', 'x2', 'y2'].every(key => number(arrow[key], 0, 100)) || typeof arrow.color !== 'string' || !(Object.hasOwn(playerColors, arrow.color) || arrow.color === 'charcoal')) return null;
+          arrowIds.add(arrow.id);
+        }
       }
     }
     try { const json = JSON.stringify(value); return new TextEncoder().encode(json).length <= 56000 ? JSON.parse(json) : null; } catch { return null; }
@@ -54,8 +64,14 @@
       for (const item of diagram.items) {
         const p = diagram.frames[0].positions.find(position => position.id === item.id), x = p.x * 2, y = p.y * 1.3;
         if (item.kind === 'zone') { image.append(svg(item.zone.shape === 'ellipse' ? 'ellipse' : 'rect', item.zone.shape === 'ellipse' ? { cx: x, cy: y, rx: item.zone.width, ry: item.zone.height * .65, fill: '#537b782b', stroke: '#537b78' } : { x: x - item.zone.width, y: y - item.zone.height * .65, width: item.zone.width * 2, height: item.zone.height * 1.3, fill: '#537b782b', stroke: '#537b78' })); continue; }
-        image.append(svg(item.kind === 'cone' ? 'path' : item.kind === 'goal' ? 'rect' : 'circle', item.kind === 'cone' ? { d: 'M' + x + ' ' + (y - 5) + 'l-4 9h8z', fill: '#bf762c' } : item.kind === 'goal' ? { x: x - 7, y: y - 4, width: 14, height: 8, fill: 'none', stroke: '#414849' } : { cx: x, cy: y, r: item.kind === 'ball' ? 3 : 5, fill: ({ home: '#355d79', away: '#c29a51', ball: '#fff' })[item.kind], stroke: '#414849' }));
+        image.append(svg(item.kind === 'cone' ? 'path' : item.kind === 'goal' ? 'rect' : 'circle', item.kind === 'cone' ? { d: 'M' + x + ' ' + (y - 5) + 'l-4 9h8z', fill: '#bf762c' } : item.kind === 'goal' ? { x: x - 7, y: y - 4, width: 14, height: 8, fill: 'none', stroke: '#414849' } : { cx: x, cy: y, r: item.kind === 'ball' ? 3 : 5, fill: item.kind === 'ball' ? '#fff' : playerColors[item.color || (item.kind === 'home' ? 'blue' : 'gold')], stroke: '#414849' }));
         if (item.label) image.append(svg('text', { x, y: y - 7, 'text-anchor': 'middle', 'font-size': 7, fill: '#263332' }, item.label));
+      }
+      for (const arrow of diagram.frames[0].arrows || []) {
+        const x1 = arrow.x1 * 2, y1 = arrow.y1 * 1.3, x2 = arrow.x2 * 2, y2 = arrow.y2 * 1.3, angle = Math.atan2(y2 - y1, x2 - x1), head = Math.min(5, Math.hypot(x2 - x1, y2 - y1) * .45), color = playerColors[arrow.color] || '#38434a';
+        const group = svg('g', { 'data-preview-arrow': arrow.id });
+        group.append(svg('line', { x1, y1, x2, y2, stroke: color, 'stroke-width': 1.2 }), svg('polygon', { points: [[x2, y2], [x2 - head * Math.cos(angle - .45), y2 - head * Math.sin(angle - .45)], [x2 - head * Math.cos(angle + .45), y2 - head * Math.sin(angle + .45)]].map(point => point.join(',')).join(' '), fill: color }));
+        image.append(group);
       }
     }
     figure.append(image, node('figcaption', title + ' · ' + (diagram.frames[0].title || 'Starting positions') + (diagram.frames.length > 1 ? ' · ' + diagram.frames.length + ' saved phases' : '')));

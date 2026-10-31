@@ -33,17 +33,20 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
         const card=page.locator('.library-preset').nth(index); await card.locator('summary').click();
         const source=card.locator('.preset-source a'), href=await source.getAttribute('href');
         assert.match(href,/^https:\/\/(www\.fifatrainingcentre\.com|learn\.englandfootball\.com)\//); assert.equal(await source.getAttribute('rel'),'noopener noreferrer');
-        if(index)page.once('dialog',dialog=>dialog.accept()); await card.locator('[data-preset-title]').click();
+        await card.locator('[data-preset-title]').click();
         assert.equal(await page.locator('#library-title').inputValue(),(await card.locator('h3').innerText()).slice(0,68)+' (variation)'); assert((await page.locator('#library-setup').inputValue()).includes(href));
         assert.match(await page.locator('#library-coaching').inputValue(),/Technical Intelligence:.*\nPerception:.*\nDecision Making:.*\nAsk the players:/);
         assert.match(await page.locator('#library-progression').inputValue(),/^Our suggested adaptation:/); assert(await page.evaluate(()=>CoachLibrary.isDirty()));
-        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Open practice fits '+width); await card.locator('summary').click();
+        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Open practice fits '+width);
+        assert(await page.locator('#library-list').isHidden(),'The creator hides the catalog while editing');
+        if(index<9) { page.once('dialog',dialog=>dialog.accept()); await page.locator('#library-cancel').click(); assert(await page.locator('#library-list').isVisible()); await card.locator('summary').click(); }
       }
       assert.equal(await page.evaluate(()=>calls.filter(call=>call.operation==='save').length),0,'Browsing and prefill never save');
-      const first=page.locator('.library-preset').first(); page.once('dialog',dialog=>dialog.dismiss()); await first.locator('[data-preset-title]').click();
-      assert.equal(await page.locator('#library-title').inputValue(),'3v3 with wide support (variation)','Declining replacement preserves draft');
+      const first=page.locator('.library-preset').first(); page.once('dialog',dialog=>dialog.dismiss()); await page.locator('#library-cancel').click();
+      assert.equal(await page.locator('#library-title').inputValue(),'3v3 with wide support (variation)','Declining Back preserves the draft'); assert(await page.locator('#library-form').isVisible()); assert(await page.locator('#library-list').isHidden());
       await page.locator('#library-save').click(); await page.waitForFunction(()=>!CoachLibrary.isBusy()&&!CoachLibrary.isDirty());
       let writes=await page.evaluate(()=>calls.filter(call=>call.operation==='save')); assert.equal(writes.length,1); assert.match(writes[0].payload.setup,/optimising-game-application\.php/); assert.match(writes[0].payload.coaching,/Perception:/); assert.equal(writes[0].payload.diagram.frames.length,1); assert.deepEqual(validateDiagram(writes[0].payload.diagram),writes[0].payload.diagram,'Sketch round-trips through the server validator');
+      await page.locator('#library-cancel').click(); assert(await page.locator('#library-list').isVisible());
       await page.selectOption('#library-source-filter','saved'); assert.equal(await page.locator('.library-card').count(),1); assert.match(await page.locator('.library-source-tag').innerText(),/Private saved drill/);
       await page.evaluate(()=>saved.push({...saved[0],id:'foreign-drill',title:'PRIVATE_COACH_MARKER',author_email:'another-coach@example.test'}));
       await page.locator('#library-reload').click(); await page.waitForFunction(()=>!document.querySelector('#library-reload').disabled);

@@ -29,7 +29,7 @@
   function action(text, handler, cls = 'secondary') { const b = node('button', text, cls); b.type = 'button'; b.addEventListener('click', handler); return b; }
   function label(text, control) { const el = node('label', text); el.htmlFor = control.id; el.append(control); return el; }
   function select(id, entries) { const el = node('select'); el.id = id; entries.forEach(([value, text]) => { const option = node('option', text); option.value = value; el.append(option); }); return el; }
-  function closeDiagram() { diagramOpen = false; diagramEpoch++; window.CoachTactics?.closeLibrary?.(); }
+  function closeDiagram() { diagramOpen = false; diagramEpoch++; document.body.classList.remove('drill-creator-focus'); window.CoachTactics?.closeLibrary?.(); }
   function openDiagram(reload = false) {
     if (!standalone() || editor.hidden || diagramOpen && !reload || !window.CoachTactics?.openLibrary) return;
     const ticket = ++diagramEpoch; diagramOpen = true;
@@ -248,6 +248,7 @@
     lastAttempt = { signature, payload }; persist({ operation: 'save', payload });
   });
   function renderState() {
+    document.body.classList.toggle('drill-creator-focus', !!context?.profile && standalone() && !editor.hidden);
     if (editorStandalone !== standalone()) {
       editorStandalone = standalone(); drillDetails.open = !editorStandalone;
       if (editorStandalone) { editorHeader.prepend(cancel); editorHeader.append(editorActions); editorHeader.after(diagramEditor, drillDetails); body.prepend(editor); }

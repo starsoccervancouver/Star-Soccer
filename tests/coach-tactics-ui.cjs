@@ -69,6 +69,7 @@ const { chromium } = require('playwright');
     const saved = () => page.evaluate(() => fixtureCalls.filter(item => item.operation === 'save').at(-1)?.payload);
     const reveal = async selector => { const ancestors = page.locator(selector).locator('xpath=ancestor::details[not(@open)]'); while (await ancestors.count()) await ancestors.first().locator('xpath=./summary').click(); };
     const fill = async (selector, value) => { await reveal(selector); await page.locator(selector).fill(value); await page.locator(selector).dispatchEvent('change'); };
+    const addPlayer = async color => { await page.locator('#tactics-new-player').click(); await page.locator('[data-player-color="' + color + '"]').click(); };
     const openAdvanced = async () => { const details = page.locator('.tactics-advanced'); if (!await details.evaluate(n => n.open)) await details.locator('summary').click(); };
     const save = async () => { const n = await count('save'); await page.locator('#tactics-save').click(); await page.waitForFunction(n => fixtureCalls.filter(item => item.operation === 'save').length > n, n); await page.waitForFunction(() => !CoachTactics.isBusy()); return saved(); };
     await page.goto(origin + '/workspace');
@@ -84,7 +85,8 @@ const { chromium } = require('playwright');
     checks++;
 
     await fill('#tactics-title', 'Fictional movement drill');
-    for (const kind of ['home', 'away', 'cone', 'ball', 'goal']) { await reveal('#tactics-add-' + kind); await page.locator('#tactics-add-' + kind).click(); }
+    await addPlayer('blue'); await addPlayer('gold');
+    for (const kind of ['cone', 'ball', 'goal']) { await reveal('#tactics-add-' + kind); await page.locator('#tactics-add-' + kind).click(); }
     await fill('#tactics-label', 'G1');
     await openAdvanced();
     await page.locator('#tactics-nudge-right').click();

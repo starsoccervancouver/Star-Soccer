@@ -11,7 +11,7 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
     await page.evaluate(() => {
       window.fixture = { profile: { email: 'fixture@example.test', role: 'coach' }, session: { id: 'fixture-session', time: '4–5 PM', date: '2026-10-30', status: 'Scheduled', players: [] }, selected: 'fixture-session', tab: 'plan', planReady: true, busy: false, plan: { version: 1, content: { focus: 'Saved focus', warmup: 'Legacy unchanged', technical: '', game: '' } } };
       window.saves = 0;
-      window.diagramFixture = { schemaVersion: 1, pitch: 'full', items: [{ id: 'player_1', kind: 'home', label: '1' }, {id:'goal_1',kind:'goal',label:''}], frames: [{ id: 'start', title: 'Starting positions', duration: 3, positions: [{ id: 'player_1', x: 25, y: 50 },{id:'goal_1',x:90,y:50,rotation:90}] }] };
+      window.diagramFixture = { schemaVersion: 1, pitch: 'facing-goal', items: [{ id: 'player_1', kind: 'home', label: '1', color: 'purple' }, {id:'goal_1',kind:'goal',label:''}], frames: [{ id: 'start', title: 'Starting positions', duration: 3, positions: [{ id: 'player_1', x: 25, y: 50 },{id:'goal_1',x:90,y:50,rotation:90}], arrows: [{ id: 'arrow_1', x1: 25, y1: 50, x2: 65, y2: 50, color: 'charcoal' }] }] };
       window.currentTactics = { sessionId: fixture.session.id, title: 'Current setup', diagram: structuredClone(diagramFixture) };
       window.CoachTactics = { getDraft: () => currentTactics };
       window.publish = () => window.dispatchEvent(new CustomEvent('coach:context', { detail: { ...fixture, planDirty: CoachPlanBlocks.isDirty() } }));
@@ -21,6 +21,41 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
       window.print = () => { window.printed = document.querySelector('#session-print-sheet').textContent; window.printedDiagrams = document.querySelectorAll('#session-print-sheet .plan-block-diagram-preview svg').length; };
     });
     assert.equal(await page.evaluate(() => CoachPlanBlocks.content()), undefined, 'Loading a legacy plan never converts it');
+    const annotations = await page.evaluate(() => {
+      const drill = diagram => ({ target: 'technical', title: 'Annotated drill', text: 'Pass into space.', minutes: 10, diagram });
+      const colors = { blue: '#326887', gold: '#d9ae63', red: '#b64d49', green: '#397561', purple: '#79549d', white: '#f5f2e9' }, accepted = [], rendered = [];
+      for (const pitch of ['full', 'half', 'blank', 'facing-goal', 'away-from-goal']) {
+        const diagram = structuredClone(diagramFixture); diagram.pitch = pitch;
+        accepted.push(CoachPlanBlocks.canAddDrill(drill(diagram)));
+      }
+      for (const [color, fill] of Object.entries(colors)) for (const kind of ['home', 'away']) {
+        const diagram = structuredClone(diagramFixture); diagram.items[0].color = color; diagram.items[0].kind = kind; diagram.frames[0].arrows[0].color = color;
+        accepted.push(CoachPlanBlocks.canAddDrill(drill(diagram)));
+        const preview = CoachPlanBlocks.previewDiagram(diagram);
+        rendered.push(preview?.querySelector('circle')?.getAttribute('fill') === fill && preview?.querySelector('[data-preview-arrow] line')?.getAttribute('stroke') === fill && preview?.querySelector('[data-preview-arrow] polygon')?.getAttribute('fill') === fill);
+      }
+      const boundary = structuredClone(diagramFixture); boundary.frames[0].arrows = Array.from({ length: 24 }, (_, index) => ({ id: 'arrow_' + index, x1: 0, y1: 100, x2: 100, y2: 0, color: 'charcoal' }));
+      boundary.frames.push({ ...structuredClone(boundary.frames[0]), id: 'next' }); accepted.push(CoachPlanBlocks.canAddDrill(drill(boundary)));
+      boundary.frames[0].arrows = []; accepted.push(CoachPlanBlocks.canAddDrill(drill(boundary)));
+      const invalid = [], check = mutate => { const diagram = structuredClone(diagramFixture); mutate(diagram); invalid.push(CoachPlanBlocks.canAddDrill(drill(diagram))); invalid.push(CoachPlanBlocks.previewDiagram(diagram) !== null); };
+      for (const color of ['charcoal', 'toString', '#fff', null, undefined, 1, false, {}, [], ['blue']]) check(diagram => { diagram.items[0].color = color; });
+      for (const kind of ['ball', 'cone', 'goal', 'zone']) check(diagram => { diagram.items[0].kind = kind; if (kind === 'zone') diagram.items[0].zone = { shape: 'rect', width: 20, height: 20, color: 'blue' }; });
+      for (const arrows of [null, undefined, {}, 'arrows', false]) check(diagram => { diagram.frames[0].arrows = arrows; });
+      for (const arrow of [null, undefined, {}, [], 1, false]) check(diagram => { diagram.frames[0].arrows = [arrow]; });
+      for (const color of ['black', 'toString', null, undefined, 1, false, {}, [], ['blue']]) check(diagram => { diagram.frames[0].arrows[0].color = color; });
+      for (const key of ['x1', 'y1', 'x2', 'y2']) for (const value of [-.01, 100.01, NaN, Infinity, null, undefined, '50', true, {}, []]) check(diagram => { diagram.frames[0].arrows[0][key] = value; });
+      for (const id of ['', 'bad id', 'a'.repeat(41), null, undefined, 1, []]) check(diagram => { diagram.frames[0].arrows[0].id = id; });
+      for (const key of ['id', 'x1', 'y1', 'x2', 'y2', 'color']) check(diagram => { delete diagram.frames[0].arrows[0][key]; });
+      check(diagram => { diagram.frames[0].arrows[0].url = 'https://outside.test/'; });
+      check(diagram => { diagram.frames[0].arrows.push({ ...diagram.frames[0].arrows[0] }); });
+      check(diagram => { diagram.frames[0].arrows = Array.from({ length: 25 }, (_, index) => ({ ...diagram.frames[0].arrows[0], id: 'arrow_' + index })); });
+      const fallback = CoachPlanBlocks.previewDiagram(diagramFixture), line = fallback.querySelector('[data-preview-arrow] line');
+      return { accepted, rendered, invalid, unchanged: CoachPlanBlocks.content() === undefined, charcoal: line.getAttribute('stroke'), endpoints: ['x1', 'y1', 'x2', 'y2'].map(key => line.getAttribute(key)), fallbackOnly: !CoachTactics.preview };
+    });
+    assert(annotations.accepted.every(Boolean), 'Client accepts the server field views, colours, empty arrows, boundary coordinates and arrow limit');
+    assert(annotations.rendered.every(Boolean), 'Fallback preview renders each player and arrow colour');
+    assert(annotations.invalid.every(value => value === false), 'Invalid annotations fail preflight and preview');
+    assert.equal(annotations.unchanged, true); assert.equal(annotations.fallbackOnly, true); assert.equal(annotations.charcoal, '#38434a'); assert.deepEqual(annotations.endpoints, ['50', '65', '130', '65']);
     const insertion = await page.evaluate(() => {
       const drill = { target: 'technical', title: 'Receive safely', text: '  Keep exact instructions\nwith a second line.  ', minutes: 12, diagram: structuredClone(diagramFixture) };
       const canAdd = CoachPlanBlocks.canAddDrill(drill), unchangedBeforeAdd = CoachPlanBlocks.content() === undefined;
@@ -52,6 +87,7 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
     assert.equal(insertion.content[0].duration, 12); assert.equal(insertion.internalTitle, 'Receive safely');
     assert.deepEqual(Object.keys(insertion.content[0]).sort(), ['diagram', 'duration', 'equipment', 'instructions', 'stage', 'title'], 'Diagram snapshot is part of this activity');
     assert.equal(insertion.internalDiagramX, 25, 'Later source edits cannot change the activity snapshot');
+    assert.equal(insertion.content[0].diagram.items[0].color, 'purple'); assert.equal(insertion.content[0].diagram.pitch, 'facing-goal'); assert.deepEqual(insertion.content[0].diagram.frames[0].arrows, [{ id: 'arrow_1', x1: 25, y1: 50, x2: 65, y2: 50, color: 'charcoal' }]);
     assert.equal(insertion.budgetFirst, true); assert.equal(insertion.budgetSecond, false); assert.equal(insertion.budgetCount, 1, 'UTF-8 aggregate byte limit rejects another diagram without changing the draft');
     assert(insertion.invalid.every(value => value === false), 'Invalid inputs fail without a partial draft');
     assert(insertion.guarded.every(value => value === false), 'Busy, unloaded, cancelled or mismatched sessions reject insertion');
@@ -82,6 +118,8 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
     await page.getByRole('button', { name: 'Open field view', exact: true }).click(); assert.equal(await page.locator('#field-timer-output').innerText(), '20:00');
     await page.locator('#field-stage-activity-1').click(); assert.equal(await page.locator('#field-timer-output').innerText(), '30:00');
     assert.equal(await page.locator('#field-stage-diagram svg').count(), 1, 'Field view includes the saved activity diagram');
+    assert.equal(await page.locator('#field-stage-diagram circle').first().getAttribute('fill'), '#79549d', 'Saved field view retains player colour');
+    assert.equal(await page.locator('#field-stage-diagram [data-preview-arrow] line').getAttribute('stroke'), '#38434a', 'Saved field view retains drawn arrows');
     assert.equal(await page.locator('#session-field-view script').count(), 0);
     await page.getByRole('button', { name: 'Print session sheet', exact: true }).last().click();
     const printed = await page.evaluate(() => printed); assert.match(printed, /75 minutes planned.*60-minute/); assert.match(printed, /30 min/); assert.match(printed, /supporting notesLegacy unchanged/);

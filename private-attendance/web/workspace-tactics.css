@@ -246,3 +246,97 @@
 :is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools :is(.tactics-main-toolbar,.tactics-sequence-actions) button,#tactics-board-tools .tactics-equipment>summary{border-radius:999px}
 @media(min-width:1001px){#tactics-board-tools .tactics-main-toolbar{grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr)}}
 @media(max-width:600px){#tactics-board-tools .tactics-edit-tools{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}#tactics-board-tools .tactics-edit-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#tactics-board-tools .tactics-edit-history{justify-content:flex-end;border-left:0;padding-left:0}#tactics-board-tools .tactics-edit-tools button{padding:8px;font-size:12px}#tactics-board-tools .tactics-sequence-actions .tactics-playback{flex-basis:100%}#tactics-board-tools .tactics-sequence-actions #tactics-add-frame{margin-left:0}}
+
+/* Compact creation tools keep their full touch targets. */
+#tactics-board-tools .tactics-main-toolbar { gap: 6px 10px; margin: 6px 0 8px; }
+#tactics-board-tools .tactics-main-toolbar .tactics-pieces { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; grid-column: auto; }
+#tactics-board-tools .tactics-pieces button { flex: 0 0 auto; width: auto; min-width: 44px; min-height: 44px; padding: 8px; font-size: 12px; }
+#tactics-board-tools .tactics-pieces button[data-piece-kind] { width: 44px; height: 44px; padding: 9px; }
+#tactics-board-tools .tactics-pieces button > svg { flex: 0 0 22px; width: 22px; height: 22px; }
+#tactics-board-tools .tactics-player-tools { position: relative; display: flex; gap: 4px; align-items: center; }
+#tactics-board-tools .tactics-player-tools > button { gap: 6px; padding: 8px 10px; }
+#tactics-board-tools .tactics-current-color { display: inline-block; flex: 0 0 12px; width: 12px; height: 12px; border: 1px solid #292d3355; border-radius: 50%; }
+#tactics-board-tools .tactics-player-colors {
+  position: absolute; z-index: 8; top: calc(100% + 6px); left: 0; display: grid; grid-template-columns: repeat(3,minmax(0,1fr));
+  width: min(300px,calc(100vw - 32px)); gap: 4px; padding: 6px; border: 1px solid #9d9486; border-radius: 12px;
+  background: var(--desk-surface,#dbd5ca); box-shadow: 0 8px 24px #292d3326;
+}
+#tactics-board-tools .tactics-player-colors button { justify-content: start; gap: 6px; width: 100%; padding: 8px; font-size: 11px; }
+#tactics-board-tools .tactics-player-colors [aria-pressed=true] { outline: 2px solid #536e60; outline-offset: -3px; }
+#tactics-board-tools .tactics-equipment { position: relative; grid-column: auto; }
+#tactics-board-tools .tactics-equipment > summary { padding: 11px 10px; font-size: 12px; }
+#tactics-board-tools .tactics-equipment-options { position: absolute; z-index: 8; right: 0; top: 100%; display: grid; grid-template-columns: repeat(2,44px); gap: 4px; padding: 6px; border: 1px solid #9d9486; border-radius: 12px; background: var(--desk-surface,#dbd5ca); box-shadow: 0 8px 24px #292d3326; }
+#tactics-board-tools .tactics-edit-tools { gap: 6px; }
+#tactics-board-tools .tactics-edit-modes { display: flex; flex-wrap: wrap; gap: 5px; }
+#tactics-board-tools .tactics-edit-modes button { flex: 0 1 auto; padding: 8px 10px; font-size: 12px; }
+#tactics-board-tools .tactics-edit-history { gap: 4px; padding-left: 6px; }
+#tactics-board-tools .tactics-edit-history button { padding: 8px; font-size: 12px; }
+#tactics-board-tools .tactics-field-view { grid-template-columns: auto minmax(0,1fr); gap: 6px; margin: 0; }
+#tactics-board-tools .tactics-field-view select { min-height: 44px; padding: 8px; }
+#tactics-board-tools .tactics-selection-count:empty, #tactics-board-tools .tactics-status:empty { display: none; }
+#tactics-board-tools .tactics-selection-count { font-size: 11px; line-height: 1.3; }
+
+/* The focused library creator reserves space for phases beside the inspector. */
+body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-board-layout { grid-template-columns: minmax(0,1fr) 252px; gap: 10px; }
+body.drill-creator-focus #tactics-board-tools :is(.tactics-field-column,.tactics-inspector) { gap: 8px; }
+body.drill-creator-focus #tactics-pitch-board { height: clamp(280px,calc(100dvh - 360px),460px); max-height: 460px; aspect-ratio: auto; }
+body.drill-creator-focus #tactics-board-tools .tactics-path-caption { padding: 5px 8px; font-size: 11px; line-height: 1.35; }
+body.drill-creator-focus #tactics-board-tools .tactics-view-controls { position: absolute; top: 6px; right: 6px; z-index: 2; max-width: calc(100% - 12px); gap: 4px; margin: 0; padding: 3px; border: 1px solid #9d948680; border-radius: 10px; background: #e3ddd3e8; box-shadow: 0 2px 8px #292d3312; }
+body.drill-creator-focus #library-diagram-editor #tactics-board-tools :is(.tactics-phase-editor,.tactics-piece-panel,.tactics-phases) { padding: 8px; gap: 6px; border-radius: 8px; }
+body.drill-creator-focus #tactics-board-tools :is(.tactics-phase-editor h3,.tactics-phase-heading h3) { font-size: 13px; }
+body.drill-creator-focus #tactics-board-tools label { font-size: 11px; }
+body.drill-creator-focus #tactics-board-tools :is(input:not([type=checkbox]),select,textarea) { min-height: 44px; padding: 8px; margin-top: 3px; }
+body.drill-creator-focus #tactics-board-tools textarea { min-height: 60px; }
+body.drill-creator-focus #tactics-board-tools .tactics-phase-editor :is(label,.tactics-toolbar) { margin: 0; }
+body.drill-creator-focus #tactics-board-tools :is(.tactics-phase-options,.tactics-playback-options) > summary { padding: 11px 8px; }
+body.drill-creator-focus #tactics-board-tools .tactics-phases { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; }
+body.drill-creator-focus #tactics-board-tools .tactics-phase-heading { display: grid; gap: 1px; margin: 0; }
+body.drill-creator-focus #tactics-board-tools .tactics-phase-heading .small { font-size: 10px; }
+body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions { justify-content: end; gap: 6px; margin: 0; }
+body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions .tactics-playback { flex: 0 1 auto; gap: 5px; }
+body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions #tactics-playback-status { flex-basis: auto; margin: 0; font-size: 11px; }
+body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions #tactics-add-frame { margin: 0; }
+body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions button { padding: 8px 10px; font-size: 12px; }
+body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-frame-list { grid-column: 1/-1; gap: 5px; margin: 0; padding: 2px 2px 4px; }
+body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-frame-list button { display: grid; grid-template-columns: 44px minmax(0,1fr); flex: 0 0 130px; gap: 6px; align-items: center; padding: 4px 6px; font-size: 11px; text-align: left; }
+body.drill-creator-focus #tactics-board-tools .tactics-frame-preview svg { width: 44px; height: 31px; border-radius: 3px; }
+body.drill-creator-focus #tactics-board-tools .tactics-preview-controls { grid-column: 1/-1; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: end; margin: 0; }
+body.drill-creator-focus #tactics-board-tools .tactics-preview-controls input[type=range] { padding: 0; margin: 0; }
+body.drill-creator-focus #tactics-board-tools .tactics-playback-options[open] { align-self: start; }
+body.drill-creator-focus #tactics-board-tools .tactics-compact-details { margin: 4px 0; }
+@media(min-width:1101px) {
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar { grid-template-columns: minmax(0,1.05fr) minmax(180px,.52fr) minmax(0,1.05fr); align-items: center; }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar > .tactics-selection-count { grid-column: 1/-1; }
+}
+@media(max-width:1100px) {
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar > .tactics-pieces { grid-column: 1/-1; }
+  body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-board-layout { grid-template-columns: minmax(0,1fr) 232px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-phases { grid-template-columns: minmax(0,1fr); }
+  body.drill-creator-focus #tactics-board-tools .tactics-phase-heading { display: flex; justify-content: space-between; }
+  body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions { justify-content: space-between; }
+}
+@media(max-width:760px) {
+  body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-board-layout { grid-template-columns: minmax(0,1fr); }
+  body.drill-creator-focus #tactics-pitch-board { height: auto; max-height: 420px; aspect-ratio: 1120/770; }
+  body.drill-creator-focus #tactics-board-tools .tactics-inspector { grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar { grid-template-columns: minmax(0,1fr) auto; align-items: center; }
+  body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar > .tactics-pieces { grid-column: 1/-1; grid-row: 1; }
+  body.drill-creator-focus #tactics-board-tools .tactics-equipment > summary { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 8px; list-style: none; font-size: 20px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-equipment > summary::-webkit-details-marker { display: none; }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-tools { display: contents; }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-modes { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); grid-column: 1/-1; grid-row: 3; }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-history { grid-column: 2; grid-row: 2; margin: 0; padding: 0; border: 0; }
+  body.drill-creator-focus #tactics-board-tools .tactics-field-view { grid-template-columns: auto minmax(0,1fr); grid-column: 1; grid-row: 2; }
+  body.drill-creator-focus #tactics-board-tools .tactics-selection-count { grid-column: 1/-1; grid-row: 4; }
+}
+@media(max-width:520px) {
+  body.drill-creator-focus #tactics-board-tools .tactics-inspector { grid-template-columns: minmax(0,1fr); }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-tools { gap: 4px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-modes button { padding: 8px; font-size: 11px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-edit-history { margin-left: auto; }
+  body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions .tactics-playback { flex-basis: auto; }
+  body.drill-creator-focus #tactics-board-tools .tactics-sequence-actions #tactics-playback-status { flex-basis: 100%; }
+  body.drill-creator-focus #tactics-board-tools .tactics-preview-controls { grid-template-columns: minmax(0,1fr); gap: 4px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-preview-controls > label { width: 100%; }
+}

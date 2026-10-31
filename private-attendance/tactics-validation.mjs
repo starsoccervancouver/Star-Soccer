@@ -9,15 +9,20 @@ const text=(value,max)=>{if(typeof value!=='string'||value.length>max||/[\x00-\x
 const coordinate=value=>{if(typeof value!=='number'||!Number.isFinite(value)||value<0||value>100)invalid();return value;};
 const notes=value=>{if(typeof value!=='string'||value.length>1000||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value))invalid();return value;};
 const curve=value=>{if(typeof value!=='number'||!Number.isFinite(value)||value< -50||value>50)invalid();return value;};
+const playerColors=['blue','gold','red','green','purple','white'];
 
 export function validateDiagram(content){
  object(content,['schemaVersion','pitch','items','frames']);
  if(content.schemaVersion!==1||!['full','half','blank','facing-goal','away-from-goal'].includes(content.pitch)||!Array.isArray(content.items)||content.items.length>40||!Array.isArray(content.frames)||!content.frames.length||content.frames.length>12)invalid();
  const itemIds=new Set(),frameIds=new Set();
  const items=content.items.map(item=>{
-  object(item,['id','kind','label'],['zone']);const id=identifier(item.id);
+  object(item,['id','kind','label'],['zone','color']);const id=identifier(item.id);
   if(itemIds.has(id)||!['home','away','cone','ball','goal','zone'].includes(item.kind))invalid();
   itemIds.add(id);const result={id,kind:item.kind,label:text(item.label,12)};
+  if(Object.hasOwn(item,'color')){
+   if(!['home','away'].includes(item.kind)||!playerColors.includes(item.color))invalid();
+   result.color=item.color;
+  }
   if(item.kind==='zone'){
    const zone=object(item.zone,['shape','width','height','color']);
    if(!['rect','ellipse'].includes(zone.shape)||!['blue','gold','green'].includes(zone.color)||typeof zone.width!=='number'||!Number.isFinite(zone.width)||zone.width<5||zone.width>90||typeof zone.height!=='number'||!Number.isFinite(zone.height)||zone.height<5||zone.height>90)invalid();
@@ -27,7 +32,7 @@ export function validateDiagram(content){
  });
  const itemKinds=new Map(items.map(item=>[item.id,item.kind]));
  const frames=content.frames.map(frame=>{
-  object(frame,['id','title','duration','positions'],['notes']);const id=identifier(frame.id);
+  object(frame,['id','title','duration','positions'],['notes','arrows']);const id=identifier(frame.id);
   if(frameIds.has(id)||typeof frame.duration!=='number'||!Number.isFinite(frame.duration)||frame.duration<0.5||frame.duration>20||!Array.isArray(frame.positions)||frame.positions.length!==items.length)invalid();
   frameIds.add(id);const seen=new Set();
   const positions=frame.positions.map(position=>{
@@ -52,6 +57,16 @@ export function validateDiagram(content){
   });
   const result={id,title:text(frame.title,80),duration:frame.duration,positions};
   if(Object.hasOwn(frame,'notes'))result.notes=notes(frame.notes);
+  if(Object.hasOwn(frame,'arrows')){
+   if(!Array.isArray(frame.arrows)||frame.arrows.length>24)invalid();
+   const arrowIds=new Set();
+   result.arrows=frame.arrows.map(arrow=>{
+    object(arrow,['id','x1','y1','x2','y2','color']);const id=identifier(arrow.id);
+    if(arrowIds.has(id)||![...playerColors,'charcoal'].includes(arrow.color))invalid();
+    arrowIds.add(id);
+    return {id,x1:coordinate(arrow.x1),y1:coordinate(arrow.y1),x2:coordinate(arrow.x2),y2:coordinate(arrow.y2),color:arrow.color};
+   });
+  }
   return result;
  });
  const result={schemaVersion:1,pitch:content.pitch,items,frames};

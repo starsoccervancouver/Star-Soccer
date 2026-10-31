@@ -43,7 +43,8 @@
         if (!Array.isArray(frame.arrows) || frame.arrows.length > 24) return null;
         const arrowIds = new Set();
         for (const arrow of frame.arrows) {
-          if (!object(arrow, ['id', 'x1', 'y1', 'x2', 'y2', 'color']) || !id(arrow.id) || arrowIds.has(arrow.id) || !['x1', 'y1', 'x2', 'y2'].every(key => number(arrow[key], 0, 100)) || typeof arrow.color !== 'string' || !(Object.hasOwn(playerColors, arrow.color) || arrow.color === 'charcoal')) return null;
+          if (!object(arrow, ['id', 'x1', 'y1', 'x2', 'y2', 'color'], ['points']) || !id(arrow.id) || arrowIds.has(arrow.id) || !['x1', 'y1', 'x2', 'y2'].every(key => number(arrow[key], 0, 100)) || typeof arrow.color !== 'string' || !(Object.hasOwn(playerColors, arrow.color) || arrow.color === 'charcoal')) return null;
+          if (Object.hasOwn(arrow, 'points') && (!Array.isArray(arrow.points) || !arrow.points.length || arrow.points.length > 32 || arrow.points.some(p => !object(p, ['x', 'y']) || !number(p.x, 0, 100) || !number(p.y, 0, 100)))) return null;
           arrowIds.add(arrow.id);
         }
       }
@@ -70,9 +71,12 @@
         if (item.label) image.append(svg('text', { x, y: y - 7, 'text-anchor': 'middle', 'font-size': 7, fill: '#263332' }, item.label));
       }
       for (const arrow of diagram.frames[0].arrows || []) {
-        const x1 = arrow.x1 * 2, y1 = arrow.y1 * 1.3, x2 = arrow.x2 * 2, y2 = arrow.y2 * 1.3, angle = Math.atan2(y2 - y1, x2 - x1), head = Math.min(5, Math.hypot(x2 - x1, y2 - y1) * .45), color = playerColors[arrow.color] || '#38434a';
+        const x1 = arrow.x1 * 2, y1 = arrow.y1 * 1.3, x2 = arrow.x2 * 2, y2 = arrow.y2 * 1.3;
+        const points = [{x:x1,y:y1},...(arrow.points || []).map(p=>({x:p.x*2,y:p.y*1.3})),{x:x2,y:y2}], previous = points.slice(0,-1).reverse().find(p=>Math.hypot(x2-p.x,y2-p.y)>.01) || points[0];
+        const angle = Math.atan2(y2 - previous.y, x2 - previous.x), length = points.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-points[i].x,p.y-points[i].y),0), head = Math.min(5,length*.45), color = playerColors[arrow.color] || '#38434a';
+        let d='M'+x1+' '+y1;for(let i=1;i<points.length-1;i++){const p=points[i],next=points[i+1];d+=' Q'+p.x+' '+p.y+' '+(p.x+next.x)/2+' '+(p.y+next.y)/2;}d+=' L'+x2+' '+y2;
         const group = svg('g', { 'data-preview-arrow': arrow.id });
-        group.append(svg('line', { x1, y1, x2, y2, stroke: color, 'stroke-width': 1.2 }), svg('polygon', { points: [[x2, y2], [x2 - head * Math.cos(angle - .45), y2 - head * Math.sin(angle - .45)], [x2 - head * Math.cos(angle + .45), y2 - head * Math.sin(angle + .45)]].map(point => point.join(',')).join(' '), fill: color }));
+        group.append(arrow.points?.length ? svg('path',{d,fill:'none',stroke:color,'stroke-width':1.2,'stroke-linecap':'round','stroke-linejoin':'round'}) : svg('line', { x1, y1, x2, y2, stroke: color, 'stroke-width': 1.2 }), svg('polygon', { points: [[x2, y2], [x2 - head * Math.cos(angle - .45), y2 - head * Math.sin(angle - .45)], [x2 - head * Math.cos(angle + .45), y2 - head * Math.sin(angle + .45)]].map(point => point.join(',')).join(' '), fill: color }));
         image.append(group);
       }
     }

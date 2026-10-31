@@ -78,6 +78,28 @@ const assert = require('node:assert/strict'), fs = require('node:fs'), { chromiu
     assert.deepEqual(patternInsertion.retained, patternInsertion.diagram, 'Plan insertion retains purpose, facing, shadow, colours and arrows');
     assert(patternInsertion.rejected.every(value => value === false), 'Invalid purpose, non-player facing/shadow and invalid shadow dimensions are rejected');
     assert(patternInsertion.unchanged.every(Boolean), 'Rejected pattern insertions leave the legacy plan unchanged');
+    const curvedArrow = await page.evaluate(() => {
+      const diagram = structuredClone(diagramFixture);
+      diagram.frames[0].arrows[0].points = [{ x: 35, y: 25 }, { x: 50, y: 30 }];
+      const activity = value => ({ target: 'technical', title: 'Fictional curved pass', text: 'Pass around the defender.', minutes: 10, diagram: value });
+      const accepted = CoachPlanBlocks.addDrill(activity(diagram)), retained = CoachPlanBlocks.content()?.[0]?.diagram;
+      const preview = CoachPlanBlocks.previewDiagram(diagram), path = preview?.querySelector('[data-preview-arrow] path')?.getAttribute('d'), arrowhead = preview?.querySelector('[data-preview-arrow] polygon')?.getAttribute('points');
+      CoachPlanBlocks.discard(); publish();
+      const rejected = [], unchanged = [];
+      const invalidPoints = [[], Array.from({ length: 33 }, () => ({ x: 20, y: 30 })), null, {}, [{ x: 20 }], [{ x: 20, y: 30, extra: 1 }], [null], [{ x: -1, y: 30 }], [{ x: 20, y: 101 }], [{ x: NaN, y: 30 }], [{ x: 20, y: Infinity }], [{ x: '20', y: 30 }]];
+      for (const points of invalidPoints) {
+        const invalid = structuredClone(diagram); invalid.frames[0].arrows[0].points = points;
+        rejected.push(CoachPlanBlocks.addDrill(activity(invalid)), CoachPlanBlocks.previewDiagram(invalid) !== null);
+        unchanged.push(CoachPlanBlocks.content() === undefined); CoachPlanBlocks.discard(); publish();
+      }
+      return { accepted, retained, diagram, path, arrowhead, rejected, unchanged };
+    });
+    assert.equal(curvedArrow.accepted, true, 'Curved arrows can be added to a plan');
+    assert.deepEqual(curvedArrow.retained, curvedArrow.diagram, 'Activity snapshots retain the complete curved arrow');
+    assert.match(curvedArrow.path, /Q/, 'Fallback previews render a quadratic curved path');
+    assert.equal(curvedArrow.arrowhead.trim().split(/\s+/).length, 3, 'Curved paths retain a triangular arrowhead');
+    assert(curvedArrow.rejected.every(value => value === false), 'Empty, oversized and malformed curve points fail insertion and preview');
+    assert(curvedArrow.unchanged.every(Boolean), 'Rejected curves leave the legacy plan unchanged');
     const insertion = await page.evaluate(() => {
       const drill = { target: 'technical', title: 'Receive safely', text: '  Keep exact instructions\nwith a second line.  ', minutes: 12, diagram: structuredClone(diagramFixture) };
       const canAdd = CoachPlanBlocks.canAddDrill(drill), unchangedBeforeAdd = CoachPlanBlocks.content() === undefined;

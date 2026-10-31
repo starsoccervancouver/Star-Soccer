@@ -95,3 +95,23 @@ test('arrows require exactly the supported fields',async()=>{
  await reject(content=>{content.items[0].colour='blue';});
  await reject(content=>{content.frames[0].arrow=arrow();});
 });
+
+test('freehand arrow points round trip boundaries and decimals without changing legacy arrows',async()=>{
+ const {validateDiagram}=await validator;
+ for(const count of [1,32]){
+  const content=diagram();content.frames[0].arrows=[arrow(),{...arrow('curve'),points:Array.from({length:count},(_,i)=>({x:i%2?100:0,y:i%2?0:55.125}))}];
+  const output=validateDiagram(content);assert.deepStrictEqual(output,content);
+  assert.equal(JSON.stringify(output.frames[0].arrows[0]),JSON.stringify(arrow()));
+  assert.notStrictEqual(output.frames[0].arrows[1].points,content.frames[0].arrows[1].points);
+  assert.notStrictEqual(output.frames[0].arrows[1].points[0],content.frames[0].arrows[1].points[0]);
+ }
+});
+test('freehand points reject malformed arrays, oversized paths and unsafe point fields',async()=>{
+ for(const points of [null,undefined,true,{},'points',[],Array.from({length:33},()=>({x:10,y:20})),[null],[[]],[{}],[{x:10}],[{y:20}],[{x:10,y:20,html:'unsafe'}]])await reject(content=>{content.frames[0].arrows=[{...arrow(),points}];});
+ for(const key of ['x','y'])for(const value of [-.001,100.001,NaN,Infinity,-Infinity,null,undefined,'50',true,{},[]])await reject(content=>{content.frames[0].arrows=[{...arrow(),points:[{x:10,y:20,[key]:value}]}];});
+});
+test('freehand points remain subject to the total encoded diagram size limit',async()=>{
+ await reject(content=>{
+  content.frames=Array.from({length:12},(_,frame)=>({...content.frames[0],id:'phase_'+frame,arrows:Array.from({length:24},(_,i)=>({...arrow('curve_'+i),points:Array.from({length:32},()=>({x:55.123456,y:44.987654}))}))}));
+ });
+});

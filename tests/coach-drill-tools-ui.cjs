@@ -272,6 +272,29 @@ const { chromium } = require('playwright');
     }
     assert.deepEqual(await draft(), layoutDraft, 'Viewport, palette, inspector and written-details checks never change the diagram');
     await page.setViewportSize({ width: 1440, height: 1000 });
+    // A curved gesture retains intermediate points and moves as one annotation.
+    const beforeCurve=await draft();
+    await page.locator('#tactics-draw-arrow').click();
+    assert.equal(await page.locator('#tactics-draw-arrow').getAttribute('aria-label'),'Draw curved arrow');
+    await page.locator('#tactics-pitch-board').scrollIntoViewIfNeeded();
+    const curveStart=await screen({x:15,y:35});await page.mouse.move(curveStart.x,curveStart.y);await page.mouse.down();
+    for(const point of [{x:30,y:12},{x:50,y:10},{x:68,y:25},{x:78,y:38}]){const at=await screen(point);await page.mouse.move(at.x,at.y,{steps:6});}
+    await page.mouse.up();await page.locator('#tactics-draw-arrow').click();
+    const curved=(await draft()).frames[4].arrows.at(-1),curveId=curved.id;
+    assert(curved.points?.length>1&&curved.points.length<=32,'Freehand gesture stores bounded intermediate points');
+    const curveGroup=page.locator('[data-tactics-arrow="'+curveId+'"]'),curvePath=curveGroup.locator('path[stroke]:not([stroke="transparent"])');
+    assert.match(await curvePath.getAttribute('d'),/ Q/,'Freehand route is visibly curved');
+    assert.equal(await curveGroup.locator('polygon').count(),1,'Curve ends in an arrowhead');
+    await page.locator('#tactics-undo').click();assert.deepEqual(await draft(),beforeCurve,'Entire freehand stroke is one undo');
+    await page.locator('#tactics-redo').click();assert.deepEqual((await draft()).frames[4].arrows.at(-1),curved,'Redo restores the exact curve');
+    const middleCurve=await curvePath.evaluate(path=>{const point=path.getPointAtLength(path.getTotalLength()/2);return {x:point.x/10,y:point.y/6.5};});
+    await drag(middleCurve,{x:middleCurve.x+4,y:middleCurve.y+3});
+    await page.locator('#tactics-pitch-board').focus();await page.keyboard.press('ArrowRight');
+    const translatedCurve=(await draft()).frames[4].arrows.find(value=>value.id===curveId);
+    closeTo(translatedCurve.x1-curved.x1,5,'Pointer and keyboard translate the curve start');closeTo(translatedCurve.y2-curved.y2,3,'Translation preserves curve end offset');
+    assert.equal(translatedCurve.points.length,curved.points.length);
+    translatedCurve.points.forEach((point,index)=>{closeTo(point.x-curved.points[index].x,5,'Each curve point moves horizontally');closeTo(point.y-curved.points[index].y,3,'Each curve point moves vertically');});
+    await resetScroll();await page.screenshot({path:'outputs/curved-draw-builder.png'});
     const beforeSave = await draft();
     await page.locator('#library-save').click();
     await page.waitForFunction(() => !CoachLibrary.isBusy() && !CoachLibrary.isDirty());
@@ -282,6 +305,7 @@ const { chromium } = require('playwright');
     await page.locator('#library-cancel').click(); await page.locator('#library-list').getByRole('button', { name: 'Edit drill', exact: true }).click();
     assert.deepEqual(await draft(), saved, 'Reopening restores colours and arrows exactly');
     assert.equal(await page.locator('[data-tactics-arrow]').count() >= 2, true, 'Saved arrows render when reopened');
+    assert.deepEqual((await draft()).frames[4].arrows.find(value=>value.id===curveId),translatedCurve,'Saving and reopening retain the freehand points exactly');
     await page.locator('#library-form').screenshot({ path: 'outputs/coach-drill-tools-desktop.png' });
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Focused creator fits a phone');

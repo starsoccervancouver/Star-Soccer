@@ -146,7 +146,7 @@
   addGroup.append(equipment); topActions.append(addGroup, viewOptions);
   const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
   for (const [mode, text] of [['place', 'Place pieces'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
-  const arrowTool = button('↗ Arrow', 'tactics-draw-arrow', () => { if (!editable()) return; editMode = editMode === 'arrow' ? 'place' : 'arrow'; selectPiece(''); render(); tell(editMode === 'arrow' ? 'Drag on the field to draw an arrow. Or focus the field and press Enter. Arrows belong to this phase.' : 'Select and move pieces.'); }); arrowTool.setAttribute('aria-label', 'Draw arrow'); editModes.append(arrowTool);
+  const arrowTool = button('✎ Draw', 'tactics-draw-arrow', () => { if (!editable()) return; editMode = editMode === 'arrow' ? 'place' : 'arrow'; selectPiece(''); render(); tell(editMode === 'arrow' ? 'Draw any route on the field; it follows your curve and ends with an arrowhead. For a straight path, focus the field and press Enter. Drawings belong to this phase.' : 'Select and move pieces.'); }); arrowTool.setAttribute('aria-label', 'Draw curved arrow'); editModes.append(arrowTool);
   const selectionCount = el('p', '', 'tactics-selection-count'); selectionCount.id = 'tactics-selection-count';
   const multiSelect = input('tactics-multiselect', 'checkbox'), multiLabel = field('Select multiple', multiSelect); multiLabel.className = 'tactics-check';
   multiSelect.addEventListener('change', () => tell(multiSelect.checked ? 'Tap pieces to add them to the selection. Drag a selected piece to move the group.' : 'Click a piece to select it. Shift-click adds or removes pieces.'));
@@ -432,13 +432,24 @@
   }
   function arrowArtwork(arrow, interactive = false) {
     const x1 = arrow.x1 * 10, y1 = arrow.y1 * 6.5, x2 = arrow.x2 * 10, y2 = arrow.y2 * 6.5;
-    const angle = Math.atan2(y2 - y1, x2 - x1), color = playerColors[arrow.color] || '#38434a';
-    const scale = interactive ? Math.max(.1, board.getScreenCTM()?.a || 1) : 1, head = Math.min(18 / scale, Math.hypot(x2-x1,y2-y1) * .45);
-    const group = svg('g', interactive ? { 'data-tactics-arrow': arrow.id, role:'button', tabindex: editable() ? '0' : '-1', 'aria-label':'Drawn arrow. Select to adjust or delete.', 'aria-pressed':String(selectedArrow === arrow.id) } : { 'data-preview-arrow': arrow.id });
-    if (interactive) group.append(svg('line', { x1,y1,x2,y2,stroke:'transparent','stroke-width':18/scale,'pointer-events':'stroke' }));
-    group.append(svg('line', { x1,y1,x2,y2,stroke:color,'stroke-width':2.5/scale,'pointer-events':'none' }),svg('polygon',{points:[[x2,y2],[x2-head*Math.cos(angle-.45),y2-head*Math.sin(angle-.45)],[x2-head*Math.cos(angle+.45),y2-head*Math.sin(angle+.45)]].map(p=>p.join(',')).join(' '),fill:color,'pointer-events':'none'}));
+    const points = [{x:x1,y:y1}, ...(arrow.points || []).map(p=>({x:p.x*10,y:p.y*6.5})), {x:x2,y:y2}], previous = points.slice(0,-1).reverse().find(p=>Math.hypot(x2-p.x,y2-p.y)>.01) || points[0];
+    const angle = Math.atan2(y2 - previous.y, x2 - previous.x), color = playerColors[arrow.color] || '#38434a';
+    const length = points.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);
+    const scale = interactive ? Math.max(.1, board.getScreenCTM()?.a || 1) : 1, head = Math.min(18 / scale, length * .45);
+    let d = 'M'+x1+' '+y1; for(let i=1;i<points.length-1;i++){const p=points[i],next=points[i+1];d+=' Q'+p.x+' '+p.y+' '+(p.x+next.x)/2+' '+(p.y+next.y)/2;} d+=' L'+x2+' '+y2;
+    const shape = arrow.points?.length ? ['path',{d,fill:'none','stroke-linecap':'round','stroke-linejoin':'round'}] : ['line',{x1,y1,x2,y2}];
+    const group = svg('g', interactive ? { 'data-tactics-arrow': arrow.id, role:'button', tabindex: editable() ? '0' : '-1', 'aria-label':'Drawn path with arrowhead. Select to adjust or delete.', 'aria-pressed':String(selectedArrow === arrow.id) } : { 'data-preview-arrow': arrow.id });
+    if (interactive) group.append(svg(shape[0], { ...shape[1],stroke:'transparent','stroke-width':18/scale,'pointer-events':'stroke' }));
+    group.append(svg(shape[0], { ...shape[1],stroke:color,'stroke-width':2.5/scale,'pointer-events':'none' }),svg('polygon',{points:[[x2,y2],[x2-head*Math.cos(angle-.45),y2-head*Math.sin(angle-.45)],[x2-head*Math.cos(angle+.45),y2-head*Math.sin(angle+.45)]].map(p=>p.join(',')).join(' '),fill:color,'pointer-events':'none'}));
     if (interactive && selectedArrow === arrow.id && editable()) for (const [end,x,y] of [['start',x1,y1],['end',x2,y2]]) group.append(svg('circle',{cx:x,cy:y,r:7/scale,fill:'#fffdf5',stroke:color,'stroke-width':2/scale,'data-arrow-end':end,tabindex:0,role:'button','aria-label':'Arrow '+end+'. Drag or use arrow keys.'}));
     return group;
+  }
+  function translateArrow(arrow, original, dx, dy) {
+    const points = [{x:original.x1,y:original.y1}, ...(original.points || []), {x:original.x2,y:original.y2}];
+    dx = Math.max(-Math.min(...points.map(p=>p.x)), Math.min(100-Math.max(...points.map(p=>p.x)),dx));
+    dy = Math.max(-Math.min(...points.map(p=>p.y)), Math.min(100-Math.max(...points.map(p=>p.y)),dy));
+    for(const end of ['1','2']){arrow['x'+end]=original['x'+end]+dx;arrow['y'+end]=original['y'+end]+dy;}
+    if(original.points) arrow.points=original.points.map(p=>({x:p.x+dx,y:p.y+dy}));
   }
   function zoneArtwork(item, p, preview = false) {
     const width = item.zone.width * 10, height = item.zone.height * 6.5, color = { blue: '#426f9b', gold: '#956b20', green: '#397561' }[item.zone.color];
@@ -478,7 +489,7 @@
     const copy = board.cloneNode(true); copy.setAttribute('xmlns', ns); copy.setAttribute('width', '1600'); copy.setAttribute('height', '1040');
     copy.removeAttribute('id'); copy.removeAttribute('tabindex'); copy.removeAttribute('style');
     copy.setAttribute('viewBox', '-60 -60 1120 770');
-    for (const n of copy.querySelectorAll('.tactics-hit,[data-route-handle],[data-facing-control]')) n.remove();
+    for (const n of copy.querySelectorAll('.tactics-hit,[data-route-handle],[data-facing-control],[data-arrow-end]')) n.remove();
     copy.prepend(svg('desc', {}, currentFrame().title + (currentFrame().notes ? '\n' + currentFrame().notes : ''))); return copy;
   }
   function exportImage() {
@@ -739,7 +750,7 @@
       if ((currentFrame().arrows?.length || 0) >= 24) return tell('Use up to 24 drawn arrows per phase.',true);
       const start = point(event); if (!start) return; const before = capture(); selectPiece(''); selectedArrow = uid('arrow_');
       currentFrame().arrows ||= []; currentFrame().arrows.push({id:selectedArrow,x1:start.x,y1:start.y,x2:start.x,y2:start.y,color:'charcoal'});
-      pointer = {id:event.pointerId,before,history:{undo:undo.slice(),redo:redo.slice()},moved:false,start,arrowId:selectedArrow,arrowHandle:'end',arrowNew:true};
+      pointer = {id:event.pointerId,before,history:{undo:undo.slice(),redo:redo.slice()},moved:false,start,arrowId:selectedArrow,arrowHandle:'end',arrowNew:true,trace:[start]};
       board.setPointerCapture(event.pointerId); event.preventDefault(); draw(); return;
     }
     const handle = event.target.closest('[data-route-handle]');
@@ -765,8 +776,13 @@
     if (pointer.facing) { const p = currentFrame().positions.find(p => p.id === pointer.facing); p.facing = Math.round(directionTo(p, destination)) % 360; draw(); renderStatus(); notifyDraft(); return; }
     if (pointer.arrowId) {
       const arrow = currentFrame().arrows.find(item=>item.id===pointer.arrowId); if (!arrow) return;
-      if (pointer.arrowHandle) { const end=pointer.arrowHandle==='start'?'1':'2'; arrow['x'+end]=destination.x; arrow['y'+end]=destination.y; }
-      else { const original=pointer.before.content.frames[frameIndex].arrows.find(item=>item.id===pointer.arrowId),dx=destination.x-pointer.start.x,dy=destination.y-pointer.start.y; for(const end of ['1','2']){arrow['x'+end]=clamp(original['x'+end]+dx);arrow['y'+end]=clamp(original['y'+end]+dy);} }
+      if (pointer.arrowNew) {
+        for(const sample of [...(event.getCoalescedEvents?.() || []),event]) { const p=point(sample); if(p && routeDistance(pointer.trace.at(-1),p)>=.25) pointer.trace.push(p); }
+        if(pointer.trace.length>256) pointer.trace=boundedRoute(pointer.trace,128);
+        const reduced=boundedRoute([...pointer.trace,destination],34).slice(1,-1); arrow.x2=destination.x;arrow.y2=destination.y;
+        if(reduced.length)arrow.points=reduced;else delete arrow.points;
+      } else if (pointer.arrowHandle) { const end=pointer.arrowHandle==='start'?'1':'2'; arrow['x'+end]=destination.x; arrow['y'+end]=destination.y; }
+      else { const original=pointer.before.content.frames[frameIndex].arrows.find(item=>item.id===pointer.arrowId); translateArrow(arrow,original,destination.x-pointer.start.x,destination.y-pointer.start.y); }
       draw(); renderStatus(); notifyDraft(); return;
     }
     if (pointer.handle !== undefined) { updateRouteHandle(pointer.handle, destination, pointer.handles); draw(); renderStatus(); notifyDraft(); return; }
@@ -813,7 +829,7 @@
     const arrowDirections={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
     if (selectedArrow && arrowDirections[event.key]) {
       event.preventDefault(); const end=arrowEnd?.dataset.arrowEnd, [dx,dy]=arrowDirections[event.key];
-      mutate(()=>{const arrow=currentFrame().arrows.find(item=>item.id===selectedArrow);if(!arrow)return;for(const key of end?[end==='start'?'1':'2']:['1','2']){arrow['x'+key]=clamp(arrow['x'+key]+dx);arrow['y'+key]=clamp(arrow['y'+key]+dy);}});
+      mutate(()=>{const arrow=currentFrame().arrows.find(item=>item.id===selectedArrow);if(!arrow)return;if(!end)translateArrow(arrow,clone(arrow),dx,dy);else{const key=end==='start'?'1':'2';arrow['x'+key]=clamp(arrow['x'+key]+dx);arrow['y'+key]=clamp(arrow['y'+key]+dy);}});
       (end?board.querySelector('[data-tactics-arrow="'+selectedArrow+'"] [data-arrow-end="'+end+'"]'):board)?.focus();return;
     }
     if (editMode==='arrow' && event.key==='Enter' && event.target===board && !selectedArrow) {

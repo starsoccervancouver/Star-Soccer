@@ -72,10 +72,15 @@ export function validateDiagram(content){
    if(!Array.isArray(frame.arrows)||frame.arrows.length>24)invalid();
    const arrowIds=new Set();
    result.arrows=frame.arrows.map(arrow=>{
-    object(arrow,['id','x1','y1','x2','y2','color']);const id=identifier(arrow.id);
+    object(arrow,['id','x1','y1','x2','y2','color'],['points']);const id=identifier(arrow.id);
     if(arrowIds.has(id)||![...playerColors,'charcoal'].includes(arrow.color))invalid();
     arrowIds.add(id);
-    return {id,x1:coordinate(arrow.x1),y1:coordinate(arrow.y1),x2:coordinate(arrow.x2),y2:coordinate(arrow.y2),color:arrow.color};
+    const result={id,x1:coordinate(arrow.x1),y1:coordinate(arrow.y1),x2:coordinate(arrow.x2),y2:coordinate(arrow.y2),color:arrow.color};
+    if(Object.hasOwn(arrow,'points')){
+     if(!Array.isArray(arrow.points)||!arrow.points.length||arrow.points.length>32)invalid();
+     result.points=arrow.points.map(point=>{object(point,['x','y']);return {x:coordinate(point.x),y:coordinate(point.y)};});
+    }
+    return result;
    });
   }
   return result;

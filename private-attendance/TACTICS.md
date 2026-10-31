@@ -10,6 +10,8 @@ Open **Coach resources → Drills** to create a reusable activity, or open the b
 
 The board supports full-field, half-field, facing-goal, away-from-goal and blank setups, labels, zones, adjustable phase timing and undo/redo. Dragged routes preserve curves for players and balls. Markers are generic; roster names are never inserted automatically.
 
+Choose **Draw** and drag on the field to draw a smooth route that ends with an arrowhead. Drawings belong to the selected phase. Select a drawing to move it, drag either endpoint to adjust it, or delete it; undo and redo preserve the curve. Drawings also appear in saved previews, session plans and exported diagrams. Existing straight arrows remain editable. Each arrow can store up to 32 intermediate `points` with bounded `{x,y}` coordinates.
+
 Select a player and open **Body shape & cover shadow** to set their facing direction for that phase. Use the compass, angle slider, **Face the ball**, or the round field handle; arrow keys turn the handle by 15 degrees. Body direction animates through the shortest turn without changing movement routes. Cover shadows extend away from the nearest ball, or behind the body direction when there is no ball. Their length and width can be adjusted per phase. Direction and shadows appear in previews, playback and exported diagrams.
 
 Existing diagrams remain compatible. Optional `purpose` is `drill` or `team-pattern`; absent means Drill. Player positions may include `facing` (0–359 degrees) and `shadow: {length, width}` (each 5–60). These values save with the existing diagram JSON; no database migration is required.

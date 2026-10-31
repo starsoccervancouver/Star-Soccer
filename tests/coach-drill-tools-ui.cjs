@@ -231,6 +231,23 @@ const { chromium } = require('playwright');
       assert.equal(await page.locator('#tactics-camera').isVisible(), true, 'Returning to the full field restores camera choices');
     }
     assert.deepEqual(await draft(), layoutDraft, 'Changing field surfaces and returning to full preserves diagram content');
+    for (const surface of ['full', 'half', 'facing-goal', 'away-from-goal']) {
+      await page.locator('#tactics-pitch').selectOption(surface);
+      const beforeLanes = await draft();
+      assert.equal(await page.locator('#tactics-lanes').isVisible(), true);
+      await page.locator('#tactics-lanes').click();
+      assert.equal(await page.locator('#tactics-pitch-board [data-tactics-lanes] [data-lane]').count(), 5);
+      assert.deepEqual(await page.locator('#tactics-pitch-board [data-tactics-lanes] text').allTextContents(), ['Wide', 'Half-space', 'Middle', 'Half-space', 'Wide']);
+      assert.deepEqual(await draft(), beforeLanes, 'Lane guides do not alter ' + surface + ' diagram content');
+      await page.locator('#tactics-lanes').click();
+      assert.equal(await page.locator('#tactics-pitch-board [data-tactics-lanes]').count(), 0);
+    }
+    await page.locator('#tactics-lanes').click();
+    await page.locator('#tactics-pitch').selectOption('blank');
+    assert.equal(await page.locator('#tactics-lanes').isVisible(), false);
+    assert.equal(await page.locator('#tactics-pitch-board [data-tactics-lanes]').count(), 0, 'Blank field hides an enabled lane overlay');
+    await page.locator('#tactics-pitch').selectOption('full');
+    if (await page.locator('#tactics-lanes').getAttribute('aria-pressed') === 'true') await page.locator('#tactics-lanes').click();
     const beforeGrid = await page.locator('#tactics-pitch-board').innerHTML();
     await page.locator('#tactics-grid').click();
     assert.notEqual(await page.locator('#tactics-pitch-board').innerHTML(), beforeGrid, 'The thirds guide changes the visible field');

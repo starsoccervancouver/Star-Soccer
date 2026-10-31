@@ -504,7 +504,7 @@ body.drill-creator-focus #tactics-board-tools .tactics-canvas-wrap { grid-templa
   body.drill-creator-focus #library-form .library-editor-header > #tactics-focus-field { min-height:44px; padding:8px 12px; border-radius:999px; border:1px solid #adb8a3; background:#e5e7d9; color:#22392e; font-size:12px; }
   body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-field-column[data-dock=panel] { grid-template-rows:minmax(0,1fr); }
   #tactics-board-tools .tactics-inspector > .tactics-field-dock { flex-direction:column; align-items:stretch; gap:7px; }
-  #tactics-board-tools .tactics-inspector > .tactics-field-dock .tactics-camera-tools { flex-wrap:nowrap; }
+  #tactics-board-tools .tactics-inspector > .tactics-field-dock .tactics-camera-tools { flex-wrap:wrap; }
   #tactics-board-tools .tactics-inspector > .tactics-field-dock select { flex:1; width:100%; min-width:0; }
   #tactics-board-tools .tactics-inspector > .tactics-field-dock .tactics-view-controls { justify-content:center; }
 

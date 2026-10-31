@@ -29,7 +29,7 @@
   let currentLoad = null;
   let editMode = 'record', selectedIds = new Set(), zoom = 1, viewCenter = { x: 500, y: 325 };
   let currentPlayerColor = null, selectedArrow = '';
-  let cameraMode = 'full', showGrid = false, panelHidden = false, scene = null;
+  let cameraMode = 'full', showGrid = false, showLanes = false, panelHidden = false, scene = null;
   const homeAnchor = document.createComment('session tactics editor'); mount.before(homeAnchor);
   const selection = () => [...new Set([selectedItem, ...selectedIds])].filter(id => record.content.items.some(i => i.id === id));
   function selectPiece(id, additive = false) { selectedArrow = ''; if (!additive) selectedIds.clear(); else if (selectedIds.has(id)) { selectedIds.delete(id); selectedItem = [...selectedIds].at(-1) || ''; return; } selectedItem = id; if (id) selectedIds.add(id); }
@@ -324,7 +324,9 @@
   function setPanelHidden(hidden) { panelHidden = hidden; inspector.hidden = hidden; document.body.classList.toggle('tactics-field-focus', hidden); focusField.textContent = hidden ? 'Show panel' : 'Hide panel'; focusField.setAttribute('aria-expanded', String(!hidden)); requestAnimationFrame(() => { if (active()) draw(); }); }
   const gridControl = button('Thirds', 'tactics-grid', () => { showGrid = !showGrid; draw(); });
   gridControl.title = 'Show a thirds guide for spacing and positioning'; gridControl.setAttribute('aria-pressed','false');
-  const cameraTools = el('div', '', 'tactics-camera-tools'); cameraTools.append(camera, gridControl, focusField);
+  const laneControl = button('Lanes', 'tactics-lanes', () => { showLanes = !showLanes; draw(); });
+  laneControl.title = 'Show wide areas, half-spaces and middle'; laneControl.setAttribute('aria-label', laneControl.title);
+  const cameraTools = el('div', '', 'tactics-camera-tools'); cameraTools.append(camera, gridControl, laneControl, focusField);
   const viewControls = el('div', '', 'tactics-view-controls'); viewControls.setAttribute('aria-label', 'Field view');
   const panControls = el('div', '', 'tactics-pan-controls'); panControls.setAttribute('role', 'group'); panControls.setAttribute('aria-label', 'Move zoomed view');
   const zoomValue = el('output', '100%', 'tactics-zoom-value'); zoomValue.id = 'tactics-zoom-value'; zoomValue.setAttribute('aria-label', 'Field zoom');
@@ -349,6 +351,7 @@
   function updateViewControls() {
     const locked = !active() || !loaded || pending, bounds = viewBounds(), fit = zoom === 1, near = (a, b) => Math.abs(a - b) < .001;
     camera.hidden = record.content.pitch !== 'full'; camera.value = cameraMode; camera.disabled = locked || camera.hidden; gridControl.disabled = focusField.disabled = locked; gridControl.setAttribute('aria-pressed',String(showGrid));
+    laneControl.hidden = record.content.pitch === 'blank'; laneControl.disabled = locked || laneControl.hidden; laneControl.setAttribute('aria-pressed', String(showLanes && !laneControl.hidden));
     $('tactics-zoom-out').disabled = locked || fit; $('tactics-zoom-in').disabled = locked || zoom === 2.5;
     $('tactics-zoom-fit').hidden = fit; $('tactics-zoom-fit').disabled = locked || fit;
     const percentage = Math.round(zoom * 100) + '%'; if (zoomValue.textContent !== percentage) zoomValue.textContent = percentage; panControls.hidden = fit;
@@ -707,6 +710,19 @@
     board.replaceChildren();
     scene = svg('g', { 'data-camera-scene': '', transform: 'rotate(' + geometry.angle + ' 500 325)' });
     board.append(scene); scene.append(fieldArtwork(record.content.pitch));
+    if (showLanes && record.content.pitch !== 'blank') {
+      const lanes = svg('g', { 'data-tactics-lanes': '', 'pointer-events': 'none' });
+      const vertical = ['facing-goal', 'away-from-goal'].includes(record.content.pitch);
+      const labelX = record.content.pitch === 'full' && cameraMode !== 'full' ? (cameraMode === 'left-half' ? 250 : 750) : 500;
+      ['Wide', 'Half-space', 'Middle', 'Half-space', 'Wide'].forEach((name, index) => {
+        const x = vertical ? 25 + index * 190 : 25, y = vertical ? 25 : 25 + index * 120;
+        lanes.append(svg('rect', { x, y, width: vertical ? 190 : 950, height: vertical ? 600 : 120, fill: index % 2 ? '#e8d8a8' : '#d8e6ec', 'fill-opacity': .18, 'data-lane': name }));
+        if (index) lanes.append(svg('path', { d: vertical ? 'M' + x + ' 25 V625' : 'M25 ' + y + ' H975', stroke: '#f3f5df', 'stroke-width': 1.5, 'stroke-dasharray': '8 6', opacity: .85 }));
+        const tx = vertical ? x + 95 : labelX, ty = vertical ? 325 : y + 60;
+        lanes.append(svg('text', { x: tx, y: ty, transform: 'rotate(' + -geometry.angle + ' ' + tx + ' ' + ty + ')', 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': 14, 'font-weight': 600, fill: '#293e32', stroke: '#cbdcbb', 'stroke-width': 3, 'paint-order': 'stroke' }, name));
+      });
+      scene.append(lanes);
+    }
     if (showGrid) { const guides = svg('g', { 'data-tactics-grid': '', fill:'none', stroke:'#f8f3d6', 'stroke-width':1.5, 'stroke-dasharray':'9 7', opacity:.7, 'pointer-events':'none' }); for (const fraction of [1/3,2/3]) guides.append(svg('path',{d:'M'+(25+950*fraction)+' 25 V625 M25 '+(25+600*fraction)+' H975'})); scene.append(guides); }
     for (const item of record.content.items.filter(i => i.kind === 'zone')) { const p = renderedPositions?.find(p => p.id === item.id) || positionIn(currentFrame(), item.id); scene.append(zoneArtwork(item, p)); }
     const visibleFrame = renderedPositions ? { ...currentFrame(), positions: renderedPositions } : currentFrame();

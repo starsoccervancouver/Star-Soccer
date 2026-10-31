@@ -30,6 +30,7 @@
 .library-standalone .library-editor-header{position:sticky;top:var(--desk-header-height,88px);z-index:4;grid-template-columns:auto minmax(0,1fr) auto;gap:.7rem;align-items:end;padding:.6rem 0 .85rem;background:var(--desk-surface,#dbd5ca);border-bottom:1px solid var(--desk-line,#b6afa2);border-radius:14px 14px 0 0}
 .library-standalone .library-editor-header>#library-cancel{align-self:end}.library-standalone .library-editor-header>label{margin:0}.library-standalone .library-editor-header input{min-height:44px}
 .library-standalone .library-editor-header .library-status{font-size:.76rem;margin:0}
+@media(max-width:900px){.library-standalone .library-editor-header{top:calc(var(--desk-header-height,78px) + 64px)}}
 @media(max-width:600px){.library-standalone .library-editor-header{grid-template-columns:auto minmax(0,1fr);gap:.5rem;padding:.5rem 0 .7rem}.library-standalone .library-editor-header>#library-cancel{grid-column:1;grid-row:1}.library-standalone .library-editor-header>.library-actions{grid-column:2;grid-row:1;justify-content:flex-end}.library-standalone .library-editor-header>label{grid-column:1/-1;grid-row:2}.library-standalone .library-editor-header>.library-status{grid-row:3}}
 .library-viewer{width:min(1120px,calc(100vw - 2rem));max-height:calc(100dvh - 2rem);padding:0;border:1px solid var(--desk-line,#b6afa2);border-radius:24px;background:var(--desk-surface,#dbd5ca);color:var(--desk-ink,#292d33);box-shadow:0 24px 80px #0006;overflow:auto}
 .library-viewer::backdrop{background:#111820bf}

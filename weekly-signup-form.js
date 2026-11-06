@@ -5,7 +5,8 @@
   if(!T||!W||!F||!form)return;
   const params=new URLSearchParams(location.search),feedback=document.querySelector('#registration-status'),receipt=document.querySelector('#receipt'),submit=form.querySelector('[type="submit"]');
   const status=(message,error=false)=>{feedback.hidden=false;feedback.textContent=message;feedback.setAttribute('role',error?'alert':'status');feedback.classList.toggle('is-error',error);};
-  let choice,busy=false;
+  let choice,busy=false,retryAllowedAt=0;
+  function waitingToRetry(){const seconds=Math.ceil((retryAllowedAt-Date.now())/1000);if(seconds<=0)return false;status('The form service asked us to wait. Try again in '+seconds+' seconds.',true);return true;}
   try{choice=T.choice(params.get('sessionId'),params.get('type')||'dropin');}
   catch(error){form.hidden=true;document.querySelector('#booking-summary').hidden=true;status(error.message,true);return;}
   const s=choice.session,info=document.querySelector('[data-training-info]'),datesList=document.querySelector('#booking-dates');
@@ -72,7 +73,7 @@
     family.players().forEach(p=>{const li=document.createElement('li');li.textContent=p.name+' — '+({accepted:'request received',rejected:'not accepted by the form service',unconfirmed:'receipt not confirmed',pending:'not sent'}[p.state])+(p.reference?' · '+p.reference:'');list.append(li);});return list;
   }
   form.addEventListener('submit',async event=>{
-    event.preventDefault();if(busy)return;
+    event.preventDefault();if(busy||family.players().some(p=>p.state==='accepted')||waitingToRetry())return;
     if(!family.validate())return;
     const players=family.players(),displayedPassStart=passStart.value;let requests,pass;
     try{requests=players.map(p=>({...p,request:W.request(s.id,choice.type,{name:p.name,email:form.elements.namedItem('email').value,age:p.age,experience:p.experience})}));pass=updatePass();}
@@ -87,18 +88,21 @@
       const fields={'Registration version':request.version,'Client reference':reference,'Session ID':s.id,'Training':s.day+' '+s.time,'Location':T.catalog.locations[s.location].name,'Player name':request.name,'Player age':String(request.age),email:request.email,Experience:request.experience,'Requested option':choice.label,'Expected start date':dropinDate,'Covered dates':dropinDate,'Price CAD':String(choice.price),'Attendance policy':'Upcoming session shown at registration; use attendance buttons in confirmation email','Payment status':'Instructions in confirmation email; no payment collected','Parent name':parentName,Notes:p.notes,'Referral source':referral,_replyto:request.email,_subject:'Star Soccer weekly registration | '+s.day+' | '+reference,_template:'table',_captcha:'false',_honey:''};
       if(players.length>1)Object.assign(fields,{'Family reference':familyReference,'Players in family request':String(players.length),'Family requested total CAD':String(choice.price*players.length)});
       if(pass)Object.assign(fields,{'Start date policy':'Selected at registration; defaults to next eligible session','Pass start choice':passStartChanged?'Selected date':'Upcoming session (default)','Pass start date':pass.start,'Expected start date':pass.start,'Expected end date':pass.end,'Covered dates':pass.dates.join(', '),'Price CAD':String(pass.price),'Attendance policy':'Four requested dates; confirmed by the coaching team',_subject:'Star Soccer pass registration | '+s.day+' | '+reference});
+      fields._url='https://starsoccer.ca/'+location.pathname.split('/').pop();
       Object.entries(fields).forEach(([key,value])=>data.set(key,value));window.StarCampaignSource?.append(data);return {player:p,data};
     });
-    busy=true;submit.disabled=true;family.lock();const calendarTrigger=document.querySelector('#pass-calendar-trigger');if(calendarTrigger)calendarTrigger.disabled=true;form.setAttribute('aria-busy','true');status('Sending registration'+(players.length>1?'s':'')+'…');
+    const requestedDate=dropinDate;
+    async function sendRegistration(){
+    if(busy||waitingToRetry())return;
+    busy=true;submit.disabled=true;family.lock();document.querySelector('.registration-retry')?.setAttribute('disabled','');const calendarTrigger=document.querySelector('#pass-calendar-trigger');if(calendarTrigger)calendarTrigger.disabled=true;form.setAttribute('aria-busy','true');status('Sending registration'+(players.length>1?'s':'')+'…');
     let failed=false;
     for(const {player,data} of payloads){
-      if(player.state==='accepted')continue;
+      if(family.players().find(p=>p.key===player.key).state==='accepted')continue;
       const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
       try{
-        const response=await fetch('https://formsubmit.co/ajax/'+T.catalog.email,{method:'POST',body:data,headers:{Accept:'application/json'},signal:controller.signal});
-        let body;try{body=await response.json();}catch{throw new Error('Unconfirmed response');}
+        const {response,body}=await window.StarFormService.submit(form,data,{signal:controller.signal});
         if(!T.accepted(response,body)){
-          if(response.ok&&body&&(body.success===false||body.success==='false'))family.setState(player.key,'rejected');
+          if(F.rejected(response,body)){family.setState(player.key,'rejected');retryAllowedAt=F.retryAfter(response);}
           else family.setState(player.key,'unconfirmed');
           failed=true;break;
         }
@@ -111,17 +115,21 @@
       form.hidden=true;feedback.hidden=true;passSummary.hidden=true;receipt.hidden=false;receipt.replaceChildren();
       const heading=document.createElement('h2');heading.textContent='Thanks — registration'+(players.length>1?'s':'')+' received';
       const message=document.createElement('p');message.textContent=pass?'Look out for your pass confirmation with all four dates and payment instructions. The coaching team checks space before confirming each player’s place.':'The coaching team will check space and email your confirmation with payment instructions and attendance buttons. Open your choice and press Confirm response to save your answer. Your place is confirmed by the team.';
-      const details=document.createElement('p');details.textContent=T.money(choice.price*players.length)+' CAD requested total · '+(pass?'Expected start: '+T.prettyDate(pass.start)+' · Expected end (4th session): '+T.prettyDate(pass.end):T.prettyDate(dropinDate)+' · '+s.time);
+      const details=document.createElement('p');details.textContent=T.money(choice.price*players.length)+' CAD requested total · '+(pass?'Expected start: '+T.prettyDate(pass.start)+' · Expected end (4th session): '+T.prettyDate(pass.end):T.prettyDate(requestedDate)+' · '+s.time);
       const followUp=document.createElement('p');followUp.textContent='Session approaching without a confirmation? ';
       const checkRequest=document.createElement('a');checkRequest.className='flow-text-link';checkRequest.textContent='Contact the team to check your request';checkRequest.href='mailto:'+T.catalog.email+'?subject='+encodeURIComponent('Check registration | '+familyReference)+'&body='+encodeURIComponent('Please check the confirmation for '+s.day+' training. References: '+family.players().map(p=>p.reference).join(', '));followUp.append(checkRequest);
       const back=document.createElement('a');back.href='programs.html#sessions';back.className='flow-text-link';back.textContent='Back to weekly training';
       receipt.append(heading,message,details,resultsList(),followUp,back);receipt.tabIndex=-1;receipt.focus();document.querySelector('.registration-recovery')?.setAttribute('hidden','');return;
     }
-    const canRetry=family.unlock();busy=!canRetry;submit.disabled=!canRetry;if(calendarTrigger)calendarTrigger.disabled=!canRetry;
-    status(canRetry?'The form service did not accept this request. Your entries are still here. You can retry or email the team.':'Some requests need checking. Your entries are preserved. Email the team with the references below before sending another request; received players will not be submitted again.',true);
+    const remainingRetry=family.canRetry(),canRetry=family.unlock();busy=!canRetry&&!remainingRetry;submit.disabled=!canRetry;if(calendarTrigger)calendarTrigger.disabled=!canRetry;
+    status(remainingRetry?'Some players were received. Retry only the remaining players using the original details below.':canRetry?'The form service did not accept this request. Your entries are still here. You can retry or email the team.':'Some requests need checking. Your entries are preserved. Email the team with the references below before sending another request; received players will not be submitted again.',true);
     let recovery=document.querySelector('.registration-recovery');if(!recovery){recovery=document.createElement('div');recovery.className='registration-recovery';feedback.after(recovery);}recovery.hidden=false;recovery.replaceChildren(resultsList());
+    if(remainingRetry){const retry=document.createElement('button');retry.type='button';retry.className='button registration-retry';retry.textContent='Retry remaining players';retry.addEventListener('click',sendRegistration);recovery.append(retry);}
     const link=document.createElement('a');link.className='flow-text-link';link.textContent='Email to check this registration';
     const references=family.players().filter(p=>p.reference).map(p=>p.reference+' ('+p.state+')').join('; ');
-    link.href='mailto:'+T.catalog.email+'?subject='+encodeURIComponent('Check registration | '+familyReference)+'&body='+encodeURIComponent('Please check registration '+references+' for '+s.day+' training. The website attempt was not confirmed for every player.');recovery.append(link);
+    link.href='mailto:'+T.catalog.email+'?subject='+encodeURIComponent('Check registration | '+familyReference)+'&body='+encodeURIComponent('Please check registration '+references+' for '+s.day+' training. The website attempt was not confirmed for every player.');
+    if(window.StarFormRecovery)window.StarFormRecovery.show(recovery,{email:T.catalog.email,subject:'Check registration | '+familyReference,requests:payloads.map(p=>p.data),states:family.players(),reference:familyReference});else recovery.append(link);
+    }
+    await sendRegistration();
   });
 })();

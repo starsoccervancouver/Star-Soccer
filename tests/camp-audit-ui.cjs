@@ -24,19 +24,19 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg
       window.setTimeout=(fn,delay,...args)=>realTimeout(fn,delay===20000?15:delay,...args);
       window.fixtureRequests=[];window.fixtureOutcomes=[];
       window.fetch=async(url,options={})=>{
-        if(!String(url).startsWith('https://formsubmit.co/ajax/'))return realFetch(url,options);
+        if(String(url)!=='https://formspree.io/f/testform')return realFetch(url,options);
         window.fixtureRequests.push(Object.fromEntries(options.body.entries()));
         const outcome=window.fixtureOutcomes.shift()||'accept';
         if(outcome==='timeout')return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(new DOMException('Fixture timeout','AbortError')),{once:true}));
         if(outcome==='network')throw new TypeError('Fixture network failure');
         if(outcome==='malformed')return new Response('not JSON',{status:200});
-        return new Response(JSON.stringify({success:outcome!=='reject'}),{status:200,headers:{'content-type':'application/json'}});
+        return new Response(JSON.stringify(outcome==='reject'?{errors:[{message:'Fixture rejected'}]}:{next:'https://formspree.io/thanks'}),{status:outcome==='reject'?422:200,headers:{'content-type':'application/json'}});
       };
     });
     async function pageFor(query='',week='christmas'){
       const page=await context.newPage();page.on('pageerror',error=>{throw error;});
       await page.goto(origin+'/'+(week==='boxing'?'boxing':'christmas')+'-camp-registration.html'+query);
-      await page.locator('.family-add-player').waitFor();return page;
+      await page.locator('.family-add-player').waitFor();await page.evaluate(()=>{document.querySelector('form').action='https://formspree.io/f/testform';});return page;
     }
     async function fill(page,siblings=false){
       await page.locator('[name="email"]').fill('fixture@example.invalid');
@@ -91,14 +91,29 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg
       const requests=await requestData(page);assert.equal(requests.length,2);
       assert.equal(requests[0]['Client reference'],requests[1]['Client reference']);assert.equal(requests[0]['Family reference'],requests[1]['Family reference']);await page.close();
     });
-    await check('partial sibling acceptance freezes the form and never repeats the accepted player',async()=>{
+    await check('partial sibling acceptance locks details and retries only the explicitly rejected player',async()=>{
       const page=await pageFor();await fill(page,true);await outcome(page,['accept','reject']);
-      await submit(page);await failStatus(page,/Sending has stopped to avoid duplicates/);
+      await submit(page);await failStatus(page,/Retry only the remaining players using the original details/);
       const status=await page.locator('#camp-status').textContent();assert.match(status,/Player 1: submitted/);assert.match(status,/Player 2: not accepted/);
       assert.equal(await page.locator('#camp-registration [type="submit"]').isDisabled(),true);assert.equal(await page.locator('.family-add-player').isDisabled(),true);
+      assert.equal(await page.locator('[name="email"]').isDisabled(),true);assert.equal(await page.locator('#player-2-name').isDisabled(),true);
       assert.equal(await page.locator('#camp-receipt').isVisible(),false);
       await page.evaluate(()=>document.querySelector('#camp-registration').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
-      assert.equal((await requestData(page)).length,2);await page.close();
+      assert.equal((await requestData(page)).length,2);
+      await page.locator('.registration-retry').click();await page.locator('#camp-receipt').waitFor({state:'visible'});
+      const requests=await requestData(page);assert.equal(requests.length,3);assert.deepEqual(requests[2],requests[1]);
+      assert.equal(requests.filter(request=>request['Player name']==='Fixture Player One').length,1);await page.close();
+    });
+    await check('uncertain partial sibling outcomes keep all submissions locked without a retry button',async()=>{
+      for(const failure of ['timeout','network','malformed']){
+        const page=await pageFor();await fill(page,true);await outcome(page,['accept',failure]);
+        await submit(page);await failStatus(page,/Sending has stopped to avoid duplicates/);
+        assert.match(await page.locator('#camp-status').textContent(),/Player 2: delivery uncertain/);
+        assert.equal(await page.locator('.registration-retry').count(),0);assert.equal(await page.locator('#camp-registration [type="submit"]').isDisabled(),true);
+        assert.equal(await page.locator('#camp-receipt').isVisible(),false);
+        await page.evaluate(()=>document.querySelector('#camp-registration').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+        assert.equal((await requestData(page)).length,2);await page.close();
+      }
     });
     await check('timeouts never show a completed receipt or enable blind retries',async()=>{
       const page=await pageFor();await fill(page);await outcome(page,['timeout']);

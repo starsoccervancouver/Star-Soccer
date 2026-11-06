@@ -14,16 +14,18 @@
     return form.reportValidity();
   }
   document.querySelectorAll('form[data-inquiry],#training-registration').forEach(form=>form.addEventListener('input',e=>{if(e.target.setCustomValidity)e.target.setCustomValidity('');}));
-  async function send(formData) {
+  function deliveryError(message,outcome='uncertain') {const error=new Error(message);error.deliveryOutcome=outcome;return error;}
+  async function send(formData,form) {
     const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
     try {
-      const response=await fetch('https://formsubmit.co/ajax/'+T.catalog.email,{method:'POST',body:formData,headers:{Accept:'application/json'},signal:controller.signal});
-      let body;
-      try {body=await response.json();} catch {throw new Error('The submission service returned an unexpected response. Your submission is not confirmed.');}
-      if(!T.accepted(response,body)) throw new Error('The submission service did not accept this request. Your submission is not confirmed.');
+      const {response,body}=await window.StarFormService.submit(form,formData,{signal:controller.signal});
+      if(!T.accepted(response,body)) {
+        const rejected=(body?.success===false||body?.success==='false')&&(response.ok||response.status>=400&&response.status<500&&response.status!==408);
+        throw deliveryError(rejected?'The submission service did not accept this request. Your submission is not confirmed.':'We could not confirm whether the submission service accepted this request.',rejected?'rejected':'uncertain');
+      }
     } catch(error) {
-      if(error.name==='AbortError') throw new Error('The request timed out. We cannot tell whether it arrived; email us before trying again.');
-      if(error instanceof TypeError) throw new Error('We could not verify the submission. Check your connection or contact us before trying again.');
+      if(error.name==='AbortError') throw deliveryError('The request timed out. We cannot tell whether it arrived; email us before trying again.');
+      if(error instanceof TypeError) throw deliveryError('We could not verify the submission. Check your connection or contact us before trying again.');
       throw error;
     } finally {clearTimeout(timer);}
   }
@@ -123,7 +125,7 @@
       const fields={'Session ID':s.id,'Training':s.day+' '+s.time,'Booking type':label,'Covered dates':booking.dates.join(', '),'Location':booking.location,'Coaches':booking.coaches,'Price CAD':String(price),'Catalog version':T.catalog.version,'Client reference':reference};
       Object.entries(fields).forEach(([key,value])=>data.set(key,value));
       try {
-        await send(data);
+        await send(data,form);
         const receipt={accepted:true,acceptedAt:Date.now(),reference,sessionName:s.day+' · '+s.time,dates:booking.dates,location:booking.location,coaches:booking.coaches,label,price};
         let saved=false;try {sessionStorage.setItem(receiptKey,JSON.stringify(receipt));saved=true;}catch { /* Keep the on-page receipt if storage is unavailable. */ }
         form.hidden=true;feedback.hidden=true;document.querySelector('.quick-booking-details')?.setAttribute('hidden','');showReceipt(receiptPanel,receipt);
@@ -199,8 +201,9 @@
     formats.forEach(el=>{el.checked=el.value===initialFormat;});applyFormat();
   }
   document.querySelectorAll('form[data-inquiry]').forEach(inquiry=>{
-    let busy=false;
+    let busy=false,reference='';
     const submit=inquiry.querySelector('[type="submit"]'),feedback=inquiry.querySelector('[data-feedback]');submit.disabled=false;
+    const recovery=document.createElement('section');recovery.className='form-recovery';recovery.hidden=true;feedback.after(recovery);
     inquiry.addEventListener('submit',async event=>{
       event.preventDefault();if(busy || !validForm(inquiry))return;
       const isPrivate=inquiry===privateForm;
@@ -210,6 +213,9 @@
       }
       if(inquiry.elements.namedItem('_honey').value) {status(feedback,'Unable to send this request. Please email the coaching team.',true);return;}
       const data=configuredData(inquiry,isPrivate?'Star Soccer private coaching inquiry':'Star Soccer inquiry');
+      if(!reference)reference='SS-INQUIRY-'+(window.crypto?.randomUUID?window.crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));
+      data.set('Client reference',reference);
+      data.set('_url','https://starsoccer.ca/'+location.pathname.split('/').pop());
       if(isPrivate) {
         const n=inquiry.elements.namedItem('Players').value,minutes=inquiry.elements.namedItem('Minutes').value;
         const quote=T.privateQuote(n,minutes),coach=inquiry.elements.namedItem('Preferred coach').value;
@@ -219,9 +225,18 @@
         data.set('Format',Number(n)<=5?'Private Training (1–5 players)':'Small Group Training (6–18 players)');data.set('Preferred coach',T.catalog.coaches[coach]||'No preference');
         data.set('Estimate CAD',quote?`${quote.perPlayer} per player; ${quote.total} group total`:'Quote to be arranged');
       }
-      busy=true;submit.disabled=true;inquiry.setAttribute('aria-busy','true');status(feedback,'Sending inquiry…');
-      try {await send(data);window.StarFunnel?.track('submission_accepted',{program:isPrivate?'private':'contact',kind:'inquiry'});status(feedback,isPrivate?'Your coaching inquiry was submitted. We’ll reply by email to arrange a coach, time and location. The coaching team confirms your appointment.':'Your message was submitted. The Star Soccer team will reply by email.');submit.textContent=isPrivate?'Inquiry submitted':'Message submitted';feedback.tabIndex=-1;feedback.focus();}
-      catch(error) {busy=false;submit.disabled=false;status(feedback,error.message+' Your entries have been kept. Email '+T.catalog.email+' for help.',true);}
+      // Keep the attempted values visible while a response is pending or uncertain.
+      const controls=[...inquiry.querySelectorAll('input,select,textarea,button')].map(control=>[control,control.disabled]);
+      busy=true;controls.forEach(([control])=>control.disabled=true);recovery.hidden=true;recovery.replaceChildren();inquiry.setAttribute('aria-busy','true');status(feedback,'Sending inquiry…');
+      try {await send(data,inquiry);window.StarFunnel?.track('submission_accepted',{program:isPrivate?'private':'contact',kind:'inquiry'});status(feedback,isPrivate?'Your coaching inquiry was submitted. We’ll reply to '+data.get('email')+' to arrange a coach, time and location. The coaching team confirms your appointment.':'Your message was submitted. The Star Soccer team will reply to '+data.get('email')+'.');submit.textContent=isPrivate?'Inquiry submitted':'Message submitted';feedback.tabIndex=-1;feedback.focus();}
+      catch(error) {
+        const rejected=error.deliveryOutcome==='rejected';
+        if(rejected){busy=false;controls.forEach(([control,disabled])=>control.disabled=disabled);}
+        status(feedback,error.message+(rejected?' Your entries have been kept. You can edit and try again, or email the team below.':' Your entries have been kept. To avoid sending it twice, email the team below to check before trying again.')+' Reference: '+reference+'.',true);
+        recovery.hidden=false;
+        window.StarFormRecovery?.show(recovery,{email:T.catalog.email,subject:isPrivate?'Check my private coaching inquiry':'Check my Star Soccer inquiry',requests:[data],states:[{name:isPrivate?'Coaching inquiry':'Contact inquiry',state:rejected?'rejected':'uncertain',reference}],reference});
+        feedback.tabIndex=-1;feedback.focus();
+      }
       finally {inquiry.removeAttribute('aria-busy');}
     });
   });

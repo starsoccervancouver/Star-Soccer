@@ -41,7 +41,9 @@ jobs:
           enablement: true
 
       - name: Stage public website files
-        run: node scripts/stage-site.cjs
+        run: |
+          node scripts/check-form-endpoints.cjs
+          node scripts/stage-site.cjs
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3

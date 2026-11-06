@@ -4,7 +4,8 @@
   const T=window.StarTraining,C=window.StarWinterCamps,form=document.querySelector('#camp-registration');if(!T||!C||!form)return;
   const week=form.dataset.campWeek,slot=form.elements.namedItem('Daily session'),age=form.elements.namedItem('Player age');
   const submit=form.querySelector('[type="submit"]'),feedback=document.querySelector('#camp-status'),receipt=document.querySelector('#camp-receipt'),summary=document.querySelector('#camp-quote'),datesList=document.querySelector('#camp-dates');
-  const params=new URLSearchParams(location.search);let busy=false,reference='',family=null;
+  const params=new URLSearchParams(location.search);let busy=false,reference='',family=null,retryAllowedAt=0;
+  function waitingToRetry(){const seconds=Math.ceil((retryAllowedAt-Date.now())/1000);if(seconds<=0)return false;status('The form service asked us to wait. Try again in '+seconds+' seconds.',true);return true;}
   const days=form.querySelector('[data-camp-day-picker]'),dayGrid=form.querySelector('[data-camp-day-grid]');
   const kindInputs=[...form.querySelectorAll('[name="Booking option"]')];
   const saving=document.createElement('div');saving.className='camp-package-saving';saving.hidden=true;saving.setAttribute('role','status');
@@ -108,7 +109,7 @@
     actions.append(print,download);receipt.append(h,lead,details,actions,email);receipt.tabIndex=-1;receipt.focus();
   }
   form.addEventListener('submit',async event=>{
-    event.preventDefault();if(busy)return;
+    event.preventDefault();if(busy||family.players().some(p=>p.state==='accepted')||waitingToRetry())return;
     form.querySelectorAll('input[type="text"][required]').forEach(el=>el.setCustomValidity(el.value.trim()?'':'Please enter a value.'));
     update();if(!family.validate())return;
     let q;try{q=C.quote(value());}catch(error){status(error.message,true);return;}
@@ -118,26 +119,32 @@
     if(!reference)reference=window.StarFamilyRegistration.reference('SS-FAMILY-');
     const data=new FormData(form);const fields={'_subject':'Star Soccer winter camp request | '+q.weekName,'_template':'table','_captcha':'false','_replyto':data.get('email'),'Training':'Winter camps · '+q.weekName+' · '+q.time,'Booking type':q.label,'Covered dates':q.dates.join(', '),'Camp session keys':q.sessions.map(s=>s.key).join('; '),'Location':q.location,'Price CAD':String(q.price),'Lunch supervision':q.lunch?'Included noon–12:30':'Not required for one daily session','Client reference':reference,'Catalog version':C.catalog.version};
     fields._subject='Star Soccer camp registration | '+q.weekName+' | '+reference;
+    fields._url='https://starsoccer.ca/'+location.pathname.split('/').pop();
     fields['Registration version']=q.kind==='dropin'?'SS-CAMP-DROPIN-V1':'SS-CAMP-V2';fields['Camp week ID']=q.week;fields['Camp slot']=q.slot;fields['Camp booking kind']=q.kind;
     Object.entries(fields).forEach(([k,v])=>data.set(k,v));data.set('Camp week',q.weekName);data.set('Referral source',T.referralSource(form.elements.namedItem('Referral source').value));
     window.StarCampaignSource?.append(data);
-    busy=true;submit.disabled=true;form.setAttribute('aria-busy','true');family.lock();
+    const payloads=players.map(player=>{
+      const snapshot=new FormData();data.forEach((value,key)=>snapshot.append(key,value));
+      const playerRef=family.reference(player.key,'SS-CAMP-');
+      snapshot.set('Player name',player.name);snapshot.set('Player age',player.age);snapshot.set('Notes',player.notes);
+      snapshot.set('Client reference',playerRef);snapshot.set('Family reference',reference);snapshot.set('Family players',String(players.length));
+      snapshot.set('Payment status','Instructions in confirmation email; no payment collected');
+      snapshot.set('_subject','Star Soccer camp registration | '+q.weekName+' | '+playerRef);
+      return {player,data:snapshot};
+    });
+    async function sendRegistration(){
+    if(busy||waitingToRetry())return;
+    busy=true;submit.disabled=true;document.querySelector('.registration-retry')?.setAttribute('disabled','');form.setAttribute('aria-busy','true');family.lock();
     try{
-      for(const [index,player] of players.entries()){
-        if(player.state==='accepted')continue;
-        const playerRef=family.reference(player.key,'SS-CAMP-');
-        data.set('Player name',player.name);data.set('Player age',player.age);data.set('Notes',player.notes);
-        data.set('Client reference',playerRef);data.set('Family reference',reference);data.set('Family players',String(players.length));
-        data.set('Payment status','Instructions in confirmation email; no payment collected');
-        data.set('_subject','Star Soccer camp registration | '+q.weekName+' | '+playerRef);
+      for(const [index,{player,data}] of payloads.entries()){
+        if(family.players().find(p=>p.key===player.key).state==='accepted')continue;
         status('Sending player '+(index+1)+' of '+players.length+'…');
         family.setState(player.key,'pending');
         const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
         try{
-          const response=await fetch('https://formsubmit.co/ajax/'+T.catalog.email,{method:'POST',body:data,headers:{Accept:'application/json'},signal:controller.signal});
-          const body=await response.json();
+          const {response,body}=await window.StarFormService.submit(form,data,{signal:controller.signal});
           if(!T.accepted(response,body)){
-            if(response.ok&&(body?.success===false||body?.success==='false'))family.setState(player.key,'rejected');
+            if(window.StarFamilyRegistration.rejected(response,body)){family.setState(player.key,'rejected');retryAllowedAt=window.StarFamilyRegistration.retryAfter(response);}
             else family.setState(player.key,'unconfirmed');
             throw new Error('This player’s request was not confirmed.');
           }
@@ -145,13 +152,17 @@
         }catch(error){if(family.players().find(p=>p.key===player.key).state==='pending')family.setState(player.key,'unconfirmed');throw error;}
         finally{clearTimeout(timer);}
       }
-      form.hidden=true;summary.hidden=true;feedback.hidden=true;showReceipt(q);
+      form.hidden=true;summary.hidden=true;feedback.hidden=true;showReceipt(q);document.querySelector('.registration-recovery')?.setAttribute('hidden','');
     }catch(error){
-      const editable=family.unlock();busy=!editable;submit.disabled=!editable;
+      const remainingRetry=family.canRetry(),editable=family.unlock();busy=!editable&&!remainingRetry;submit.disabled=!editable;
       const outcome=family.players().map((p,i)=>'Player '+(i+1)+': '+({accepted:'submitted',rejected:'not accepted',unconfirmed:'delivery uncertain',pending:'not sent'})[p.state]+(p.reference?' ('+p.reference+')':'')).join('. ');
-      status(outcome+'. '+(editable?'Your entries are still here; you can retry.':'Sending has stopped to avoid duplicates. Email the team to check these references before registering again.'),true);
-      let recovery=form.querySelector('.registration-recovery');if(!recovery){recovery=document.createElement('p');recovery.className='registration-recovery';feedback.after(recovery);}recovery.replaceChildren();
-      const link=document.createElement('a');link.className='flow-text-link';link.textContent='Check this family registration';link.href='mailto:'+T.catalog.email+'?subject='+encodeURIComponent('Check camp registration | '+reference)+'&body='+encodeURIComponent(outcome);recovery.append(link);
+      status(outcome+'. '+(remainingRetry?'Retry only the remaining players using the original details below.':editable?'Your entries are still here; you can retry.':'Sending has stopped to avoid duplicates. Email the team to check these references before registering again.'),true);
+      let recovery=form.querySelector('.registration-recovery');if(!recovery){recovery=document.createElement('div');recovery.className='registration-recovery';feedback.after(recovery);}recovery.hidden=false;recovery.replaceChildren();
+      if(remainingRetry){const retry=document.createElement('button');retry.type='button';retry.className='button registration-retry';retry.textContent='Retry remaining players';retry.addEventListener('click',sendRegistration);recovery.append(retry);}
+      const link=document.createElement('a');link.className='flow-text-link';link.textContent='Check this family registration';link.href='mailto:'+T.catalog.email+'?subject='+encodeURIComponent('Check camp registration | '+reference)+'&body='+encodeURIComponent(outcome);
+      if(window.StarFormRecovery)window.StarFormRecovery.show(recovery,{email:T.catalog.email,subject:'Check camp registration | '+reference,requests:payloads.map(p=>p.data),states:family.players(),reference});else recovery.append(link);
     }finally{form.removeAttribute('aria-busy');}
+    }
+    await sendRegistration();
   });
 })();

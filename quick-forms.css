@@ -144,6 +144,14 @@ body.quick-flow .camp-package-saving[hidden]{display:none}
 body.quick-flow .camp-package-saving p{margin:0 0 10px;font-size:.85rem;line-height:1.6}
 body.quick-flow .camp-package-saving button{white-space:normal;min-height:44px}
 
+.form-recovery-actions{min-width:0;margin-top:12px}
+.form-recovery-actions .flow-actions{display:flex;flex-wrap:wrap;gap:8px}
+.form-recovery-actions .button{white-space:normal;min-height:44px}
+.form-recovery-actions textarea{display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;margin-top:10px;font:inherit;font-size:16px;line-height:1.5;resize:vertical}
+.form-recovery-actions .quick-details{margin-top:12px}
+.form-recovery-actions p{overflow-wrap:anywhere}
+.form-recovery-copy-status:empty{display:none}
+
 /* Compact new booking controls while retaining 44px actions and 16px inputs. */
 @media(max-width:540px){
   body.quick-flow :is(#training-registration,#camp-registration){gap:8px}

@@ -35,6 +35,9 @@ jobs:
         run: |
           node tests/browser.cjs
           node tests/camp-audit-ui.cjs
+          node tests/form-family-retry-ui.cjs
+          node tests/inquiry-recovery-ui.cjs
+          node tests/form-recovery-ui.cjs
       - name: Check private tactics editor, animation and session safety with fictional data
         run: |
           node tests/coach-tactics-ui.cjs

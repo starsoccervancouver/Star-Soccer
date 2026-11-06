@@ -2,6 +2,14 @@
 (function(root){
   'use strict';
   const states=new Set(['pending','accepted','rejected','unconfirmed']);
+  // An explicit client rejection is retryable; a timeout or server failure may have accepted the request.
+  function rejected(response,body){return Boolean((body?.success===false||body?.success==='false')&&(response.ok||response.status>=400&&response.status<500&&response.status!==408));}
+  function retryAfter(response,now=Date.now()){
+    if(response.status!==429)return 0;
+    const value=response.headers?.get?.('Retry-After');if(!value)return 0;
+    const until=/^\d+$/.test(value.trim())?now+Number(value)*1000:Date.parse(value);
+    return Number.isFinite(until)&&until>now?until:0;
+  }
   function reference(prefix='SS-'){
     const suffix=root.crypto?.randomUUID?root.crypto.randomUUID().toUpperCase():Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).slice(2,10).toUpperCase();
     return prefix+suffix.slice(0,43-prefix.length);
@@ -67,10 +75,11 @@
       savedDisabled.forEach((value,el)=>{el.disabled=value;});savedDisabled.clear();locked=false;return true;
     }
     return {players,count:()=>records.length,validate,lock,unlock,
+      canRetry:()=>records.some(p=>p.state==='accepted')&&records.some(p=>['pending','rejected'].includes(p.state))&&!records.some(p=>p.state==='unconfirmed'),
       setState(key,state){const p=records.find(p=>p.key===key);if(!p||!states.has(state))throw new Error('Invalid player status.');p.state=state;},
       reference(key,prefix='SS-'){const p=records.find(p=>p.key===key);if(!p)throw new Error('Unknown player.');return p.reference||(p.reference=reference(prefix));}
     };
   }
-  const api=Object.freeze({mount,reference});root.StarFamilyRegistration=api;
+  const api=Object.freeze({mount,reference,rejected,retryAfter});root.StarFamilyRegistration=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

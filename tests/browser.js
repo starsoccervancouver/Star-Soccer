@@ -16,6 +16,7 @@
       else frame.src='../'+url;
     });
     const doc=frame.contentDocument;
+    doc.querySelectorAll('form[data-inquiry],#training-registration,#camp-registration').forEach(form=>form.action='https://formspree.io/f/testform');
     await doc.fonts.ready;
     await new Promise(resolve=>frame.contentWindow.requestAnimationFrame(()=>frame.contentWindow.requestAnimationFrame(resolve)));
     for(let i=0;i<200 && doc.documentElement.dataset.countsState==='loading';i++)await new Promise(resolve=>setTimeout(resolve,10));
@@ -185,7 +186,7 @@
     const groupPlus=groupPlayers.closest('.ss-number-stepper').querySelector('[data-direction="1"]');
     check(groupPlayers.checkValidity() && groupPlus.disabled && doc.querySelector('#private-estimate').textContent.includes('$540 total'),'18 players is accepted and the stepper stops at the group limit');
     groupForm.elements.namedItem('email').value='test@example.invalid';groupForm.elements.namedItem('Youngest age').value='8';groupForm.elements.namedItem('Oldest age').value='9';
-    let groupCalls=0,groupData;frame.contentWindow.fetch=async(url,options)=>{groupCalls++;groupData=options.body;return {ok:true,json:async()=>({success:true})};};
+    let groupCalls=0,groupData;frame.contentWindow.fetch=async(url,options)=>{groupCalls++;groupData=options.body;return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     groupPlayers.value='19';groupPlayers.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));groupForm.requestSubmit();
     check(!groupPlayers.checkValidity() && groupCalls===0 && !doc.querySelector('#private-estimate').textContent.includes('$570'),'19 players cannot produce a quote or submit a group inquiry');
     groupPlayers.value='5';groupPlayers.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));
@@ -229,11 +230,11 @@
     for(const [name,value] of [['email','participant@example.invalid'],['Player name','Fixture Participant'],['Player age','17'],['Experience','some']])womenForm.elements.namedItem(name).value=value;
     check(womenForm.reportValidity(),'Tuesday registration accepts a whole-number age under 18');
     let womenCalls=0,womenPayload,womenMethod,womenUrl;
-    womenWindow.fetch=async(url,options)=>{womenCalls++;womenPayload=options.body;womenMethod=options.method;womenUrl=String(url);return {ok:true,json:async()=>({success:false})};};
+    womenWindow.fetch=async(url,options)=>{womenCalls++;womenPayload=options.body;womenMethod=options.method;womenUrl=String(url);return {ok:true,json:async()=>({errors:[{message:'Fixture rejection'}]})};};
     womenForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
-    check(womenCalls===1 && womenMethod==='POST' && womenUrl==='https://formsubmit.co/ajax/starsoccervancouver@gmail.com' && womenPayload.get('Session ID')==='tuesday' && womenPayload.get('Location')==='Fen Burdett Stadium' && womenPayload.get('Price CAD')==='20' && womenPayload.get('Registration version')==='SS-WEEKLY-V2' && womenPayload.get('Requested option')==='Drop-in' && womenPayload.get('Player name')==='Fixture Participant' && womenPayload.get('Player age')==='17' && womenPayload.get('email')==='participant@example.invalid' && womenPayload.get('Experience')==='Some experience' && womenPayload.get('Parent name')==='' && !womenPayload.has('Pass start date'),'Tuesday sends the canonical $20 drop-in intake with the correct session, venue, player and self-contact details');
+    check(womenCalls===1 && womenMethod==='POST' && womenUrl==='https://formspree.io/f/testform' && womenPayload.get('Session ID')==='tuesday' && womenPayload.get('Location')==='Fen Burdett Stadium' && womenPayload.get('Price CAD')==='20' && womenPayload.get('Registration version')==='SS-WEEKLY-V2' && womenPayload.get('Requested option')==='Drop-in' && womenPayload.get('Player name')==='Fixture Participant' && womenPayload.get('Player age')==='17' && womenPayload.get('email')==='participant@example.invalid' && womenPayload.get('Experience')==='Some experience' && womenPayload.get('Parent name')==='' && !womenPayload.has('Pass start date'),'Tuesday sends the canonical $20 drop-in intake with the correct session, venue, player and self-contact details');
     check(!womenForm.hidden && doc.querySelector('#receipt').hidden && womenForm.elements.namedItem('Player name').value==='Fixture Participant','Tuesday service rejection keeps the form and never claims a booking');
-    womenWindow.fetch=async(url,options)=>{womenCalls++;womenPayload=options.body;return {ok:true,json:async()=>({success:true})};};
+    womenWindow.fetch=async(url,options)=>{womenCalls++;womenPayload=options.body;return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     womenForm.requestSubmit();womenForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(womenCalls===2 && womenForm.hidden && !doc.querySelector('#receipt').hidden && doc.querySelector('#receipt h2').textContent.includes('received') && doc.querySelector('#receipt').textContent.includes('will check space') && doc.querySelector('#receipt').textContent.includes('$20 CAD requested total') && !/registration confirmed|marked present|payment received/i.test(doc.querySelector('#receipt').textContent),'Tuesday form acceptance acknowledges receipt pending coaching-team confirmation and blocks duplicate submissions');
     check(doc.documentElement.scrollWidth<=321,'Tuesday receipt fits a narrow phone');
@@ -330,15 +331,16 @@
     form.querySelector('[data-optional-fields] summary').click();
     for(const [name,value] of [['Parent name','Example Parent'],['Notes','Working on confidence'],['Referral source','community']])form.elements.namedItem(name).value=value;
     let calls=0,receivedData,firstReference;
-    win.fetch=async(url,options)=>{calls++;receivedData=options.body;firstReference=receivedData.get('Client reference');return {ok:true,json:async()=>({success:false})};};
+    win.fetch=async(url,options)=>{calls++;receivedData=options.body;firstReference=receivedData.get('Client reference');return {ok:true,json:async()=>({errors:[{message:'Fixture rejection'}]})};};
     form.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(calls===1 && doc.querySelector('#receipt').hidden && !form.hidden && form.elements.namedItem('Player name').value==='Test Player','Service rejection retains entries and cannot show a receipt');
     check(receivedData.get('Parent name')==='Example Parent' && receivedData.get('Notes')==='Working on confidence' && receivedData.get('Referral source')==='School / community','Weekly registration preserves optional parent, coach note and referral context');
     check(receivedData.get('Campaign source (URL tag)')==='local-guide' && receivedData.get('Campaign medium (URL tag)')==='directory' && receivedData.get('Campaign name (URL tag)')==='winter2026' && receivedData.get('Referral source')==='School / community','A campaign landing followed by weekly registration carries attribution separately from the parent-reported referral');
     check(receivedData.get('Experience')==='Some experience' && receivedData.get('Registration version')==='SS-PASS-V1' && receivedData.get('Requested option')==='Four-session pass' && receivedData.get('Covered dates')===chosenPassPlan.dates.join(', ') && receivedData.get('Price CAD')==='95' && receivedData.get('Expected end date')===chosenPassPlan.end && receivedData.get('Pass start date')===changedStart && receivedData.get('Pass start choice')==='Selected date','Pass payload carries the quoted four dates and correct price for authoritative intake validation');
     const recovery=doc.querySelector('.registration-recovery a'),help=new URL(recovery.href),helpBody=help.searchParams.get('body');
-    check(help.protocol==='mailto:' && helpBody.includes(firstReference) && helpBody.includes('not confirmed') && !helpBody.includes('Test Player') && !helpBody.includes('test@example.invalid'),'Failure recovery keeps the reference without personal form entries');
-    win.fetch=async(url,options)=>{calls++;receivedData=options.body;return {ok:true,json:async()=>({success:true})};};
+    const recoveryDetails=doc.querySelector('.registration-recovery textarea').value;
+    check(help.protocol==='mailto:' && help.pathname==='starsoccervancouver@gmail.com' && recoveryDetails.includes(firstReference) && recoveryDetails.includes('Test Player') && recoveryDetails.includes('test@example.invalid') && (!helpBody || helpBody===recoveryDetails),'Failure recovery preserves all entered details for a parent-controlled email or copy');
+    win.fetch=async(url,options)=>{calls++;receivedData=options.body;return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     form.requestSubmit();form.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(calls===2 && form.hidden && !doc.querySelector('#receipt').hidden,'Accepted registration shows receipt and blocks duplicate submission');
     check(receivedData.get('Client reference')===firstReference && doc.querySelector('.registration-recovery').hidden,'Retries keep the same reference and hide stale recovery on acceptance');
@@ -359,7 +361,7 @@
     rolloverWindow.Date=class extends originalDate{constructor(...args){super(...(args.length?args:[controlledNow]));}static now(){return controlledNow;}};
     check(rolloverTraining.nextDate(rolloverSession)===displayedStart,'Controlled clock starts before the displayed pass start cutoff');
     for(const [name,value] of [['email','rollover@example.invalid'],['Player name','Test Player'],['Player age','8'],['Experience','new']])rolloverForm.elements.namedItem(name).value=value;
-    let rolloverCalls=0,rolloverPayload;rolloverWindow.fetch=async(url,options)=>{rolloverCalls++;rolloverPayload=options.body;return {ok:true,json:async()=>({success:true})};};
+    let rolloverCalls=0,rolloverPayload;rolloverWindow.fetch=async(url,options)=>{rolloverCalls++;rolloverPayload=options.body;return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     controlledNow=cutoff;
     rolloverForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     const updatedStart=rolloverTraining.nextDate(rolloverSession),updatedPlan=rolloverWindow.StarWeeklySignup.passPlan('friday');
@@ -379,7 +381,7 @@
     siblingForm.elements.namedItem('Player name').value='Sam Example';siblingForm.elements.namedItem('Player name').dispatchEvent(new siblingWindow.Event('input',{bubbles:true}));
     check(extra.querySelector('[data-player-field="name"]').validity.valid,'Editing the first player clears stale duplicate-name errors on a sibling');
     check(doc.querySelector('#family-total').textContent.includes('$50') && doc.documentElement.scrollWidth<=321,'Sibling form shows the two-player total and fits a narrow phone');
-    const siblingPayloads=[];siblingWindow.fetch=async(url,options)=>{siblingPayloads.push(options.body);return {ok:true,json:async()=>({success:true})};};
+    const siblingPayloads=[];siblingWindow.fetch=async(url,options)=>{siblingPayloads.push(options.body);return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     siblingForm.requestSubmit();siblingForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,50));
     check(siblingPayloads.length===2 && siblingPayloads[0].get('Player name')==='Sam Example' && siblingPayloads[1].get('Player name')==='Alex Example' && siblingPayloads[1].get('Experience')==='Some experience','One family action sends exactly one canonical registration per child');
     check(siblingPayloads[0].get('Client reference')!==siblingPayloads[1].get('Client reference') && siblingPayloads[0].get('Family reference')===siblingPayloads[1].get('Family reference') && siblingPayloads.every(p=>p.get('Price CAD')==='25'&&p.get('Family requested total CAD')==='50'),'Sibling requests retain unique references, a shared family reference and independent prices');
@@ -388,7 +390,7 @@
     const partialForm=doc.querySelector('#training-registration'),partialWindow=frame.contentWindow;
     for(const [name,value] of [['email','family@example.invalid'],['Player name','Alex Example'],['Player age','8'],['Experience','new']])partialForm.elements.namedItem(name).value=value;
     doc.querySelector('.family-add-player').click();const partialExtra=doc.querySelector('.family-player');partialExtra.querySelector('[data-player-field="name"]').value='Sam Example';partialExtra.querySelector('[data-player-field="age"]').value='9';partialExtra.querySelector('select').value='some';
-    let partialCalls=0;partialWindow.fetch=async()=>{partialCalls++;if(partialCalls===2)throw new TypeError('Offline');return {ok:true,json:async()=>({success:true})};};
+    let partialCalls=0;partialWindow.fetch=async()=>{partialCalls++;if(partialCalls===2)throw new TypeError('Offline');return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     partialForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,50));
     check(partialCalls===2 && partialForm.querySelector('[type="submit"]').disabled && partialForm.elements.namedItem('email').disabled && doc.querySelector('#receipt').hidden,'Partial family acceptance freezes the form and prevents resending the received child');
     check(doc.querySelector('.registration-recovery').textContent.includes('Alex Example — request received') && doc.querySelector('.registration-recovery').textContent.includes('Sam Example — receipt not confirmed'),'Partial family submission reports each child’s actual submission state');
@@ -403,7 +405,7 @@
         if(player.querySelector('select'))player.querySelector('select').value='some';
       }
       const remaining=doc.querySelector('.family-player:last-child'),payloads=[];
-      familyWindow.fetch=async(url,options)=>{payloads.push(Object.fromEntries(options.body.entries()));return {ok:true,json:async()=>({success:true})};};
+      familyWindow.fetch=async(url,options)=>{payloads.push(Object.fromEntries(options.body.entries()));return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
       familyForm.requestSubmit();
       check(payloads.length===0 && !remaining.querySelector('[data-player-field="name"]').validity.valid,page+' blocks duplicate additional players');
       doc.querySelector('.family-remove-player').click();
@@ -434,7 +436,7 @@
     const duration=doc.querySelector('[name="Minutes"]');duration.value='120';duration.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));
     check(doc.querySelector('#private-estimate').textContent.includes('$110 per player') && doc.querySelector('#private-estimate').textContent.includes('$220 total'),'Private two-hour quote preserves a consistent hourly rate');
     const privateForm=doc.querySelector('#private-inquiry');privateForm.elements.namedItem('email').value='test@example.invalid';privateForm.elements.namedItem('Youngest age').value='8';privateForm.elements.namedItem('Oldest age').value='9';
-    let privateCalls=0,privateData;frame.contentWindow.fetch=async(url,options)=>{privateCalls++;privateData=options.body;return {ok:true,json:async()=>({success:true})};};
+    let privateCalls=0,privateData;frame.contentWindow.fetch=async(url,options)=>{privateCalls++;privateData=options.body;return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     const youngest=privateForm.elements.namedItem('Youngest age'),oldest=privateForm.elements.namedItem('Oldest age');
     const editAge=(el,value)=>{el.value=value;el.dispatchEvent(new frame.contentWindow.Event('input',{bubbles:true}));};
     check(youngest.type==='number' && oldest.type==='number' && !privateForm.elements.namedItem('Player ages') && youngest.closest('.ss-number-stepper') && oldest.closest('.ss-number-stepper'),'Age range replaces the comma-separated text box with two tickers');
@@ -458,7 +460,7 @@
     check(privateData.get('Campaign source (URL tag)')==='local-guide','Private inquiry includes the same valid campaign context after navigation');
     doc=await load('program-private-small-group.html',320);
     const soloForm=doc.querySelector('#private-inquiry');soloForm.elements.namedItem('email').value='test@example.invalid';soloForm.elements.namedItem('Youngest age').value='7';soloForm.elements.namedItem('Oldest age').value='6';
-    let soloData;frame.contentWindow.fetch=async(url,options)=>{soloData=options.body;return {ok:true,json:async()=>({success:true})};};
+    let soloData;frame.contentWindow.fetch=async(url,options)=>{soloData=options.body;return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     soloForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(soloData?.get('Player ages')==='7 years' && soloData.get('Players')==='1' && soloData.get('Estimate CAD')==='65 per player; 65 group total','Solo inquiry submits one age without requiring or using an oldest age');
     doc=await load('camps.html',320);
@@ -488,12 +490,12 @@
     check(camp.elements.namedItem('Player age').min==='5' && camp.elements.namedItem('Player age').max==='14','Camp form uses the approved ages 5–14');
     for(const [name,value] of [['email','test@example.invalid'],['Player name','Test Player'],['Player age','5'],['Referral source','referral']])camp.elements.namedItem(name).value=value;
     let campCalls=0,campData,campReference;
-    campWin.fetch=async(url,options)=>{campCalls++;campData=options.body;campReference=campData.get('Client reference');return {ok:true,json:async()=>({success:false})};};
+    campWin.fetch=async(url,options)=>{campCalls++;campData=options.body;campReference=campData.get('Client reference');return {ok:true,json:async()=>({errors:[{message:'Fixture rejection'}]})};};
     camp.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(campCalls===1 && !camp.hidden && doc.querySelector('#camp-receipt').hidden && camp.elements.namedItem('Player name').value==='Test Player','Rejected camp submission retains parent entries and cannot show a receipt');
     check(campData.get('Price CAD')==='340' && campData.get('Covered dates').split(', ').length===5 && campData.get('Camp session keys').split('; ').length===10 && campData.get('Referral source')==='Family / friend' && campData.get('Registration version')==='SS-CAMP-V2' && campData.get('Camp week ID')==='christmas' && campData.get('Camp slot')==='both','Camp registration carries validated package keys, intake version, price and optional attribution');
     check(campData.get('Campaign name (URL tag)')==='winter2026' && campData.get('Referral source')==='Family / friend','Camp registration carries the campaign without overwriting the parent-reported referral');
-    campWin.fetch=async(url,options)=>{campCalls++;campData=options.body;return {ok:true,json:async()=>({success:true})};};
+    campWin.fetch=async(url,options)=>{campCalls++;campData=options.body;return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     camp.requestSubmit();camp.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(campCalls===2 && camp.hidden && !doc.querySelector('#camp-receipt').hidden && campData.get('Client reference')===campReference,'Accepted camp request shows a receipt and blocks duplicate submissions with one reference');
     check(doc.querySelector('#camp-receipt').textContent.includes('$340 CAD') && doc.querySelector('#camp-receipt').textContent.includes('noon–12:30 included') && doc.documentElement.scrollWidth<=321,'Package receipt keeps the correct charge and lunch details readable at 320px');
@@ -507,7 +509,7 @@
     check(doc.querySelector('[data-camp-total]').textContent==='$240 CAD' && doc.querySelector('[data-camp-lunch]').textContent.includes('Supervised lunch included') && doc.documentElement.scrollWidth<=391,'Both-session drop-ins double the paid total and stay readable on mobile');
     check([...dropForm.querySelectorAll('.camp-day')].every(el=>el.querySelector('small').textContent===(el.querySelector('input').value==='2026-12-25'?'Free':'$120')),'Day labels show the actual full-day price and keep Christmas Friday free');
     for(const [name,value] of [['email','test@example.invalid'],['Player name','Test Player'],['Player age','8']])dropForm.elements.namedItem(name).value=value;
-    let dropCalls=0,dropData;dropWin.fetch=async(url,options)=>{dropCalls++;dropData=options.body;return {ok:true,json:async()=>({success:true})};};
+    let dropCalls=0,dropData;dropWin.fetch=async(url,options)=>{dropCalls++;dropData=options.body;return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     dropForm.requestSubmit();dropForm.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(dropCalls===1 && dropData.get('Registration version')==='SS-CAMP-DROPIN-V1' && dropData.get('Camp booking kind')==='dropin' && dropData.get('Price CAD')==='240' && dropData.get('Covered dates')==='2026-12-21, 2026-12-23, 2026-12-25' && dropData.get('Camp session keys').split('; ').length===6,'Drop-in intake sends only the chosen dates, exact slots and canonical price once');
     check(doc.querySelector('#camp-receipt').textContent.includes('$240 CAD') && !doc.querySelector('#camp-receipt').textContent.includes('Dec 22'),'Drop-in receipt lists selected dates and total');
@@ -531,7 +533,7 @@
     check(more.open && more.querySelector('[name="Referral source"]').getClientRects().length && doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1,'Tell us more opens optional context without overflow');
     contact.elements.namedItem('email').value='test@example.invalid';contact.elements.namedItem('Message').value='Mocked contact test';contact.elements.namedItem('Referral source').value='community';
     contact.elements.namedItem('Name').value='Example Parent';contact.elements.namedItem('Player or session details').value='Age 8, Thursday';
-    let contactData;frame.contentWindow.fetch=async(url,options)=>{contactData=options.body;return {ok:true,json:async()=>({success:true})};};
+    let contactData;frame.contentWindow.fetch=async(url,options)=>{contactData=options.body;return {ok:true,json:async()=>({next:'https://formspree.io/thanks'})};};
     contact.requestSubmit();await new Promise(resolve=>setTimeout(resolve,30));
     check(contactData.get('Referral source')==='School / community' && doc.querySelector('[data-feedback]').textContent.includes('message was submitted') && doc.activeElement===doc.querySelector('[data-feedback]'),'Contact inquiry preserves attribution and focuses a truthful submitted message with email next steps');
     check(contactData.get('Name')==='Example Parent' && contactData.get('Topic')==='Winter camps' && contactData.get('Player or session details')==='Age 8, Thursday','Optional name, enquiry topic and player/session context reach the inquiry');

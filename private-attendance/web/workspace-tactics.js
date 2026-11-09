@@ -386,11 +386,11 @@
   viewControls.append(panControls);
   const fieldDock = el('div', '', 'tactics-field-dock'); fieldDock.append(cameraTools, viewControls); fieldColumn.append(fieldDock);
   function placeFieldDock() {
-    const header = libraryBinding?.host.closest('form')?.querySelector('.library-editor-header');
-    const wide = header && document.body.classList.contains('drill-creator-focus') && innerWidth >= 1000 && innerHeight >= 640;
-    fieldColumn.dataset.dock = wide ? 'panel' : 'bottom';
-    if (wide) { if (fieldDock.parentElement !== inspector) inspector.prepend(fieldDock); const actions = header.querySelector('.library-actions'); if (focusField.parentElement !== header || focusField.nextElementSibling !== actions) header.insertBefore(focusField, actions); }
-    else { if (fieldDock.parentElement !== fieldColumn) fieldColumn.append(fieldDock); if (focusField.parentElement !== cameraTools) cameraTools.append(focusField); }
+    if (fieldDock.parentElement !== editor || fieldDock.nextElementSibling !== boardLayout) editor.insertBefore(fieldDock, boardLayout);
+    if (viewOptions.parentElement !== fieldDock) fieldDock.prepend(viewOptions);
+    if (topActions.parentElement !== inspector) inspector.prepend(topActions);
+    if (focusField.parentElement !== cameraTools) cameraTools.append(focusField);
+    fieldColumn.dataset.dock = 'top';
   }
   new ResizeObserver(() => { if (active() && loaded) draw(); }).observe(fieldColumn);
   const guidance = el('details', '', 'tactics-guidance'); guidance.append(el('summary','Field controls'), pathCaption, help); inspector.append(guidance);

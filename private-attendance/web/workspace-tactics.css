@@ -521,3 +521,21 @@ body.drill-creator-focus #tactics-board-tools .tactics-canvas-wrap { grid-templa
 #tactics-board-tools .tactics-pieces>.tactics-add-helper{width:auto;min-width:44px;min-height:44px;padding:8px;font-size:11px;flex-shrink:0}
 #tactics-board-tools [data-box-resize]{cursor:nwse-resize}
 #tactics-board-tools [data-box-resize]:focus-visible{outline:3px solid #263b2d;outline-offset:3px}
+
+/* The shared field uses the selected camera's proportions on touch devices. */
+#tactics-board-tools .tactics-camera-tools { flex-wrap:wrap; }
+#tactics-board-tools .tactics-body-tools { font-size:12px; }
+#tactics-board-tools .tactics-shadow-size { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+#tactics-board-tools .tactics-shadow-size > p { grid-column:1/-1; }
+#tactics-board-tools .tactics-shadow-size[hidden] { display:none; }
+#tactics-board-tools .tactics-workbar { flex-wrap:wrap; }
+@media(max-width:999px) {
+  :is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-board-layout { grid-template-columns:minmax(0,1fr); }
+  #tactics-board-tools #tactics-pitch-board { aspect-ratio:var(--field-ratio,1000 / 650); height:auto; max-height:72dvh; }
+  body.drill-creator-focus #tactics-board-tools #tactics-pitch-board { height:auto; aspect-ratio:var(--field-ratio,1000 / 650); max-height:72dvh; }
+  #tactics-board-tools .tactics-inspector { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:8px; }
+}
+@media(min-width:1000px) {
+  #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-board-layout { grid-template-columns:minmax(0,1fr) 250px; align-items:start; }
+  #planner-drawer[data-pane="tools"] #tactics-pitch-board { height:clamp(360px,calc(100dvh - 230px),960px); aspect-ratio:auto; }
+}

@@ -56,3 +56,16 @@ test('cover shadows reject malformed dimensions, unsupported owners, and extra f
  for(const index of [2,3,4,5])await reject(content=>{content.frames[0].positions[index].shadow={length:5,width:60};});
  await reject(content=>{content.items[0].shadow={length:5,width:60};});
 });
+
+
+test('vision and additional shapes round trip with bounded settings',async()=>{
+ const {validateDiagram}=await validator;
+ for(const shape of ['triangle','diamond'])for(const angle of [20,90,180]){
+  const content=diagram();content.items[5].zone.shape=shape;
+  content.frames[0].positions[0].vision={angle,length:60};
+  assert.deepEqual(validateDiagram(content),content);
+ }
+ for(const angle of [0,181,NaN,'90',null])await reject(c=>{c.frames[0].positions[0].vision={angle,length:20};});
+ for(const length of [0,61,Infinity,'20',null])await reject(c=>{c.frames[0].positions[0].vision={angle:90,length};});
+ for(const index of [2,3,4,5])await reject(c=>{c.frames[0].positions[index].vision={angle:90,length:20};});
+});

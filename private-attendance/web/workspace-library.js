@@ -180,7 +180,8 @@
   const viewer = node('dialog', '', 'library-viewer'); viewer.id = 'library-viewer'; viewer.setAttribute('aria-labelledby', 'library-view-title');
   const viewHeader = node('header', '', 'library-view-header'), viewTitle = node('h2'); viewTitle.id = 'library-view-title';
   const viewClose = action('Close preview', () => closeView()); viewClose.id = 'library-view-close';
-  viewHeader.append(viewTitle, viewClose);
+  const viewAdd = action('Add to session', () => { if (!viewedDrill || locked() || recovery) return; const drill = clone(viewedDrill), origin = viewOrigin; closeView(false); if (standalone()) chooseSession(drill, origin); else insert(drill); }, 'button'); viewAdd.id = 'library-view-add';
+  viewHeader.append(viewTitle, viewAdd, viewClose);
   const viewMeta = node('p', '', 'library-view-meta'), viewLayout = node('div', '', 'library-view-layout'), viewVisual = node('section', '', 'library-view-visual');
   const viewBoard = node('div', '', 'library-view-board'); viewBoard.id = 'library-view-board'; viewBoard.setAttribute('role', 'img');
   const viewControls = node('div', '', 'library-view-controls'), viewPlay = action('Play movement', toggleViewPlayback, 'button'), viewRestart = action('Back to start', () => seekView(0));
@@ -237,7 +238,7 @@
     viewTotal = time; viewProgress.max = String(time);
     for (const [key, title] of [['setup', 'Setup & instructions'], ['coaching', 'Coaching points'], ['progression', 'Adaptations'], ['equipment', 'Equipment']]) if (drill[key]) viewInstructions.append(node('h3', title), node('p', drill[key], 'library-instructions'));
     if (drill.attribution) { const link = node('a', 'Source: ' + drill.attribution.label); link.href = drill.attribution.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; viewInstructions.append(link); }
-    renderView(); viewer.showModal(); viewClose.focus();
+    viewAdd.disabled = locked() || !!recovery || (!standalone() && !canInsert()); renderView(); viewer.showModal(); viewClose.focus();
   }
   search.addEventListener('input', () => { historyLimit = 8; renderList(); });
   for (const filter of [focus, sourceFilter, ageFilter, skillFilter, durationFilter, typeFilter]) filter.addEventListener('change', () => { historyLimit = 8; renderList(); });
@@ -505,7 +506,7 @@
     if (dirty() && !confirm('Replace your unsaved drill with this practice idea?')) return;
     if (drill.diagram) draft.diagram = clone(drill.diagram);
     if (catalogIdea) { draft.title = draft.title.slice(0, 68) + ' (variation)'; draft.variation = true; }
-    writeEditor(draft); baseline = fingerprint(blank()); disclosure.open = true; editor.hidden = false; openDiagram(); renderState();
+    value.accepted = true; writeEditor(draft); baseline = fingerprint(blank()); disclosure.open = true; editor.hidden = false; openDiagram(); renderState();
     notify(catalogIdea ? 'Private variation draft. Your changes will stay in your private drill library; the original remains unchanged.' : 'Practice idea copied to a new drill draft. Review it and choose Save drill to keep it.'); focusEditor();
   });
   window.addEventListener('coach:context', event => {

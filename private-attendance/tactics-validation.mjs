@@ -26,7 +26,7 @@ export function validateDiagram(content){
   }
   if(item.kind==='zone'){
    const zone=object(item.zone,['shape','width','height','color'],['outline']);
-   if(!['rect','ellipse'].includes(zone.shape)||!['blue','gold','green'].includes(zone.color)||typeof zone.width!=='number'||!Number.isFinite(zone.width)||zone.width<5||zone.width>90||typeof zone.height!=='number'||!Number.isFinite(zone.height)||zone.height<5||zone.height>90)invalid();
+   if(!['rect','ellipse','triangle','diamond'].includes(zone.shape)||!['blue','gold','green'].includes(zone.color)||typeof zone.width!=='number'||!Number.isFinite(zone.width)||zone.width<5||zone.width>90||typeof zone.height!=='number'||!Number.isFinite(zone.height)||zone.height<5||zone.height>90)invalid();
    result.zone={shape:zone.shape,width:zone.width,height:zone.height,color:zone.color};
    if(Object.hasOwn(zone,'outline')){if(typeof zone.outline!=='boolean')invalid();result.zone.outline=zone.outline;}
   }else if(Object.hasOwn(item,'zone'))invalid();
@@ -38,9 +38,15 @@ export function validateDiagram(content){
   if(frameIds.has(id)||typeof frame.duration!=='number'||!Number.isFinite(frame.duration)||frame.duration<0.5||frame.duration>20||!Array.isArray(frame.positions)||frame.positions.length!==items.length)invalid();
   frameIds.add(id);const seen=new Set();
   const positions=frame.positions.map(position=>{
-   object(position,['id','x','y'],['curve','attachedTo','trail','rotation','facing','shadow']);const id=identifier(position.id);
+   object(position,['id','x','y'],['curve','attachedTo','trail','rotation','facing','shadow','vision']);const id=identifier(position.id);
    if(!itemIds.has(id)||seen.has(id))invalid();seen.add(id);
    const result={id,x:coordinate(position.x),y:coordinate(position.y)};
+   if(Object.hasOwn(position,'vision')){
+    if(!['home','away'].includes(itemKinds.get(id)))invalid();
+    const vision=object(position.vision,['angle','length']);
+    if(typeof vision.angle!=='number'||!Number.isFinite(vision.angle)||vision.angle<20||vision.angle>180||typeof vision.length!=='number'||!Number.isFinite(vision.length)||vision.length<5||vision.length>60)invalid();
+    result.vision={angle:vision.angle,length:vision.length};
+   }
    if(Object.hasOwn(position,'shadow')){
     if(!['home','away'].includes(itemKinds.get(id)))invalid();
     const shadow=object(position.shadow,['length','width']);

@@ -39,6 +39,8 @@ require('./coach-fixture-fonts.cjs')(assets);
      else if(mode==='unauthorized'){status=401;value={error:'SIGN_IN_REQUIRED',message:'Sign in again.'};}
      else{const diagram={...saved(payload.sessionId),id:payload.id||'diagram_'+'b'.repeat(27),title:payload.title,content:validateDiagram(payload.content),version:payload.expectedVersion+1};state.diagrams=[diagram,...state.diagrams.filter(d=>d.id!==diagram.id)];value={diagram};}
     }else if(path.endsWith('/diagrams/archive')){state.diagrams=state.diagrams.filter(d=>d.id!==payload.id);value={saved:true};}
+    else if(path.endsWith('/drills/list'))value={drills:state.drills||[]};
+    else if(path.endsWith('/drills/save')){const drill={...payload,id:payload.id||'drill_fixture',version:payload.expectedVersion+1,author_email:profile.email,updated_by:profile.email,created_at:now,updated_at:now,request_id:payload.requestId};state.drills=[drill];value={drill};}
     else{errors.push('Unexpected fixture action '+request.method()+' '+path);status=500;value={error:'UNEXPECTED_FIXTURE'};}
     return route.fulfill({status,contentType:'application/json',body:JSON.stringify(value)});
    });
@@ -167,6 +169,20 @@ require('./coach-fixture-fonts.cjs')(assets);
   assert(!await h.page.locator('#tactics-board-tools').innerText().then(text=>text.includes('Fictional saved setup')||text.includes('Private draft before expiry')));
   assert.equal(await h.page.locator('#tactics-title').count(),0);assert.deepEqual(h.errors,[]);checks++;
   await h.context.close();
+
+  const copy=await fixture();await enterPlan(copy);await openBoard(copy);
+  await copy.page.locator('#tactics-library').selectOption(saved().id);
+  const beforeCopy=await copy.page.evaluate(()=>CoachTactics.getDraft());
+  await copy.page.locator('#tactics-save-library').click();
+  await copy.page.waitForFunction(()=>!document.getElementById('library-save').disabled);
+  assert.equal(await copy.page.locator('#planner-drawer').isVisible(),true,'Library form stays in the open session drawer');
+  assert.equal(await copy.page.locator('#library-title').inputValue(),beforeCopy.title);
+  await copy.page.locator('#library-save').click();
+  await copy.page.waitForFunction(()=>!CoachLibrary.isBusy()&&!CoachLibrary.isDirty());
+  assert.deepEqual(copy.state.drills[0].diagram,beforeCopy.diagram,'Session diagram saves to reusable library unchanged');
+  assert.deepEqual(await copy.page.evaluate(()=>CoachTactics.getDraft()),beforeCopy,'Library copy leaves session draft untouched');
+  assert.equal(count(copy,'/diagrams/save'),0,'Library copy does not write session diagrams');
+  assert.deepEqual(copy.errors,[]);checks++;await copy.context.close();
 
   console.log('Coach tactics integration: '+checks+' grouped checks passed. Fictional requests only.');
  }finally{await browser.close();}

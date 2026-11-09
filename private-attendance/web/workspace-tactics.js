@@ -7,6 +7,8 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   const possessionPoint = player => ({ x: Math.min(100, player.x + 2), y: Math.min(100, player.y + 2) });
   const minimumRecordedDrag = 3;
+  const pieceLayer = item => ({ zone: 0, cone: 1, goal: 2, home: 3, away: 3, ball: 3 })[item.kind];
+  let deviceView = 'auto';
   const encode = value => JSON.stringify(value, (_, item) => item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
   const uid = prefix => prefix + crypto.randomUUID().replaceAll('-', '').slice(0, 20);
   const kinds = { home: 'Blue player', away: 'Gold player', cone: 'Cone', ball: 'Ball', goal: 'Goal', zone: 'Zone' };
@@ -43,7 +45,7 @@
   const apply = value => { record.title = value.title; record.content = clone(value.content); frameIndex = value.frameIndex; selectedItem = value.selectedItem; selectedIds = new Set(value.selectedIds || []); selectedArrow = value.selectedArrow || ''; };
   const remember = () => { undo.push(capture()); if (undo.length > 30) undo.shift(); redo = []; };
   const libraryDiagram = () => libraryBinding && (record.content.purpose === 'team-pattern' || record.content.items.length || record.content.frames.length > 1 || record.content.frames.some(f => f.notes || f.arrows?.length || f.title !== 'Starting positions') || record.content.pitch !== 'full') ? clone(record.content) : null;
-  const notifyDraft = () => { if (libraryBinding) { libraryBinding.onChange?.(libraryDiagram()); renderStatus(); } window.dispatchEvent(new Event('coach:tactics-dirty')); };
+  const notifyDraft = () => { if (pointer) return; if (libraryBinding) { libraryBinding.onChange?.(libraryDiagram()); renderStatus(); } window.dispatchEvent(new Event('coach:tactics-dirty')); };
   function tell(text, error = false) { message = text; messageError = error; renderStatus(); }
   function request(operation, payload) { return new Promise((resolve, reject) => window.dispatchEvent(new CustomEvent('coach:tactics-request', { detail: { operation, payload, resolve, reject } }))); }
   function stopPlayback(reset = true) { running = false; cancelAnimationFrame(animation); animation = 0; if (reset) { elapsed = 0; renderedPositions = null; } renderPlayback(); }
@@ -207,7 +209,7 @@
   redrawRoute.title = 'Start this movement again from the previous phase';
   const routeActions = el('div', '', 'tactics-route-actions'); routeActions.append(redrawRoute, straighten);
   const zoneControls = el('div', '', 'tactics-zone-controls');
-  const zoneShape = select('tactics-zone-shape', [['rect', 'Rectangle'], ['ellipse', 'Oval']]);
+  const zoneShape = select('tactics-zone-shape', [['rect', 'Rectangle'], ['ellipse', 'Oval'], ['triangle', 'Triangle'], ['diamond', 'Diamond']]);
   const zoneColor = select('tactics-zone-color', [['blue', 'Blue'], ['gold', 'Gold'], ['green', 'Green']]);
   const zoneWidth = input('tactics-zone-width', 'range'), zoneHeight = input('tactics-zone-height', 'range');
   const zoneOutline = input('tactics-zone-outline','checkbox'), outlineLabel=field('Outline only',zoneOutline);outlineLabel.className='tactics-check';
@@ -240,7 +242,12 @@
   const shadowSize = el('div', '', 'tactics-shadow-size'), shadowLength = input('tactics-shadow-length', 'range'), shadowWidth = input('tactics-shadow-width', 'range');
   for (const [control, key] of [[shadowLength, 'length'], [shadowWidth, 'width']]) { control.min = '5'; control.max = '60'; control.step = '1'; control.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (p?.shadow) p.shadow[key] = Number(control.value); })); }
   shadowSize.append(field('Shadow length', shadowLength), field('Shadow width', shadowWidth), el('p', 'Extends away from the nearest ball. Without a ball, it follows behind the body direction.', 'small'));
-  bodyTools.append(bodyLabel, facingField, compass, faceBall, shadowLabel, shadowSize, el('p', 'These settings apply to this phase. Drag the round handle to turn a player.', 'small')); pieceActions.before(bodyTools);
+  const visionEnabled = input('tactics-vision', 'checkbox'), visionLabel = field('Show field of view', visionEnabled); visionLabel.className = 'tactics-check';
+  visionEnabled.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (!p) return; if (visionEnabled.checked) { p.facing ??= 0; p.vision = { angle: 90, length: 20 }; } else delete p.vision; }));
+  const visionSize = el('div', '', 'tactics-shadow-size'), visionAngle = input('tactics-vision-angle', 'range'), visionLength = input('tactics-vision-length', 'range');
+  for (const [control, key, min, max] of [[visionAngle, 'angle', 20, 180], [visionLength, 'length', 5, 60]]) { control.min = min; control.max = max; control.step = 1; control.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (p?.vision) p.vision[key] = Number(control.value); })); }
+  visionSize.append(field('View angle (degrees)', visionAngle), field('View distance (% of field length)', visionLength));
+  bodyTools.append(bodyLabel, facingField, compass, faceBall, visionLabel, visionSize, shadowLabel, shadowSize, el('p', 'These settings apply to this phase. Drag the round handle to turn a player.', 'small')); pieceActions.before(bodyTools);
   canvasWrap.append(pathCaption); boardLayout.append(canvasWrap, side);
   const phases = el('section', '', 'tactics-phases'); phases.setAttribute('aria-label', 'Movement phases');
   const phaseHeading = el('div', '', 'tactics-phase-heading'); phaseHeading.append(el('h3', 'Movement sequence'), el('span', '', 'small')); phaseHeading.lastChild.id = 'tactics-sequence-summary';
@@ -285,7 +292,14 @@
   footer.append(editingActions, saveActions, status, recoveryActions);
   const workbar = el('div', '', 'tactics-workbar');
   const undoControl = editingActions.children[0], redoControl = editingActions.children[1], playControl = playback.firstElementChild, saveControl = saveActions.firstElementChild;
-  workbar.append(heading.firstChild, saveControl, status);
+  const saveLibrary = button('Save to library', 'tactics-save-library', () => {
+    if (!editable() || libraryBinding || recoveryNeeded) return;
+    const detail = { sessionId: context.selected, drill: { title: record.title.trim() || 'Session drill', minutes: 10, target: 'technical', setup: record.content.frames.map(f => f.title + (f.notes ? ': ' + f.notes : '')).join('\n').slice(0, 2000), diagram: clone(record.content) } };
+    window.dispatchEvent(new CustomEvent('coach:library-prefill', { detail }));
+    if (detail.accepted) { requestAnimationFrame(() => { $('library-form')?.scrollIntoView({ block: 'center' }); $('library-title')?.focus(); }); tell('Library copy ready. Review the details and save the drill.'); }
+    else tell('Finish or clear the current library draft, then try again.', true);
+  });
+  workbar.append(heading.firstChild, saveControl, saveLibrary, status);
   const editHistory = el('div', '', 'tactics-edit-history'); editHistory.setAttribute('role', 'group'); editHistory.setAttribute('aria-label', 'Edit history'); editHistory.append(undoControl, redoControl);
   const editTools = el('div', '', 'tactics-edit-tools'); editModes.replaceWith(editTools); editTools.append(editModes, editHistory);
   const sequenceActions = el('div', '', 'tactics-sequence-actions'); sequenceActions.setAttribute('role', 'group'); sequenceActions.setAttribute('aria-label', 'Playback and phases');
@@ -327,6 +341,9 @@
   const laneControl = button('Lanes', 'tactics-lanes', () => { showLanes = !showLanes; draw(); });
   laneControl.title = 'Show wide areas, half-spaces and middle'; laneControl.setAttribute('aria-label', laneControl.title);
   const cameraTools = el('div', '', 'tactics-camera-tools'); cameraTools.append(camera, gridControl, laneControl, focusField);
+  const deviceControl = select('tactics-device-view', [['auto', 'Fit my device'], ['wide', 'Wide field'], ['tall', 'Upright field']]);
+  deviceControl.setAttribute('aria-label', 'Preferred field orientation');
+  deviceControl.addEventListener('change', () => { deviceView = deviceControl.value; zoom = 1; draw(); }); cameraTools.prepend(deviceControl);
   const viewControls = el('div', '', 'tactics-view-controls'); viewControls.setAttribute('aria-label', 'Field view');
   const panControls = el('div', '', 'tactics-pan-controls'); panControls.setAttribute('role', 'group'); panControls.setAttribute('aria-label', 'Move zoomed view');
   const zoomValue = el('output', '100%', 'tactics-zoom-value'); zoomValue.id = 'tactics-zoom-value'; zoomValue.setAttribute('aria-label', 'Field zoom');
@@ -334,7 +351,7 @@
     const half = cameraMode !== 'full', endView = ['facing-goal','away-from-goal'].includes(cameraMode);
     const crop = half && (!endView || ['full','blank'].includes(record.content.pitch));
     const x = crop && cameraMode !== 'left-half' ? 500 : 0, width = crop ? 500 : 1000;
-    let angle = 0;
+    let angle = cameraMode === 'full' && (deviceView === 'tall' || deviceView === 'auto' && innerWidth < 600 && innerHeight > innerWidth) ? 90 : 0;
     if (endView) {
       const toward = cameraMode === 'facing-goal';
       angle = ['full','blank'].includes(record.content.pitch) ? (toward ? -90 : 90) : record.content.pitch === 'half' ? (toward ? 90 : -90) : (record.content.pitch === 'facing-goal') === toward ? 0 : 180;
@@ -350,7 +367,7 @@
   const viewBounds = () => { const g = cameraGeometry(); return { left: g.x + g.width / 2 / zoom, right: g.x + g.width - g.width / 2 / zoom, top: g.y + g.height / 2 / zoom, bottom: g.y + g.height - g.height / 2 / zoom }; };
   function updateViewControls() {
     const locked = !active() || !loaded || pending, bounds = viewBounds(), fit = zoom === 1, near = (a, b) => Math.abs(a - b) < .001;
-    camera.hidden = record.content.pitch !== 'full'; camera.value = cameraMode; camera.disabled = locked || camera.hidden; gridControl.disabled = focusField.disabled = locked; gridControl.setAttribute('aria-pressed',String(showGrid));
+    camera.hidden = record.content.pitch !== 'full'; camera.value = cameraMode; camera.disabled = locked || camera.hidden; deviceControl.disabled = locked; deviceControl.value = deviceView; gridControl.disabled = focusField.disabled = locked; gridControl.setAttribute('aria-pressed',String(showGrid));
     laneControl.hidden = record.content.pitch === 'blank'; laneControl.disabled = locked || laneControl.hidden; laneControl.setAttribute('aria-pressed', String(showLanes && !laneControl.hidden));
     $('tactics-zoom-out').disabled = locked || fit; $('tactics-zoom-in').disabled = locked || zoom === 2.5;
     $('tactics-zoom-fit').hidden = fit; $('tactics-zoom-fit').disabled = locked || fit;
@@ -449,7 +466,12 @@
     const p = from.positions.find(p => p.id === id), q = to.positions.find(p => p.id === id);
     if (p.attachedTo && p.attachedTo === q.attachedTo) return routePoints(from, to, p.attachedTo).map(possessionPoint);
     const start = positionIn(from, id), end = positionIn(to, id);
-    if (q.trail?.length) return [start, ...q.trail, end];
+    if (q.trail?.length) {
+      // Smooth corners without overshoot; paths and playback use the same route.
+      const points = [start, ...q.trail, end], smooth = [start];
+      for (let i = 0; i < points.length - 1; i++) { const a = points[i], b = points[i + 1]; for (const t of [.25, .75]) smooth.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }); }
+      return [...smooth, end];
+    }
     if (!p.curve) return [start, end];
     const c = curveControl(start, end, p.curve);
     return Array.from({ length: 25 }, (_, i) => { const t = i / 24, u = 1 - t; return { x: u * u * start.x + 2 * u * t * c.x / 10 + t * t * end.x, y: u * u * start.y + 2 * u * t * c.y / 6.5 + t * t * end.y }; });
@@ -475,14 +497,20 @@
   function playerArtwork(kind, position, color) {
     if (!['home', 'away'].includes(kind) || !Number.isFinite(position?.facing)) return pieceArtwork(kind, color);
     const art = svg('g', { 'data-symbol': kind, 'data-facing': position.facing, transform: 'rotate(' + position.facing + ')', 'aria-hidden': 'true' });
-    art.append(svg('ellipse', { rx: 24, ry: 18, cy: 5, fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 3 }), svg('circle', { cy: -12, r: 10, fill: kind === 'home' ? '#b8d2dd' : '#f1dfb9', stroke: '#253b46', 'stroke-width': 2 }), svg('path', { d: 'M-5-22 L0-29 L5-22Z', fill: '#253b46' }));
+    art.append(svg('ellipse', { rx: 19, ry: 14, cy: 4, fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 3 }), svg('circle', { cy: -10, r: 7, fill: kind === 'home' ? '#b8d2dd' : '#f1dfb9', stroke: '#253b46', 'stroke-width': 2 }), svg('path', { d: 'M-4-18 L0-23 L4-18Z', fill: '#253b46' }));
     return art;
+  }
+  function visionArtwork(item, frame) {
+    const p = frame.positions.find(v => v.id === item.id); if (!p?.vision || !['home', 'away'].includes(item.kind)) return null;
+    const radius = p.vision.length * 10, half = p.vision.angle * Math.PI / 360, x = radius * Math.sin(half), y = -radius * Math.cos(half);
+    const group = svg('svg', { width: 1000, height: 650, viewBox: '0 0 1000 650', overflow: 'hidden', 'pointer-events': 'none', 'data-player-vision': item.id });
+    group.append(svg('path', { d: `M0 0 L${-x} ${y} A${radius} ${radius} 0 0 1 ${x} ${y} Z`, transform: `translate(${p.x*10} ${p.y*6.5}) rotate(${p.facing || 0})`, fill: playerColors[playerColor(item)], 'fill-opacity': .08, stroke: '#edf1dd', 'stroke-opacity': .35, 'stroke-width': 1 })); return group;
   }
   function shadowArtwork(item, frame, items) {
     const p = frame.positions.find(v => v.id === item.id); if (!p?.shadow || !['home', 'away'].includes(item.kind)) return null;
     const at = positionIn(frame, item.id), ball = nearestBall(at, frame, items), angle = ball ? directionTo(at, ball) : p.facing || 0;
     const clipped = svg('svg', { x: 0, y: 0, width: 1000, height: 650, viewBox: '0 0 1000 650', overflow: 'hidden', 'pointer-events': 'none', 'data-cover-shadow': item.id, 'aria-hidden': 'true' });
-    clipped.append(svg('path', { d: 'M0 0 L' + (-p.shadow.width * 5) + ' ' + p.shadow.length * 10 + ' L' + p.shadow.width * 5 + ' ' + p.shadow.length * 10 + 'Z', transform: 'translate(' + at.x * 10 + ' ' + at.y * 6.5 + ') rotate(' + angle + ')', fill: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'fill-opacity': .18, stroke: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'stroke-opacity': .35, 'stroke-width': 1 }));
+    clipped.append(svg('path', { d: 'M0 0 L' + (-p.shadow.width * 5) + ' ' + p.shadow.length * 10 + ' L' + p.shadow.width * 5 + ' ' + p.shadow.length * 10 + 'Z', transform: 'translate(' + at.x * 10 + ' ' + at.y * 6.5 + ') rotate(' + angle + ')', fill: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'fill-opacity': .10, stroke: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'stroke-opacity': .22, 'stroke-width': 1 }));
     return clipped;
   }
   function pieceArtwork(kind, color) {
@@ -491,7 +519,7 @@
       const fill = playerColors[color || (kind === 'away' ? 'gold' : 'blue')];
       art.append(svg('path', { d: 'M-9-22 L-24-13 L-17-1 L-11-5 V23 H11 V-5 L17-1 L24-13 L9-22 Q0-13-9-22Z', fill, stroke: '#45515a', 'stroke-width': 2 }), svg('path', { d: 'M-9-22 Q0-7 9-22 M-11 18 H11', fill: 'none', stroke: '#ffffff70', 'stroke-width': 2 }));
     } else if (kind === 'cone') {
-      art.append(svg('ellipse', { cx: 0, cy: 19, rx: 25, ry: 7, fill: '#8d482d' }), svg('path', { d: 'M-18 17 L-5-23 Q0-28 5-23 L18 17 Q0 26-18 17Z', fill: '#df8950', stroke: '#85482e', 'stroke-width': 2 }), svg('path', { d: 'M-11-3 Q0 3 11-3 L14 6 Q0 13-14 6Z', fill: '#fff4dc' }), svg('path', { d: 'M0-20 L-9 16', fill: 'none', stroke: '#f8bd83', 'stroke-width': 3 }));
+      art.append(svg('ellipse', { cy: 5, rx: 15, ry: 6, fill: '#ed9146', stroke: '#8c4c24', 'stroke-width': 1.5 }), svg('path', { d: 'M-13 4 Q-7 1-5-4 Q0-9 5-4 Q7 1 13 4 Q0 11-13 4Z', fill: '#f5a45c', stroke: '#8c4c24', 'stroke-width': 1.2 }), svg('ellipse', { cy: -3, rx: 4, ry: 2, fill: '#87502b' }));
     } else if (kind === 'ball') {
       art.append(svg('circle', { r: 16, fill: '#fffdf7', stroke: '#334451', 'stroke-width': 2 }), svg('path', { d: 'M0-8 L8-2 L5 7 L-5 7 L-8-2Z M0-8 V-16 M8-2 L15-5 M5 7 L10 13 M-5 7 L-10 13 M-8-2 L-15-5', fill: '#334451', stroke: '#334451', 'stroke-width': 1.5 }), svg('path', { d: 'M-5-14 L0-11 L5-14 M13-8 L11-3 L15 0 M12 10 L6 10 L5 15 M-12 10 L-6 10 L-5 15 M-13-8 L-11-3 L-15 0', fill: 'none', stroke: '#334451', 'stroke-width': 2 }));
     } else if (kind === 'goal') {
@@ -525,7 +553,7 @@
     const group = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ')', 'data-zone': item.id });
     if (!preview) { group.dataset.tacticsItem = item.id; group.setAttribute('role', 'button'); group.setAttribute('tabindex', editable() ? '0' : '-1'); group.setAttribute('aria-label', 'Zone ' + item.label); group.setAttribute('aria-pressed', String(selection().includes(item.id))); }
     const attrs = { fill: color, 'fill-opacity': item.zone.outline ? 0 : .13, stroke: color, 'stroke-width': selectedItem === item.id && !preview ? 3 : 2, 'stroke-dasharray': item.zone.outline ? 'none' : '7 5', 'vector-effect': 'non-scaling-stroke' };
-    group.append(item.zone.shape === 'ellipse' ? svg('ellipse', { rx: width / 2, ry: height / 2, ...attrs }) : svg('rect', { x: -width / 2, y: -height / 2, width, height, rx: 5, ...attrs }));
+    group.append(['triangle', 'diamond'].includes(item.zone.shape) ? svg('polygon', { points: item.zone.shape === 'triangle' ? `0,${-height/2} ${width/2},${height/2} ${-width/2},${height/2}` : `0,${-height/2} ${width/2},0 0,${height/2} ${-width/2},0`, ...attrs }) : item.zone.shape === 'ellipse' ? svg('ellipse', { rx: width / 2, ry: height / 2, ...attrs }) : svg('rect', { x: -width / 2, y: -height / 2, width, height, rx: 5, ...attrs }));
     if (item.label && !preview) { const font = Math.max(15, 11 / Math.max(.01, board.getScreenCTM()?.a || 1)); group.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-family': 'Arial,sans-serif', 'font-size': font, 'font-weight': 700, fill: color, 'pointer-events': 'none' }, item.label)); }
     return group;
   }
@@ -549,8 +577,8 @@
   function previewFrame(frame, items = record.content.items, view = record.content.pitch, labelled = false) {
     const thumbnail = svg('svg', { viewBox: '0 0 1000 650', 'aria-hidden': 'true' });
     thumbnail.append(fieldArtwork(view));
-    for (const item of items) { const shadow = shadowArtwork(item, frame, items); if (shadow) thumbnail.append(shadow); }
-    for (const item of [...items].sort((a, b) => (b.kind === 'zone') - (a.kind === 'zone'))) { const p = positionIn(frame, item.id), settings = frame.positions.find(v => v.id === item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1)', 'data-preview-piece': item.id }); const graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ')'); symbol.append(graphic); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: playerInk(item) }, item.label)); thumbnail.append(symbol); } }
+    for (const item of items) { const shadow = shadowArtwork(item, frame, items); if (shadow) thumbnail.append(shadow); const vision = visionArtwork(item, frame); if (vision) thumbnail.append(vision); }
+    for (const item of [...items].sort((a, b) => pieceLayer(a) - pieceLayer(b))) { const p = positionIn(frame, item.id), settings = frame.positions.find(v => v.id === item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1)', 'data-preview-piece': item.id }); const graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ')'); symbol.append(graphic); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: playerInk(item) }, item.label)); thumbnail.append(symbol); } }
     for (const arrow of frame.arrows || []) thumbnail.append(arrowArtwork(arrow));
     return thumbnail;
   }
@@ -607,7 +635,7 @@
     extras.hidden = !!libraryBinding;
     $('tactics-archive').hidden = $('tactics-save-copy').hidden = !!libraryBinding;
     $('tactics-save').textContent = libraryBinding ? 'Save drill' : 'Save setup';
-    $('tactics-save').hidden = !!libraryBinding;
+    $('tactics-save').hidden = !!libraryBinding; saveLibrary.hidden = !!libraryBinding;
     selectionCount.hidden = selection().length < 2;
     phaseOptions.hidden = previewControls.hidden = playback.hidden = record.content.frames.length < 2;
     for (const mode of ['place', 'record']) $('tactics-mode-' + mode).setAttribute('aria-pressed', String(editMode === mode));
@@ -627,6 +655,7 @@
     pieceLabel.firstChild.textContent = ['home', 'away'].includes(selectedKind) ? 'Shirt label' : 'Piece label';
     rotationField.hidden = selectedKind !== 'goal'; rotation.value = String(position?.rotation || 0);
     bodyTools.hidden = !['home', 'away'].includes(selectedKind);
+    visionEnabled.checked = !!position?.vision; visionSize.hidden = !visionEnabled.checked; visionAngle.value = String(position?.vision?.angle || 90); visionLength.value = String(position?.vision?.length || 20);
     bodyEnabled.checked = Number.isFinite(position?.facing); facing.value = String(position?.facing || 0); facingValue.textContent = Math.round(Number(facing.value)) + '° · 0° up, 90° right';
     facingField.hidden = compass.hidden = !bodyEnabled.checked;
     shadowEnabled.checked = !!position?.shadow; shadowSize.hidden = !position?.shadow;
@@ -706,7 +735,7 @@
     viewCenter = { x: Math.max(bounds.left, Math.min(bounds.right, viewCenter.x)), y: Math.max(bounds.top, Math.min(bounds.bottom, viewCenter.y)) };
     updateViewControls();
     board.setAttribute('viewBox', [viewCenter.x - geometry.width / 2 / zoom, viewCenter.y - geometry.height / 2 / zoom, geometry.width / zoom, geometry.height / zoom].join(' '));
-    board.dataset.camera = cameraMode;
+    board.dataset.camera = cameraMode; board.style.setProperty('--field-ratio', geometry.width + ' / ' + geometry.height); board.dataset.orientation = geometry.height > geometry.width ? 'tall' : 'wide';
     board.replaceChildren();
     scene = svg('g', { 'data-camera-scene': '', transform: 'rotate(' + geometry.angle + ' 500 325)' });
     board.append(scene); scene.append(fieldArtwork(record.content.pitch));
@@ -726,7 +755,7 @@
     if (showGrid) { const guides = svg('g', { 'data-tactics-grid': '', fill:'none', stroke:'#f8f3d6', 'stroke-width':1.5, 'stroke-dasharray':'9 7', opacity:.7, 'pointer-events':'none' }); for (const fraction of [1/3,2/3]) guides.append(svg('path',{d:'M'+(25+950*fraction)+' 25 V625 M25 '+(25+600*fraction)+' H975'})); scene.append(guides); }
     for (const item of record.content.items.filter(i => i.kind === 'zone')) { const p = renderedPositions?.find(p => p.id === item.id) || positionIn(currentFrame(), item.id); scene.append(zoneArtwork(item, p)); }
     const visibleFrame = renderedPositions ? { ...currentFrame(), positions: renderedPositions } : currentFrame();
-    for (const item of record.content.items) { const shadow = shadowArtwork(item, visibleFrame, record.content.items); if (shadow) scene.append(shadow); }
+    for (const item of record.content.items) { const shadow = shadowArtwork(item, visibleFrame, record.content.items); if (shadow) scene.append(shadow); const vision = visionArtwork(item, visibleFrame); if (vision) scene.append(vision); }
     const defs = svg('defs');
     for (const [kind, color] of [...Object.entries(playerColors), ['ball', '#303b42']]) { const marker = svg('marker', { id: 'tactics-arrow-' + kind, viewBox: '0 0 10 10', refX: 24, refY: 5, markerWidth: 5, markerHeight: 5, orient: 'auto' }); marker.append(svg('path', { d: 'M0 0 L10 5 L0 10z', fill: kind === 'white' ? '#68747b' : color })); defs.append(marker); }
     scene.append(defs);
@@ -744,7 +773,7 @@
     }
     drawRouteHandles(transition);
     const positions = renderedPositions || currentFrame().positions;
-    for (const item of [...record.content.items].sort((a,b)=>Number(selection().includes(a.id))-Number(selection().includes(b.id)))) {
+    for (const item of [...record.content.items].sort((a,b)=>pieceLayer(a)-pieceLayer(b)||Number(selection().includes(a.id))-Number(selection().includes(b.id)))) {
       if (item.kind === 'zone') continue;
       const p = renderedPositions ? positions.find(point => point.id === item.id) : positionIn(currentFrame(), item.id); if (!p) continue;
       const piece = svg('g', { transform: 'translate(' + (p.x * 10) + ' ' + (p.y * 6.5) + ')', 'data-tactics-item': item.id, role: 'button', tabindex: editable() ? '0' : '-1', 'aria-label': pieceName(item) + (item.label ? ' ' + item.label : '') + ', position ' + Math.round(p.x) + ', ' + Math.round(p.y), 'aria-pressed': String(selection().includes(item.id)), 'aria-disabled': String(!editable()) });
@@ -870,7 +899,7 @@
     }
     if (pointer.handle !== undefined) { updateRouteHandle(pointer.handle, destination, pointer.handles); draw(); renderStatus(); notifyDraft(); return; }
     const dx = destination.x - pointer.start.x, dy = destination.y - pointer.start.y;
-    if (!pointer.recording && editMode === 'record' && frameIndex > 0 && routeDistance(pointer.start, destination) >= minimumRecordedDrag) {
+    if (!pointer.recording && editMode === 'record' && frameIndex > 0 && routeDistance(pointer.start, destination) >= (record.content.items.find(i => i.id === selectedItem)?.kind === 'ball' && !pointer.before.content.frames[frameIndex].positions.find(p => p.id === selectedItem)?.attachedTo ? .5 : minimumRecordedDrag)) {
       // Discard the temporary layout adjustment before recording the actual drag.
       record.content.frames.forEach((frame, index) => { frame.positions = clone(pointer.before.content.frames[index].positions); });
       pointer.recording = true;
@@ -903,7 +932,7 @@
       dragPointer(event);
       if (!pointer.facing && pointer.handle === undefined && pointer.ids.length === 1 && record.content.items.find(i => i.id === selectedItem)?.kind === 'ball') {
         const p = currentFrame().positions.find(p => p.id === selectedItem);
-        const target = record.content.items.filter(i => ['home', 'away'].includes(i.kind)).map(i => ({ id: i.id, distance: routeDistance(p, positionIn(currentFrame(), i.id)) })).filter(i => i.distance <= 7).sort((a, b) => a.distance - b.distance)[0];
+        const target = record.content.items.filter(i => ['home', 'away'].includes(i.kind)).map(i => ({ id: i.id, distance: routeDistance(p, positionIn(currentFrame(), i.id)) })).filter(i => i.distance <= 3).sort((a, b) => a.distance - b.distance)[0];
         if (target) {
           if (!pointer.recording && pointer.before.content.frames[frameIndex].positions.find(p => p.id === selectedItem).attachedTo === target.id) { record.content.frames.forEach((frame, index) => { frame.positions = clone(pointer.before.content.frames[index].positions); }); undo = pointer.history.undo; redo = pointer.history.redo; }
           else attachBall(selectedItem, target.id, !!pointer.recording);

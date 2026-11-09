@@ -400,6 +400,16 @@ const { chromium } = require('playwright');
     closeTo(movedWithShadow.x, playerBeforeTools.x + 4, 'Player with attached shadow moves');
     assert.deepEqual(movedWithShadow.shadow, { length: 25, width: 20 });
     assert.notEqual(await shadow.getAttribute('transform'), shadowBefore, 'Cover shadow follows its player');
+    await reveal('#tactics-vision'); await page.locator('#tactics-vision').check();
+    await page.locator('#tactics-vision-angle').evaluate(el => { el.value = '120'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    await page.locator('#tactics-vision-length').evaluate(el => { el.value = '35'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    assert.deepEqual((await draft()).frames[4].positions.find(p => p.id === firstPlayer).vision, { angle:120, length:35 });
+    assert.equal(await page.locator('#tactics-pitch-board [data-player-vision]').count(), 1);
+    await reveal('#tactics-item'); await page.locator('#tactics-item').selectOption(boxId);
+    for (const shape of ['triangle','diamond']) { await reveal('#tactics-zone-shape'); await page.locator('#tactics-zone-shape').selectOption(shape); assert.equal(await page.locator('#tactics-pitch-board [data-zone="' + boxId + '"] polygon').count(),1); }
+    const layers = await page.locator('#tactics-pitch-board [data-tactics-item]').evaluateAll(nodes => nodes.map(n => n.dataset.tacticsItem));
+    const pieces = (await draft()).items;
+    for (const cone of pieces.filter(i => i.kind === 'cone')) for (const player of pieces.filter(i => ['home','away'].includes(i.kind))) assert(layers.indexOf(player.id) > layers.indexOf(cone.id), 'Players render above cones');
     await reveal('#tactics-pitch'); await page.locator('#tactics-pitch').selectOption('blank');
     assert.equal(await page.locator('#tactics-pitch-board [data-field-boundary]').count(), 1, 'Blank training field retains its boundary');
     assert.equal(await page.locator('#tactics-pitch-board [data-field-view="blank"] > rect').first().getAttribute('fill'), '#abc69d', 'Blank training field retains green turf');
@@ -418,6 +428,11 @@ const { chromium } = require('playwright');
     await page.locator('#library-form').screenshot({ path: 'outputs/coach-drill-tools-desktop.png' });
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Focused creator fits a phone');
+    await page.waitForFunction(() => document.getElementById('tactics-pitch-board').dataset.orientation === 'tall');
+    await page.locator('#tactics-device-view').selectOption('wide');
+    assert.equal(await page.locator('#tactics-pitch-board').getAttribute('data-orientation'), 'wide');
+    await page.locator('#tactics-device-view').selectOption('auto');
+
     await page.locator('#tactics-new-player').click();
     assert(await page.locator('[data-player-color="white"]').isVisible(), 'All colours remain available on a phone');
     await page.locator('#library-form').screenshot({ path: 'outputs/coach-drill-tools-mobile.png' });

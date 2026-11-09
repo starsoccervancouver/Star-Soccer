@@ -115,3 +115,5 @@ body.drill-creator-focus .library-editor-header :is(button,input):focus-visible{
   body.drill-creator-focus .library-editor-header > .library-status { grid-row: 3; }
   body.drill-creator-focus .library-drill-details { scroll-margin-top: 145px; }
 }
+
+.library-view-header{flex-wrap:wrap}.library-view-header h2{flex:1 1 180px}.library-view-header #library-view-add{margin-left:auto}

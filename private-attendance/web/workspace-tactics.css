@@ -704,3 +704,10 @@ body.drill-creator-focus #tactics-board-tools .tactics-field-dock .tactics-view-
  body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-edit-modes { flex-direction:column; align-items:stretch; }
  body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector button { min-width:44px; }
 }
+
+/* Equipment expands downward within the tool rail, with readable labels. */
+body.drill-creator-focus #tactics-board-tools .tactics-equipment > summary,
+#tactics-board-tools .tactics-equipment > summary { width:100%; height:auto; min-height:44px; font-size:13px; justify-content:start; list-style:disclosure-closed; padding:10px 12px; }
+#tactics-board-tools .tactics-equipment-options { position:static; width:100%; grid-template-columns:minmax(0,1fr); padding:6px; margin-top:6px; box-shadow:none; }
+#tactics-board-tools .tactics-equipment-options button { display:flex; width:100%; min-height:44px; justify-content:start; gap:8px; }
+#tactics-board-tools .tactics-equipment-options button::after { content:attr(aria-label); }

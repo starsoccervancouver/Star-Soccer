@@ -113,7 +113,7 @@
   const viewOptions = el('div', '', 'tactics-view-options'); viewOptions.append(field('Create', purpose), fieldView);
   const topActions = el('div', '', 'tactics-toolbar tactics-main-toolbar');
   const equipment = el('details', '', 'tactics-equipment'), equipmentOptions = el('div', '', 'tactics-equipment-options'); equipment.id = 'tactics-equipment';
-  const equipmentSummary = el('summary', '⋯'); equipmentSummary.setAttribute('aria-label','More equipment'); equipmentSummary.title='More equipment'; equipment.append(equipmentSummary, equipmentOptions);
+  const equipmentSummary = el('summary', 'Equipment'); equipmentSummary.setAttribute('aria-label','Equipment'); equipmentSummary.title='Goals and equipment'; equipment.append(equipmentSummary, equipmentOptions);
   const addGroup = el('div', '', 'tactics-pieces'); addGroup.setAttribute('role', 'group'); addGroup.setAttribute('aria-label', 'Add a piece');
   function addPiece(kind, destination, color, preset = {}) {
     if (!kinds[kind] || !editable() || record.content.items.length >= 40) return;
@@ -154,9 +154,9 @@
     if(editMode==='arrow')editMode='place';
     const target = destination && record.content.items.filter(i=>['home','away'].includes(i.kind)).map(i=>({id:i.id,distance:routeDistance(destination,positionIn(currentFrame(),i.id))})).filter(i=>i.distance<=5).sort((a,b)=>a.distance-b.distance)[0];
     if (target) { mutate(()=>{selectPiece(target.id);const p=currentFrame().positions.find(p=>p.id===target.id);if(!Number.isFinite(p.facing))p.facing=0;if(tool==='shadow')p.shadow={length:25,width:20};},'Player tool attached for this phase. It moves with the player.'); }
-    else { const color=currentPlayerColor || 'blue'; addPiece(color==='gold'?'away':'home',destination,color,{facing:true,shadow:tool==='shadow'}); }
+    else tell('Select an existing player, then use Body direction or Cover shadow in the player settings.');
   }
-  for (const [tool, title] of [['box','Box'],['body','Body'],['shadow','Shadow']]) {
+  for (const [tool, title] of [['box','Box']]) {
     const add=button(title,'tactics-add-'+tool,()=>tool==='box'?addPiece('zone',undefined,undefined,{outline:true}):addPlayerTool(tool)); add.classList.add('tactics-add-helper');add.draggable=true;
     add.setAttribute('aria-label',tool==='box'?'Add outlined box':tool==='body'?'Add body-position player':'Add cover-shadow player');
     add.title=tool==='box'?'Add a box · drag onto the field, then resize its corner':'Add '+(tool==='body'?'body position':'cover shadow')+' · drag onto an existing player to attach';
@@ -501,7 +501,7 @@
   function playerArtwork(kind, position, color) {
     if (!['home', 'away'].includes(kind) || !Number.isFinite(position?.facing)) return pieceArtwork(kind, color);
     const art = svg('g', { 'data-symbol': kind, 'data-facing': position.facing, transform: 'rotate(' + position.facing + ')', 'aria-hidden': 'true' });
-    art.append(svg('ellipse', { rx: 19, ry: 14, cy: 4, fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 3 }), svg('circle', { cy: -10, r: 7, fill: kind === 'home' ? '#b8d2dd' : '#f1dfb9', stroke: '#253b46', 'stroke-width': 2 }), svg('path', { d: 'M-4-18 L0-23 L4-18Z', fill: '#253b46' }));
+    art.append(svg('ellipse', { rx: 19, ry: 14, cy: 4, fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 3 }), svg('circle', { cy: -10, r: 7, fill: kind === 'home' ? '#b8d2dd' : '#f1dfb9', stroke: '#253b46', 'stroke-width': 2 }), svg('path', { d: 'M0-36 L10-22 H4 V-15 H-4 V-22 H-10Z', fill: '#fffdf7', stroke: '#20382d', 'stroke-width': 2, 'data-body-direction': '', 'pointer-events':'none' }));
     return art;
   }
   function visionArtwork(item, frame) {

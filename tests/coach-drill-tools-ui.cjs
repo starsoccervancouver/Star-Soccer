@@ -387,11 +387,12 @@ const { chromium } = require('playwright');
     await page.locator('[data-box-resize="' + boxId + '"][role="button"]').focus(); await page.keyboard.press('ArrowRight');
     assert.equal((await draft()).items.find(item => item.id === boxId).zone.width, box.zone.width + 2, 'Keyboard handle resizes the box');
     const playerBeforeTools = (await draft()).frames[4].positions.find(p => p.id === firstPlayer), countBeforeTools = (await draft()).items.length;
-    for (const tool of ['body', 'shadow']) {
-      const at = await screen(playerBeforeTools);
-      await page.locator('#tactics-pitch-board').evaluate((board, value) => { const transfer = new DataTransfer(); transfer.setData('application/x-coach-piece', value.tool); board.dispatchEvent(new DragEvent('drop', { bubbles: true, clientX: value.at.x, clientY: value.at.y, dataTransfer: transfer })); }, { tool, at });
-      assert.equal((await draft()).items.length, countBeforeTools, 'Dropping ' + tool + ' on a player adds no player');
-    }
+    await page.locator('#tactics-item').selectOption(firstPlayer);
+    for (const control of ['#tactics-body-direction','#tactics-cover-shadow']) { await reveal(control); await page.locator(control).check(); }
+    assert.equal((await draft()).items.length, countBeforeTools, 'Player settings never create another player');
+    assert.equal(await page.locator('#tactics-add-body,#tactics-add-shadow').count(),0,'Body and shadow are player settings, not add-piece tools');
+    assert.equal(await page.locator('#tactics-equipment > summary').innerText(),'Equipment');
+    assert(await page.locator('#tactics-pitch-board [data-body-direction]').count()>0,'Body direction stays visible on the field');
     assert.equal((await draft()).frames[4].positions.find(p => p.id === firstPlayer).facing, 0);
     const shadow = page.locator('#tactics-pitch-board [data-cover-shadow="' + firstPlayer + '"] path'), shadowBefore = await shadow.getAttribute('transform');
     await drag(playerBeforeTools, { x: playerBeforeTools.x + 4, y: playerBeforeTools.y + 3 });

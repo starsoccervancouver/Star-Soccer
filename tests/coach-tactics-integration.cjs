@@ -16,7 +16,7 @@ require('./coach-fixture-fonts.cjs')(assets);
  const browser=await chromium.launch();let checks=0;
  try{
   async function fixture(){
-   const context=await browser.newContext(),requests=[],errors=[],pending=[];
+   const context=await browser.newContext({hasTouch:true}),requests=[],errors=[],pending=[];
    const state={listMode:'success',saveMode:'success',diagrams:[saved()],profile};
    await context.addInitScript(({now})=>{const BaseDate=Date,at=BaseDate.parse(now);window.Date=class extends BaseDate{constructor(...args){super(...(args.length?args:[at]));}static now(){return at;}};window.fixtureConfirmAnswers=[];window.fixtureConfirmPrompts=[];window.confirm=text=>{fixtureConfirmPrompts.push(text);return fixtureConfirmAnswers.shift()===true;};},{now});
    await context.route('**/*',async route=>{
@@ -99,6 +99,11 @@ require('./coach-fixture-fonts.cjs')(assets);
    assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'No horizontal cutoff at '+viewport.width+'px');
    const geometry=await f.page.evaluate(()=>{const board=document.getElementById('tactics-pitch-board').getBoundingClientRect();return {width:board.width,labels:[...document.querySelectorAll('#tactics-pitch-board text')].map(n=>{const r=n.getBoundingClientRect();return r.left>=board.left-1&&r.right<=board.right+1&&r.top>=board.top-1&&r.bottom<=board.bottom+1;}),phases:[...document.querySelectorAll('.tactics-frame-list button')].map(n=>n.getBoundingClientRect().width),sticky:getComputedStyle(document.querySelector('.tactics-workbar')).position};});
    assert(geometry.width>200,'Field remains usable at '+viewport.width+'px');
+   if(viewport.width<1000){
+    const controls=await f.page.locator('#tactics-board-tools button:visible,#tactics-board-tools summary:visible,#tactics-board-tools select:visible,#tactics-board-tools textarea:visible,#tactics-board-tools input:visible:not([type=checkbox])').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {id:n.id||n.textContent.trim(),width:r.width,height:r.height,left:r.left,right:r.right,font:parseFloat(getComputedStyle(n).fontSize),entry:/^(INPUT|SELECT|TEXTAREA)$/.test(n.tagName)};}));
+    for(const c of controls){assert(c.width>=43.5&&c.height>=43.5,'Touch-sized session control '+c.id+' at '+viewport.width+': '+JSON.stringify(c));assert(c.left>=-1&&c.right<=viewport.width+1,'Session control not clipped: '+c.id);if(c.entry)assert(c.font>=16,'Readable mobile entry: '+c.id);}
+   }
+
    assert(geometry.labels.every(Boolean),'Long edge labels stay within the field at '+viewport.width+'px');
    assert(geometry.phases.every(w=>w<=140),'Long phase names stay within their thumbnail');
    assert.equal(geometry.sticky,'static','Toolbar scrolls normally at every size');

@@ -274,6 +274,10 @@ const { chromium } = require('playwright');
         assert((await rect('#tactics-item')).width >= 180, 'The desktop inspector keeps a readable full-width piece selector at ' + size);
         for (const selector of ['#tactics-purpose', '#tactics-pitch']) assert((await rect(selector)).width >= 100, 'Inspector view choices remain readable at ' + size + ': ' + selector);
       }
+      if(viewport.width<1000){
+        const inputs=await page.locator('#library-form select:visible,#library-form textarea:visible,#library-form input:visible:not([type=checkbox])').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {id:n.id,width:r.width,height:r.height,left:r.left,right:r.right,font:parseFloat(getComputedStyle(n).fontSize)};}));
+        for(const c of inputs){assert(c.width>=43.5&&c.height>=43.5&&c.font>=16,'Readable touch-sized library input '+c.id+': '+JSON.stringify(c));assert(c.left>=-1&&c.right<=viewport.width+1,'Library input not clipped: '+c.id);}
+      }
       for (const target of await page.locator('#library-form button:visible,#library-form summary:visible').evaluateAll(elements => elements.map(el => { const r = el.getBoundingClientRect(); return { name:el.id || el.textContent.trim(), width:r.width, height:r.height }; }))) {
         assert(target.width >= 43.5 && target.height >= 43.5, size + ': ' + target.name + ' keeps a 44px touch target (' + target.width + '×' + target.height + ')');
       }

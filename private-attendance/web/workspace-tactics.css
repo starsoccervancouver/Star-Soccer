@@ -555,3 +555,22 @@ body.drill-creator-focus #tactics-board-tools .tactics-canvas-wrap { grid-templa
     grid-template-rows:auto; align-content:start;
   }
 }
+
+/* Both entry points use touch-sized controls and avoid input zoom on phones. */
+@media(max-width:999px) {
+  #library-form :is(input:not([type="checkbox"]),select,textarea),
+  :is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools :is(input:not([type="checkbox"]),select,textarea) { font-size:16px; min-height:44px; }
+  #tactics-board-tools .tactics-camera-tools select { flex:1 1 160px; min-width:min(160px,100%); }
+  :is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools button { min-width:44px; min-height:44px; }
+  #tactics-board-tools summary { min-height:44px; }
+  #tactics-board-tools .tactics-check { min-height:44px; align-items:center; }
+}
+@media(max-width:760px) {
+  #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-main-toolbar { display:flex; flex-direction:column; align-items:stretch; gap:6px; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-edit-tools { display:flex; flex-wrap:wrap; gap:4px; justify-content:start; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-edit-modes { display:flex; flex-wrap:wrap; gap:4px; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-edit-history { gap:4px; padding:0; margin:0; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-sequence-actions { justify-content:start; gap:6px; margin:0; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-sequence-actions #tactics-add-frame { margin:0; }
+  #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-workbar { margin-bottom:6px; padding-bottom:6px; }
+}

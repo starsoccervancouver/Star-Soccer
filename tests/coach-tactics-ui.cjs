@@ -410,7 +410,15 @@ const { chromium } = require('playwright');
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: 'outputs/coach-tactics-mobile.png', fullPage: true });
     await page.setViewportSize({ width: 320, height: 740 });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'Board fits 320px viewport');
+    const mobileGeometry = await page.evaluate(() => {
+      const viewport = innerWidth, scrollWidth = document.documentElement.scrollWidth;
+      const overflowing = [...document.querySelectorAll('body *')].map(el => {
+        const rect = el.getBoundingClientRect();
+        return { tag: el.tagName.toLowerCase(), id: el.id, className: typeof el.className === 'string' ? el.className.slice(0, 90) : '', left: Math.round(rect.left), right: Math.round(rect.right), width: Math.round(rect.width), minWidth: getComputedStyle(el).minWidth };
+      }).filter(item => item.right > viewport + 1 && item.width).sort((a, b) => b.right - a.right).slice(0, 12);
+      return { viewport, scrollWidth, overflowing };
+    });
+    assert(mobileGeometry.scrollWidth <= mobileGeometry.viewport + 1, 'Board fits 320px viewport: ' + JSON.stringify(mobileGeometry));
     for (const box of await page.locator('#tactics-board-tools button:visible').evaluateAll(elements => elements.map(element => { const rect = element.getBoundingClientRect(); return { id: element.id || element.textContent.trim(), width: rect.width, height: rect.height }; }))) {
       assert(box.height >= 44 && box.width >= 44, `Board button ${box.id} has a usable touch target (${box.width} × ${box.height})`);
     }

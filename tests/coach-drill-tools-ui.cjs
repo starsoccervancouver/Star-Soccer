@@ -254,6 +254,13 @@ const { chromium } = require('playwright');
     assert.deepEqual(await draft(), layoutDraft, 'The thirds guide is visual only');
     await page.locator('#tactics-grid').click();
     assert.equal(await page.locator('#tactics-pitch-board').innerHTML(), beforeGrid, 'Turning the guide off restores the field');
+    const beforeArrange = await draft();
+    await reveal('#tactics-select-players'); await page.locator('#tactics-select-players').click();
+    await page.locator('#tactics-align-row').click();
+    const aligned = await draft(), arrangedIds = aligned.items.filter(i=>['home','away'].includes(i.kind)).map(i=>i.id);
+    assert(new Set(aligned.frames[4].positions.filter(p=>arrangedIds.includes(p.id)).map(p=>p.y)).size===1,'Align across lines up selected players');
+    await page.locator('#tactics-undo').click(); assert.deepEqual(await draft(),beforeArrange,'Alignment is fully undoable');
+    await page.locator('#tactics-clear-selection').click(); await page.locator('.tactics-arrange > summary').click();
     const viewports = [{width:1280,height:720}, {width:1280,height:800}, {width:1440,height:1000}, {width:1920,height:1080}, {width:1024,height:768}, {width:390,height:844}, {width:320,height:700}, {width:844,height:390}];
     for (const viewport of viewports) {
       const size = viewport.width + 'x' + viewport.height;

@@ -164,6 +164,18 @@
     addGroup.append(add);
   }
   addGroup.append(equipment); topActions.append(addGroup, viewOptions);
+  const arrange = el('details', '', 'tactics-arrange'); arrange.append(el('summary','Arrange'));
+  const arrangeTools = el('div', '', 'tactics-arrange-tools');
+  const choosePlayers = sameColour => { const item=record.content.items.find(i=>i.id===selectedItem); if(sameColour&&!['home','away'].includes(item?.kind))return tell('Select a player first.'); const ids=record.content.items.filter(i=>['home','away'].includes(i.kind)&&(!sameColour||playerColor(i)===playerColor(item))).map(i=>i.id); selectedArrow=''; selectedItem=ids[0]||''; selectedIds=new Set(ids);render(); };
+  arrangeTools.append(button('All players','tactics-select-players',()=>choosePlayers(false)),button('Same colour','tactics-select-colour',()=>choosePlayers(true)),button('Clear selection','tactics-clear-selection',()=>{selectPiece('');render();}));
+  function alignPlayers(axis) {
+    const ids=selection().filter(id=>['home','away','cone'].includes(record.content.items.find(i=>i.id===id)?.kind));
+    if(ids.length<2)return tell('Select at least two players or cones.');
+    const positions=ids.map(id=>positionIn(currentFrame(),id)),value=positions.reduce((sum,p)=>sum+p[axis],0)/ids.length;
+    mutate(()=>{for(const id of ids){const p=positionIn(currentFrame(),id),dx=axis==='x'?value-p.x:0,dy=axis==='y'?value-p.y:0;if(editMode==='place')shiftLayout([id],dx,dy,capture());else placePiece(currentFrame(),id,{x:p.x+dx,y:p.y+dy});}},'Selected pieces aligned. Undo restores their positions.');
+  }
+  arrangeTools.append(button('Align across','tactics-align-row',()=>alignPlayers('y')),button('Align down','tactics-align-column',()=>alignPlayers('x'))); arrange.append(arrangeTools); addGroup.append(arrange);
+
   const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
   for (const [mode, text] of [['place', 'Place pieces'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
   const arrowTool = button('✎ Draw', 'tactics-draw-arrow', () => { if (!editable()) return; editMode = editMode === 'arrow' ? 'place' : 'arrow'; selectPiece(''); render(); tell(editMode === 'arrow' ? 'Draw any route on the field; it follows your curve and ends with an arrowhead. For a straight path, focus the field and press Enter. Drawings belong to this phase.' : 'Select and move pieces.'); }); arrowTool.setAttribute('aria-label', 'Draw curved arrow'); editModes.append(arrowTool);

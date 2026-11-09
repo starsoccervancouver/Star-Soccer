@@ -539,3 +539,19 @@ body.drill-creator-focus #tactics-board-tools .tactics-canvas-wrap { grid-templa
   #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-board-layout { grid-template-columns:minmax(0,1fr) 250px; align-items:start; }
   #planner-drawer[data-pane="tools"] #tactics-pitch-board { height:clamp(360px,calc(100dvh - 230px),960px); aspect-ratio:auto; }
 }
+
+/* Keep the canvas snug to the pitch instead of stretching a dark frame. */
+@media(min-width:1000px) {
+  :is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools .tactics-board-layout { gap:8px; }
+  #tactics-board-tools .tactics-canvas-wrap { align-self:start; }
+  #tactics-board-tools .tactics-inspector .tactics-camera-tools select { flex:1 1 180px; min-width:180px; }
+  body.drill-creator-focus #tactics-board-tools .tactics-inspector { grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); align-items:start; }
+  body.drill-creator-focus #tactics-board-tools .tactics-canvas-wrap { display:block; }
+  :is(#planner-drawer[data-pane="tools"],#library-diagram-editor) #tactics-board-tools #tactics-pitch-board {
+    height:auto; aspect-ratio:var(--field-ratio,1000 / 650); max-height:var(--field-height,calc(100dvh - 190px));
+  }
+  body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-field-column,
+  body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-field-column[data-dock=panel] {
+    grid-template-rows:auto; align-content:start;
+  }
+}

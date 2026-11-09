@@ -38,7 +38,8 @@
         check(doc.fonts.check('700 16px Manrope') && !doc.querySelector('link[href*="fonts.googleapis.com"],link[href*="fonts.gstatic.com"]'),`${page} at ${width}px renders its local brand font without Google font connections`);
         check(Math.abs(header.left)<=1 && Math.abs(header.right-doc.documentElement.clientWidth)<=1,`${page} at ${width}px has navigation across the full screen width`);
         const brandImages=[...doc.querySelectorAll('img.brand-logo')];
-        check(brandImages.length>=1 && brandImages.every(img=>img.getAttribute('src').includes('galactic')), `${page} at ${width}px uses the Galactic Swoosh logo in the header and footer`);
+        const approvedBrandImage=img=>img && new URL(img.getAttribute('src'),doc.baseURI).pathname.endsWith('/logo-star-soccer-minimalized.svg') && img.complete && img.naturalWidth>0;
+        check(brandImages.length>=2 && brandImages.every(approvedBrandImage) && approvedBrandImage(doc.querySelector('.site-header img.brand-logo')) && approvedBrandImage(doc.querySelector('footer img.brand-logo')), `${page} at ${width}px uses the Galactic Swoosh logo in the header and footer`);
         check(doc.querySelector('link[rel="icon"]')?.getAttribute('href')?.includes('star-soccer-favicon.svg'), `${page} at ${width}px uses the new star favicon`);
         check(!doc.querySelector('.site-nav .header-program-cta') && [...doc.querySelectorAll('.site-nav a')].some(a=>a.getAttribute('href')==='programs.html'),`${page} at ${width}px keeps Weekly Training without a duplicate Find a Session tab`);
         const numeric=[...doc.querySelectorAll('input[type="number"]:not([data-native-number])')].filter(el=>el.step!=='any' && !el.closest('.honeypot,[aria-hidden="true"]'));

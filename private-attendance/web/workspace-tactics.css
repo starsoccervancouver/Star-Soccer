@@ -711,3 +711,10 @@ body.drill-creator-focus #tactics-board-tools .tactics-equipment > summary,
 #tactics-board-tools .tactics-equipment-options { position:static; width:100%; grid-template-columns:minmax(0,1fr); padding:6px; margin-top:6px; box-shadow:none; }
 #tactics-board-tools .tactics-equipment-options button { display:flex; width:100%; min-height:44px; justify-content:start; gap:8px; }
 #tactics-board-tools .tactics-equipment-options button::after { content:attr(aria-label); }
+/* Prevent the pitch view selectors from widening the 320px Coach Desk. */
+@media (max-width: 360px) {
+  #tactics-board-tools .tactics-field-dock > .tactics-view-options {
+    flex-basis: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

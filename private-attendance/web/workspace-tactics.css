@@ -658,3 +658,49 @@ body.drill-creator-focus #tactics-board-tools .tactics-field-dock .tactics-view-
 #tactics-board-tools .tactics-player-colors { width:min(230px,calc(100vw - 32px)); }
 @media(max-height:500px) { #tactics-board-tools .tactics-player-colors { top:auto; bottom:calc(100% + 6px); } }
 #tactics-board-tools .tactics-field-dock .tactics-view-options label { color:#eeeade; }
+
+/* Compact editor chrome, a labeled piece rail, and an in-flow shape chooser. */
+#tactics-board-tools .tactics-inspector .tactics-pieces { display:grid; grid-template-columns:minmax(0,1fr); align-items:stretch; gap:6px; }
+#tactics-board-tools .tactics-inspector .tactics-pieces > button { width:100%; justify-content:start; }
+#tactics-board-tools .tactics-inspector .tactics-pieces button[data-piece-kind] { width:100%; }
+#tactics-board-tools .tactics-inspector .tactics-pieces button[data-piece-kind]::after { content:attr(aria-label); margin-left:8px; }
+#tactics-board-tools .tactics-shapes { border:1px solid #aaa193; border-radius:12px; padding:0 10px; background:#e7e1d5; }
+#tactics-board-tools .tactics-shapes > summary { min-height:44px; align-content:center; cursor:pointer; font-weight:600; }
+#tactics-board-tools .tactics-shape-choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; padding:0 0 10px; }
+#tactics-board-tools .tactics-shape-choices button { justify-content:start; border-radius:10px; }
+#tactics-board-tools #tactics-add-box { display:none; }
+#tactics-board-tools .tactics-field-dock { padding:10px; gap:10px; background:#343d37; }
+#tactics-board-tools .tactics-field-dock > .tactics-view-options { flex:0 1 320px; }
+#tactics-board-tools .tactics-field-dock > .tactics-camera-tools { flex:1 1 360px; }
+#tactics-board-tools .tactics-field-dock select { max-width:220px; }
+#tactics-board-tools .tactics-written { margin-top:18px; clear:both; }
+@media(min-width:1000px) {
+ body.drill-creator-focus #library-form .library-editor-header { grid-template-columns:auto minmax(240px,460px) 1fr; gap:16px; padding-block:12px; }
+ body.drill-creator-focus #library-form .library-editor-header > .library-actions { justify-self:end; }
+ #tactics-board-tools .tactics-inspector .tactics-main-toolbar { display:grid; grid-template-columns:minmax(160px,1fr) minmax(180px,1fr); align-items:start; }
+ #tactics-board-tools .tactics-inspector .tactics-pieces { grid-column:1; grid-row:1/3; }
+ #tactics-board-tools .tactics-inspector .tactics-edit-tools { grid-column:2; display:flex; flex-direction:column; align-items:stretch; }
+ #tactics-board-tools .tactics-inspector .tactics-sequence-actions { grid-column:2; }
+}
+@supports (appearance:base-select) {
+ #tactics-board-tools select, #tactics-board-tools select::picker(select) { appearance:base-select; }
+ #tactics-board-tools select { background-image:none; padding:10px 12px; }
+ #tactics-board-tools select::picker(select) { padding:6px; margin-block:6px; border:1px solid #b5b4a5; border-radius:14px; background:#f3f0e7; color:#293c32; box-shadow:0 12px 28px #1b30252b; }
+ #tactics-board-tools select option { padding:10px 12px; min-height:44px; border-radius:8px; }
+ #tactics-board-tools select option:checked { background:#dae6cd; color:#20382b; font-weight:600; }
+ #tactics-board-tools select option:hover { background:#e4e9dc; }
+}
+@media(min-width:1000px) {
+ body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-main-toolbar { display:grid; grid-template-columns:minmax(160px,1fr) minmax(180px,1fr); align-items:start; justify-content:stretch; }
+ body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-pieces { justify-self:stretch; width:100%; grid-column:1; grid-row:1/3; }
+ body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-edit-tools { grid-column:2; grid-row:1; align-items:stretch; flex-direction:column; }
+ body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-sequence-actions { grid-column:2; grid-row:2; }
+}
+@supports (appearance:base-select) {
+ #tactics-board-tools select { display:inline-flex; align-items:center; justify-content:space-between; gap:8px; }
+ #tactics-board-tools select::picker-icon { margin-left:auto; }
+}
+@media(min-width:1000px) {
+ body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-edit-modes { flex-direction:column; align-items:stretch; }
+ body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector button { min-width:44px; }
+}

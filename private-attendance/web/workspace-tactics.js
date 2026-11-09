@@ -121,7 +121,7 @@
     mutate(() => {
       const item = { id: uid('piece_'), kind, label: ['home', 'away'].includes(kind) ? String(record.content.items.filter(i => ['home', 'away'].includes(i.kind) && playerColor(i) === (color || (kind === 'away' ? 'gold' : 'blue'))).length + 1) : '' };
       if (['home', 'away'].includes(kind) && color) item.color = color;
-      if (kind === 'zone') { item.label = preset.outline ? 'Box' : 'Zone'; item.zone = { shape: 'rect', width: 25, height: 25, color: 'blue', ...(preset.outline ? { outline: true } : {}) }; }
+      if (kind === 'zone') { item.label = preset.outline ? 'Box' : 'Zone'; item.zone = { shape: preset.shape || 'rect', width: 25, height: 25, color: 'blue', ...(preset.outline ? { outline: true } : {}) }; }
       record.content.items.push(item); const offset = record.content.items.length % 6;
       const centre = cameraPoint(viewCenter);
       for (const frame of record.content.frames) { frame.positions.push({ id: item.id, ...(destination || { x: clamp(centre.x / 10 + offset * 2 - 5), y: clamp(centre.y / 6.5 + offset * 2 - 5) }), ...(preset.facing ? {facing:0} : {}), ...(preset.shadow ? {shadow:{length:25,width:20}} : {}) }); if (kind === 'zone') constrainZone(frame, item); }
@@ -167,6 +167,10 @@
   const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
   for (const [mode, text] of [['place', 'Place pieces'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
   const arrowTool = button('✎ Draw', 'tactics-draw-arrow', () => { if (!editable()) return; editMode = editMode === 'arrow' ? 'place' : 'arrow'; selectPiece(''); render(); tell(editMode === 'arrow' ? 'Draw any route on the field; it follows your curve and ends with an arrowhead. For a straight path, focus the field and press Enter. Drawings belong to this phase.' : 'Select and move pieces.'); }); arrowTool.setAttribute('aria-label', 'Draw curved arrow'); editModes.append(arrowTool);
+  const shapes = el('details', '', 'tactics-shapes'); shapes.append(el('summary','Shapes'));
+  const shapeChoices = el('div', '', 'tactics-shape-choices');
+  for (const [shape, label] of [['rect','▭ Rectangle'],['ellipse','◯ Oval'],['triangle','△ Triangle'],['diamond','◇ Diamond']]) shapeChoices.append(button(label,'tactics-shape-add-'+shape,()=>{addPiece('zone',undefined,undefined,{shape,outline:true});shapes.open=false;}));
+  shapes.append(shapeChoices); addGroup.append(shapes);
   const selectionCount = el('p', '', 'tactics-selection-count'); selectionCount.id = 'tactics-selection-count';
   const multiSelect = input('tactics-multiselect', 'checkbox'), multiLabel = field('Select multiple', multiSelect); multiLabel.className = 'tactics-check';
   multiSelect.addEventListener('change', () => tell(multiSelect.checked ? 'Tap pieces to add them to the selection. Drag a selected piece to move the group.' : 'Click a piece to select it. Shift-click adds or removes pieces.'));
@@ -735,7 +739,7 @@
     viewCenter = { x: Math.max(bounds.left, Math.min(bounds.right, viewCenter.x)), y: Math.max(bounds.top, Math.min(bounds.bottom, viewCenter.y)) };
     updateViewControls();
     board.setAttribute('viewBox', [viewCenter.x - geometry.width / 2 / zoom, viewCenter.y - geometry.height / 2 / zoom, geometry.width / zoom, geometry.height / zoom].join(' '));
-    const fieldHeight = Math.max(240, innerHeight - canvasWrap.getBoundingClientRect().top - 32); board.closest('#library-form')?.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
+    const fieldHeight = Math.max(240, innerHeight - (canvasWrap.getBoundingClientRect().top + (board.closest('#library-form')?.scrollTop || 0)) - 32); board.closest('#library-form')?.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
     boardLayout.dataset.upright = String(geometry.height > geometry.width); board.closest('#library-form')?.setAttribute('data-upright', String(geometry.height > geometry.width)); board.dataset.camera = cameraMode; board.style.setProperty('--field-height', fieldHeight + 'px'); board.style.setProperty('--field-ratio', geometry.width + ' / ' + geometry.height); board.dataset.orientation = geometry.height > geometry.width ? 'tall' : 'wide';
     board.replaceChildren();
     scene = svg('g', { 'data-camera-scene': '', transform: 'rotate(' + geometry.angle + ' 500 325)' });

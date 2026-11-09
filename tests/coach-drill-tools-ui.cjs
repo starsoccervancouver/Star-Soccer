@@ -375,7 +375,7 @@ const { chromium } = require('playwright');
     assert.equal(translatedCurve.points.length,curved.points.length);
     translatedCurve.points.forEach((point,index)=>{closeTo(point.x-curved.points[index].x,5,'Each curve point moves horizontally');closeTo(point.y-curved.points[index].y,3,'Each curve point moves vertically');});
     await resetScroll();await page.screenshot({path:'outputs/curved-draw-builder.png'});
-    await reveal('#tactics-add-box'); await page.locator('#tactics-add-box').click();
+    await reveal('#tactics-shape-add-rect'); await page.locator('#tactics-shape-add-rect').click();
     const box = (await draft()).items.at(-1), boxId = box.id, beforeResize = await draft();
     assert.equal(box.kind, 'zone'); assert.equal(box.zone.shape, 'rect'); assert.equal(box.zone.outline, true);
     const boxPosition = beforeResize.frames[4].positions.find(p => p.id === boxId);

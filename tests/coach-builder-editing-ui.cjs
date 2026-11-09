@@ -284,13 +284,8 @@ const { chromium } = require('playwright');
     assert.equal(ballPreviews.releasedCurve,ballPreviews.freeCurve,'Releasing possession retains the free curved pass');
     assert.notEqual(ballPreviews.releasedCurve,ballPreviews.released,'Recorded curve is not flattened on release');
     assert.match(ballPreviews.attachedStart,/translate\(220 143\)/);assert.match(ballPreviews.attachedMidpoint,/translate\(420 208\)/);assert.match(ballPreviews.attachedEnd,/translate\(620 273\)/,'Attached playback keeps the two-unit offset throughout movement');
-    for(const [selector,shadow]of [['#tactics-add-body',false],['#tactics-add-shadow',true]]){
-      const before=await draft();await reveal(selector);await page.locator(selector).click();
-      const after=await draft(),created=after.items.at(-1),position=after.frames[1].positions.find(p=>p.id===created.id);
-      assert.equal(after.items.length,before.items.length+1);assert(['home','away'].includes(created.kind));assert.equal(position.facing,0);
-      assert.equal(!!position.shadow,shadow,'Toolbar creates the requested player tool');
-      await page.locator('#tactics-undo').click();assert.deepEqual(await draft(),before,'Player toolbar creation is one undo');
-    }
+    assert.equal(await page.locator('#tactics-add-body,#tactics-add-shadow').count(),0,'Body direction and cover shadow are player settings, not duplicate add-piece tools');
+    assert.equal(await page.locator('#tactics-body-direction,#tactics-cover-shadow').count(),2,'Existing player controls remain available');
     const bodySaved=await save();
     assert.equal(bodySaved.diagram.purpose,'team-pattern');assert.deepEqual(validateDiagram(bodySaved.diagram),bodySaved.diagram);
     assert.notEqual(JSON.stringify(bodySaved.diagram),JSON.stringify(await page.evaluate(()=>builderRecords[0].diagram)),'Fixture verifies a real server-normalized property order');

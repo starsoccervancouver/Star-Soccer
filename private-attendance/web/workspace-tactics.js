@@ -217,10 +217,10 @@
   for (const control of [zoneWidth, zoneHeight]) { control.min = '5'; control.max = '90'; control.step = '1'; }
   for (const [control, key] of [[zoneShape, 'shape'], [zoneColor, 'color'], [zoneWidth, 'width'], [zoneHeight, 'height']]) control.addEventListener('change', () => mutate(() => { const item = record.content.items.find(i => i.id === selectedItem); if (!item?.zone) return; item.zone[key] = ['width', 'height'].includes(key) ? Number(control.value) : control.value; for (const f of record.content.frames) constrainZone(f, item); }, 'Zone updated in every phase.'));
   zoneControls.append(field('Zone shape', zoneShape), field('Zone colour', zoneColor), outlineLabel, field('Zone width', zoneWidth), field('Zone height', zoneHeight), el('p', 'Drag to move. Use the corner handle to resize a box. Shape and size apply to every phase.', 'small'));
-  side.append(el('p', 'Select a player or object to edit it.', 'tactics-selection-hint'), field('Selected piece', itemSelect), pieceLabel, carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')), pathLabel);
+  side.append(field('Selected piece', itemSelect), pieceLabel, carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')), pathLabel);
   side.insertBefore(zoneControls, nudge); side.insertBefore(routeActions, nudge);
   side.insertBefore(playerColorField, pieceLabel.nextSibling); side.prepend(removeArrow);
-  const advanced = el('details', '', 'tactics-advanced'); advanced.append(el('summary', 'Advanced positioning'), multiLabel, nudge, coordinate, carrierField, routeActions, bendField, pathLabel); side.append(advanced);
+  const advanced = el('div', '', 'tactics-piece-settings'); advanced.append(multiLabel, carrierField, routeActions, bendField, pathLabel); side.append(advanced); nudge.remove(); coordinate.remove();
   const pieceActions = el('div', '', 'tactics-piece-actions'); for (const id of ['tactics-duplicate-item', 'tactics-remove-item']) pieceActions.append(side.querySelector('#' + id)); advanced.before(pieceActions);
   const rotation = input('tactics-rotation', 'number'); rotation.min = '0'; rotation.max = '360'; rotation.step = 'any';
   rotation.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem), value = Number(rotation.value); if (p && Number.isFinite(value) && value >= 0 && value < 360) p.rotation = value; }, 'Goal direction updated for this phase.'));
@@ -329,7 +329,7 @@
   const fieldColumn = el('div', '', 'tactics-field-column'), inspector = el('aside', '', 'tactics-inspector'), phaseEditor = el('section', '', 'tactics-phase-editor');
   phaseEditor.append(el('h3', 'Selected phase'), frameSettings, phaseNotes.parentElement, phaseActions);
   inspector.id = 'tactics-inspector';
-  fieldColumn.append(canvasWrap); inspector.append(viewOptions, side, phaseEditor, extras); boardLayout.replaceChildren(fieldColumn, inspector);
+  fieldColumn.append(canvasWrap); inspector.append(viewOptions, side, phaseEditor, extras); const written = el('section', '', 'tactics-written');  boardLayout.replaceChildren(fieldColumn, inspector, written);
   const camera = select('tactics-camera', [['full','Full field'],['left-half','Left half · side'],['right-half','Right half · side'],['facing-goal','Half · facing goal'],['away-from-goal','Half · away from goal']]);
   camera.setAttribute('aria-label', 'Camera view'); camera.title = 'Change your view without moving players or changing the drill';
   camera.addEventListener('change', () => { cameraMode = record.content.pitch === 'full' ? camera.value : 'full'; zoom = 1; const g = cameraGeometry(); viewCenter = { x: g.x + g.width / 2, y: g.y + g.height / 2 }; draw(); });
@@ -736,7 +736,7 @@
     updateViewControls();
     board.setAttribute('viewBox', [viewCenter.x - geometry.width / 2 / zoom, viewCenter.y - geometry.height / 2 / zoom, geometry.width / zoom, geometry.height / zoom].join(' '));
     const fieldHeight = Math.max(240, innerHeight - canvasWrap.getBoundingClientRect().top - 32); board.closest('#library-form')?.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
-    board.dataset.camera = cameraMode; board.style.setProperty('--field-height', fieldHeight + 'px'); board.style.setProperty('--field-ratio', geometry.width + ' / ' + geometry.height); board.dataset.orientation = geometry.height > geometry.width ? 'tall' : 'wide';
+    boardLayout.dataset.upright = String(geometry.height > geometry.width); board.closest('#library-form')?.setAttribute('data-upright', String(geometry.height > geometry.width)); board.dataset.camera = cameraMode; board.style.setProperty('--field-height', fieldHeight + 'px'); board.style.setProperty('--field-ratio', geometry.width + ' / ' + geometry.height); board.dataset.orientation = geometry.height > geometry.width ? 'tall' : 'wide';
     board.replaceChildren();
     scene = svg('g', { 'data-camera-scene': '', transform: 'rotate(' + geometry.angle + ' 500 325)' });
     board.append(scene); scene.append(fieldArtwork(record.content.pitch));

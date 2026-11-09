@@ -208,7 +208,7 @@ const { chromium } = require('playwright');
     let nudged = (await draft()).frames[4].positions.find(p => p.id === rotatedPlayerId);
     closeTo(nudged.x, beforeNudge.x, 'Rotated keyboard right preserves model x'); assert(nudged.y > beforeNudge.y, 'Keyboard right follows the visible camera');
     await page.locator('#tactics-undo').click();
-    await reveal('#tactics-nudge-up'); await page.locator('#tactics-nudge-up').click();
+    await page.locator('#tactics-pitch-board').press('ArrowUp');
     nudged = (await draft()).frames[4].positions.find(p => p.id === rotatedPlayerId);
     assert(nudged.x > beforeNudge.x, 'Inspector nudge follows the visible camera'); closeTo(nudged.y, beforeNudge.y, 'Rotated nudge preserves model y');
     await page.locator('#tactics-undo').click(); assert.deepEqual(await draft(), layoutDraft);
@@ -327,20 +327,15 @@ const { chromium } = require('playwright');
       if (viewport.width >= 1000) {
         // The existing expandable controls and a resized notes field create a long inspector.
         const openedInspectorDetails = [];
-        for (const selector of ['#tactics-phase-options', '.tactics-advanced']) {
+        for (const selector of ['#tactics-phase-options']) {
           if (await page.locator(selector + ' > summary').isVisible() && !await page.locator(selector).evaluate(el => el.open)) { await page.locator(selector + ' > summary').click(); openedInspectorDetails.push(selector); }
         }
         const oldNotesStyle = await page.locator('#tactics-phase-notes').getAttribute('style');
         await page.locator('#tactics-phase-notes').evaluate(el => el.style.height = '700px');
         await resetScroll();
-        const inspector = await inViewport('.tactics-inspector', 'The independent inspector');
-        assert(await page.locator('.tactics-inspector').evaluate(el => el.scrollHeight > el.clientHeight + 20 && ['auto', 'scroll'].includes(getComputedStyle(el).overflowY)), 'Long inspector has its own scroll area at ' + size);
-        const beforeScroll = await page.evaluate(() => ({ form:document.getElementById('library-form').scrollTop, document:document.scrollingElement.scrollTop, field:document.getElementById('tactics-pitch-board').getBoundingClientRect().top }));
-        await page.mouse.move(inspector.right - 3, inspector.y + Math.min(100, inspector.height / 2)); await page.mouse.wheel(0, 600);
-        await page.waitForFunction(() => document.querySelector('.tactics-inspector').scrollTop > 0);
-        const afterScroll = await page.evaluate(() => ({ form:document.getElementById('library-form').scrollTop, document:document.scrollingElement.scrollTop, field:document.getElementById('tactics-pitch-board').getBoundingClientRect().top }));
-        assert.deepEqual(afterScroll, beforeScroll, 'Scrolling the long inspector leaves the field and creator stationary at ' + size);
-        await inViewport('#tactics-phases-toggle', 'Phases while the inspector scrolls');
+        assert(await page.locator('.tactics-written').evaluate(el => el.contains(document.getElementById('library-drill-details')) && document.querySelector('.tactics-inspector').contains(document.getElementById('tactics-phase-notes'))), 'Written details are grouped below the drawing workspace');
+        await page.locator('#tactics-phase-notes').scrollIntoViewIfNeeded();
+        assert(await page.locator('#tactics-phase-notes').isEditable(), 'Notes remain editable below the field');
         await page.locator('#tactics-phase-notes').evaluate((el, oldStyle) => { if (oldStyle === null) el.removeAttribute('style'); else el.setAttribute('style', oldStyle); }, oldNotesStyle);
         for (const selector of openedInspectorDetails) await page.locator(selector + ' > summary').click();
         await resetScroll();

@@ -574,3 +574,45 @@ body.drill-creator-focus #tactics-board-tools .tactics-canvas-wrap { grid-templa
   #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-sequence-actions #tactics-add-frame { margin:0; }
   #planner-drawer[data-pane="tools"] #tactics-board-tools .tactics-workbar { margin-bottom:6px; padding-bottom:6px; }
 }
+
+/* Written coaching content follows the canvas; the rail is for drawing tools. */
+#tactics-board-tools .tactics-written { grid-column:1/-1; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:12px; align-items:start; }
+#tactics-board-tools .tactics-written > * { min-width:0; margin:0; }
+#tactics-board-tools .tactics-written .library-drill-details { max-height:none; overflow:visible; padding:12px; border:1px solid #aaa193; border-radius:14px; background:#dbd5ca; }
+@media(min-width:1000px) and (min-height:640px) {
+ body.drill-creator-focus .library-standalone #library-form { overflow-y:auto; grid-template-areas:"header header" "tools tools" "field inspector" "written written" "status status"; grid-template-rows:auto auto minmax(480px,calc(100dvh - 180px)) auto auto; }
+ body.drill-creator-focus #tactics-board-tools .tactics-inspector { grid-template-columns:minmax(0,1fr); align-content:start; }
+ body.drill-creator-focus .library-standalone #library-form[data-upright=true] { grid-template-columns:minmax(320px,min(var(--pitch-max-width),60%)) minmax(260px,420px); grid-template-areas:"header header" "field tools" "field inspector" "written written" "status status"; justify-content:center; }
+ body.drill-creator-focus #library-form[data-upright=true] .tactics-main-toolbar { display:flex; flex-direction:column; align-items:stretch; gap:10px; }
+ body.drill-creator-focus #library-form[data-upright=true] .tactics-edit-tools { flex-wrap:wrap; justify-content:start; }
+ body.drill-creator-focus #library-form[data-upright=true] .tactics-sequence-actions { justify-content:start; }
+}
+
+body.drill-creator-focus #library-form .tactics-written { grid-area:written; }
+@media(min-width:1000px) {
+ body.drill-creator-focus #tactics-board-tools .tactics-main-toolbar { display:flex; flex-wrap:wrap; justify-content:space-between; }
+ body.drill-creator-focus #tactics-board-tools .tactics-edit-tools { flex-wrap:wrap; gap:8px; }
+}
+body.drill-creator-focus #tactics-board-tools .tactics-written > * { grid-area:auto; width:auto; max-height:none; }
+body.drill-creator-focus #library-form .library-editor-header { position:sticky; top:0; z-index:20; }
+body.drill-creator-focus #library-form { scroll-padding:80px 0 32px; }
+body.drill-creator-focus #library-form :is(input,textarea,select) { scroll-margin-block:12px; }
+@media(min-width:1000px) and (min-height:640px) {
+ body.drill-creator-focus .library-standalone #library-form:not([data-upright=true]) { grid-template-columns:minmax(500px,min(var(--pitch-max-width,100%),calc(100% - 270px))) minmax(260px,1fr); }
+}
+@media(max-width:760px) { body.drill-creator-focus #library-form { scroll-padding-top:180px; } }
+@media(min-width:1000px) and (min-height:640px) {
+ body.drill-creator-focus.tactics-field-focus .library-standalone #library-form { grid-template-columns:minmax(0,1fr); grid-template-areas:'header' 'tools' 'field' 'written' 'status'; }
+}
+@media(min-width:1000px) and (min-height:640px) {
+ body.drill-creator-focus .library-standalone #library-form { grid-template-rows:auto auto auto auto auto; align-content:start; }
+ body.drill-creator-focus #library-form .tactics-field-column { min-height:min-content; }
+}
+body.drill-creator-focus #library-diagram-editor #tactics-board-tools .tactics-field-column { display:block; }
+
+#tactics-board-tools .tactics-piece-panel { padding:8px; }
+#tactics-board-tools .tactics-piece-panel[data-selected="false"] > :not(:has(#tactics-item)):not(.tactics-piece-settings) { display:none; }
+#tactics-board-tools .tactics-written { position:relative; z-index:1; }
+body.drill-creator-focus #library-form .tactics-written { grid-area:written; }
+@media(max-width:999px) { body.drill-creator-focus #library-form .tactics-written { grid-area:auto; grid-column:1/-1; } }
+#library-diagram-editor #tactics-board-tools .tactics-piece-panel[data-selected="false"] > .tactics-piece-settings { display:block; }

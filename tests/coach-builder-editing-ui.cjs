@@ -294,7 +294,7 @@ const { chromium } = require('playwright');
     const bodySaved=await save();
     assert.equal(bodySaved.diagram.purpose,'team-pattern');assert.deepEqual(validateDiagram(bodySaved.diagram),bodySaved.diagram);
     assert.notEqual(JSON.stringify(bodySaved.diagram),JSON.stringify(await page.evaluate(()=>builderRecords[0].diagram)),'Fixture verifies a real server-normalized property order');
-    for (const selector of ['#library-drill-details', '.tactics-advanced', '#tactics-phase-options', '#tactics-playback-options','#tactics-player-tools']) { const details = page.locator(selector); if (await details.evaluate(n => n.open)) await details.locator(':scope > summary').click(); }
+    for (const selector of ['#library-drill-details', '#tactics-phase-options', '#tactics-playback-options','#tactics-player-tools']) { const details = page.locator(selector); if (await details.evaluate(n => n.open)) await details.locator(':scope > summary').click(); }
     fs.mkdirSync('outputs', { recursive: true });
     await page.locator('#tactics-player-tools > summary').click();
     await page.evaluate(() => { window.scrollTo(0,0); document.getElementById('library-form').scrollTop=0; });

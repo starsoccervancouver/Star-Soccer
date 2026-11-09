@@ -41,7 +41,7 @@
       onSave: () => { if (ticket === diagramEpoch && standalone()) editor.requestSubmit(); }
     });
     window.CoachTactics.setLibraryLocked?.(locked() || !!recovery, locked() || !!recovery || conflict);
-    diagramEditor.querySelector('.tactics-inspector')?.append(drillDetails);
+    diagramEditor.querySelector('.tactics-written')?.append(drillDetails);
   }
   function writeEditor(next = blank(), preserveDiagram = false) {
     record = clone(next); for (const key of fields) $('library-' + key).value = record[key] ?? '';

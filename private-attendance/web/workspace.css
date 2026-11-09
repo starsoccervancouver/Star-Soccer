@@ -2339,3 +2339,8 @@ body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accen
  .planner-drawer[data-pane="dates"] .planner-drawer-header { padding:18px; }
  .planner-drawer[data-pane="dates"] .planner-drawer-content { padding:18px; }
 }
+
+/* Academy-style selectors retain native keyboard and mobile pickers. */
+body select { appearance:none; border:1px solid #aaa697; border-radius:12px; padding:10px 36px 10px 12px; min-height:44px; color:#283a31; background-color:#eeeade; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23445549' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; box-shadow:0 1px 2px #24342a0a; }
+body select:focus-visible { outline:3px solid #8eaa80; outline-offset:2px; }
+body select:disabled { opacity:.6; }

@@ -726,3 +726,11 @@ body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .
 #tactics-board-tools .tactics-arrange { border:1px solid #aaa193; border-radius:12px; background:#e7e1d5; }
 #tactics-board-tools .tactics-arrange-tools { display:flex; flex-wrap:wrap; gap:6px; padding:8px; max-width:320px; }
 #tactics-board-tools .tactics-main-toolbar details[open] { flex-basis:100%; }
+
+/* Prevent the pitch view selectors from widening the 320px Coach Desk. */
+@media (max-width: 360px) {
+  #tactics-board-tools .tactics-field-dock > .tactics-view-options {
+    flex-basis: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

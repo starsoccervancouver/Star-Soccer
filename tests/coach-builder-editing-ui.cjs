@@ -78,7 +78,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('.tactics-edit-history #tactics-undo,.tactics-edit-history #tactics-redo').count(), 2, 'Undo and redo stay beside field editing');
     assert.equal(await page.locator('.tactics-sequence-actions #tactics-play,.tactics-sequence-actions #tactics-reset,.tactics-sequence-actions #tactics-add-frame').count(), 3, 'Playback and phase creation share the sequence controls');
     assert(await page.locator('#tactics-phase-popover').isHidden(), 'Phase dropdown starts closed'); assert.equal(await page.locator('#tactics-phase-popover #tactics-reset').count(), 1, 'Reset remains available inside the phase dropdown');
-    assert.equal(await page.locator('.tactics-inspector #tactics-add-frame').count(), 0, 'No duplicate phase creation in the inspector');
+    assert.equal(await page.locator('#tactics-board-tools #tactics-add-frame').count(), 1, 'Exactly one phase creation control in the board');
     assert.equal(await page.locator('.library-editor-header > #library-cancel').count(), 1, 'Back is separate from the save actions');
     for (const width of [390, 1280]) {
       await page.setViewportSize({ width, height: 844 });

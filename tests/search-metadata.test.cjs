@@ -67,15 +67,16 @@ function jpegSize(buffer){
   throw new Error('JPEG has no dimensions');
 }
 
-test('share metadata points to the real 1200 by 630 branded image',()=>{
-  const image=fs.readFileSync('star-soccer-social.jpg');
-  assert.deepEqual(jpegSize(image),{width:1200,height:630});
-  assert(image.length<250000,'Share graphic transfer budget is 250 KB');
+test('share metadata points to the supplied branded master with accurate dimensions',()=>{
+  const image=fs.readFileSync('star-soccer-brand-master.png');
+  assert.equal(image.subarray(1,4).toString(),'PNG');
+  assert.deepEqual({width:image.readUInt32BE(16),height:image.readUInt32BE(20)},{width:1983,height:793});
+  assert(image.length<1600000,'Supplied brand master must stay under 1.6 MB');
   for(const file of fullPages){
     const source=read(file);
-    assert.equal(meta(source,'og:image'),origin+'/star-soccer-social.jpg',file);
+    assert.equal(meta(source,'og:image'),origin+'/star-soccer-brand-master.png',file);
     assert.equal(meta(source,'twitter:image'),meta(source,'og:image'),file);
-    assert.equal(meta(source,'og:image:width'),'1200');assert.equal(meta(source,'og:image:height'),'630');
+    assert.equal(meta(source,'og:image:width'),'1983');assert.equal(meta(source,'og:image:height'),'793');
     assert(meta(source,'og:image:alt')?.length>10);assert.equal(meta(source,'twitter:card'),'summary_large_image');
   }
 });

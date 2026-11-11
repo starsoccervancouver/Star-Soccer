@@ -78,7 +78,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('.tactics-edit-history #tactics-undo,.tactics-edit-history #tactics-redo').count(), 2, 'Undo and redo stay beside field editing');
     assert.equal(await page.locator('.tactics-sequence-actions #tactics-play,.tactics-sequence-actions #tactics-reset,.tactics-sequence-actions #tactics-add-frame').count(), 3, 'Playback and phase creation share the sequence controls');
     assert(await page.locator('#tactics-phase-popover').isHidden(), 'Phase dropdown starts closed'); assert.equal(await page.locator('#tactics-phase-popover #tactics-reset').count(), 1, 'Reset remains available inside the phase dropdown');
-    assert.equal(await page.locator('.tactics-inspector #tactics-add-frame').count(), 0, 'No duplicate phase creation in the inspector');
+    assert.equal(await page.locator('#tactics-add-frame').count(), 1, 'Exactly one phase creation action in the right-side toolbar');
     assert.equal(await page.locator('.library-editor-header > #library-cancel').count(), 1, 'Back is separate from the save actions');
     for (const width of [390, 1280]) {
       await page.setViewportSize({ width, height: 844 });
@@ -284,12 +284,13 @@ const { chromium } = require('playwright');
     assert.equal(ballPreviews.releasedCurve,ballPreviews.freeCurve,'Releasing possession retains the free curved pass');
     assert.notEqual(ballPreviews.releasedCurve,ballPreviews.released,'Recorded curve is not flattened on release');
     assert.match(ballPreviews.attachedStart,/translate\(220 143\)/);assert.match(ballPreviews.attachedMidpoint,/translate\(420 208\)/);assert.match(ballPreviews.attachedEnd,/translate\(620 273\)/,'Attached playback keeps the two-unit offset throughout movement');
-    for(const [selector,shadow]of [['#tactics-add-body',false],['#tactics-add-shadow',true]]){
+    for(const selector of ['#tactics-body-direction','#tactics-cover-shadow']){
+      await page.locator('#tactics-item').selectOption(home);
       const before=await draft();await reveal(selector);await page.locator(selector).click();
-      const after=await draft(),created=after.items.at(-1),position=after.frames[1].positions.find(p=>p.id===created.id);
-      assert.equal(after.items.length,before.items.length+1);assert(['home','away'].includes(created.kind));assert.equal(position.facing,0);
-      assert.equal(!!position.shadow,shadow,'Toolbar creates the requested player tool');
-      await page.locator('#tactics-undo').click();assert.deepEqual(await draft(),before,'Player toolbar creation is one undo');
+      const after=await draft();
+      assert.equal(after.items.length,before.items.length,'Body and shadow edit the selected player without creating pieces');
+      assert.notDeepEqual(after.frames,before.frames,'Selected player settings change this phase');
+      await page.locator('#tactics-undo').click();assert.deepEqual(await draft(),before,'Player settings are one undo');
     }
     const bodySaved=await save();
     assert.equal(bodySaved.diagram.purpose,'team-pattern');assert.deepEqual(validateDiagram(bodySaved.diagram),bodySaved.diagram);

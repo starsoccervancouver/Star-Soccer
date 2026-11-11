@@ -726,3 +726,10 @@ body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .
 #tactics-board-tools .tactics-arrange { border:1px solid #aaa193; border-radius:12px; background:#e7e1d5; }
 #tactics-board-tools .tactics-arrange-tools { display:flex; flex-wrap:wrap; gap:6px; padding:8px; max-width:320px; }
 #tactics-board-tools .tactics-main-toolbar details[open] { flex-basis:100%; }
+
+/* Let paired field selectors fit narrow phones without horizontal scrolling. */
+@media(max-width:480px) {
+ #tactics-board-tools .tactics-field-dock > .tactics-view-options { grid-template-columns:repeat(2,minmax(0,1fr)); min-width:0; }
+ #tactics-board-tools .tactics-field-dock .tactics-field-view,
+ #tactics-board-tools .tactics-field-dock select { min-width:0; max-width:100%; }
+}

@@ -408,9 +408,14 @@ const { chromium } = require('playwright');
     assert.deepEqual(movedWithShadow.shadow, { length: 25, width: 20 });
     assert.notEqual(await shadow.getAttribute('transform'), shadowBefore, 'Cover shadow follows its player');
     await reveal('#tactics-vision'); await page.locator('#tactics-vision').check();
-    await page.locator('#tactics-vision-angle').evaluate(el => { el.value = '120'; el.dispatchEvent(new Event('change', { bubbles:true })); });
-    await page.locator('#tactics-vision-length').evaluate(el => { el.value = '35'; el.dispatchEvent(new Event('change', { bubbles:true })); });
-    assert.deepEqual((await draft()).frames[4].positions.find(p => p.id === firstPlayer).vision, { angle:120, length:35 });
+    for(let i=0;i<15;i++)await page.locator('[data-overlay-handle=vision][role=slider]').press('ArrowUp');
+    assert.equal(await page.locator('#tactics-facing,#tactics-face-ball,#tactics-facing-compass,#tactics-vision-angle,#tactics-shadow-width').count(),0,'Overlay adjustment stays on the diagram');
+    const beforeOverlayDrag=await draft(),vh=page.locator('[data-overlay-handle=vision][role=slider]');
+    await vh.scrollIntoViewIfNeeded();const hb=await vh.boundingBox();await page.mouse.move(hb.x+hb.width/2,hb.y+hb.height/2);await page.mouse.down();await page.mouse.move(hb.x+hb.width/2+35,hb.y+hb.height/2+25,{steps:5});await page.mouse.up();
+    assert.notDeepEqual(await draft(),beforeOverlayDrag,'On-field distance handle changes the player overlay');
+    await page.locator('#tactics-undo').click();assert.deepEqual(await draft(),beforeOverlayDrag,'Overlay drag is one undo operation');
+
+    assert.deepEqual((await draft()).frames[4].positions.find(p => p.id === firstPlayer).vision, { angle:150, length:35 });
     assert.equal(await page.locator('#tactics-pitch-board [data-player-vision]').count(), 1);
     await reveal('#tactics-item'); await page.locator('#tactics-item').selectOption(boxId);
     for (const shape of ['triangle','diamond']) { await reveal('#tactics-zone-shape'); await page.locator('#tactics-zone-shape').selectOption(shape); assert.equal(await page.locator('#tactics-pitch-board [data-zone="' + boxId + '"] polygon').count(),1); }

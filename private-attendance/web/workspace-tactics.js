@@ -241,29 +241,16 @@
   const rotation = input('tactics-rotation', 'number'); rotation.min = '0'; rotation.max = '360'; rotation.step = 'any';
   rotation.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem), value = Number(rotation.value); if (p && Number.isFinite(value) && value >= 0 && value < 360) p.rotation = value; }, 'Goal direction updated for this phase.'));
   const rotationField = field('Goal direction (degrees)', rotation); side.append(rotationField);
-  const bodyTools = el('details', '', 'tactics-body-tools'); bodyTools.id = 'tactics-player-tools'; bodyTools.append(el('summary', 'Body shape & cover shadow'));
+  const bodyTools = el('details', '', 'tactics-body-tools'); bodyTools.id = 'tactics-player-tools'; bodyTools.append(el('summary', 'Player overlays'));
   const bodyEnabled = input('tactics-body-direction', 'checkbox'), bodyLabel = field('Show body direction', bodyEnabled); bodyLabel.className = 'tactics-check';
-  const facing = input('tactics-facing', 'range'); facing.min = '0'; facing.max = '359'; facing.step = '1';
-  const facingValue = el('span', '', 'small'), facingField = field('Facing direction', facing); facingValue.id = 'tactics-facing-value'; facingField.append(facingValue);
   const playerPosition = () => currentFrame().positions.find(p => p.id === selectedItem);
   const setFacing = angle => mutate(() => { const p = playerPosition(); if (p) p.facing = ((angle % 360) + 360) % 360; }, 'Body direction updated for this phase. Movement stays unchanged.');
   bodyEnabled.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (bodyEnabled.checked) p.facing = p.facing || 0; else delete p.facing; }));
-  facing.addEventListener('input', () => { facingValue.textContent = facing.value + '° · 0° up, 90° right'; });
-  facing.addEventListener('change', () => setFacing(Number(facing.value)));
-  const compass = el('div', '', 'tactics-facing-compass');
-  for (const [angle, label] of [[0, '↑ Up'], [90, '→ Right'], [180, '↓ Down'], [270, '← Left']]) compass.append(button(label, 'tactics-face-' + angle, () => setFacing(angle)));
-  const faceBall = button('Face the ball', 'tactics-face-ball', () => { const p = playerPosition(), ball = nearestBall(p, currentFrame(), record.content.items); if (ball) setFacing(directionTo(p, ball)); });
   const shadowEnabled = input('tactics-cover-shadow', 'checkbox'), shadowLabel = field('Show cover shadow', shadowEnabled); shadowLabel.className = 'tactics-check';
   shadowEnabled.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (shadowEnabled.checked) p.shadow = { length: 25, width: 20 }; else delete p.shadow; }));
-  const shadowSize = el('div', '', 'tactics-shadow-size'), shadowLength = input('tactics-shadow-length', 'range'), shadowWidth = input('tactics-shadow-width', 'range');
-  for (const [control, key] of [[shadowLength, 'length'], [shadowWidth, 'width']]) { control.min = '5'; control.max = '60'; control.step = '1'; control.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (p?.shadow) p.shadow[key] = Number(control.value); })); }
-  shadowSize.append(field('Shadow length', shadowLength), field('Shadow width', shadowWidth), el('p', 'Extends away from the nearest ball. Without a ball, it follows behind the body direction.', 'small'));
   const visionEnabled = input('tactics-vision', 'checkbox'), visionLabel = field('Show field of view', visionEnabled); visionLabel.className = 'tactics-check';
-  visionEnabled.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (!p) return; if (visionEnabled.checked) { p.facing ??= 0; p.vision = { angle: 90, length: 20 }; } else delete p.vision; }));
-  const visionSize = el('div', '', 'tactics-shadow-size'), visionAngle = input('tactics-vision-angle', 'range'), visionLength = input('tactics-vision-length', 'range');
-  for (const [control, key, min, max] of [[visionAngle, 'angle', 20, 180], [visionLength, 'length', 5, 60]]) { control.min = min; control.max = max; control.step = 1; control.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (p?.vision) p.vision[key] = Number(control.value); })); }
-  visionSize.append(field('View angle (degrees)', visionAngle), field('View distance (% of field length)', visionLength));
-  bodyTools.append(bodyLabel, facingField, compass, faceBall, visionLabel, visionSize, shadowLabel, shadowSize, el('p', 'These settings apply to this phase. Drag the round handle to turn a player.', 'small')); pieceActions.before(bodyTools);
+  visionEnabled.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (!p) return; if (visionEnabled.checked) { p.facing ??= 0; p.vision = { angle: 150, length: 20 }; } else delete p.vision; }));
+  bodyTools.append(bodyLabel, visionLabel, shadowLabel, el('p', 'Turn the player with the round handle on the field. Drag the diamond handles to resize view distance or cover shadow. Field of view starts at 150°.', 'small')); pieceActions.before(bodyTools);
   canvasWrap.append(pathCaption); boardLayout.append(canvasWrap, side);
   const phases = el('section', '', 'tactics-phases'); phases.setAttribute('aria-label', 'Movement phases');
   const phaseHeading = el('div', '', 'tactics-phase-heading'); phaseHeading.append(el('h3', 'Movement sequence'), el('span', '', 'small')); phaseHeading.lastChild.id = 'tactics-sequence-summary';
@@ -513,7 +500,7 @@
   function playerArtwork(kind, position, color) {
     if (!['home', 'away'].includes(kind) || !Number.isFinite(position?.facing)) return pieceArtwork(kind, color);
     const art = svg('g', { 'data-symbol': kind, 'data-facing': position.facing, transform: 'rotate(' + position.facing + ')', 'aria-hidden': 'true' });
-    art.append(svg('ellipse', { rx: 19, ry: 14, cy: 4, fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 3 }), svg('circle', { cy: -10, r: 7, fill: kind === 'home' ? '#b8d2dd' : '#f1dfb9', stroke: '#253b46', 'stroke-width': 2 }), svg('path', { d: 'M0-36 L10-22 H4 V-15 H-4 V-22 H-10Z', fill: '#fffdf7', stroke: '#20382d', 'stroke-width': 2, 'data-body-direction': '', 'pointer-events':'none' }));
+    art.append(svg('path', { d: 'M0-28 L20-4 L16 20 L0 14 L-16 20 L-20-4Z', fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 3 }), svg('circle', { cy: -10, r: 7, fill: kind === 'home' ? '#b8d2dd' : '#f1dfb9', stroke: '#253b46', 'stroke-width': 2 }), svg('path', { d: 'M0-43 L12-27 H5 V-20 H-5 V-27 H-12Z', fill: '#fffdf7', stroke: '#20382d', 'stroke-width': 2, 'data-body-direction': '', 'pointer-events':'none' }));
     return art;
   }
   function visionArtwork(item, frame) {
@@ -671,11 +658,9 @@
     pieceLabel.firstChild.textContent = ['home', 'away'].includes(selectedKind) ? 'Shirt label' : 'Piece label';
     rotationField.hidden = selectedKind !== 'goal'; rotation.value = String(position?.rotation || 0);
     bodyTools.hidden = !['home', 'away'].includes(selectedKind);
-    visionEnabled.checked = !!position?.vision; visionSize.hidden = !visionEnabled.checked; visionAngle.value = String(position?.vision?.angle || 90); visionLength.value = String(position?.vision?.length || 20);
-    bodyEnabled.checked = Number.isFinite(position?.facing); facing.value = String(position?.facing || 0); facingValue.textContent = Math.round(Number(facing.value)) + '° · 0° up, 90° right';
-    facingField.hidden = compass.hidden = !bodyEnabled.checked;
-    shadowEnabled.checked = !!position?.shadow; shadowSize.hidden = !position?.shadow;
-    shadowLength.value = String(position?.shadow?.length || 25); shadowWidth.value = String(position?.shadow?.width || 20);
+    visionEnabled.checked = !!position?.vision;
+    bodyEnabled.checked = Number.isFinite(position?.facing);
+    shadowEnabled.checked = !!position?.shadow;
     carrier.replaceChildren(); const free = el('option', 'Free ball'); free.value = ''; carrier.append(free);
     for (const player of record.content.items.filter(i => ['home', 'away'].includes(i.kind))) { const option = el('option', pieceName(player) + ' ' + player.label); option.value = player.id; carrier.append(option); }
     carrier.value = position?.attachedTo || ''; carrierField.hidden = selectedKind !== 'ball'; detach.hidden = !position?.attachedTo;
@@ -707,7 +692,6 @@
     labelInput.disabled = disabled || !selectedItem;
     for (const control of side.querySelectorAll('button')) control.disabled = disabled || !selectedItem;
     removeArrow.disabled = disabled || !selectedArrow;
-    faceBall.disabled = disabled || bodyTools.hidden || !nearestBall(position, currentFrame(), record.content.items);
     $('tactics-duplicate-item').disabled = disabled || !selectedItem || record.content.items.length + selection().length > 40;
     $('tactics-duplicate-item').textContent = selection().length > 1 ? 'Duplicate selection' : 'Duplicate piece';
     $('tactics-step-earlier').disabled = disabled || frameIndex === 0;
@@ -815,6 +799,14 @@
     }
     for (const arrow of currentFrame().arrows || []) scene.append(arrowArtwork(arrow, true));
     const facingPosition = visibleFrame.positions.find(p => p.id === selectedItem);
+    if (editable() && !renderedPositions && selection().length === 1 && facingPosition) {
+      const p=facingPosition, scale=Math.max(.01,Math.hypot(board.getScreenCTM()?.a||0,board.getScreenCTM()?.b||0)||1);
+      const handle=(kind,dx,dy,angle,label)=>{const a=angle*Math.PI/180,x=Math.max(22,Math.min(978,p.x*10+dx*Math.cos(a)-dy*Math.sin(a))),y=Math.max(22,Math.min(628,p.y*6.5+dx*Math.sin(a)+dy*Math.cos(a))),g=svg('g',{'data-overlay-control':kind});
+        g.append(svg('circle',{cx:x,cy:y,r:22/scale,fill:'transparent','data-overlay-handle':kind}),svg('path',{d:'M0 -8 L8 0 L0 8 L-8 0Z',transform:'translate('+x+' '+y+') scale('+(1/scale)+')',fill:'#fffdf7',stroke:'#253b46','stroke-width':2,'data-overlay-handle':kind,role:'slider',tabindex:0,'aria-label':label,'aria-valuemin':5,'aria-valuemax':60,'aria-valuenow':kind==='vision'?p.vision.length:p.shadow.length}));scene.append(g);};
+      if(p.vision)handle('vision',0,-p.vision.length*10,p.facing||0,'View distance. Drag or use arrow keys to resize.');
+      if(p.shadow){const ball=nearestBall(p,visibleFrame,record.content.items);handle('shadow',p.shadow.width*5,p.shadow.length*10,ball?directionTo(p,ball):p.facing||0,'Cover shadow. Drag to resize width and depth; arrow keys adjust.');}
+    }
+
     if (editable() && !renderedPositions && selection().length === 1 && Number.isFinite(facingPosition?.facing)) {
       const at = positionIn(visibleFrame, selectedItem), angle = facingPosition.facing * Math.PI / 180, scale = Math.max(.01, board.getScreenCTM()?.a || 1), radius = 48 / scale;
       const x = Math.max(-40, Math.min(1040, at.x * 10 + Math.sin(angle) * radius)), y = Math.max(-40, Math.min(690, at.y * 6.5 - Math.cos(angle) * radius));
@@ -866,8 +858,10 @@
     if (!editable() || event.button !== 0) return;
     const boxHandle=event.target.closest('[data-box-resize]');
     if(boxHandle){pointer={id:event.pointerId,before:capture(),history:{undo:undo.slice(),redo:redo.slice()},moved:false,start:point(event),resizeZone:boxHandle.dataset.boxResize};board.setPointerCapture(event.pointerId);event.preventDefault();return;}
+    const overlayHandle=event.target.closest('[data-overlay-handle]');
+    if(overlayHandle){pointer={id:event.pointerId,before:capture(),history:{undo:undo.slice(),redo:redo.slice()},moved:false,overlay:overlayHandle.dataset.overlayHandle,start:point(event,false)};board.setPointerCapture(event.pointerId);event.preventDefault();return;}
     const facingHandle = event.target.closest('[data-facing-handle]');
-    if (facingHandle) { pointer = { id: event.pointerId, before: capture(), moved: false, facing: facingHandle.dataset.facingHandle, start: point(event, false) }; board.setPointerCapture(event.pointerId); event.preventDefault(); return; }
+    if (facingHandle) { pointer = { id: event.pointerId, before: capture(), history:{undo:undo.slice(),redo:redo.slice()}, moved: false, facing: facingHandle.dataset.facingHandle, start: point(event, false) }; board.setPointerCapture(event.pointerId); event.preventDefault(); return; }
     const arrowTarget = event.target.closest('[data-tactics-arrow]'), arrowEnd = event.target.closest('[data-arrow-end]');
     if (arrowTarget) {
       const start = point(event); if (!start) return; selectPiece(''); selectedArrow = arrowTarget.dataset.tacticsArrow;
@@ -898,10 +892,14 @@
   });
   function dragPointer(event) {
     if (!pointer || pointer.id !== event.pointerId || !editable()) return;
-    const destination = point(event, !pointer.facing); if (!destination) return;
+    const destination = point(event, !pointer.facing && !pointer.overlay); if (!destination) return;
     if (pointer.handle === undefined && routeDistance(pointer.start, destination) < .2 && !pointer.moved) return;
     if (!pointer.moved) { undo.push(pointer.before); if (undo.length > 30) undo.shift(); redo = []; pointer.moved = true; }
     if(pointer.resizeZone){const p=pointer.before.content.frames[frameIndex].positions.find(p=>p.id===pointer.resizeZone);resizeBox(pointer.resizeZone,(destination.x-p.x)*2,(destination.y-p.y)*2);draw();renderStatus();notifyDraft();return;}
+    if(pointer.overlay){const p=playerPosition(),dx=(destination.x-p.x)*10,dy=(destination.y-p.y)*6.5,clamp=v=>Math.max(5,Math.min(60,Math.round(v)));
+      if(pointer.overlay==='vision')p.vision.length=clamp(Math.hypot(dx,dy)/10);
+      else {const ball=nearestBall(p,currentFrame(),record.content.items),a=(ball?directionTo(p,ball):p.facing||0)*Math.PI/180;p.shadow={width:clamp(Math.abs(dx*Math.cos(a)+dy*Math.sin(a))/5),length:clamp((-dx*Math.sin(a)+dy*Math.cos(a))/10)};}
+      draw();renderStatus();notifyDraft();return;}
     if (pointer.facing) { const p = currentFrame().positions.find(p => p.id === pointer.facing); p.facing = Math.round(directionTo(p, destination)) % 360; draw(); renderStatus(); notifyDraft(); return; }
     if (pointer.arrowId) {
       const arrow = currentFrame().arrows.find(item=>item.id===pointer.arrowId); if (!arrow) return;
@@ -938,6 +936,7 @@
   board.addEventListener('pointermove', dragPointer);
   const endPointer = event => {
     if (!pointer) return;
+    if((pointer.overlay||pointer.facing)&&event.type==='pointercancel'){undo=pointer.history.undo;redo=pointer.history.redo;apply(pointer.before);pointer=null;render();notifyDraft();return;}
     if (pointer.ids && event.type === 'pointercancel') { undo = pointer.history.undo; redo = pointer.history.redo; apply(pointer.before); pointer = null; render(); notifyDraft(); return; }
     if(pointer.resizeZone){if(event.type==='pointercancel'){undo=pointer.history.undo;redo=pointer.history.redo;apply(pointer.before);}else if(pointer.moved&&event.type==='pointerup')dragPointer(event);pointer=null;render();notifyDraft();return;}
     if (pointer.arrowId) {
@@ -947,7 +946,7 @@
     }
     if (pointer.moved && event.type === 'pointerup') {
       dragPointer(event);
-      if (!pointer.facing && pointer.handle === undefined && pointer.ids.length === 1 && record.content.items.find(i => i.id === selectedItem)?.kind === 'ball') {
+      if (!pointer.overlay && !pointer.facing && pointer.handle === undefined && pointer.ids.length === 1 && record.content.items.find(i => i.id === selectedItem)?.kind === 'ball') {
         const p = currentFrame().positions.find(p => p.id === selectedItem);
         const target = record.content.items.filter(i => ['home', 'away'].includes(i.kind)).map(i => ({ id: i.id, distance: routeDistance(p, positionIn(currentFrame(), i.id)) })).filter(i => i.distance <= 3).sort((a, b) => a.distance - b.distance)[0];
         if (target) {
@@ -962,6 +961,8 @@
   board.addEventListener('pointerup', endPointer); board.addEventListener('pointercancel', endPointer); board.addEventListener('lostpointercapture', endPointer);
   board.addEventListener('keydown', event => {
     if (!editable()) return;
+    const overlayHandle=event.target.closest('[data-overlay-handle]');
+    if(overlayHandle&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();const kind=overlayHandle.dataset.overlayHandle;mutate(()=>{const p=playerPosition(),key=kind==='shadow'&&['ArrowLeft','ArrowRight'].includes(event.key)?'width':'length',part=kind==='shadow'?p.shadow:p.vision;part[key]=Math.max(5,Math.min(60,part[key]+(['ArrowRight','ArrowUp'].includes(event.key)?1:-1)));});board.querySelector('[data-overlay-handle="'+kind+'"][role="slider"]')?.focus();return;}
     const boxHandle=event.target.closest('[data-box-resize]');
     if(boxHandle&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();const id=boxHandle.dataset.boxResize,item=record.content.items.find(i=>i.id===id);mutate(()=>resizeBox(id,item.zone.width+(event.key==='ArrowRight'?2:event.key==='ArrowLeft'?-2:0),item.zone.height+(event.key==='ArrowDown'?2:event.key==='ArrowUp'?-2:0)));board.querySelector('[data-box-resize][role="button"]')?.focus();return;}
     const facingHandle = event.target.closest('[data-facing-handle]');

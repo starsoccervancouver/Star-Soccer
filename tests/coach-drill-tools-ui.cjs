@@ -190,6 +190,7 @@ const { chromium } = require('playwright');
     const layoutDraft = await draft();
     const surfaceBeforeCamera = await page.locator('#tactics-pitch').inputValue(), cameras = ['full', 'left-half', 'right-half', 'facing-goal', 'away-from-goal'], cameraViews = [];
     assert.deepEqual(await page.locator('#tactics-camera option').evaluateAll(nodes => nodes.map(el => el.value)), cameras, 'The camera offers all five views');
+    await reveal('#tactics-camera');
     for (const camera of cameras) {
       await page.locator('#tactics-camera').selectOption(camera);
       cameraViews.push(await page.locator('#tactics-pitch-board').evaluate(el => el.outerHTML));
@@ -261,6 +262,7 @@ const { chromium } = require('playwright');
     assert(new Set(aligned.frames[4].positions.filter(p=>arrangedIds.includes(p.id)).map(p=>p.y)).size===1,'Align across lines up selected players');
     await page.locator('#tactics-undo').click(); assert.deepEqual(await draft(),beforeArrange,'Alignment is fully undoable');
     await page.locator('#tactics-clear-selection').click(); await page.locator('.tactics-arrange > summary').click();
+    await page.locator('#tactics-view-menu > summary').click();
     const viewports = [{width:1280,height:720}, {width:1280,height:800}, {width:1440,height:1000}, {width:1920,height:1080}, {width:1024,height:768}, {width:390,height:844}, {width:320,height:700}, {width:844,height:390}];
     for (const viewport of viewports) {
       const size = viewport.width + 'x' + viewport.height;
@@ -398,7 +400,8 @@ const { chromium } = require('playwright');
     for (const control of ['#tactics-body-direction','#tactics-cover-shadow']) { await reveal(control); await page.locator(control).check(); }
     assert.equal((await draft()).items.length, countBeforeTools, 'Player settings never create another player');
     assert.equal(await page.locator('#tactics-add-body,#tactics-add-shadow').count(),0,'Body and shadow are player settings, not add-piece tools');
-    assert.equal(await page.locator('#tactics-equipment > summary').innerText(),'Equipment');
+    assert.equal(await page.locator('#tactics-equipment').count(), 0, 'One-click Goal replaces the one-item equipment menu');
+    assert(await page.locator('#tactics-add-goal').isVisible());
     assert(await page.locator('#tactics-pitch-board [data-body-direction]').count()>0,'Body direction stays visible on the field');
     assert.equal((await draft()).frames[4].positions.find(p => p.id === firstPlayer).facing, 0);
     const shadow = page.locator('#tactics-pitch-board [data-cover-shadow="' + firstPlayer + '"] path'), shadowBefore = await shadow.getAttribute('transform');

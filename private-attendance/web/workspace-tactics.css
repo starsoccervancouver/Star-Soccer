@@ -734,37 +734,49 @@ body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .
  #tactics-board-tools .tactics-field-dock select { min-width:0; max-width:100%; }
 }
 
-/* A compact field strip and orderly tool rail, shared by session and library editors. */
+/* Shared builder: compact tools, contextual editing, and one field strip. */
 #tactics-board-tools .tactics-field-dock { align-items:end; justify-content:flex-start; gap:10px; padding:10px 12px; border-radius:14px; }
-#tactics-board-tools .tactics-field-dock > .tactics-view-options { flex:0 1 290px; gap:8px; }
-#tactics-board-tools .tactics-field-dock > .tactics-camera-tools { flex:0 1 auto; gap:8px; }
-#tactics-board-tools .tactics-camera-tools select { flex:0 1 175px; width:175px; }
-#tactics-board-tools .tactics-view-controls { margin-left:0; gap:6px; }
-#tactics-board-tools .tactics-inspector .tactics-main-toolbar { padding:12px; background:#e5dfd3; border-radius:16px; gap:12px; }
+#tactics-board-tools .tactics-field-dock > .tactics-view-options { flex:0 1 180px; display:block; }
+#tactics-board-tools .tactics-field-dock > .tactics-camera-tools { flex:0 1 auto; display:flex; align-items:end; gap:8px; }
+#tactics-board-tools .tactics-camera-tools > label { width:175px; color:#eeeade; }
+#tactics-board-tools .tactics-field-dock :is(label,.tactics-field-view) { margin:0; }
+#tactics-board-tools .tactics-field-dock select { margin:4px 0 0; }
+#tactics-board-tools .tactics-camera-tools select { width:100%; min-width:0; max-width:100%; }
+#tactics-board-tools .tactics-view-controls { margin-left:auto; gap:6px; }
+#tactics-board-tools .tactics-view-menu { border:1px solid #a9ad9c; border-radius:12px; padding:0; background:#eeeade; color:#293c32; max-width:100%; }
+#tactics-board-tools .tactics-view-menu > summary { cursor:pointer; min-height:44px; padding:11px 13px; box-sizing:border-box; font-size:13px; font-weight:650; }
+#tactics-board-tools .tactics-view-menu-body { display:grid; gap:8px; padding:4px 12px 10px; width:270px; max-width:100%; box-sizing:border-box; }
+#tactics-board-tools .tactics-view-menu-body label { color:#293c32; }
+#tactics-board-tools .tactics-view-guides { display:flex; gap:6px; }
+#tactics-board-tools .tactics-inspector .tactics-main-toolbar { padding:12px; background:#e5dfd3; border-radius:16px; gap:10px; }
 body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-pieces,
-#planner-drawer[data-pane=tools] #tactics-board-tools .tactics-inspector .tactics-pieces { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; width:100%; }
-#tactics-board-tools .tactics-inspector .tactics-pieces > button,
-#tactics-board-tools .tactics-inspector .tactics-pieces > details { width:100%; margin:0; border-radius:11px; min-width:0; }
-#tactics-board-tools .tactics-inspector .tactics-pieces summary { text-align:left; }
-#tactics-board-tools .tactics-inspector .tactics-pieces > details[open] { grid-column:1/-1; }
+#planner-drawer[data-pane=tools] #tactics-board-tools .tactics-inspector .tactics-pieces { display:flex; flex-wrap:wrap; align-items:start; gap:6px; width:100%; }
+#tactics-board-tools .tactics-inspector .tactics-pieces > :is(button,details) { width:auto; flex:0 0 auto; min-width:44px; margin:0; }
+#tactics-board-tools .tactics-inspector .tactics-pieces button[data-piece-kind] { width:auto; }
+#tactics-board-tools .tactics-inspector .tactics-pieces > .tactics-player-tools { display:flex; flex-wrap:nowrap; gap:0; width:auto; min-width:0; }
+#tactics-board-tools .tactics-player-tools:has(#tactics-new-player:not([hidden])) > #tactics-add-player { border-radius:22px 0 0 22px; }
+#tactics-board-tools #tactics-new-player { border-radius:0 22px 22px 0; border-left:0; padding:8px; width:44px; min-width:44px; }
+#tactics-board-tools .tactics-inspector .tactics-pieces > details[open] { flex:1 1 100%; }
 #tactics-board-tools .tactics-inspector .tactics-edit-tools { justify-content:flex-start; border-top:1px solid #bdb5a7; padding-top:10px; }
+#tactics-board-tools .tactics-edit-history { flex-wrap:wrap; align-items:start; }
+#tactics-board-tools .tactics-arrange-tools .tactics-check { flex:1 1 100%; padding:0 4px; }
 #tactics-board-tools .tactics-inspector .tactics-sequence-actions { width:100%; justify-content:flex-start; gap:6px; border-top:1px solid #bdb5a7; padding-top:10px; }
+body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-sequence-actions { justify-content:flex-start; }
 #tactics-board-tools .tactics-body-tools { border:1px solid #bdb5a7; border-radius:12px; padding:10px; background:#e9e3d8; }
 #tactics-board-tools .tactics-body-tools .tactics-check { display:flex; justify-content:space-between; align-items:center; min-height:44px; margin:0; gap:12px; }
 #tactics-board-tools .tactics-body-tools input[type=checkbox] { width:19px; height:19px; accent-color:#345745; }
 #tactics-board-tools [data-overlay-handle], #tactics-board-tools [data-facing-handle] { cursor:grab; touch-action:none; }
+#tactics-board-tools .tactics-written > label { max-width:240px; margin:0 0 12px; }
+#tactics-board-tools .tactics-piece-panel[data-selected="false"] > .tactics-piece-settings { display:none; }
+#tactics-board-tools .tactics-inspector .tactics-main-toolbar summary { min-width:44px; min-height:44px; box-sizing:border-box; }
 @media(max-width:600px) {
- #tactics-board-tools .tactics-field-dock > .tactics-view-options { flex:1 1 100%; }
- #tactics-board-tools .tactics-camera-tools { width:100%; flex-wrap:wrap; }
- #tactics-board-tools .tactics-camera-tools select { flex:1 1 125px; min-width:0; width:auto; }
- body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-pieces,
- #planner-drawer[data-pane=tools] #tactics-board-tools .tactics-inspector .tactics-pieces { grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
-
-#tactics-board-tools .tactics-inspector .tactics-pieces > .tactics-player-tools { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:6px; min-width:0; }
-#tactics-board-tools .tactics-inspector .tactics-pieces > details > summary { min-width:44px; min-height:44px; box-sizing:border-box; }
-body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-sequence-actions { justify-content:flex-start; }
-@media(max-width:999px) {
- body.drill-creator-focus #library-form #tactics-board-tools .tactics-inspector .tactics-pieces,
- #planner-drawer[data-pane=tools] #tactics-board-tools .tactics-inspector .tactics-pieces { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ #tactics-board-tools .tactics-field-dock { gap:8px; align-items:end; }
+ #tactics-board-tools .tactics-field-dock > .tactics-view-options { flex:1 1 calc(50% - 8px); min-width:0; }
+ #tactics-board-tools .tactics-field-dock .tactics-field-view select { max-width:100%; }
+ #tactics-board-tools .tactics-field-dock > .tactics-camera-tools { display:contents; }
+ #tactics-board-tools .tactics-camera-tools > label { flex:1 1 calc(50% - 8px); width:auto; min-width:0; }
+ #tactics-board-tools .tactics-view-menu[open] { order:3; flex:1 1 100%; }
+ #tactics-board-tools .tactics-view-menu-body { width:100%; }
+ #tactics-board-tools .tactics-field-dock .tactics-view-controls { margin-left:0; flex:0 1 auto; width:auto; }
+ #tactics-board-tools .tactics-written > label { max-width:100%; }
 }

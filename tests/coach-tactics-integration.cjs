@@ -91,16 +91,32 @@ require('./coach-fixture-fonts.cjs')(assets);
   assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert(await f.page.locator('#tactics-pitch-board').evaluate(n=>n.getBoundingClientRect().top<600),'Board is reachable in the first phone screen');
   assert(await f.page.locator('#tactics-pitch-board .tactics-hit').first().evaluate(n=>n.getBoundingClientRect().width>=43),'Piece touch target is at least 44px within rounding');
-  for(const viewport of [{width:320,height:740},{width:768,height:900},{width:1024,height:768},{width:1440,height:700},{width:844,height:390}]){
+  for(const viewport of [{width:390,height:844},{width:320,height:700},{width:768,height:900},{width:1024,height:768},{width:1440,height:700},{width:844,height:390}]){
    await f.page.setViewportSize(viewport);
    await f.page.locator('#tactics-title').click();
    await f.page.locator('.planner-drawer-content').evaluate(n=>n.scrollTop=0);
    assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'No horizontal cutoff at '+viewport.width+'px');
+   if(viewport.width<=390){
+    for(const selector of ['#tactics-add-player','#tactics-add-ball','#tactics-add-cone','#tactics-add-goal','.tactics-shapes > summary','#tactics-view-menu > summary']){
+     const control=f.page.locator(selector);await control.scrollIntoViewIfNeeded();
+     assert(await control.isVisible()&&await control.isEnabled(),'Session builder control is available: '+selector);
+     assert(await control.evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),'Session builder control is reachable: '+selector);
+    }
+    await reveal(f,'#tactics-add-zone');await reveal(f,'#tactics-paths');
+    for(const selector of ['#tactics-add-zone','#tactics-camera','#tactics-grid','#tactics-lanes','#tactics-paths'])assert(await f.page.locator(selector).isVisible(),'Expanded menu exposes '+selector);
+    assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'Expanded menus fit '+viewport.width+'px');
+   }
    const geometry=await f.page.evaluate(()=>{const board=document.getElementById('tactics-pitch-board').getBoundingClientRect();return {width:board.width,labels:[...document.querySelectorAll('#tactics-pitch-board text')].map(n=>{const r=n.getBoundingClientRect();return r.left>=board.left-1&&r.right<=board.right+1&&r.top>=board.top-1&&r.bottom<=board.bottom+1;}),phases:[...document.querySelectorAll('.tactics-frame-list button')].map(n=>n.getBoundingClientRect().width),sticky:getComputedStyle(document.querySelector('.tactics-workbar')).position};});
    assert(geometry.width>200,'Field remains usable at '+viewport.width+'px');
    if(viewport.width<1000){
     const controls=await f.page.locator('#tactics-board-tools button:visible,#tactics-board-tools summary:visible,#tactics-board-tools select:visible,#tactics-board-tools textarea:visible,#tactics-board-tools input:visible:not([type=checkbox])').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {id:n.id||n.textContent.trim(),width:r.width,height:r.height,left:r.left,right:r.right,font:parseFloat(getComputedStyle(n).fontSize),entry:/^(INPUT|SELECT|TEXTAREA)$/.test(n.tagName)};}));
     for(const c of controls){assert(c.width>=43.5&&c.height>=43.5,'Touch-sized session control '+c.id+' at '+viewport.width+': '+JSON.stringify(c));assert(c.left>=-1&&c.right<=viewport.width+1,'Session control not clipped: '+c.id);if(c.entry)assert(c.font>=16,'Readable mobile entry: '+c.id);}
+   }
+   if(viewport.width<=390){
+    await f.page.locator('#tactics-camera').press('Escape');
+    assert.equal(await f.page.locator('#tactics-view-menu').evaluate(n=>n.open),false,'Escape closes View settings');
+    assert.equal(await f.page.locator('#tactics-view-menu > summary').evaluate(n=>n===document.activeElement),true,'Escape restores focus to View settings');
+    await f.page.locator('.tactics-shapes > summary').click();
    }
 
    assert(geometry.labels.every(Boolean),'Long edge labels stay within the field at '+viewport.width+'px');
@@ -109,6 +125,7 @@ require('./coach-fixture-fonts.cjs')(assets);
    await f.page.locator('#tactics-phase-notes').click();
    const visible=await f.page.locator('#tactics-phase-notes').evaluate(n=>{const r=n.getBoundingClientRect(),bar=document.querySelector('.tactics-workbar').getBoundingClientRect();return r.top>=bar.bottom-1&&r.bottom<=innerHeight;});
    assert(visible,'Notes can be focused without hiding behind the toolbar');
+   if(viewport.width===390){await f.page.locator('.planner-drawer-content').evaluate(n=>n.scrollTop=0);await f.page.screenshot({path:'outputs/session-builder-mobile.png'});}
   }
   await f.page.setViewportSize({width:1280,height:900});
   await f.page.evaluate(()=>CoachTactics.discard());

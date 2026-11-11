@@ -110,10 +110,8 @@
   const fieldView = field('Pitch markings', pitch); fieldView.className = 'tactics-field-view';
   const purpose = select('tactics-purpose', [['drill', 'Drill'], ['team-pattern', 'Team pattern']]);
   purpose.addEventListener('change', () => mutate(() => { if (purpose.value === 'team-pattern') record.content.purpose = purpose.value; else delete record.content.purpose; }, purpose.value === 'team-pattern' ? 'Team pattern: show positioning, team movements and decisions.' : 'Drill: build a practice activity for your session.'));
-  const viewOptions = el('div', '', 'tactics-view-options'); viewOptions.append(field('Create', purpose), fieldView);
+  const viewOptions = el('div', '', 'tactics-view-options'); viewOptions.append(fieldView);
   const topActions = el('div', '', 'tactics-toolbar tactics-main-toolbar');
-  const equipment = el('details', '', 'tactics-equipment'), equipmentOptions = el('div', '', 'tactics-equipment-options'); equipment.id = 'tactics-equipment';
-  const equipmentSummary = el('summary', 'Equipment'); equipmentSummary.setAttribute('aria-label','Equipment'); equipmentSummary.title='Goals and equipment'; equipment.append(equipmentSummary, equipmentOptions);
   const addGroup = el('div', '', 'tactics-pieces'); addGroup.setAttribute('role', 'group'); addGroup.setAttribute('aria-label', 'Add a piece');
   function addPiece(kind, destination, color, preset = {}) {
     if (!kinds[kind] || !editable() || record.content.items.length >= 40) return;
@@ -126,7 +124,7 @@
       const centre = cameraPoint(viewCenter);
       for (const frame of record.content.frames) { frame.positions.push({ id: item.id, ...(destination || { x: clamp(centre.x / 10 + offset * 2 - 5), y: clamp(centre.y / 6.5 + offset * 2 - 5) }), ...(preset.facing ? {facing:0} : {}), ...(preset.shadow ? {shadow:{length:25,width:20}} : {}) }); if (kind === 'zone') constrainZone(frame, item); }
       selectPiece(item.id);
-    }, (color ? color[0].toUpperCase() + color.slice(1) + ' player' : kinds[kind]) + ' added.'); equipment.open = false;
+    }, (color ? color[0].toUpperCase() + color.slice(1) + ' player' : kinds[kind]) + ' added.');
   }
   const playerTools = el('div', '', 'tactics-player-tools'), colorMenu = el('div', '', 'tactics-player-colors'); colorMenu.id = 'tactics-player-colors'; colorMenu.hidden = true; colorMenu.setAttribute('role', 'group'); colorMenu.setAttribute('aria-label', 'Choose player colour');
   const currentColor = el('span', '', 'tactics-current-color'); currentColor.setAttribute('aria-hidden', 'true');
@@ -135,19 +133,19 @@
   function addPlayer(destination) { if (!currentPlayerColor) { choosePlayerColor(); return; } addPiece(currentPlayerColor === 'gold' ? 'away' : 'home', destination, currentPlayerColor); }
   const addPlayerButton = button('Add player', 'tactics-add-player', () => addPlayer()); addPlayerButton.prepend(currentColor); addPlayerButton.draggable = true; addPlayerButton.title = 'Add another player in the current colour, or drag onto the field';
   addPlayerButton.addEventListener('dragstart', event => { if (!editable() || !currentPlayerColor) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', 'player'); event.dataTransfer.effectAllowed = 'copy'; });
-  const newPlayer = button('New colour', 'tactics-new-player', choosePlayerColor); newPlayer.setAttribute('aria-label', 'Add player in a new colour'); newPlayer.setAttribute('aria-expanded', 'false'); newPlayer.setAttribute('aria-controls', colorMenu.id);
+  const newPlayer = button('▾', 'tactics-new-player', choosePlayerColor); newPlayer.setAttribute('aria-label', 'Add player in a new colour'); newPlayer.setAttribute('aria-expanded', 'false'); newPlayer.setAttribute('aria-controls', colorMenu.id); newPlayer.title = 'Choose another player colour';
   addPlayerButton.setAttribute('aria-controls', colorMenu.id); addPlayerButton.setAttribute('aria-expanded', 'false');
   for (const [color, fill] of Object.entries(playerColors)) { const swatch = button(color[0].toUpperCase() + color.slice(1), '', () => { currentPlayerColor = color; closeColors(); addPlayer(); addPlayerButton.focus(); }); swatch.dataset.playerColor = color; swatch.title = 'Add ' + color + ' player'; const dot = el('span', '', 'tactics-current-color'); dot.style.backgroundColor = fill; dot.setAttribute('aria-hidden', 'true'); swatch.prepend(dot); colorMenu.append(swatch); }
   playerTools.append(addPlayerButton, newPlayer, colorMenu); addGroup.append(playerTools);
   playerTools.addEventListener('keydown', event => { if (event.key === 'Escape' && !colorMenu.hidden) { event.preventDefault(); event.stopPropagation(); closeColors(); (newPlayer.hidden ? addPlayerButton : newPlayer).focus(); } });
   playerTools.addEventListener('focusout', event => { if (!playerTools.contains(event.relatedTarget)) closeColors(); });
-  for (const kind of ['ball', 'cone', 'goal', 'zone']) {
+  for (const kind of ['ball', 'cone', 'goal']) {
     const label = kinds[kind];
     const add = button('', 'tactics-add-' + kind, () => addPiece(kind)); add.setAttribute('aria-label', 'Add ' + label.toLowerCase());
     const icon = svg('svg', { viewBox: '-36 -32 72 64', width: 22, height: 22, 'aria-hidden': 'true' }); icon.append(pieceArtwork(kind)); add.prepend(icon);
     add.draggable = true; add.title = 'Add ' + label.toLowerCase() + ' · drag onto field';
     add.addEventListener('dragstart', event => { if (!editable() || add.disabled) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', kind); event.dataTransfer.effectAllowed = 'copy'; });
-    add.dataset.pieceKind = kind; (['goal', 'zone'].includes(kind) ? equipmentOptions : addGroup).append(add);
+    add.dataset.pieceKind = kind; addGroup.append(add);
   }
   function addPlayerTool(tool, destination) {
     if (!editable()) return;
@@ -156,14 +154,7 @@
     if (target) { mutate(()=>{selectPiece(target.id);const p=currentFrame().positions.find(p=>p.id===target.id);if(!Number.isFinite(p.facing))p.facing=0;if(tool==='shadow')p.shadow={length:25,width:20};},'Player tool attached for this phase. It moves with the player.'); }
     else tell('Select an existing player, then use Body direction or Cover shadow in the player settings.');
   }
-  for (const [tool, title] of [['box','Box']]) {
-    const add=button(title,'tactics-add-'+tool,()=>tool==='box'?addPiece('zone',undefined,undefined,{outline:true}):addPlayerTool(tool)); add.classList.add('tactics-add-helper');add.draggable=true;
-    add.setAttribute('aria-label',tool==='box'?'Add outlined box':tool==='body'?'Add body-position player':'Add cover-shadow player');
-    add.title=tool==='box'?'Add a box · drag onto the field, then resize its corner':'Add '+(tool==='body'?'body position':'cover shadow')+' · drag onto an existing player to attach';
-    add.addEventListener('dragstart',event=>{if(!editable()||add.disabled)return event.preventDefault();event.dataTransfer.setData('application/x-coach-piece',tool);event.dataTransfer.effectAllowed='copy';});
-    addGroup.append(add);
-  }
-  addGroup.append(equipment); topActions.append(addGroup, viewOptions);
+  topActions.append(addGroup, viewOptions);
   const arrange = el('details', '', 'tactics-arrange'); arrange.append(el('summary','Arrange'));
   const arrangeTools = el('div', '', 'tactics-arrange-tools');
   const choosePlayers = sameColour => { const item=record.content.items.find(i=>i.id===selectedItem); if(sameColour&&!['home','away'].includes(item?.kind))return tell('Select a player first.'); const ids=record.content.items.filter(i=>['home','away'].includes(i.kind)&&(!sameColour||playerColor(i)===playerColor(item))).map(i=>i.id); selectedArrow=''; selectedItem=ids[0]||''; selectedIds=new Set(ids);render(); };
@@ -174,18 +165,20 @@
     const positions=ids.map(id=>positionIn(currentFrame(),id)),value=positions.reduce((sum,p)=>sum+p[axis],0)/ids.length;
     mutate(()=>{for(const id of ids){const p=positionIn(currentFrame(),id),dx=axis==='x'?value-p.x:0,dy=axis==='y'?value-p.y:0;if(editMode==='place')shiftLayout([id],dx,dy,capture());else placePiece(currentFrame(),id,{x:p.x+dx,y:p.y+dy});}},'Selected pieces aligned. Undo restores their positions.');
   }
-  arrangeTools.append(button('Align across','tactics-align-row',()=>alignPlayers('y')),button('Align down','tactics-align-column',()=>alignPlayers('x'))); arrange.append(arrangeTools); addGroup.append(arrange);
+  arrangeTools.append(button('Align across','tactics-align-row',()=>alignPlayers('y')),button('Align down','tactics-align-column',()=>alignPlayers('x'))); arrange.append(arrangeTools);
 
   const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
-  for (const [mode, text] of [['place', 'Place pieces'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
+  for (const [mode, text] of [['place', 'Edit layout'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
   const arrowTool = button('✎ Draw', 'tactics-draw-arrow', () => { if (!editable()) return; editMode = editMode === 'arrow' ? 'place' : 'arrow'; selectPiece(''); render(); tell(editMode === 'arrow' ? 'Draw any route on the field; it follows your curve and ends with an arrowhead. For a straight path, focus the field and press Enter. Drawings belong to this phase.' : 'Select and move pieces.'); }); arrowTool.setAttribute('aria-label', 'Draw curved arrow'); editModes.append(arrowTool);
   const shapes = el('details', '', 'tactics-shapes'); shapes.append(el('summary','Shapes'));
   const shapeChoices = el('div', '', 'tactics-shape-choices');
   for (const [shape, label] of [['rect','▭ Rectangle'],['ellipse','◯ Oval'],['triangle','△ Triangle'],['diamond','◇ Diamond']]) shapeChoices.append(button(label,'tactics-shape-add-'+shape,()=>{addPiece('zone',undefined,undefined,{shape,outline:true});shapes.open=false;}));
+  shapeChoices.append(button('▰ Filled area', 'tactics-add-zone', () => { addPiece('zone'); shapes.open = false; }));
   shapes.append(shapeChoices); addGroup.append(shapes);
   const selectionCount = el('p', '', 'tactics-selection-count'); selectionCount.id = 'tactics-selection-count';
   const multiSelect = input('tactics-multiselect', 'checkbox'), multiLabel = field('Select multiple', multiSelect); multiLabel.className = 'tactics-check';
   multiSelect.addEventListener('change', () => tell(multiSelect.checked ? 'Tap pieces to add them to the selection. Drag a selected piece to move the group.' : 'Click a piece to select it. Shift-click adds or removes pieces.'));
+  arrangeTools.prepend(multiLabel);
   topActions.append(editModes, selectionCount);
   const boardLayout = el('div', '', 'tactics-board-layout');
   const canvasWrap = el('div', '', 'tactics-canvas-wrap');
@@ -206,20 +199,11 @@
   let labelEditing = false;
   labelInput.addEventListener('input', () => { if (!editable()) return; const item = record.content.items.find(i => i.id === selectedItem); if (!item) return; if (!labelEditing) { remember(); labelEditing = true; } item.label = labelInput.value.trim(); draw(); editedText(); });
   labelInput.addEventListener('blur', () => { labelEditing = false; });
-  const nudge = el('div', '', 'tactics-nudge'); nudge.setAttribute('role', 'group'); nudge.setAttribute('aria-label', 'Move selected piece');
-  for (const [direction, text, dx, dy] of [['up', '↑ Up', 0, -2], ['left', '← Left', -2, 0], ['right', 'Right →', 2, 0], ['down', 'Down ↓', 0, 2]]) nudge.append(button(text, 'tactics-nudge-' + direction, () => moveSelected(...cameraDelta([dx, dy]))));
-  const coordinate = el('p', '', 'small'); coordinate.id = 'tactics-coordinate';
   const pathToggle = input('tactics-paths', 'checkbox'); pathToggle.checked = true; pathToggle.addEventListener('change', draw);
   const pathLabel = field('Show movement paths', pathToggle); pathLabel.className = 'tactics-check';
   const carrier = select('tactics-ball-carrier', [['', 'Free ball']]);
   carrier.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem); if (!p) return; if (carrier.value) attachBall(p.id, carrier.value, false); else detachBall(currentFrame(), p); }, carrier.value ? 'Ball attached for this step. It follows the player; drag it to release.' : 'Ball detached for this step.'));
   const carrierField = field('Ball carrier · this step', carrier);
-  const detach = button('Detach ball', 'tactics-detach-ball', () => mutate(() => detachBall(currentFrame(), currentFrame().positions.find(p => p.id === selectedItem)), 'Ball detached for this step.'));
-  const bend = input('tactics-curve', 'range'); bend.min = '-50'; bend.max = '50'; bend.step = '5';
-  const bendValue = el('span', '', 'small'); bendValue.id = 'tactics-curve-value';
-  bend.addEventListener('input', () => { bendValue.textContent = Number(bend.value) === 0 ? 'Straight' : (Number(bend.value) < 0 ? 'Left' : 'Right') + ' bend · ' + Math.abs(Number(bend.value)); });
-  bend.addEventListener('change', () => mutate(() => { const transition = shownTransition(); if (!transition) return; const p = transition.from.positions.find(p => p.id === selectedItem), q = transition.to.positions.find(p => p.id === selectedItem); if (!p || !q) return; delete q.trail; const value = Number(bend.value); if (value) p.curve = value; else delete p.curve; }, 'Recorded route replaced with a simple bend. Undo restores it.'));
-  const bendField = field('Simple bend · replaces dragged route', bend); bendField.append(bendValue);
   const straighten = button('Straighten path', 'tactics-straighten', () => mutate(() => { const transition = shownTransition(); if (!transition) return; delete transition.from.positions.find(p => p.id === selectedItem).curve; delete transition.to.positions.find(p => p.id === selectedItem).trail; }, 'Path straightened. Undo restores the recorded route.'));
   const redrawRoute = button('Redraw route', 'tactics-redraw-route', () => mutate(() => { const transition = shownTransition(); if (!transition || !selectedItem) return; const start = positionIn(transition.from, selectedItem); delete transition.from.positions.find(p => p.id === selectedItem).curve; delete transition.to.positions.find(p => p.id === selectedItem).trail; frameIndex = transition.index + 1; editMode = 'record'; placePiece(currentFrame(), selectedItem, { x: start.x, y: start.y }); }, 'Back at the start of this movement. Drag the piece along its new route.'));
   redrawRoute.title = 'Start this movement again from the previous phase';
@@ -233,10 +217,10 @@
   for (const control of [zoneWidth, zoneHeight]) { control.min = '5'; control.max = '90'; control.step = '1'; }
   for (const [control, key] of [[zoneShape, 'shape'], [zoneColor, 'color'], [zoneWidth, 'width'], [zoneHeight, 'height']]) control.addEventListener('change', () => mutate(() => { const item = record.content.items.find(i => i.id === selectedItem); if (!item?.zone) return; item.zone[key] = ['width', 'height'].includes(key) ? Number(control.value) : control.value; for (const f of record.content.frames) constrainZone(f, item); }, 'Zone updated in every phase.'));
   zoneControls.append(field('Zone shape', zoneShape), field('Zone colour', zoneColor), outlineLabel, field('Zone width', zoneWidth), field('Zone height', zoneHeight), el('p', 'Drag to move. Use the corner handle to resize a box. Shape and size apply to every phase.', 'small'));
-  side.append(field('Selected piece', itemSelect), pieceLabel, carrierField, detach, bendField, nudge, coordinate, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')), pathLabel);
-  side.insertBefore(zoneControls, nudge); side.insertBefore(routeActions, nudge);
+  side.append(field('Selected piece', itemSelect), pieceLabel, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')));
+  side.append(zoneControls);
   side.insertBefore(playerColorField, pieceLabel.nextSibling); side.prepend(removeArrow);
-  const advanced = el('div', '', 'tactics-piece-settings'); advanced.append(multiLabel, carrierField, routeActions, bendField, pathLabel); side.append(advanced); nudge.remove(); coordinate.remove();
+  const advanced = el('div', '', 'tactics-piece-settings'); advanced.append(carrierField, routeActions); side.append(advanced);
   const pieceActions = el('div', '', 'tactics-piece-actions'); for (const id of ['tactics-duplicate-item', 'tactics-remove-item']) pieceActions.append(side.querySelector('#' + id)); advanced.before(pieceActions);
   const rotation = input('tactics-rotation', 'number'); rotation.min = '0'; rotation.max = '360'; rotation.step = 'any';
   rotation.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem), value = Number(rotation.value); if (p && Number.isFinite(value) && value >= 0 && value < 360) p.rotation = value; }, 'Goal direction updated for this phase.'));
@@ -304,7 +288,7 @@
   });
   workbar.append(heading.firstChild, saveControl, saveLibrary, status);
   const editHistory = el('div', '', 'tactics-edit-history'); editHistory.setAttribute('role', 'group'); editHistory.setAttribute('aria-label', 'Edit history'); editHistory.append(undoControl, redoControl);
-  const editTools = el('div', '', 'tactics-edit-tools'); editModes.replaceWith(editTools); editTools.append(editModes, editHistory);
+  const editTools = el('div', '', 'tactics-edit-tools'); editModes.replaceWith(editTools); editHistory.append(arrange); editTools.append(editModes, editHistory);
   const sequenceActions = el('div', '', 'tactics-sequence-actions'); sequenceActions.setAttribute('role', 'group'); sequenceActions.setAttribute('aria-label', 'Playback and phases');
   const phasePicker = el('div', '', 'tactics-phase-picker');
   phases.id = 'tactics-phase-popover'; phases.hidden = true;
@@ -332,7 +316,7 @@
   const fieldColumn = el('div', '', 'tactics-field-column'), inspector = el('aside', '', 'tactics-inspector'), phaseEditor = el('section', '', 'tactics-phase-editor');
   phaseEditor.append(el('h3', 'Selected phase'), frameSettings, phaseNotes.parentElement, phaseActions);
   inspector.id = 'tactics-inspector';
-  fieldColumn.append(canvasWrap); inspector.append(viewOptions, side, phaseEditor, extras); const written = el('section', '', 'tactics-written');  boardLayout.replaceChildren(fieldColumn, inspector, written);
+  fieldColumn.append(canvasWrap); inspector.append(viewOptions, side, phaseEditor, extras); const written = el('section', '', 'tactics-written'); written.append(field('Activity type', purpose)); boardLayout.replaceChildren(fieldColumn, inspector, written);
   const camera = select('tactics-camera', [['full','Full field'],['left-half','Left half · side'],['right-half','Right half · side'],['facing-goal','Half · facing goal'],['away-from-goal','Half · away from goal']]);
   camera.setAttribute('aria-label', 'Camera view'); camera.title = 'Change your view without moving players or changing the drill';
   camera.addEventListener('change', () => { cameraMode = record.content.pitch === 'full' ? camera.value : 'full'; zoom = 1; const g = cameraGeometry(); viewCenter = { x: g.x + g.width / 2, y: g.y + g.height / 2 }; draw(); });
@@ -343,10 +327,17 @@
   gridControl.title = 'Show a thirds guide for spacing and positioning'; gridControl.setAttribute('aria-pressed','false');
   const laneControl = button('Lanes', 'tactics-lanes', () => { showLanes = !showLanes; draw(); });
   laneControl.title = 'Show wide areas, half-spaces and middle'; laneControl.setAttribute('aria-label', laneControl.title);
-  const cameraTools = el('div', '', 'tactics-camera-tools'); cameraTools.append(camera, gridControl, laneControl, focusField);
+  const cameraTools = el('div', '', 'tactics-camera-tools');
+  const viewMenu = el('details', '', 'tactics-view-menu'); viewMenu.id = 'tactics-view-menu';
+  const cameraField = field('Focus area · does not change the drill', camera), viewMenuBody = el('div', '', 'tactics-view-menu-body');
+  const guides = el('div', '', 'tactics-view-guides'); guides.append(gridControl, laneControl);
+  const viewSummary = el('summary', 'View'); viewSummary.setAttribute('aria-label', 'View settings'); viewSummary.title = 'Focus area, guides and movement paths';
+  viewMenuBody.append(cameraField, guides, pathLabel); viewMenu.append(viewSummary, viewMenuBody);
+  viewMenu.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); viewMenu.open = false; viewMenu.querySelector('summary').focus(); } });
+  cameraTools.append(viewMenu, focusField);
   const deviceControl = select('tactics-device-view', [['auto', 'Fit my device'], ['wide', 'Wide field'], ['tall', 'Upright field']]);
   deviceControl.setAttribute('aria-label', 'Preferred field orientation');
-  deviceControl.addEventListener('change', () => { deviceView = deviceControl.value; zoom = 1; draw(); }); cameraTools.prepend(deviceControl);
+  deviceControl.addEventListener('change', () => { deviceView = deviceControl.value; zoom = 1; draw(); }); cameraTools.prepend(field('Orientation', deviceControl));
   const viewControls = el('div', '', 'tactics-view-controls'); viewControls.setAttribute('aria-label', 'Field view');
   const panControls = el('div', '', 'tactics-pan-controls'); panControls.setAttribute('role', 'group'); panControls.setAttribute('aria-label', 'Move zoomed view');
   const zoomValue = el('output', '100%', 'tactics-zoom-value'); zoomValue.id = 'tactics-zoom-value'; zoomValue.setAttribute('aria-label', 'Field zoom');
@@ -370,7 +361,7 @@
   const viewBounds = () => { const g = cameraGeometry(); return { left: g.x + g.width / 2 / zoom, right: g.x + g.width - g.width / 2 / zoom, top: g.y + g.height / 2 / zoom, bottom: g.y + g.height - g.height / 2 / zoom }; };
   function updateViewControls() {
     const locked = !active() || !loaded || pending, bounds = viewBounds(), fit = zoom === 1, near = (a, b) => Math.abs(a - b) < .001;
-    camera.hidden = record.content.pitch !== 'full'; camera.value = cameraMode; camera.disabled = locked || camera.hidden; deviceControl.disabled = locked; deviceControl.value = deviceView; gridControl.disabled = focusField.disabled = locked; gridControl.setAttribute('aria-pressed',String(showGrid));
+    camera.hidden = cameraField.hidden = record.content.pitch !== 'full'; camera.value = cameraMode; camera.disabled = locked || camera.hidden; deviceControl.disabled = locked; deviceControl.value = deviceView; gridControl.disabled = focusField.disabled = locked; gridControl.setAttribute('aria-pressed',String(showGrid));
     laneControl.hidden = record.content.pitch === 'blank'; laneControl.disabled = locked || laneControl.hidden; laneControl.setAttribute('aria-pressed', String(showLanes && !laneControl.hidden));
     $('tactics-zoom-out').disabled = locked || fit; $('tactics-zoom-in').disabled = locked || zoom === 2.5;
     $('tactics-zoom-fit').hidden = fit; $('tactics-zoom-fit').disabled = locked || fit;
@@ -653,7 +644,7 @@
     for (const item of record.content.items) { const option = el('option', pieceName(item) + (item.label ? ' · ' + item.label : '')); option.value = item.id; itemSelect.append(option); }
     if (!record.content.items.some(i => i.id === selectedItem)) selectedItem = '';
     itemSelect.value = selectedItem; labelInput.value = record.content.items.find(i => i.id === selectedItem)?.label || '';
-    const position = currentFrame().positions.find(p => p.id === selectedItem); coordinate.textContent = position ? 'Position: ' + Math.round(position.x) + '% across · ' + Math.round(position.y) + '% down' : 'Select a piece to position or label it.';
+    const position = currentFrame().positions.find(p => p.id === selectedItem);
     const selectedKind = record.content.items.find(i => i.id === selectedItem)?.kind;
     pieceLabel.firstChild.textContent = ['home', 'away'].includes(selectedKind) ? 'Shirt label' : 'Piece label';
     rotationField.hidden = selectedKind !== 'goal'; rotation.value = String(position?.rotation || 0);
@@ -663,11 +654,11 @@
     shadowEnabled.checked = !!position?.shadow;
     carrier.replaceChildren(); const free = el('option', 'Free ball'); free.value = ''; carrier.append(free);
     for (const player of record.content.items.filter(i => ['home', 'away'].includes(i.kind))) { const option = el('option', pieceName(player) + ' ' + player.label); option.value = player.id; carrier.append(option); }
-    carrier.value = position?.attachedTo || ''; carrierField.hidden = selectedKind !== 'ball'; detach.hidden = !position?.attachedTo;
+    carrier.value = position?.attachedTo || ''; carrierField.hidden = selectedKind !== 'ball';
     const transition = shownTransition(), routeStart = transition?.from.positions.find(p => p.id === selectedItem), routeEnd = transition?.to.positions.find(p => p.id === selectedItem);
-    bendField.hidden = !['home', 'away', 'ball'].includes(selectedKind) || !routeEnd || !!routeStart?.attachedTo && routeStart.attachedTo === routeEnd.attachedTo;
-    routeActions.hidden = bendField.hidden;
-    bend.value = String(routeStart?.curve || 0); bendValue.textContent = routeEnd?.trail?.length ? 'Recorded drag route' : Number(bend.value) === 0 ? 'Straight' : (Number(bend.value) < 0 ? 'Left' : 'Right') + ' bend · ' + Math.abs(Number(bend.value));
+    routeActions.hidden = !['home', 'away', 'ball'].includes(selectedKind) || !routeEnd || !!routeStart?.attachedTo && routeStart.attachedTo === routeEnd.attachedTo;
+    advanced.hidden = carrierField.hidden && routeActions.hidden;
+    pieceLabel.hidden = pieceActions.hidden = !selectedItem;
     zoneControls.hidden = selectedKind !== 'zone';
     if (!zoneControls.hidden) { const zone = record.content.items.find(i => i.id === selectedItem).zone; zoneShape.value = zone.shape; zoneColor.value = zone.color; zoneWidth.value = zone.width; zoneHeight.value = zone.height; zoneOutline.checked=!!zone.outline; }
     if (!currentFrame().arrows?.some(arrow => arrow.id === selectedArrow)) selectedArrow = '';

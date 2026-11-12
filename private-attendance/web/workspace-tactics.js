@@ -122,8 +122,8 @@
       if (['home', 'away'].includes(kind) && color) item.color = color;
       if (kind === 'zone') { item.label = preset.outline ? 'Box' : 'Zone'; item.zone = { shape: preset.shape || 'rect', width: 25, height: 25, color: 'blue', ...(preset.outline ? { outline: true } : {}) }; }
       record.content.items.push(item); const offset = record.content.items.length % 6;
-      const centre = cameraPoint(viewCenter);
-      for (const frame of record.content.frames) { frame.positions.push({ id: item.id, ...(destination || { x: clamp(centre.x / 10 + offset * 2 - 5), y: clamp(centre.y / 6.5 + offset * 2 - 5) }), ...(preset.facing ? {facing:0} : {}), ...(preset.shadow ? {shadow:{length:25,width:20}} : {}) }); if (kind === 'zone') constrainZone(frame, item); }
+      const centre = cameraPoint(viewCenter), { unitX, unitY } = pitchGeometry();
+      for (const frame of record.content.frames) { frame.positions.push({ id: item.id, ...(destination || { x: clamp(centre.x / unitX + offset * 2 - 5), y: clamp(centre.y / unitY + offset * 2 - 5) }), ...(preset.facing ? {facing:0} : {}), ...(preset.shadow ? {shadow:{length:25,width:20}} : {}) }); if (kind === 'zone') constrainZone(frame, item); }
       selectPiece(item.id);
     }, (color ? color[0].toUpperCase() + color.slice(1) + ' player' : kinds[kind]) + ' added.');
   }
@@ -218,7 +218,7 @@
   zoneOutline.addEventListener('change',()=>mutate(()=>{const item=record.content.items.find(i=>i.id===selectedItem);if(!item?.zone)return;if(zoneOutline.checked)item.zone.outline=true;else delete item.zone.outline;},'Zone appearance updated in every phase.'));
   for (const control of [zoneWidth, zoneHeight]) { control.min = '5'; control.max = '90'; control.step = '1'; }
   for (const [control, key] of [[zoneShape, 'shape'], [zoneColor, 'color'], [zoneWidth, 'width'], [zoneHeight, 'height']]) control.addEventListener('change', () => mutate(() => { const item = record.content.items.find(i => i.id === selectedItem); if (!item?.zone) return; item.zone[key] = ['width', 'height'].includes(key) ? Number(control.value) : control.value; for (const f of record.content.frames) constrainZone(f, item); }, 'Zone updated in every phase.'));
-  zoneControls.append(field('Zone shape', zoneShape), field('Zone colour', zoneColor), outlineLabel, field('Zone width', zoneWidth), field('Zone height', zoneHeight), el('p', 'Drag to move. Use the corner handle to resize a box. Shape and size apply to every phase.', 'small'));
+  zoneControls.append(field('Zone shape', zoneShape), field('Zone colour', zoneColor), outlineLabel, field('Zone width', zoneWidth), field('Zone height', zoneHeight), el('p', 'Drag to move. Use the corner handle to resize any shape. Shape and size apply to every phase.', 'small'));
   side.append(field('Selected piece', itemSelect), pieceLabel, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')));
   side.append(zoneControls, selectionHint);
   side.insertBefore(playerColorField, pieceLabel.nextSibling); side.prepend(removeArrow);
@@ -325,12 +325,12 @@
   side.append(arrange);
   editTools.append(modeHint);
   fieldColumn.append(editTools, canvasWrap, sequenceActions);
-  inspector.append(side, phaseEditor);
+  inspector.append(side);
   const written = el('section', '', 'tactics-written'); written.append(field('Activity type', purpose), extras);
   boardLayout.replaceChildren(fieldColumn, topActions, inspector, written);
   const mobileLinks = el('div', '', 'tactics-mobile-links');
   function focusInspector(control) { setPanelHidden(false); control.scrollIntoView({ block: 'center', behavior: 'instant' }); control.focus({ preventScroll: true }); }
-  mobileLinks.append(button('Selected piece', 'tactics-jump-piece', () => focusInspector(itemSelect)), button('Phase notes', 'tactics-jump-notes', () => focusInspector(phaseNotes)));
+  mobileLinks.append(button('Selected piece', 'tactics-jump-piece', () => focusInspector(itemSelect)), button('Phase notes', 'tactics-jump-notes', () => { notesMenu.open = true; placeNotesMenu(); phaseNotes.focus({ preventScroll: true }); }));
   sequenceActions.append(mobileLinks);
   const backField = button('Back to field ↑', 'tactics-back-field', () => { editTools.scrollIntoView({ block: 'start', behavior: 'instant' }); board.focus({ preventScroll: true }); }); backField.className = 'secondary tactics-back-field'; inspector.prepend(backField);
   const camera = select('tactics-camera', [['full','Full field'],['left-half','Left half · side'],['right-half','Right half · side'],['facing-goal','Half · facing goal'],['away-from-goal','Half · away from goal']]);
@@ -350,30 +350,53 @@
   const viewSummary = el('summary', 'View'); viewSummary.setAttribute('aria-label', 'View settings'); viewSummary.title = 'Focus area, guides and movement paths';
   viewMenuBody.append(cameraField, guides, pathLabel); viewMenu.append(viewSummary, viewMenuBody);
   viewMenu.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); viewMenu.open = false; viewMenu.querySelector('summary').focus(); } });
-  cameraTools.append(viewMenu, focusField);
+  const notesMenu = el('details', '', 'tactics-notes-menu'); notesMenu.id = 'tactics-notes-menu';
+  const notesSummary = el('summary', 'Phase notes');
+  notesMenu.append(notesSummary, phaseEditor);
+  function placeNotesMenu() {
+    if (!notesMenu.open) return;
+    const anchor = notesSummary.getBoundingClientRect(), width = Math.min(360, innerWidth - 24);
+    const desired = Math.min(400, phaseEditor.scrollHeight || 360), below = innerHeight - anchor.bottom - 20, above = anchor.top - 20;
+    const opensAbove = below < Math.min(desired, 240) && above > below;
+    const available = Math.max(120, Math.min(innerHeight - 24, opensAbove ? above : below));
+    const top = Math.max(12, opensAbove ? anchor.top - 8 - Math.min(desired, available) : anchor.bottom + 8);
+    phaseEditor.style.left = Math.max(12, Math.min(anchor.left, innerWidth - width - 12)) + 'px';
+    phaseEditor.style.top = top + 'px'; phaseEditor.style.width = width + 'px';
+    phaseEditor.style.maxHeight = Math.min(available, innerHeight - top - 12) + 'px';
+  }
+  notesMenu.addEventListener('toggle', placeNotesMenu);
+  notesMenu.addEventListener('keydown', event => { if (event.key === 'Escape' && notesMenu.open) { event.preventDefault(); event.stopPropagation(); notesMenu.open = false; notesSummary.focus(); } });
+  notesMenu.addEventListener('focusout', event => { if (event.relatedTarget && !notesMenu.contains(event.relatedTarget)) notesMenu.open = false; });
+  document.addEventListener('pointerdown', event => { if (notesMenu.open && !notesMenu.contains(event.target)) notesMenu.open = false; });
+  document.addEventListener('scroll', placeNotesMenu, true);
+  window.addEventListener('resize', placeNotesMenu);
+  cameraTools.append(viewMenu, notesMenu, focusField);
   const deviceControl = select('tactics-device-view', [['auto', 'Fit my device'], ['wide', 'Wide field'], ['tall', 'Upright field']]);
   deviceControl.setAttribute('aria-label', 'Preferred field orientation');
   deviceControl.addEventListener('change', () => { deviceView = deviceControl.value; zoom = 1; draw(); }); cameraTools.prepend(field('Orientation', deviceControl));
   const viewControls = el('div', '', 'tactics-view-controls'); viewControls.setAttribute('aria-label', 'Field view');
   const panControls = el('div', '', 'tactics-pan-controls'); panControls.setAttribute('role', 'group'); panControls.setAttribute('aria-label', 'Move zoomed view');
   const zoomValue = el('output', '100%', 'tactics-zoom-value'); zoomValue.id = 'tactics-zoom-value'; zoomValue.setAttribute('aria-label', 'Field zoom');
+  // Saved coordinates stay normalized; only their display units depend on the pitch.
+  function pitchGeometry(view = record.content.pitch) {
+    const [width, height] = view === 'half' ? [500, 650] : ['facing-goal', 'away-from-goal'].includes(view) ? [650, 500] : [1000, 650];
+    return { width, height, unitX: width / 100, unitY: height / 100, landscape: width >= height };
+  }
   function cameraGeometry() {
-    const half = cameraMode !== 'full', endView = ['facing-goal','away-from-goal'].includes(cameraMode);
-    const crop = half && (!endView || ['full','blank'].includes(record.content.pitch));
-    const x = crop && cameraMode !== 'left-half' ? 500 : 0, width = crop ? 500 : 1000;
-    let angle = cameraMode === 'full' && (deviceView === 'tall' || deviceView === 'auto' && innerWidth < 600 && innerHeight > innerWidth) ? 90 : 0;
-    if (endView) {
-      const toward = cameraMode === 'facing-goal';
-      angle = ['full','blank'].includes(record.content.pitch) ? (toward ? -90 : 90) : record.content.pitch === 'half' ? (toward ? 90 : -90) : (record.content.pitch === 'facing-goal') === toward ? 0 : 180;
-    }
-    const rad = angle * Math.PI / 180, rotate = (px, py) => ({ x: 500 + (px-500)*Math.cos(rad) - (py-325)*Math.sin(rad), y: 325 + (px-500)*Math.sin(rad) + (py-325)*Math.cos(rad) });
-    const corners = [rotate(x,0),rotate(x+width,0),rotate(x,650),rotate(x+width,650)];
+    const pitch = pitchGeometry(), crop = record.content.pitch === 'full' && cameraMode !== 'full';
+    const x = crop && cameraMode !== 'left-half' ? pitch.width / 2 : 0, width = crop ? pitch.width / 2 : pitch.width;
+    const tall = deviceView === 'tall' || deviceView === 'auto' && innerWidth < 600 && innerHeight > innerWidth;
+    let angle = !crop && (tall && pitch.landscape || deviceView === 'wide' && !pitch.landscape) ? 90 : 0;
+    if (crop && ['facing-goal','away-from-goal'].includes(cameraMode)) angle = cameraMode === 'facing-goal' ? -90 : 90;
+    const cx = pitch.width / 2, cy = pitch.height / 2, rad = angle * Math.PI / 180;
+    const rotate = (px, py) => ({ x: cx + (px-cx)*Math.cos(rad) - (py-cy)*Math.sin(rad), y: cy + (px-cx)*Math.sin(rad) + (py-cy)*Math.cos(rad) });
+    const corners = [rotate(x,0),rotate(x+width,0),rotate(x,pitch.height),rotate(x+width,pitch.height)];
     const xs = corners.map(p=>p.x), ys = corners.map(p=>p.y);
     return { x: Math.min(...xs)-22, y: Math.min(...ys)-22, width: Math.max(...xs)-Math.min(...xs)+44, height: Math.max(...ys)-Math.min(...ys)+44, angle };
   }
-  function cameraPoint(p, inverse = true) { const rad = (inverse ? -1 : 1) * cameraGeometry().angle * Math.PI / 180; return { x: 500+(p.x-500)*Math.cos(rad)-(p.y-325)*Math.sin(rad), y: 325+(p.x-500)*Math.sin(rad)+(p.y-325)*Math.cos(rad) }; }
-  function resetCamera() { cameraMode = 'full'; zoom = 1; viewCenter = { x: 500, y: 325 }; }
-  function cameraDelta([x,y]) { const angle = -cameraGeometry().angle * Math.PI / 180; return [(x*10*Math.cos(angle)-y*6.5*Math.sin(angle))/10, (x*10*Math.sin(angle)+y*6.5*Math.cos(angle))/6.5]; }
+  function cameraPoint(p, inverse = true) { const { width, height } = pitchGeometry(), cx = width / 2, cy = height / 2, rad = (inverse ? -1 : 1) * cameraGeometry().angle * Math.PI / 180; return { x: cx+(p.x-cx)*Math.cos(rad)-(p.y-cy)*Math.sin(rad), y: cy+(p.x-cx)*Math.sin(rad)+(p.y-cy)*Math.cos(rad) }; }
+  function resetCamera() { cameraMode = 'full'; zoom = 1; const { width, height } = pitchGeometry(); viewCenter = { x: width / 2, y: height / 2 }; }
+  function cameraDelta([x,y]) { const { unitX, unitY } = pitchGeometry(), angle = -cameraGeometry().angle * Math.PI / 180; return [(x*unitX*Math.cos(angle)-y*unitY*Math.sin(angle))/unitX, (x*unitX*Math.sin(angle)+y*unitY*Math.cos(angle))/unitY]; }
   const viewBounds = () => { const g = cameraGeometry(); return { left: g.x + g.width / 2 / zoom, right: g.x + g.width - g.width / 2 / zoom, top: g.y + g.height / 2 / zoom, bottom: g.y + g.height - g.height / 2 / zoom }; };
   function updateViewControls() {
     const locked = !active() || !loaded || pending, bounds = viewBounds(), fit = zoom === 1, near = (a, b) => Math.abs(a - b) < .001;
@@ -403,7 +426,8 @@
     fieldColumn.dataset.dock = 'top';
   }
   new ResizeObserver(() => { if (active() && loaded) draw(); }).observe(fieldColumn);
-  const guidance = el('details', '', 'tactics-guidance'); guidance.append(el('summary','Field controls'), pathCaption, help); inspector.append(guidance);
+  // Keep the phase description available to assistive tools without another controls panel.
+  pathCaption.hidden = true; canvasWrap.append(pathCaption); board.setAttribute('aria-describedby', pathCaption.id);
   editor.append(boardLayout, recoveryActions);
   mount.append(workbar, editor, library, reuse);
   function editedText() { $('tactics-undo').disabled = !undo.length; $('tactics-redo').disabled = !redo.length; $('tactics-save').disabled = recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id); renderStatus(); notifyDraft(); }
@@ -436,10 +460,19 @@
     const p = frame.positions.find(p => p.id === item.id); if (!p || !item.zone) return;
     p.x = Math.max(item.zone.width / 2, Math.min(100 - item.zone.width / 2, p.x)); p.y = Math.max(item.zone.height / 2, Math.min(100 - item.zone.height / 2, p.y));
   }
-  function resizeBox(id, width, height) {
+  function resizeShape(id, width, height) {
     const item=record.content.items.find(i=>i.id===id);if(!item?.zone)return;
     item.zone.width=Math.max(5,Math.min(90,Math.round(width)));item.zone.height=Math.max(5,Math.min(90,Math.round(height)));
     for(const frame of record.content.frames)constrainZone(frame,item);
+  }
+  function resizeGoal(id, size) {
+    const item = record.content.items.find(i => i.id === id); if (item?.kind !== 'goal') return;
+    item.scale = Math.max(.5, Math.min(4, Math.round(size * 100) / 100));
+  }
+  function goalCorner(item, position) {
+    const screenScale = Math.max(.01, Math.hypot(board.getScreenCTM()?.a || 0, board.getScreenCTM()?.b || 0) || 1);
+    const size = Math.max(.62, .48 / screenScale) * (item.scale || 1), angle = (position.rotation || 0) * Math.PI / 180;
+    return { x: (33 * Math.cos(angle) - 24 * Math.sin(angle)) * size, y: (33 * Math.sin(angle) + 24 * Math.cos(angle)) * size };
   }
   function placePiece(frame, id, destination) {
     const p = frame.positions.find(p => p.id === id); if (!p) return;
@@ -451,13 +484,13 @@
     const index = running || elapsed || frameIndex === 0 ? frameIndex : frameIndex - 1;
     return record.content.frames[index + 1] ? { from: record.content.frames[index], to: record.content.frames[index + 1], index } : null;
   }
-  const routeDistance = (a, b) => Math.hypot(a.x - b.x, (a.y - b.y) * .65);
+  const routeDistance = (a, b, view = record.content.pitch) => { const { unitX, unitY } = pitchGeometry(view); return Math.hypot((a.x - b.x) * unitX, (a.y - b.y) * unitY) / 10; };
   // Reduce hand jitter while retaining the actual route, bounded for saved diagrams.
   function simplifyRoute(points, tolerance = .35) {
     if (points.length <= 2) return points;
-    const a = points[0], b = points.at(-1), dx = b.x - a.x, dy = (b.y - a.y) * .65, length = dx * dx + dy * dy;
+    const { unitX, unitY } = pitchGeometry(), a = points[0], b = points.at(-1), dx = (b.x - a.x) * unitX, dy = (b.y - a.y) * unitY, length = dx * dx + dy * dy;
     let max = tolerance, split = 0;
-    for (let i = 1; i < points.length - 1; i++) { const p = points[i], t = length ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * .65 * dy) / length)) : 0, distance = routeDistance(p, { x: a.x + dx * t, y: a.y + dy / .65 * t }); if (distance > max) { max = distance; split = i; } }
+    for (let i = 1; i < points.length - 1; i++) { const p = points[i], t = length ? Math.max(0, Math.min(1, ((p.x - a.x) * unitX * dx + (p.y - a.y) * unitY * dy) / length)) : 0, distance = routeDistance(p, { x: a.x + dx / unitX * t, y: a.y + dy / unitY * t }); if (distance > max) { max = distance; split = i; } }
     return split ? [...simplifyRoute(points.slice(0, split + 1), tolerance).slice(0, -1), ...simplifyRoute(points.slice(split), tolerance)] : [a, b];
   }
   function boundedRoute(points, limit = 34) { let reduced = simplifyRoute(points), tolerance = .35; while (reduced.length > limit) { tolerance *= 1.5; reduced = simplifyRoute(points, tolerance); } return reduced; }
@@ -468,13 +501,13 @@
     if (frameIndex) delete record.content.frames[frameIndex - 1].positions.find(p => p.id === id).curve;
   }
   // Paths and playback use one route, including captured drags and legacy bends.
-  function curveControl(start, end, bend = 0) {
-    const dx = (end.x - start.x) * 10, dy = (end.y - start.y) * 6.5, length = Math.hypot(dx, dy) || 1;
-    return { x: Math.max(0, Math.min(1000, (start.x + end.x) * 5 - dy / length * bend * 4)), y: Math.max(0, Math.min(650, (start.y + end.y) * 3.25 + dx / length * bend * 4)) };
+  function curveControl(start, end, bend = 0, view = record.content.pitch) {
+    const { width, height, unitX, unitY } = pitchGeometry(view), dx = (end.x - start.x) * unitX, dy = (end.y - start.y) * unitY, length = Math.hypot(dx, dy) || 1;
+    return { x: Math.max(0, Math.min(width, (start.x + end.x) * unitX / 2 - dy / length * bend * 4)), y: Math.max(0, Math.min(height, (start.y + end.y) * unitY / 2 + dx / length * bend * 4)) };
   }
-  function routePoints(from, to, id) {
+  function routePoints(from, to, id, view = record.content.pitch) {
     const p = from.positions.find(p => p.id === id), q = to.positions.find(p => p.id === id);
-    if (p.attachedTo && p.attachedTo === q.attachedTo) return routePoints(from, to, p.attachedTo).map(possessionPoint);
+    if (p.attachedTo && p.attachedTo === q.attachedTo) return routePoints(from, to, p.attachedTo, view).map(possessionPoint);
     const start = positionIn(from, id), end = positionIn(to, id);
     if (q.trail?.length) {
       // Smooth corners without overshoot; paths and playback use the same route.
@@ -483,44 +516,45 @@
       return [...smooth, end];
     }
     if (!p.curve) return [start, end];
-    const c = curveControl(start, end, p.curve);
-    return Array.from({ length: 25 }, (_, i) => { const t = i / 24, u = 1 - t; return { x: u * u * start.x + 2 * u * t * c.x / 10 + t * t * end.x, y: u * u * start.y + 2 * u * t * c.y / 6.5 + t * t * end.y }; });
+    const c = curveControl(start, end, p.curve, view), { unitX, unitY } = pitchGeometry(view);
+    return Array.from({ length: 25 }, (_, i) => { const t = i / 24, u = 1 - t; return { x: u * u * start.x + 2 * u * t * c.x / unitX + t * t * end.x, y: u * u * start.y + 2 * u * t * c.y / unitY + t * t * end.y }; });
   }
-  function motionPosition(from, to, id, t) {
+  function motionPosition(from, to, id, t, view = record.content.pitch) {
     const p = from.positions.find(p => p.id === id), q = to.positions.find(p => p.id === id);
-    if (p.attachedTo && p.attachedTo === q.attachedTo) return { id, ...possessionPoint(motionPosition(from, to, p.attachedTo, t)) };
-    const points = routePoints(from, to, id), lengths = points.slice(1).map((p, i) => routeDistance(points[i], p));
+    if (p.attachedTo && p.attachedTo === q.attachedTo) return { id, ...possessionPoint(motionPosition(from, to, p.attachedTo, t, view)) };
+    const points = routePoints(from, to, id, view), lengths = points.slice(1).map((p, i) => routeDistance(points[i], p, view));
     let remaining = lengths.reduce((sum, v) => sum + v, 0) * t;
     for (let i = 0; i < lengths.length; i++) { if (remaining <= lengths[i] || i === lengths.length - 1) { const fraction = lengths[i] ? remaining / lengths[i] : 1, a = points[i], b = points[i + 1]; return { id, x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction }; } remaining -= lengths[i]; }
   }
-  function motionPositions(from, to, t) {
-    return from.positions.map(p => { const q = to.positions.find(v => v.id === p.id), result = { ...(t >= 1 ? q : p), ...motionPosition(from, to, p.id, t) }; delete result.attachedTo;
+  function motionPositions(from, to, t, view = record.content.pitch) {
+    return from.positions.map(p => { const q = to.positions.find(v => v.id === p.id), result = { ...(t >= 1 ? q : p), ...motionPosition(from, to, p.id, t, view) }; delete result.attachedTo;
       if (Number.isFinite(p.facing) && Number.isFinite(q.facing)) result.facing = (p.facing + ((q.facing - p.facing + 540) % 360 - 180) * t + 360) % 360;
       return result;
     });
   }
-  function directionTo(from, to) { return (Math.atan2((to.x - from.x) * 10, -(to.y - from.y) * 6.5) * 180 / Math.PI + 360) % 360; }
-  function nearestBall(p, frame, items) {
+  function directionTo(from, to, view = record.content.pitch) { const { unitX, unitY } = pitchGeometry(view); return (Math.atan2((to.x - from.x) * unitX, -(to.y - from.y) * unitY) * 180 / Math.PI + 360) % 360; }
+  function nearestBall(p, frame, items, view = record.content.pitch) {
     if (!p) return null;
-    return items.filter(i => i.kind === 'ball').map(i => positionIn(frame, i.id)).filter(ball => routeDistance(p, ball) > .1).sort((a, b) => routeDistance(p, a) - routeDistance(p, b))[0] || null;
+    return items.filter(i => i.kind === 'ball').map(i => positionIn(frame, i.id)).filter(ball => routeDistance(p, ball, view) > .1).sort((a, b) => routeDistance(p, a, view) - routeDistance(p, b, view))[0] || null;
   }
   function playerArtwork(kind, position, color) {
     if (!['home', 'away'].includes(kind) || !Number.isFinite(position?.facing)) return pieceArtwork(kind, color);
     const art = svg('g', { 'data-symbol': kind, 'data-facing': position.facing, transform: 'rotate(' + position.facing + ')', 'aria-hidden': 'true' });
-    art.append(svg('path', { d: 'M0-28 L20-4 L16 20 L0 14 L-16 20 L-20-4Z', fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 3 }), svg('circle', { cy: -10, r: 7, fill: kind === 'home' ? '#b8d2dd' : '#f1dfb9', stroke: '#253b46', 'stroke-width': 2 }), svg('path', { d: 'M0-43 L12-27 H5 V-20 H-5 V-27 H-12Z', fill: '#fffdf7', stroke: '#20382d', 'stroke-width': 2, 'data-body-direction': '', 'pointer-events':'none' }));
+    // A top-down head and shoulder line show body angle; the chevron marks the front.
+    art.append(svg('path', { d: 'M-8-11 Q-17-11-23-3 L-21 8 L-13 6 L-12 19 Q0 24 12 19 L13 6 L21 8 L23-3 Q17-11 8-11Z', fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 2.5, 'stroke-linejoin':'round' }), svg('circle', { cy: -12, r: 8, fill: '#f1e4cf', stroke: '#293b31', 'stroke-width': 2 }), svg('path', { d:'M-3-19 L0-24 L3-19Z', fill:'#293b31', 'data-player-front':'' }), svg('path', { d: 'M-9-30 L0-37 L9-30', fill:'none', stroke:'#fffdf7', 'stroke-width':5, 'stroke-linecap':'round', 'stroke-linejoin':'round', 'pointer-events':'none' }), svg('path', { d: 'M-9-30 L0-37 L9-30', fill:'none', stroke:'#20382d', 'stroke-width':2.5, 'stroke-linecap':'round', 'stroke-linejoin':'round', 'data-body-direction':'', 'pointer-events':'none' }));
     return art;
   }
-  function visionArtwork(item, frame) {
+  function visionArtwork(item, frame, view = record.content.pitch) {
     const p = frame.positions.find(v => v.id === item.id); if (!p?.vision || !['home', 'away'].includes(item.kind)) return null;
-    const radius = p.vision.length * 10, half = p.vision.angle * Math.PI / 360, x = radius * Math.sin(half), y = -radius * Math.cos(half);
-    const group = svg('svg', { width: 1000, height: 650, viewBox: '0 0 1000 650', overflow: 'hidden', 'pointer-events': 'none', 'data-player-vision': item.id });
-    group.append(svg('path', { d: `M0 0 L${-x} ${y} A${radius} ${radius} 0 0 1 ${x} ${y} Z`, transform: `translate(${p.x*10} ${p.y*6.5}) rotate(${p.facing || 0})`, fill: playerColors[playerColor(item)], 'fill-opacity': .08, stroke: '#edf1dd', 'stroke-opacity': .35, 'stroke-width': 1 })); return group;
+    const { width, height, unitX, unitY } = pitchGeometry(view), radius = p.vision.length * unitX, half = p.vision.angle * Math.PI / 360, x = radius * Math.sin(half), y = -radius * Math.cos(half);
+    const group = svg('svg', { width, height, viewBox: '0 0 ' + width + ' ' + height, overflow: 'hidden', 'pointer-events': 'none', 'data-player-vision': item.id });
+    group.append(svg('path', { d: `M0 0 L${-x} ${y} A${radius} ${radius} 0 0 1 ${x} ${y} Z`, transform: `translate(${p.x*unitX} ${p.y*unitY}) rotate(${p.facing || 0})`, fill: playerColors[playerColor(item)], 'fill-opacity': .08, stroke: '#edf1dd', 'stroke-opacity': .35, 'stroke-width': 1 })); return group;
   }
-  function shadowArtwork(item, frame, items) {
+  function shadowArtwork(item, frame, items, view = record.content.pitch) {
     const p = frame.positions.find(v => v.id === item.id); if (!p?.shadow || !['home', 'away'].includes(item.kind)) return null;
-    const at = positionIn(frame, item.id), ball = nearestBall(at, frame, items), angle = ball ? directionTo(at, ball) : p.facing || 0;
-    const clipped = svg('svg', { x: 0, y: 0, width: 1000, height: 650, viewBox: '0 0 1000 650', overflow: 'hidden', 'pointer-events': 'none', 'data-cover-shadow': item.id, 'aria-hidden': 'true' });
-    clipped.append(svg('path', { d: 'M0 0 L' + (-p.shadow.width * 5) + ' ' + p.shadow.length * 10 + ' L' + p.shadow.width * 5 + ' ' + p.shadow.length * 10 + 'Z', transform: 'translate(' + at.x * 10 + ' ' + at.y * 6.5 + ') rotate(' + angle + ')', fill: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'fill-opacity': .10, stroke: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'stroke-opacity': .22, 'stroke-width': 1 }));
+    const { width, height, unitX, unitY } = pitchGeometry(view), at = positionIn(frame, item.id), ball = nearestBall(at, frame, items, view), angle = ball ? directionTo(at, ball, view) : p.facing || 0;
+    const clipped = svg('svg', { x: 0, y: 0, width, height, viewBox: '0 0 ' + width + ' ' + height, overflow: 'hidden', 'pointer-events': 'none', 'data-cover-shadow': item.id, 'aria-hidden': 'true' });
+    clipped.append(svg('path', { d: 'M0 0 L' + (-p.shadow.width * unitX / 2) + ' ' + p.shadow.length * unitX + ' L' + p.shadow.width * unitX / 2 + ' ' + p.shadow.length * unitX + 'Z', transform: 'translate(' + at.x * unitX + ' ' + at.y * unitY + ') rotate(' + angle + ')', fill: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'fill-opacity': .10, stroke: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'stroke-opacity': .22, 'stroke-width': 1 }));
     return clipped;
   }
   function pieceArtwork(kind, color) {
@@ -537,9 +571,9 @@
     } else if (kind === 'zone') art.append(svg('rect', { x: -29, y: -22, width: 58, height: 44, rx: 3, fill: '#668ab32b', stroke: '#53789d', 'stroke-width': 3, 'stroke-dasharray': '5 4' }));
     return art;
   }
-  function arrowArtwork(arrow, interactive = false) {
-    const x1 = arrow.x1 * 10, y1 = arrow.y1 * 6.5, x2 = arrow.x2 * 10, y2 = arrow.y2 * 6.5;
-    const points = [{x:x1,y:y1}, ...(arrow.points || []).map(p=>({x:p.x*10,y:p.y*6.5})), {x:x2,y:y2}], previous = points.slice(0,-1).reverse().find(p=>Math.hypot(x2-p.x,y2-p.y)>.01) || points[0];
+  function arrowArtwork(arrow, interactive = false, view = record.content.pitch) {
+    const { unitX, unitY } = pitchGeometry(view), x1 = arrow.x1 * unitX, y1 = arrow.y1 * unitY, x2 = arrow.x2 * unitX, y2 = arrow.y2 * unitY;
+    const points = [{x:x1,y:y1}, ...(arrow.points || []).map(p=>({x:p.x*unitX,y:p.y*unitY})), {x:x2,y:y2}], previous = points.slice(0,-1).reverse().find(p=>Math.hypot(x2-p.x,y2-p.y)>.01) || points[0];
     const angle = Math.atan2(y2 - previous.y, x2 - previous.x), color = playerColors[arrow.color] || '#38434a';
     const length = points.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);
     const scale = interactive ? Math.max(.1, board.getScreenCTM()?.a || 1) : 1, head = Math.min(18 / scale, length * .45);
@@ -558,9 +592,9 @@
     for(const end of ['1','2']){arrow['x'+end]=original['x'+end]+dx;arrow['y'+end]=original['y'+end]+dy;}
     if(original.points) arrow.points=original.points.map(p=>({x:p.x+dx,y:p.y+dy}));
   }
-  function zoneArtwork(item, p, preview = false) {
-    const width = item.zone.width * 10, height = item.zone.height * 6.5, color = { blue: '#426f9b', gold: '#956b20', green: '#397561' }[item.zone.color];
-    const group = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ')', 'data-zone': item.id });
+  function zoneArtwork(item, p, preview = false, view = record.content.pitch) {
+    const { unitX, unitY } = pitchGeometry(view), width = item.zone.width * unitX, height = item.zone.height * unitY, color = { blue: '#426f9b', gold: '#956b20', green: '#397561' }[item.zone.color];
+    const group = svg('g', { transform: 'translate(' + p.x * unitX + ' ' + p.y * unitY + ')', 'data-zone': item.id });
     if (!preview) { group.dataset.tacticsItem = item.id; group.setAttribute('role', 'button'); group.setAttribute('tabindex', editable() ? '0' : '-1'); group.setAttribute('aria-label', 'Zone ' + item.label); group.setAttribute('aria-pressed', String(selection().includes(item.id))); }
     const attrs = { fill: color, 'fill-opacity': item.zone.outline ? 0 : .13, stroke: color, 'stroke-width': selectedItem === item.id && !preview ? 3 : 2, 'stroke-dasharray': item.zone.outline ? 'none' : '7 5', 'vector-effect': 'non-scaling-stroke' };
     group.append(['triangle', 'diamond'].includes(item.zone.shape) ? svg('polygon', { points: item.zone.shape === 'triangle' ? `0,${-height/2} ${width/2},${height/2} ${-width/2},${height/2}` : `0,${-height/2} ${width/2},0 0,${height/2} ${-width/2},0`, ...attrs }) : item.zone.shape === 'ellipse' ? svg('ellipse', { rx: width / 2, ry: height / 2, ...attrs }) : svg('rect', { x: -width / 2, y: -height / 2, width, height, rx: 5, ...attrs }));
@@ -581,15 +615,15 @@
     let remaining = Math.max(0, Math.min(total, Number(seconds) || 0)), index = 0;
     while (index < content.frames.length - 1 && remaining >= content.frames[index].duration) remaining -= content.frames[index++].duration;
     const frame = content.frames[index], next = content.frames[index + 1];
-    const positions = next && remaining > 0 ? motionPositions(frame, next, remaining / frame.duration) : frame.positions;
+    const positions = next && remaining > 0 ? motionPositions(frame, next, remaining / frame.duration, content.pitch) : frame.positions;
     return { image: previewFrame({ ...frame, positions }, content.items, content.pitch, true), index, total };
   }
   function previewFrame(frame, items = record.content.items, view = record.content.pitch, labelled = false) {
-    const thumbnail = svg('svg', { viewBox: '0 0 1000 650', 'aria-hidden': 'true' });
+    const { width, height, unitX, unitY } = pitchGeometry(view), thumbnail = svg('svg', { viewBox: '0 0 ' + width + ' ' + height, 'aria-hidden': 'true' });
     thumbnail.append(fieldArtwork(view));
-    for (const item of items) { const shadow = shadowArtwork(item, frame, items); if (shadow) thumbnail.append(shadow); const vision = visionArtwork(item, frame); if (vision) thumbnail.append(vision); }
-    for (const item of [...items].sort((a, b) => pieceLayer(a) - pieceLayer(b))) { const p = positionIn(frame, item.id), settings = frame.positions.find(v => v.id === item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true)); else { const symbol = svg('g', { transform: 'translate(' + p.x * 10 + ' ' + p.y * 6.5 + ') scale(1)', 'data-preview-piece': item.id }); const graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ')'); symbol.append(graphic); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: playerInk(item) }, item.label)); thumbnail.append(symbol); } }
-    for (const arrow of frame.arrows || []) thumbnail.append(arrowArtwork(arrow));
+    for (const item of items) { const shadow = shadowArtwork(item, frame, items, view); if (shadow) thumbnail.append(shadow); const vision = visionArtwork(item, frame, view); if (vision) thumbnail.append(vision); }
+    for (const item of [...items].sort((a, b) => pieceLayer(a) - pieceLayer(b))) { const p = positionIn(frame, item.id), settings = frame.positions.find(v => v.id === item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true, view)); else { const symbol = svg('g', { transform: 'translate(' + p.x * unitX + ' ' + p.y * unitY + ') scale(1)', 'data-preview-piece': item.id }); const graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ') scale(' + (item.scale || 1) + ')'); symbol.append(graphic); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: playerInk(item) }, item.label)); thumbnail.append(symbol); } }
+    for (const arrow of frame.arrows || []) thumbnail.append(arrowArtwork(arrow, false, view));
     return thumbnail;
   }
   function renderReuseControls() {
@@ -726,17 +760,18 @@
     renderStatus(); draw(); renderPlayback();
   }
   function fieldArtwork(view) {
+    const { width, height } = pitchGeometry(view), vertical = ['facing-goal', 'away-from-goal'].includes(view);
     const art = svg('g', { 'data-field-view': view, 'pointer-events': 'none' });
-    art.append(svg('rect', { width: 1000, height: 650, fill: '#abc69d' }));
-    for (let i = 0; i < 10; i += 2) art.append(svg('rect', { x: i * 100, width: 100, height: 650, fill: '#9db98e' }));
+    art.append(svg('rect', { width, height, fill: '#abc69d' }));
+    for (let at = 0; at < (vertical ? height : width); at += 200) art.append(svg('rect', { x: vertical ? 0 : at, y: vertical ? at : 0, width: vertical ? width : Math.min(100, width - at), height: vertical ? Math.min(100, height - at) : height, fill: '#9db98e' }));
     const lines = svg('g', { fill: 'none', stroke: '#f0f5e8', 'stroke-width': 2.5, 'pointer-events': 'none' });
-    lines.append(svg('rect', { x: 25, y: 25, width: 950, height: 600, rx: 2, 'data-field-boundary': 'true' }));
+    lines.append(svg('rect', { x: 25, y: 25, width: width - 50, height: height - 50, rx: 2, 'data-field-boundary': 'true' }));
     if (view !== 'blank') {
       if (view === 'full') lines.append(svg('line', { x1: 500, y1: 25, x2: 500, y2: 625 }), svg('circle', { cx: 500, cy: 325, r: 80 }), svg('circle', { cx: 500, cy: 325, r: 3, fill: '#f0f5e8' }), svg('rect', { x: 25, y: 175, width: 150, height: 300 }), svg('rect', { x: 825, y: 175, width: 150, height: 300 }), svg('rect', { x: 25, y: 250, width: 55, height: 150 }), svg('rect', { x: 920, y: 250, width: 55, height: 150 }));
-      else if (view === 'half') lines.append(svg('rect', { x: 25, y: 145, width: 220, height: 360 }), svg('rect', { x: 25, y: 235, width: 85, height: 180 }), svg('path', { d: 'M 975 245 A80 80 0 0 0 975 405' }));
+      else if (view === 'half') lines.append(svg('rect', { x: 25, y: 175, width: 150, height: 300 }), svg('rect', { x: 25, y: 250, width: 55, height: 150 }), svg('path', { d: 'M 475 245 A80 80 0 0 0 475 405' }));
       else {
-        const end = svg('g', { 'data-field-goal': view === 'facing-goal' ? 'top' : 'bottom', transform: view === 'away-from-goal' ? 'translate(0 650) scale(1 -1)' : '' });
-        end.append(svg('rect', { x: 280, y: 25, width: 440, height: 200 }), svg('rect', { x: 390, y: 25, width: 220, height: 75 }), svg('circle', { cx: 500, cy: 180, r: 3, fill: '#f0f5e8' }), svg('path', { d: 'M434 225 A80 80 0 0 0 566 225 M420 625 A80 80 0 0 1 580 625' }), svg('rect', { x: 440, y: 7, width: 120, height: 18, fill: '#f5f7ef', stroke: '#677b67' }), svg('path', { d: 'M460 7 V25 M480 7 V25 M500 7 V25 M520 7 V25 M540 7 V25 M440 16 H560', 'stroke-width': 1 }));
+        const end = svg('g', { 'data-field-goal': view === 'facing-goal' ? 'top' : 'bottom', transform: view === 'away-from-goal' ? 'translate(0 500) scale(1 -1)' : '' });
+        end.append(svg('rect', { x: 175, y: 25, width: 300, height: 150 }), svg('rect', { x: 250, y: 25, width: 150, height: 55 }), svg('circle', { cx: 325, cy: 125, r: 3, fill: '#f0f5e8' }), svg('path', { d: 'M263 175 A80 80 0 0 0 387 175 M245 475 A80 80 0 0 1 405 475' }), svg('rect', { x: 265, y: 7, width: 120, height: 18, fill: '#f5f7ef', stroke: '#677b67' }), svg('path', { d: 'M285 7 V25 M305 7 V25 M325 7 V25 M345 7 V25 M365 7 V25 M265 16 H385', 'stroke-width': 1 }));
         lines.append(end);
       }
     }
@@ -746,31 +781,35 @@
   function draw() {
     placeFieldDock();
     if (record.content.pitch !== 'full' && cameraMode !== 'full') resetCamera();
-    const geometry = cameraGeometry(), bounds = viewBounds();
+    const geometry = cameraGeometry(), bounds = viewBounds(), { width, height, unitX, unitY } = pitchGeometry();
     viewCenter = { x: Math.max(bounds.left, Math.min(bounds.right, viewCenter.x)), y: Math.max(bounds.top, Math.min(bounds.bottom, viewCenter.y)) };
     updateViewControls();
     board.setAttribute('viewBox', [viewCenter.x - geometry.width / 2 / zoom, viewCenter.y - geometry.height / 2 / zoom, geometry.width / zoom, geometry.height / zoom].join(' '));
-    const fieldHeight = Math.max(220, innerHeight - (canvasWrap.getBoundingClientRect().top + (board.closest('#library-form')?.scrollTop || 0)) - 86);
+    const scrollContainer = board.closest('#library-form') || board.closest('.planner-drawer-content');
+    const fieldTop = canvasWrap.getBoundingClientRect().top + (scrollContainer?.scrollTop || window.scrollY);
+    const footerHeight = sequenceActions.getBoundingClientRect().height || 44;
+    const fieldHeight = Math.max(180, innerHeight - (innerWidth >= 1000 ? fieldTop : 150) - footerHeight - 20);
+    boardLayout.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
     fieldColumn.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
     board.closest('#library-form')?.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
     boardLayout.dataset.upright = String(geometry.height > geometry.width); board.closest('#library-form')?.setAttribute('data-upright', String(geometry.height > geometry.width)); board.dataset.camera = cameraMode; board.style.setProperty('--field-height', fieldHeight + 'px'); board.style.setProperty('--field-ratio', geometry.width + ' / ' + geometry.height); board.dataset.orientation = geometry.height > geometry.width ? 'tall' : 'wide';
     board.replaceChildren();
-    scene = svg('g', { 'data-camera-scene': '', transform: 'rotate(' + geometry.angle + ' 500 325)' });
+    scene = svg('g', { 'data-camera-scene': '', transform: 'rotate(' + geometry.angle + ' ' + width / 2 + ' ' + height / 2 + ')' });
     board.append(scene); scene.append(fieldArtwork(record.content.pitch));
     if (showLanes && record.content.pitch !== 'blank') {
       const lanes = svg('g', { 'data-tactics-lanes': '', 'pointer-events': 'none' });
       const vertical = ['facing-goal', 'away-from-goal'].includes(record.content.pitch);
-      const labelX = record.content.pitch === 'full' && cameraMode !== 'full' ? (cameraMode === 'left-half' ? 250 : 750) : 500;
+      const labelX = record.content.pitch === 'full' && cameraMode !== 'full' ? (cameraMode === 'left-half' ? 250 : 750) : width / 2, laneWidth = (width - 50) / 5, laneHeight = (height - 50) / 5;
       ['Wide', 'Half-space', 'Middle', 'Half-space', 'Wide'].forEach((name, index) => {
-        const x = vertical ? 25 + index * 190 : 25, y = vertical ? 25 : 25 + index * 120;
-        lanes.append(svg('rect', { x, y, width: vertical ? 190 : 950, height: vertical ? 600 : 120, fill: index % 2 ? '#e8d8a8' : '#d8e6ec', 'fill-opacity': .18, 'data-lane': name }));
-        if (index) lanes.append(svg('path', { d: vertical ? 'M' + x + ' 25 V625' : 'M25 ' + y + ' H975', stroke: '#f3f5df', 'stroke-width': 1.5, 'stroke-dasharray': '8 6', opacity: .85 }));
-        const tx = vertical ? x + 95 : labelX, ty = vertical ? 325 : y + 60;
+        const x = vertical ? 25 + index * laneWidth : 25, y = vertical ? 25 : 25 + index * laneHeight;
+        lanes.append(svg('rect', { x, y, width: vertical ? laneWidth : width - 50, height: vertical ? height - 50 : laneHeight, fill: index % 2 ? '#e8d8a8' : '#d8e6ec', 'fill-opacity': .18, 'data-lane': name }));
+        if (index) lanes.append(svg('path', { d: vertical ? 'M' + x + ' 25 V' + (height - 25) : 'M25 ' + y + ' H' + (width - 25), stroke: '#f3f5df', 'stroke-width': 1.5, 'stroke-dasharray': '8 6', opacity: .85 }));
+        const tx = vertical ? x + laneWidth / 2 : labelX, ty = vertical ? height / 2 : y + laneHeight / 2;
         lanes.append(svg('text', { x: tx, y: ty, transform: 'rotate(' + -geometry.angle + ' ' + tx + ' ' + ty + ')', 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': 14, 'font-weight': 600, fill: '#293e32', stroke: '#cbdcbb', 'stroke-width': 3, 'paint-order': 'stroke' }, name));
       });
       scene.append(lanes);
     }
-    if (showGrid) { const guides = svg('g', { 'data-tactics-grid': '', fill:'none', stroke:'#f8f3d6', 'stroke-width':1.5, 'stroke-dasharray':'9 7', opacity:.7, 'pointer-events':'none' }); for (const fraction of [1/3,2/3]) guides.append(svg('path',{d:'M'+(25+950*fraction)+' 25 V625 M25 '+(25+600*fraction)+' H975'})); scene.append(guides); }
+    if (showGrid) { const guides = svg('g', { 'data-tactics-grid': '', fill:'none', stroke:'#f8f3d6', 'stroke-width':1.5, 'stroke-dasharray':'9 7', opacity:.7, 'pointer-events':'none' }); for (const fraction of [1/3,2/3]) guides.append(svg('path',{d:'M'+(25+(width-50)*fraction)+' 25 V'+(height-25)+' M25 '+(25+(height-50)*fraction)+' H'+(width-25)})); scene.append(guides); }
     for (const item of record.content.items.filter(i => i.kind === 'zone')) { const p = renderedPositions?.find(p => p.id === item.id) || positionIn(currentFrame(), item.id); scene.append(zoneArtwork(item, p)); }
     const visibleFrame = renderedPositions ? { ...currentFrame(), positions: renderedPositions } : currentFrame();
     for (const item of record.content.items) { const shadow = shadowArtwork(item, visibleFrame, record.content.items); if (shadow) scene.append(shadow); const vision = visionArtwork(item, visibleFrame); if (vision) scene.append(vision); }
@@ -786,7 +825,7 @@
         const points = routePoints(from, to, item.id), length = points.slice(1).reduce((sum, p, i) => sum + routeDistance(points[i], p), 0); if (length < .3) continue;
         const scale = Math.max(.01, board.getScreenCTM()?.a || 1);
         const color = item.kind === 'ball' ? 'ball' : playerColor(item);
-        scene.append(svg('path', { d: points.map((p, i) => (i ? 'L ' : 'M ') + p.x * 10 + ' ' + p.y * 6.5).join(' '), 'data-tactics-path': item.id, fill: 'none', stroke: color === 'ball' ? '#303b42' : color === 'white' ? '#68747b' : playerColors[color], opacity: selectedItem && !selection().includes(item.id) ? .28 : 1, 'stroke-width': 2.5 / scale, 'stroke-dasharray': item.kind === 'ball' ? 'none' : (7 / scale) + ' ' + (5 / scale), 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'marker-end': length * 10 * scale > 35 ? 'url(#tactics-arrow-' + color + ')' : 'none', 'pointer-events': 'none' }));
+        scene.append(svg('path', { d: points.map((p, i) => (i ? 'L ' : 'M ') + p.x * unitX + ' ' + p.y * unitY).join(' '), 'data-tactics-path': item.id, fill: 'none', stroke: color === 'ball' ? '#303b42' : color === 'white' ? '#68747b' : playerColors[color], opacity: selectedItem && !selection().includes(item.id) ? .28 : 1, 'stroke-width': 2.5 / scale, 'stroke-dasharray': item.kind === 'ball' ? 'none' : (7 / scale) + ' ' + (5 / scale), 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'marker-end': length * 10 * scale > 35 ? 'url(#tactics-arrow-' + color + ')' : 'none', 'pointer-events': 'none' }));
       }
     }
     drawRouteHandles(transition);
@@ -794,17 +833,17 @@
     for (const item of [...record.content.items].sort((a,b)=>pieceLayer(a)-pieceLayer(b)||Number(selection().includes(a.id))-Number(selection().includes(b.id)))) {
       if (item.kind === 'zone') continue;
       const p = renderedPositions ? positions.find(point => point.id === item.id) : positionIn(currentFrame(), item.id); if (!p) continue;
-      const piece = svg('g', { transform: 'translate(' + (p.x * 10) + ' ' + (p.y * 6.5) + ')', 'data-tactics-item': item.id, role: 'button', tabindex: editable() ? '0' : '-1', 'aria-label': pieceName(item) + (item.label ? ' ' + item.label : '') + ', position ' + Math.round(p.x) + ', ' + Math.round(p.y), 'aria-pressed': String(selection().includes(item.id)), 'aria-disabled': String(!editable()) });
+      const piece = svg('g', { transform: 'translate(' + (p.x * unitX) + ' ' + (p.y * unitY) + ')', 'data-tactics-item': item.id, role: 'button', tabindex: editable() ? '0' : '-1', 'aria-label': pieceName(item) + (item.label ? ' ' + item.label : '') + ', position ' + Math.round(p.x) + ', ' + Math.round(p.y), 'aria-pressed': String(selection().includes(item.id)), 'aria-disabled': String(!editable()) });
       const screenScale = Math.max(.01, board.getScreenCTM()?.a || 1), artScale = Math.max(.62, .48 / screenScale);
       const art = svg('g', { class: 'tactics-piece-art', transform: 'scale(' + artScale + ')' });
       const hitRadius = Math.max(26, 22 / screenScale / artScale);
       piece.append(art); art.append(svg('circle', { r: hitRadius, fill: 'transparent', class: 'tactics-hit' }));
       if (selection().includes(item.id)) art.append(svg('circle', { r: 28, fill: 'none', stroke: '#152d42', 'stroke-width': 3, 'stroke-dasharray': '4 3', 'pointer-events': 'none' }));
-      const settings = visibleFrame.positions.find(v => v.id === item.id), graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ')'); else if (item.kind === 'cone' || ['home','away'].includes(item.kind) && !Number.isFinite(settings.facing)) graphic.setAttribute('transform','rotate('+(-geometry.angle)+')'); art.append(graphic);
+      const settings = visibleFrame.positions.find(v => v.id === item.id), graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ') scale(' + (item.scale || 1) + ')'); else if (item.kind === 'cone' || ['home','away'].includes(item.kind) && !Number.isFinite(settings.facing)) graphic.setAttribute('transform','rotate('+(-geometry.angle)+')'); art.append(graphic);
       if (['home', 'away'].includes(item.kind) && currentFrame().positions.some(v => v.attachedTo === item.id)) art.append(svg('circle', { cx: 22, cy: -23, r: 7, fill: '#fffdf7', stroke: '#203742', 'stroke-width': 2, 'data-possession': item.id }));
       if (item.label) {
         const inside = ['home', 'away'].includes(item.kind) && item.label.length <= 3, width = Math.max(34, item.label.length * 8 + 12);
-        const at = cameraPoint({ x:p.x*10, y:p.y*6.5 }, false), view = board.viewBox.baseVal;
+        const at = cameraPoint({ x:p.x*unitX, y:p.y*unitY }, false), view = board.viewBox.baseVal;
         const labelX = inside ? 0 : Math.max((view.x+4-at.x)/artScale+width/2, Math.min(0,(view.x+view.width-4-at.x)/artScale-width/2));
         const labelY = at.y + 47 * artScale > view.y+view.height-4 ? -47 : 27;
         const caption = svg('g', { transform:'rotate('+(-geometry.angle)+')', 'pointer-events':'none' });
@@ -818,26 +857,46 @@
     const facingPosition = visibleFrame.positions.find(p => p.id === selectedItem);
     if (editable() && !renderedPositions && selection().length === 1 && facingPosition) {
       const p=facingPosition, scale=Math.max(.01,Math.hypot(board.getScreenCTM()?.a||0,board.getScreenCTM()?.b||0)||1);
-      const handle=(kind,dx,dy,angle,label)=>{const a=angle*Math.PI/180,x=Math.max(22,Math.min(978,p.x*10+dx*Math.cos(a)-dy*Math.sin(a))),y=Math.max(22,Math.min(628,p.y*6.5+dx*Math.sin(a)+dy*Math.cos(a))),g=svg('g',{'data-overlay-control':kind});
+      const handle=(kind,dx,dy,angle,label)=>{const a=angle*Math.PI/180,x=Math.max(22,Math.min(width-22,p.x*unitX+dx*Math.cos(a)-dy*Math.sin(a))),y=Math.max(22,Math.min(height-22,p.y*unitY+dx*Math.sin(a)+dy*Math.cos(a))),g=svg('g',{'data-overlay-control':kind});
         g.append(svg('circle',{cx:x,cy:y,r:22/scale,fill:'transparent','data-overlay-handle':kind}),svg('path',{d:'M0 -8 L8 0 L0 8 L-8 0Z',transform:'translate('+x+' '+y+') scale('+(1/scale)+')',fill:'#fffdf7',stroke:'#253b46','stroke-width':2,'data-overlay-handle':kind,role:'slider',tabindex:0,'aria-label':label,'aria-valuemin':5,'aria-valuemax':60,'aria-valuenow':kind==='vision'?p.vision.length:p.shadow.length}));scene.append(g);};
-      if(p.vision)handle('vision',0,-p.vision.length*10,p.facing||0,'View distance. Drag or use arrow keys to resize.');
-      if(p.shadow){const ball=nearestBall(p,visibleFrame,record.content.items);handle('shadow',p.shadow.width*5,p.shadow.length*10,ball?directionTo(p,ball):p.facing||0,'Cover shadow. Drag to resize width and depth; arrow keys adjust.');}
+      if(p.vision)handle('vision',0,-p.vision.length*unitX,p.facing||0,'View distance. Drag or use arrow keys to resize.');
+      if(p.shadow){const ball=nearestBall(p,visibleFrame,record.content.items);handle('shadow',p.shadow.width*unitX/2,p.shadow.length*unitX,ball?directionTo(p,ball):p.facing||0,'Cover shadow. Drag to resize width and depth; arrow keys adjust.');}
     }
 
     if (editable() && !renderedPositions && selection().length === 1 && Number.isFinite(facingPosition?.facing)) {
       const at = positionIn(visibleFrame, selectedItem), angle = facingPosition.facing * Math.PI / 180, scale = Math.max(.01, board.getScreenCTM()?.a || 1), radius = 48 / scale;
-      const x = Math.max(-40, Math.min(1040, at.x * 10 + Math.sin(angle) * radius)), y = Math.max(-40, Math.min(690, at.y * 6.5 - Math.cos(angle) * radius));
-      const turn = svg('g', { 'data-facing-control': selectedItem }); turn.append(svg('line', { x1: at.x * 10 + Math.sin(angle) * 30 / scale, y1: at.y * 6.5 - Math.cos(angle) * 30 / scale, x2: x, y2: y, stroke: '#253b46', 'stroke-width': 1.5 / scale, 'pointer-events': 'none' }), svg('circle', { cx: x, cy: y, r: 22 / scale, fill: 'transparent', 'data-facing-handle': selectedItem }), svg('circle', { cx: x, cy: y, r: 8 / scale, fill: '#fffdf7', stroke: '#253b46', 'stroke-width': 2 / scale, 'data-facing-handle': selectedItem, role: 'slider', tabindex: 0, 'aria-label': 'Body direction. Drag to turn; arrow keys turn 15 degrees.', 'aria-valuemin': 0, 'aria-valuemax': 359, 'aria-valuenow': Math.round(facingPosition.facing) })); scene.append(turn);
+      const x = Math.max(-40, Math.min(width+40, at.x * unitX + Math.sin(angle) * radius)), y = Math.max(-40, Math.min(height+40, at.y * unitY - Math.cos(angle) * radius));
+      const turn = svg('g', { 'data-facing-control': selectedItem }); turn.append(svg('line', { x1: at.x * unitX + Math.sin(angle) * 30 / scale, y1: at.y * unitY - Math.cos(angle) * 30 / scale, x2: x, y2: y, stroke: '#253b46', 'stroke-width': 1.5 / scale, 'pointer-events': 'none' }), svg('circle', { cx: x, cy: y, r: 22 / scale, fill: 'transparent', 'data-facing-handle': selectedItem }), svg('circle', { cx: x, cy: y, r: 8 / scale, fill: '#fffdf7', stroke: '#253b46', 'stroke-width': 2 / scale, 'data-facing-handle': selectedItem, role: 'slider', tabindex: 0, 'aria-label': 'Body direction. Drag to turn; arrow keys turn 15 degrees.', 'aria-valuemin': 0, 'aria-valuemax': 359, 'aria-valuenow': Math.round(facingPosition.facing) })); scene.append(turn);
     }
-    const box=record.content.items.find(i=>i.id===selectedItem);
-    if(editable()&&!renderedPositions&&selection().length===1&&box?.zone?.outline&&box.zone.shape==='rect'){
-      const p=positionIn(currentFrame(),box.id),scale=Math.max(.01,board.getScreenCTM()?.a||1),x=(p.x+box.zone.width/2)*10,y=(p.y+box.zone.height/2)*6.5;
-      const handle=svg('g',{'data-box-control':box.id});handle.append(svg('circle',{cx:x,cy:y,r:22/scale,fill:'transparent','data-box-resize':box.id}),svg('rect',{x:x-7/scale,y:y-7/scale,width:14/scale,height:14/scale,rx:2/scale,fill:'#fffdf7',stroke:'#355d79','stroke-width':2/scale,'data-box-resize':box.id,tabindex:0,role:'button','aria-label':'Resize box. Drag or use arrow keys.'}));scene.append(handle);
+    const sizedItem = record.content.items.find(i => i.id === selectedItem);
+    if (editable() && !renderedPositions && selection().length === 1 && (sizedItem?.zone || sizedItem?.kind === 'goal')) {
+      const p = currentFrame().positions.find(p => p.id === sizedItem.id), field = pitchGeometry(), scale = Math.max(.01, Math.hypot(board.getScreenCTM()?.a || 0, board.getScreenCTM()?.b || 0) || 1);
+      const corner = sizedItem.zone ? { x: sizedItem.zone.width / 2 * field.unitX, y: sizedItem.zone.height / 2 * field.unitY } : goalCorner(sizedItem, p);
+      const at = cameraPoint({ x: p.x * field.unitX + corner.x, y: p.y * field.unitY + corner.y }, false), view = board.viewBox.baseVal, margin = 22 / scale;
+      const bound = point => ({ x: Math.max(view.x + margin, Math.min(view.x + view.width - margin, point.x)), y: Math.max(view.y + margin, Math.min(view.y + view.height - margin, point.y)) });
+      let handlePoint = bound(at);
+      if (sizedItem.kind === 'goal') {
+        const center = cameraPoint({ x: p.x * field.unitX, y: p.y * field.unitY }, false), radius = Math.hypot(corner.x, corner.y) + 28 / scale;
+        const angle = ((p.rotation || 0) + cameraGeometry().angle) * Math.PI / 180;
+        const candidates = [[33,24],[-33,24],[33,-24],[-33,-24]].map(([dx,dy]) => {
+          const length = Math.hypot(dx,dy);
+          return { x: center.x + (dx*Math.cos(angle)-dy*Math.sin(angle))/length*radius, y: center.y + (dx*Math.sin(angle)+dy*Math.cos(angle))/length*radius };
+        });
+        // Keep the touch target separate from the goal body, choosing an inward corner at an edge.
+        handlePoint = candidates.find(point => point.x >= view.x+margin && point.x <= view.x+view.width-margin && point.y >= view.y+margin && point.y <= view.y+view.height-margin)
+          || candidates.map(bound).sort((a,b) => Math.hypot(b.x-center.x,b.y-center.y)-Math.hypot(a.x-center.x,a.y-center.y))[0];
+      }
+      const { x, y } = cameraPoint(handlePoint);
+      const attributes = { 'data-size-resize': sizedItem.id, ...(sizedItem.zone ? { 'data-box-resize': sizedItem.id } : {}) };
+      const label = sizedItem.zone ? 'Resize ' + sizedItem.zone.shape + '. Arrow keys adjust width and height.' : 'Resize goal. Right or down grows; left or up shrinks.';
+      const value = sizedItem.zone ? sizedItem.zone.width + '% wide, ' + sizedItem.zone.height + '% high' : Math.round((sizedItem.scale || 1) * 100) + '%';
+      const handle = svg('g', { 'data-size-control': sizedItem.id });
+      handle.append(svg('circle', { cx: x, cy: y, r: 22 / scale, fill: 'transparent', ...attributes }), svg('rect', { x: x - 7 / scale, y: y - 7 / scale, width: 14 / scale, height: 14 / scale, rx: 2 / scale, fill: '#fffdf7', stroke: '#355d79', 'stroke-width': 2 / scale, ...attributes, tabindex: 0, role: 'button', 'aria-label': label + ' Current size: ' + value + '. Shift changes size faster.' })); scene.append(handle);
     }
   }
   const clamp = v => Math.max(4, Math.min(96, Math.round(v * 10) / 10));
   function moveSelected(dx, dy) { mutate(() => { const ids = selection(), before = capture(); if (editMode === 'place') shiftLayout(ids, dx, dy, before); else for (const id of ids) { const p = positionIn(currentFrame(), id); if (currentFrame().positions.find(p => p.id === id).attachedTo && ids.includes(currentFrame().positions.find(p => p.id === id).attachedTo)) continue; placePiece(currentFrame(), id, { x: clamp(p.x + dx), y: clamp(p.y + dy) }); } }); }
-  function point(event, bounded = true) { const p = board.createSVGPoint(); p.x = event.clientX; p.y = event.clientY; const matrix = scene?.getScreenCTM(); if (!matrix) return null; const next = p.matrixTransform(matrix.inverse()); return { x: bounded ? clamp(next.x / 10) : next.x / 10, y: bounded ? clamp(next.y / 6.5) : next.y / 6.5 }; }
+  function point(event, bounded = true) { const p = board.createSVGPoint(); p.x = event.clientX; p.y = event.clientY; const matrix = scene?.getScreenCTM(); if (!matrix) return null; const next = p.matrixTransform(matrix.inverse()), { unitX, unitY } = pitchGeometry(); return { x: bounded ? clamp(next.x / unitX) : next.x / unitX, y: bounded ? clamp(next.y / unitY) : next.y / unitY }; }
   board.addEventListener('dragover', event => { if (editable() && event.dataTransfer.types.includes('application/x-coach-piece')) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; } });
   board.addEventListener('drop', event => { if (!editable()) return; const kind = event.dataTransfer.getData('application/x-coach-piece'), destination = point(event); if ((!kinds[kind] && !['player','body','shadow','box'].includes(kind)) || !destination) return; event.preventDefault(); if (kind === 'player') addPlayer(destination); else if(['body','shadow'].includes(kind))addPlayerTool(kind,destination);else if(kind==='box')addPiece('zone',destination,undefined,{outline:true});else addPiece(kind, destination); });
   function routeHandles(transition) {
@@ -852,8 +911,8 @@
   }
   function drawRouteHandles(transition) {
     if (!editable() || !pathToggle.checked || editMode !== 'record') return;
-    const radius = 6 / Math.max(.01, board.getScreenCTM()?.a || 1);
-    routeHandles(transition).forEach((p, index) => scene.append(svg('circle', { cx: p.x * 10, cy: p.y * 6.5, r: radius, fill: '#fffdf7', stroke: '#253b4b', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', 'data-route-handle': index, tabindex: 0, role: 'button', 'aria-label': 'Route point ' + (index + 1) + '. Drag or use arrow keys to bend movement.' })));
+    const radius = 6 / Math.max(.01, board.getScreenCTM()?.a || 1), { unitX, unitY } = pitchGeometry();
+    routeHandles(transition).forEach((p, index) => scene.append(svg('circle', { cx: p.x * unitX, cy: p.y * unitY, r: radius, fill: '#fffdf7', stroke: '#253b4b', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke', 'data-route-handle': index, tabindex: 0, role: 'button', 'aria-label': 'Route point ' + (index + 1) + '. Drag or use arrow keys to bend movement.' })));
   }
   function updateRouteHandle(index, destination, handles = routeHandles(shownTransition())) {
     const transition = shownTransition(); if (!transition || !handles[index]) return;
@@ -873,8 +932,14 @@
   }
   board.addEventListener('pointerdown', event => {
     if (!editable() || event.button !== 0) return;
-    const boxHandle=event.target.closest('[data-box-resize]');
-    if(boxHandle){pointer={id:event.pointerId,before:capture(),history:{undo:undo.slice(),redo:redo.slice()},moved:false,start:point(event),resizeZone:boxHandle.dataset.boxResize};board.setPointerCapture(event.pointerId);event.preventDefault();return;}
+    const sizeHandle = event.target.closest('[data-size-resize]');
+    if (sizeHandle) {
+      const start = point(event, false); if (!start) return;
+      pointer = { id: event.pointerId, before: capture(), history: { undo: undo.slice(), redo: redo.slice() }, moved: false, start, resizeItem: sizeHandle.dataset.sizeResize };
+      const p = currentFrame().positions.find(p => p.id === pointer.resizeItem), field = pitchGeometry(), hit = sizeHandle.closest('[data-size-control]').querySelector('circle');
+      pointer.resizeDirection = { x: Number(hit.getAttribute('cx')) - p.x*field.unitX, y: Number(hit.getAttribute('cy')) - p.y*field.unitY };
+      board.focus({ preventScroll: true }); board.setPointerCapture(event.pointerId); event.preventDefault(); return;
+    }
     const overlayHandle=event.target.closest('[data-overlay-handle]');
     if(overlayHandle){pointer={id:event.pointerId,before:capture(),history:{undo:undo.slice(),redo:redo.slice()},moved:false,overlay:overlayHandle.dataset.overlayHandle,start:point(event,false)};board.setPointerCapture(event.pointerId);event.preventDefault();return;}
     const facingHandle = event.target.closest('[data-facing-handle]');
@@ -909,13 +974,23 @@
   });
   function dragPointer(event) {
     if (!pointer || pointer.id !== event.pointerId || !editable()) return;
-    const destination = point(event, !pointer.facing && !pointer.overlay); if (!destination) return;
+    const destination = point(event, !pointer.facing && !pointer.overlay && !pointer.resizeItem); if (!destination) return;
     if (pointer.handle === undefined && routeDistance(pointer.start, destination) < .2 && !pointer.moved) return;
     if (!pointer.moved) { undo.push(pointer.before); if (undo.length > 30) undo.shift(); redo = []; pointer.moved = true; }
-    if(pointer.resizeZone){const p=pointer.before.content.frames[frameIndex].positions.find(p=>p.id===pointer.resizeZone);resizeBox(pointer.resizeZone,(destination.x-p.x)*2,(destination.y-p.y)*2);draw();renderStatus();notifyDraft();return;}
-    if(pointer.overlay){const p=playerPosition(),dx=(destination.x-p.x)*10,dy=(destination.y-p.y)*6.5,clamp=v=>Math.max(5,Math.min(60,Math.round(v)));
-      if(pointer.overlay==='vision')p.vision.length=clamp(Math.hypot(dx,dy)/10);
-      else {const ball=nearestBall(p,currentFrame(),record.content.items),a=(ball?directionTo(p,ball):p.facing||0)*Math.PI/180;p.shadow={width:clamp(Math.abs(dx*Math.cos(a)+dy*Math.sin(a))/5),length:clamp((-dx*Math.sin(a)+dy*Math.cos(a))/10)};}
+    if (pointer.resizeItem) {
+      const item = pointer.before.content.items.find(i => i.id === pointer.resizeItem), dx = destination.x - pointer.start.x, dy = destination.y - pointer.start.y;
+      if (item.zone) {
+        for (const [index, frame] of record.content.frames.entries()) Object.assign(frame.positions.find(p => p.id === item.id), pointer.before.content.frames[index].positions.find(p => p.id === item.id));
+        resizeShape(item.id, item.zone.width + dx * 2, item.zone.height + dy * 2);
+      } else {
+        const p = pointer.before.content.frames[frameIndex].positions.find(p => p.id === item.id), corner = goalCorner({ ...item, scale: 1 }, p), field = pitchGeometry(), direction = pointer.resizeDirection;
+        resizeGoal(item.id, (item.scale || 1) + (dx*field.unitX*direction.x + dy*field.unitY*direction.y) / Math.hypot(direction.x,direction.y) / Math.hypot(corner.x,corner.y));
+      }
+      draw(); renderStatus(); notifyDraft(); return;
+    }
+    if(pointer.overlay){const {unitX,unitY}=pitchGeometry(),p=playerPosition(),dx=(destination.x-p.x)*unitX,dy=(destination.y-p.y)*unitY,clamp=v=>Math.max(5,Math.min(60,Math.round(v)));
+      if(pointer.overlay==='vision')p.vision.length=clamp(Math.hypot(dx,dy)/unitX);
+      else {const ball=nearestBall(p,currentFrame(),record.content.items),a=(ball?directionTo(p,ball):p.facing||0)*Math.PI/180;p.shadow={width:clamp(Math.abs(dx*Math.cos(a)+dy*Math.sin(a))/(unitX/2)),length:clamp((-dx*Math.sin(a)+dy*Math.cos(a))/unitX)};}
       draw();renderStatus();notifyDraft();return;}
     if (pointer.facing) { const p = currentFrame().positions.find(p => p.id === pointer.facing); p.facing = Math.round(directionTo(p, destination)) % 360; draw(); renderStatus(); notifyDraft(); return; }
     if (pointer.arrowId) {
@@ -955,7 +1030,7 @@
     if (!pointer) return;
     if((pointer.overlay||pointer.facing)&&event.type==='pointercancel'){undo=pointer.history.undo;redo=pointer.history.redo;apply(pointer.before);pointer=null;render();notifyDraft();return;}
     if (pointer.ids && event.type === 'pointercancel') { undo = pointer.history.undo; redo = pointer.history.redo; apply(pointer.before); pointer = null; render(); notifyDraft(); return; }
-    if(pointer.resizeZone){if(event.type==='pointercancel'){undo=pointer.history.undo;redo=pointer.history.redo;apply(pointer.before);}else if(pointer.moved&&event.type==='pointerup')dragPointer(event);pointer=null;render();notifyDraft();return;}
+    if(pointer.resizeItem){if(event.type==='pointercancel'){undo=pointer.history.undo;redo=pointer.history.redo;apply(pointer.before);}else if(pointer.moved&&event.type==='pointerup')dragPointer(event);pointer=null;render();notifyDraft();return;}
     if (pointer.arrowId) {
       if (event.type === 'pointercancel' || pointer.arrowNew && !pointer.moved) { undo=pointer.history.undo;redo=pointer.history.redo;apply(pointer.before); }
       else if (pointer.moved && event.type === 'pointerup') dragPointer(event);
@@ -980,8 +1055,13 @@
     if (!editable()) return;
     const overlayHandle=event.target.closest('[data-overlay-handle]');
     if(overlayHandle&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();const kind=overlayHandle.dataset.overlayHandle;mutate(()=>{const p=playerPosition(),key=kind==='shadow'&&['ArrowLeft','ArrowRight'].includes(event.key)?'width':'length',part=kind==='shadow'?p.shadow:p.vision;part[key]=Math.max(5,Math.min(60,part[key]+(['ArrowRight','ArrowUp'].includes(event.key)?1:-1)));});board.querySelector('[data-overlay-handle="'+kind+'"][role="slider"]')?.focus();return;}
-    const boxHandle=event.target.closest('[data-box-resize]');
-    if(boxHandle&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();const id=boxHandle.dataset.boxResize,item=record.content.items.find(i=>i.id===id);mutate(()=>resizeBox(id,item.zone.width+(event.key==='ArrowRight'?2:event.key==='ArrowLeft'?-2:0),item.zone.height+(event.key==='ArrowDown'?2:event.key==='ArrowUp'?-2:0)));board.querySelector('[data-box-resize][role="button"]')?.focus();return;}
+    const sizeHandle = event.target.closest('[data-size-resize]');
+    if (sizeHandle && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+      event.preventDefault(); const id = sizeHandle.dataset.sizeResize, item = record.content.items.find(i => i.id === id), step = event.shiftKey ? 5 : 1;
+      mutate(() => { if (item.zone) resizeShape(id, item.zone.width + (event.key === 'ArrowRight' ? 2 : event.key === 'ArrowLeft' ? -2 : 0) * step, item.zone.height + (event.key === 'ArrowDown' ? 2 : event.key === 'ArrowUp' ? -2 : 0) * step); else resizeGoal(id, (item.scale || 1) + (['ArrowRight', 'ArrowDown'].includes(event.key) ? .1 : -.1) * step); });
+      board.querySelector('[data-size-resize][role="button"]')?.focus(); return;
+    }
+    if (event.key === 'Escape' && pointer?.resizeItem) { event.preventDefault(); event.stopPropagation(); const id = pointer.id; endPointer({ type: 'pointercancel' }); if (board.hasPointerCapture(id)) board.releasePointerCapture(id); board.querySelector('[data-size-resize][role="button"]')?.focus(); return; }
     const facingHandle = event.target.closest('[data-facing-handle]');
     if (facingHandle && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); setFacing((playerPosition()?.facing || 0) + (['ArrowLeft', 'ArrowDown'].includes(event.key) ? -15 : 15)); board.querySelector('[data-facing-handle][role="slider"]')?.focus(); return; }
     const arrowTarget=event.target.closest('[data-tactics-arrow]'), arrowEnd=event.target.closest('[data-arrow-end]');
@@ -994,7 +1074,7 @@
     }
     if (editMode==='arrow' && event.key==='Enter' && event.target===board && !selectedArrow) {
       event.preventDefault(); if((currentFrame().arrows?.length||0)>=24)return tell('Use up to 24 drawn arrows per phase.',true);
-      mutate(()=>{selectPiece('');selectedArrow=uid('arrow_');const start=cameraPoint({x:viewCenter.x-100/zoom,y:viewCenter.y}),end=cameraPoint({x:viewCenter.x+100/zoom,y:viewCenter.y});currentFrame().arrows||=[];currentFrame().arrows.push({id:selectedArrow,x1:clamp(start.x/10),y1:clamp(start.y/6.5),x2:clamp(end.x/10),y2:clamp(end.y/6.5),color:'charcoal'});},'Arrow added. Use arrow keys to move it, or drag either end.');board.focus();return;
+      mutate(()=>{selectPiece('');selectedArrow=uid('arrow_');const {unitX,unitY}=pitchGeometry(),start=cameraPoint({x:viewCenter.x-100/zoom,y:viewCenter.y}),end=cameraPoint({x:viewCenter.x+100/zoom,y:viewCenter.y});currentFrame().arrows||=[];currentFrame().arrows.push({id:selectedArrow,x1:clamp(start.x/unitX),y1:clamp(start.y/unitY),x2:clamp(end.x/unitX),y2:clamp(end.y/unitY),color:'charcoal'});},'Arrow added. Use arrow keys to move it, or drag either end.');board.focus();return;
     }
     const target = event.target.closest('[data-tactics-item]');
     if (target && ['Enter', ' '].includes(event.key)) { event.preventDefault(); selectPiece(target.dataset.tacticsItem, event.shiftKey); render(); board.focus(); return; }

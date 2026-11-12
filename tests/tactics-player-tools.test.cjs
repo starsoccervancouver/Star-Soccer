@@ -30,6 +30,17 @@ test('purpose and player facing round trip exactly, independently for each phase
 test('purpose rejects invalid enum values and types',async()=>{
  for(const purpose of ['','team','team-pattern ','DRILL',null,undefined,true,1,{},[]])await reject(content=>{content.purpose=purpose;});
 });
+
+test('optional goal size round trips while legacy goals keep their original data',async()=>{
+ const {validateDiagram}=await validator;
+ for(const scale of [.5,1,1.75,4]){
+  const content=diagram();content.items[4].scale=scale;content.frames[0].positions[4].rotation=270;
+  assert.deepStrictEqual(validateDiagram(content),content);
+ }
+ for(const scale of [.499,4.001,NaN,Infinity,-Infinity,null,undefined,'1',true,{},[]])await reject(content=>{content.items[4].scale=scale;});
+ for(const index of [0,1,2,3,5])await reject(content=>{content.items[index].scale=1;});
+ await reject(content=>{content.frames[0].positions[4].scale=1;});
+});
 test('facing rejects invalid types, bounds, and every non-player kind',async()=>{
  for(const facing of [-0.001,360,361,NaN,Infinity,-Infinity,null,undefined,'90',true,{},[]])await reject(content=>{content.frames[0].positions[0].facing=facing;});
  for(const index of [2,3,4,5])await reject(content=>{content.frames[0].positions[index].facing=90;});

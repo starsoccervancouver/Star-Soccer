@@ -78,9 +78,15 @@ require('./coach-fixture-fonts.cjs')(assets);
   await f.page.locator('#tactics-add-ball').click();
   await f.page.locator('#tactics-label').fill('AttachedBall');
   await reveal(f,'#tactics-ball-carrier'); await f.page.locator('#tactics-ball-carrier').selectOption('home_1');
+  await reveal(f,'#tactics-frame-title');
   await f.page.locator('#tactics-frame-title').fill('A longer phase title that should wrap within its thumbnail without widening it');
   await f.page.locator('#tactics-phase-notes').fill('Receive, scan and turn.\nKeep the ball close before accelerating into space.');
   await f.page.locator('#tactics-title').click();
+  assert.equal(await f.page.locator('#tactics-notes-menu').evaluate(n=>n.open),false,'Clicking away closes Phase notes');
+  await reveal(f,'#tactics-phase-notes');
+  assert.equal(await f.page.locator('#tactics-phase-notes').inputValue(),'Receive, scan and turn.\nKeep the ball close before accelerating into space.','Closing the dropdown retains phase notes');
+  await f.page.locator('#tactics-phase-notes').press('Escape');
+  assert.equal(await f.page.locator('#tactics-notes-menu').evaluate(n=>n.open),false,'Escape closes Phase notes');
   fs.mkdirSync('outputs',{recursive:true});
   await f.page.locator('.planner-drawer-content').evaluate(n=>n.scrollTop=0);
   await f.page.screenshot({path:'outputs/coach-builder-desktop.png'});
@@ -106,6 +112,13 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert(await f.page.locator('#tactics-pitch-board').evaluate(n=>n===document.activeElement&&n.getBoundingClientRect().top>=0&&n.getBoundingClientRect().top<innerHeight),'Session Back restores field focus and scroll');
    }else{
     assert(await f.page.locator('.tactics-inspector').evaluate(n=>n.getBoundingClientRect().width<=340),'Session desktop rail stays compact');
+    for(const pitch of ['full','half']){
+     await f.page.locator('#tactics-pitch').selectOption(pitch);
+     await f.page.waitForTimeout(80);
+     const fit=await f.page.locator('#tactics-pitch-board').evaluate(n=>({rect:n.getBoundingClientRect().toJSON(),max:n.parentElement.parentElement.style.getPropertyValue('--pitch-max-width'),scroll:n.closest('.planner-drawer-content').scrollTop}));
+     assert(fit.rect.top>=0&&fit.rect.bottom<=viewport.height-40,'Entire '+pitch+' field fits the desktop screen at '+viewport.width+'×'+viewport.height+': '+JSON.stringify(fit));
+    }
+    await f.page.locator('#tactics-pitch').selectOption('full');
    }
    if(viewport.width<=390){
     for(const selector of ['#tactics-add-player','#tactics-add-ball','#tactics-add-cone','#tactics-add-goal','.tactics-shapes > summary','#tactics-view-menu > summary']){
@@ -133,8 +146,8 @@ require('./coach-fixture-fonts.cjs')(assets);
    assert(geometry.labels.every(Boolean),'Long edge labels stay within the field at '+viewport.width+'px');
    assert(geometry.phases.every(w=>w<=140),'Long phase names stay within their thumbnail');
    assert.equal(geometry.sticky,'static','Toolbar scrolls normally at every size');
-   await f.page.locator('#tactics-phase-notes').click();
-   const visible=await f.page.locator('#tactics-phase-notes').evaluate(n=>{const r=n.getBoundingClientRect(),bar=document.querySelector('.tactics-workbar').getBoundingClientRect();return r.top>=bar.bottom-1&&r.bottom<=innerHeight;});
+   await reveal(f,'#tactics-phase-notes');await f.page.locator('#tactics-phase-notes').click();
+   const visible=await f.page.locator('#tactics-phase-notes').evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===n;});
    assert(visible,'Notes can be focused without hiding behind the toolbar');
    if(viewport.width===390){await f.page.locator('.planner-drawer-content').evaluate(n=>n.scrollTop=0);await f.page.screenshot({path:'outputs/session-builder-mobile.png'});}
   }

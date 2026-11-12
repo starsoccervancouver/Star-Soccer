@@ -17,12 +17,16 @@ export function validateDiagram(content){
  if(content.schemaVersion!==1||!['full','half','blank','facing-goal','away-from-goal'].includes(content.pitch)||!Array.isArray(content.items)||content.items.length>40||!Array.isArray(content.frames)||!content.frames.length||content.frames.length>12)invalid();
  const itemIds=new Set(),frameIds=new Set();
  const items=content.items.map(item=>{
-  object(item,['id','kind','label'],['zone','color']);const id=identifier(item.id);
+  object(item,['id','kind','label'],['zone','color','scale']);const id=identifier(item.id);
   if(itemIds.has(id)||!['home','away','cone','ball','goal','zone'].includes(item.kind))invalid();
   itemIds.add(id);const result={id,kind:item.kind,label:text(item.label,12)};
   if(Object.hasOwn(item,'color')){
    if(!['home','away'].includes(item.kind)||!playerColors.includes(item.color))invalid();
    result.color=item.color;
+  }
+  if(Object.hasOwn(item,'scale')){
+   if(item.kind!=='goal'||typeof item.scale!=='number'||!Number.isFinite(item.scale)||item.scale<.5||item.scale>4)invalid();
+   result.scale=item.scale;
   }
   if(item.kind==='zone'){
    const zone=object(item.zone,['shape','width','height','color'],['outline']);

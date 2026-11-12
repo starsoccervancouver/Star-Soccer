@@ -43,6 +43,7 @@
   display: grid; grid-template-columns: minmax(0,1fr) 310px;
   grid-template-areas: 'field palette' 'field inspector' 'written written';
   grid-template-rows: auto 1fr auto; gap: 12px 16px; align-items: start;
+  width:min(100%,calc(max(var(--pitch-max-width,100vw),400px) + 326px));
 }
 #tactics-board-tools.tactics-studio .tactics-field-column { grid-area: field; display: grid; gap: 8px; align-content: start; }
 #tactics-board-tools.tactics-studio .tactics-main-toolbar { grid-area: palette; display: grid; gap: 10px; margin: 0; padding: 12px; border: 1px solid var(--studio-line); border-radius: 12px; background: var(--studio-card); }
@@ -54,7 +55,7 @@
 #tactics-board-tools.tactics-studio .tactics-written > .library-drill-details { grid-column: 1/-1; }
 #tactics-board-tools.tactics-studio .tactics-mobile-links,
 #tactics-board-tools.tactics-studio .tactics-back-field { display: none; }
-body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-board-layout { grid-template-columns: minmax(0,1fr); grid-template-areas: 'field' 'written'; grid-template-rows: auto auto; }
+body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-board-layout { grid-template-columns: minmax(0,1fr); grid-template-areas: 'field' 'written'; grid-template-rows: auto auto; width:100%; }
 body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-main-toolbar { display: none; }
 
 /* View controls sit above the field; the field itself retains the camera ratio. */
@@ -73,7 +74,7 @@ body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-main-toolb
 #tactics-board-tools.tactics-studio .tactics-view-menu-body { position: absolute; z-index: 22; top: calc(100% + 7px); left: 0; display: grid; gap: 8px; width: 270px; max-width: calc(100vw - 32px); padding: 12px; border: 1px solid var(--studio-line); border-radius: 10px; background: var(--studio-field); box-shadow: 0 8px 24px #293b3126; }
 #tactics-board-tools.tactics-studio .tactics-view-menu-body label { color: var(--studio-ink); }
 #tactics-board-tools.tactics-studio .tactics-view-guides { display: flex; gap: 6px; }
-#tactics-board-tools.tactics-studio .tactics-canvas-wrap { position: relative; width: 100%; justify-self: center; min-width: 0; overflow: hidden; border: 1px solid #34473c; border-radius: 10px; background: #30483a; box-shadow: 0 2px 8px #26382d18; }
+#tactics-board-tools.tactics-studio .tactics-canvas-wrap { position: relative; width: min(100%,var(--pitch-max-width,100%)); justify-self: start; min-width: 0; overflow: hidden; border: 1px solid #34473c; border-radius: 10px; background: #30483a; box-shadow: 0 2px 8px #26382d18; }
 #tactics-board-tools.tactics-studio #tactics-pitch-board { display: block; width: 100%; height: auto; max-height: none; aspect-ratio: var(--field-ratio,1000 / 650); background: #30483a; touch-action: none; user-select: none; -webkit-user-select: none; }
 #tactics-board-tools.tactics-studio .tactics-board-layout[data-upright=true] .tactics-canvas-wrap { width: min(100%,var(--pitch-max-width,100%)); }
 #tactics-board-tools.tactics-studio #tactics-pitch-board:focus-visible { outline: 3px solid #d3e6c1; outline-offset: -4px; }
@@ -83,8 +84,8 @@ body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-main-toolb
 #tactics-board-tools.tactics-studio [data-route-handle] { cursor: move; }
 #tactics-board-tools.tactics-studio :is([data-overlay-handle],[data-facing-handle]) { cursor: grab; touch-action: none; }
 #tactics-board-tools.tactics-studio [data-facing-handle]:focus { outline: none; stroke: #161f27; stroke-width: 4px; }
-#tactics-board-tools.tactics-studio [data-box-resize] { cursor: nwse-resize; }
-#tactics-board-tools.tactics-studio [data-box-resize]:focus-visible { outline: 3px solid #263b2d; outline-offset: 3px; }
+#tactics-board-tools.tactics-studio :is([data-box-resize],[data-size-resize]) { cursor: nwse-resize; }
+#tactics-board-tools.tactics-studio :is([data-box-resize],[data-size-resize]):focus-visible { outline: 3px solid #263b2d; outline-offset: 3px; }
 #tactics-board-tools.tactics-studio .tactics-empty-hint { position: absolute; top: 50%; left: 12%; right: 12%; transform: translateY(-50%); pointer-events: none; padding: 15px; border-radius: 10px; background: #f8faf4ed; color: #395440; text-align: center; font-size: 14px; font-weight: 600; }
 
 /* Rectangular, named tools have a stable place in the palette. */
@@ -138,6 +139,11 @@ body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-main-toolb
 /* Contextual settings and phase notes share the right rail. */
 #tactics-board-tools.tactics-studio :is(.tactics-piece-panel,.tactics-phase-editor) { display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; padding: 13px; border: 1px solid var(--studio-line); border-radius: 11px; background: var(--studio-card); }
 #tactics-board-tools.tactics-studio .tactics-phase-editor h3 { margin: 0; font-size: 13px; font-weight: 700; }
+#tactics-board-tools.tactics-studio .tactics-notes-menu { border:1px solid var(--studio-line); border-radius:10px; background:var(--studio-field); color:var(--studio-ink); }
+#tactics-board-tools.tactics-studio .tactics-notes-menu > summary { min-height:44px; padding:12px; cursor:pointer; font-size:12px; font-weight:650; }
+#tactics-board-tools.tactics-studio .tactics-notes-menu > .tactics-phase-editor { position:fixed; z-index:35; width:min(360px,calc(100vw - 24px)); max-width:calc(100vw - 24px); overflow:auto; overscroll-behavior:contain; box-shadow:0 12px 32px #293b3140; border-radius:14px; }
+#tactics-board-tools.tactics-studio .tactics-notes-menu .tactics-phase-editor label { color:var(--studio-muted); }
+#tactics-board-tools.tactics-studio .tactics-notes-menu:not([open]) > .tactics-phase-editor { display:none; }
 #tactics-board-tools.tactics-studio .tactics-frame-settings { display: grid; gap: 10px; margin: 0; }
 #tactics-board-tools.tactics-studio .tactics-piece-settings { display: grid; gap: 9px; }
 #tactics-board-tools.tactics-studio .tactics-piece-panel[data-selected=false] > .tactics-piece-settings { display: none; }
@@ -203,10 +209,10 @@ body.drill-creator-focus #library-form .tactics-written .library-editor-grid { g
 
 /* Touch layout keeps creation tools before the pitch and phases directly after it. */
 @media (max-width: 999px) {
-  #tactics-board-tools.tactics-studio .tactics-board-layout { grid-template-columns: minmax(0,1fr); grid-template-areas: 'palette' 'field' 'inspector' 'written'; grid-template-rows: auto; gap: 12px; }
+  #tactics-board-tools.tactics-studio .tactics-board-layout { grid-template-columns: minmax(0,1fr); grid-template-areas: 'palette' 'field' 'inspector' 'written'; grid-template-rows: auto; gap: 12px; width:100%; }
   #tactics-board-tools.tactics-studio .tactics-inspector { grid-template-columns: repeat(2,minmax(0,1fr)); max-height: none; overflow: visible; padding: 0; scrollbar-gutter: auto; }
   #tactics-board-tools.tactics-studio .tactics-main-toolbar { padding: 10px; gap: 8px; }
-  #tactics-board-tools.tactics-studio .tactics-board-layout[data-upright=true] .tactics-canvas-wrap { width: 100%; }
+  #tactics-board-tools.tactics-studio .tactics-board-layout[data-upright=true] .tactics-canvas-wrap { width:min(100%,var(--pitch-max-width,100%)); }
   #tactics-board-tools.tactics-studio .tactics-pieces { display: flex; flex-wrap: wrap; align-items: start; gap: 6px; }
   #tactics-board-tools.tactics-studio .tactics-pieces > :is(button,details,.tactics-player-tools) { flex: 0 0 auto; width: auto; }
   #tactics-board-tools.tactics-studio .tactics-pieces > details[open] { flex: 1 1 100%; }

@@ -2344,3 +2344,48 @@ body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accen
 body select { appearance:none; border:1px solid #aaa697; border-radius:12px; padding:10px 36px 10px 12px; min-height:44px; color:#283a31; background-color:#eeeade; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23445549' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; box-shadow:0 1px 2px #24342a0a; }
 body select:focus-visible { outline:3px solid #8eaa80; outline-offset:2px; }
 body select:disabled { opacity:.6; }
+
+/* Shared academy dropdowns, including the session and library studios. */
+:is(body, #tactics-board-tools.tactics-studio) select:not([multiple]):not([size]) {
+  border-radius:14px; border-color:#b4ae9f; background-color:#f3efe6;
+  color:#293b31; min-height:44px; padding:10px 36px 10px 12px;
+  font-size:14px; line-height:1.4; cursor:pointer;
+  box-shadow:inset 0 1px 0 #ffffff80, 0 1px 2px #24342a0a;
+  transition:border-color 140ms ease, box-shadow 140ms ease;
+}
+:is(body, #tactics-board-tools.tactics-studio) select:not(:disabled):hover { border-color:#7b8876; }
+:is(body, #tactics-board-tools.tactics-studio) select:disabled { cursor:default; }
+@supports (appearance:base-select) {
+  :is(body, #tactics-board-tools.tactics-studio) select:not([multiple]):not([size]),
+  body select:not([multiple]):not([size])::picker(select) { appearance:base-select; }
+  :is(body, #tactics-board-tools.tactics-studio) select:not([multiple]):not([size]) {
+    display:flex; align-items:center; gap:10px; background-image:none; padding-right:12px;
+  }
+  body select::picker-icon {
+    content:""; width:7px; height:7px; flex-shrink:0; margin:0 2px 3px auto;
+    color:#52604e; border-right:2px solid; border-bottom:2px solid; transform:rotate(45deg);
+  }
+  body select:open::picker-icon { rotate:180deg; }
+  body select::picker(select) {
+    color:#293b31; background:#f7f3eb; border:1px solid #b4ae9f; border-radius:16px;
+    padding:6px; margin-block:6px; box-shadow:0 12px 32px #19251d26, 0 2px 6px #19251d12;
+    font:inherit; line-height:1.4; max-height:min(360px,60dvh);
+    max-width:calc(100vw - 16px); overflow-y:auto; overscroll-behavior:contain;
+    scrollbar-width:thin;
+  }
+  body select:not([multiple]):not([size]) option {
+    display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px;
+    border:0; border-radius:10px; color:#293b31; background:transparent;
+    white-space:normal; overflow-wrap:anywhere; cursor:pointer;
+  }
+  body select:not([multiple]):not([size]) option:checked { background:#e1e7d8; font-weight:650; }
+  body select:not([multiple]):not([size]) option:not(:disabled):is(:hover,:focus-visible) { background:#303a34; color:#faf7ef; outline:none; }
+  body select:not([multiple]):not([size]) option:disabled { color:#7a7d72; cursor:default; }
+  body select:not([multiple]):not([size]) option::checkmark { order:1; margin-left:auto; color:currentColor; }
+}
+@media (max-width:700px), (pointer:coarse) {
+  :is(body, #tactics-board-tools.tactics-studio) select:not([multiple]):not([size]) { font-size:16px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  body select { transition:none; }
+}

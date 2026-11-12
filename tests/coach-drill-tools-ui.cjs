@@ -193,6 +193,7 @@ const { chromium } = require('playwright');
     // A real drill's phase dropdown must fit too, not just an empty one-phase board.
     for (let phase = 1; phase < 5; phase++) await page.locator('#tactics-add-frame').click();
     assert.equal(await page.locator('#tactics-phase-popover').isVisible(), false, 'Adding phases leaves the dropdown closed');
+    await reveal('#tactics-phase-notes'); await page.locator('#tactics-phase-notes').fill('Keep the passing lane open.'); await page.locator('#tactics-notes-menu > summary').click();
     const layoutDraft = await draft();
     const surfaceBeforeCamera = await page.locator('#tactics-pitch').inputValue(), cameras = ['full', 'left-half', 'right-half', 'facing-goal', 'away-from-goal'], cameraViews = [];
     assert.deepEqual(await page.locator('#tactics-camera option').evaluateAll(nodes => nodes.map(el => el.value)), cameras, 'The camera offers all five views');
@@ -287,7 +288,7 @@ const { chromium } = require('playwright');
         const field = await fieldWithinCanvas('The complete field');
         const rail = await rect('.tactics-inspector'), column = await rect('.tactics-field-column');
         assert(rail.width <= 340, 'The desktop rail stays compact at ' + size + ': ' + rail.width);
-        assert(column.width > rail.width && field.width >= column.width - 32, 'The field uses the available main column at ' + size + ': ' + JSON.stringify({field,column,rail}));
+        assert(column.width > rail.width && field.width <= column.width + 1, 'The field fits the available main column at ' + size + ': ' + JSON.stringify({field,column,rail}));
         assert(field.width >= 500 && field.height >= 300, 'The normal desktop field remains a useful size at ' + size + ': ' + field.width + '×' + field.height);
         for (const selector of ['#tactics-phases-toggle','#tactics-add-frame','#tactics-play']) { await page.locator(selector).scrollIntoViewIfNeeded(); await inViewport(selector, 'Reachable playback control'); }
         await resetScroll();
@@ -325,7 +326,8 @@ const { chromium } = require('playwright');
       await inViewport('#tactics-focus-field', 'The control to restore the inspector');
       if (viewport.width >= 1000) {
         const focusedField = await fieldWithinCanvas('The focused field');
-        assert(focusedField.width > fieldBeforeFocus.width + 100, 'Field focus reclaims inspector space at ' + size);
+        assert(focusedField.width >= fieldBeforeFocus.width - 1, 'Field focus preserves usable field size at ' + size);
+        await inViewport('#tactics-pitch-board', 'The complete focused field');
       }
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Focused field has no horizontal overflow at ' + size);
       assert.deepEqual(await draft(), layoutDraft, 'Field focus does not alter the drill at ' + size);
@@ -352,22 +354,23 @@ const { chromium } = require('playwright');
       assert.deepEqual(await draft(), layoutDraft, 'Opening, selecting and closing phases never changes the diagram at ' + size);
       await resetScroll();
 
-      if (viewport.width >= 1000) {
-        // The existing expandable controls and a resized notes field create a long inspector.
-        const openedInspectorDetails = [];
-        for (const selector of ['#tactics-phase-options']) {
-          if (await page.locator(selector + ' > summary').isVisible() && !await page.locator(selector).evaluate(el => el.open)) { await page.locator(selector + ' > summary').click(); openedInspectorDetails.push(selector); }
-        }
-        const oldNotesStyle = await page.locator('#tactics-phase-notes').getAttribute('style');
-        await page.locator('#tactics-phase-notes').evaluate(el => el.style.height = '700px');
-        await resetScroll();
-        assert(await page.locator('.tactics-written').evaluate(el => el.contains(document.getElementById('library-drill-details')) && document.querySelector('.tactics-inspector').contains(document.getElementById('tactics-phase-notes'))), 'Written details are grouped below the drawing workspace');
-        await page.locator('#tactics-phase-notes').scrollIntoViewIfNeeded();
-        assert(await page.locator('#tactics-phase-notes').isEditable(), 'Notes remain editable below the field');
-        await page.locator('#tactics-phase-notes').evaluate((el, oldStyle) => { if (oldStyle === null) el.removeAttribute('style'); else el.setAttribute('style', oldStyle); }, oldNotesStyle);
-        for (const selector of openedInspectorDetails) await page.locator(selector + ' > summary').click();
-        await resetScroll();
-      }
+      assert(await page.locator('.tactics-written').evaluate(el => el.contains(document.getElementById('library-drill-details')) && !document.querySelector('.tactics-inspector').contains(document.getElementById('tactics-phase-notes'))), 'Written drill details remain below the workspace while phase notes use their toolbar menu');
+      const written = await rect('.tactics-written'), canvas = await rect('.tactics-field-column');
+      assert(written.y >= canvas.bottom - 1, 'Written drill details follow the field at ' + size);
+      await reveal('#tactics-phase-notes');
+      assert(await page.locator('#tactics-phase-notes').isEditable(), 'The phase notes menu opens for editing at ' + size);
+      await inViewport('#tactics-phase-notes', 'Open phase notes');
+      assert.equal(await page.locator('#tactics-phase-notes').inputValue(), 'Keep the passing lane open.', 'Phase note text survives layout changes');
+      await page.locator('#tactics-notes-menu > summary').press('Escape');
+      assert.equal(await page.locator('#tactics-phase-notes').isVisible(), false, 'Escape closes phase notes');
+      assert(await page.locator('#tactics-notes-menu > summary').evaluate(el => document.activeElement === el), 'Escape restores notes-toggle focus');
+      await reveal('#tactics-phase-notes');
+      await page.locator('#tactics-pitch-board').click({position:{x:8,y:8}});
+      assert.equal(await page.locator('#tactics-phase-notes').isVisible(), false, 'Clicking outside closes phase notes');
+      await reveal('#tactics-phase-notes');
+      assert.equal(await page.locator('#tactics-phase-notes').inputValue(), 'Keep the passing lane open.', 'Closing and reopening retains phase note text');
+      assert(await page.locator('#tactics-notes-menu > summary').evaluate(el => { const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)); }), 'The phase notes toggle remains unobscured at ' + size);
+      await page.locator('#tactics-notes-menu > summary').click(); await resetScroll();
 
       // Written details remain reachable and editable after the space-saving layout closes them.
       await page.locator('#library-drill-details > summary').click(); await page.locator('#library-setup').click();

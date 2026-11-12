@@ -424,6 +424,14 @@ const { chromium } = require('playwright');
     }
     checks++;
 
+    await page.locator('#tactics-mode-record').click();
+    const copyContent = await draft(), savesBeforeCopy = await count('save');
+    await reveal('#tactics-save-copy'); await page.locator('#tactics-save-copy').click();
+    assert.deepEqual(await draft(), copyContent, 'Copying a setup preserves all phases and routes');
+    assert.equal(await page.locator('#tactics-mode-record').getAttribute('aria-pressed'), 'true', 'Copying keeps the chosen editing mode');
+    assert.equal(await count('save'), savesBeforeCopy, 'A new copy remains an unsaved draft');
+    checks++;
+
     await publish(null);
     assert.equal(await page.locator('#tactics-board-tools').textContent(), '', 'Sign-out removes private diagrams from DOM');
     assert.equal(await page.evaluate(() => CoachTactics.isDirty()), false);

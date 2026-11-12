@@ -182,6 +182,12 @@ const { chromium } = require('playwright');
       assert(r.width > 0 && r.height > 0 && r.x >= -.5 && r.y >= -.5 && r.right <= viewport.width + .5 && r.bottom <= viewport.height + .5, label + ' stays entirely inside ' + viewport.width + '×' + viewport.height + ': ' + JSON.stringify(r));
       return r;
     };
+    const fieldWithinCanvas = async label => {
+      const field = await rect('#tactics-pitch-board');
+      assert(field.x >= -.5 && field.right <= page.viewportSize().width + .5, label + ' fits horizontally');
+      assert(await page.locator('#tactics-pitch-board').evaluate(el => { const r=el.getBoundingClientRect(), parent=el.parentElement.getBoundingClientRect(), v=el.viewBox.baseVal; return r.left>=parent.left-1 && r.right<=parent.right+1 && r.top>=parent.top-1 && r.bottom<=parent.bottom+1 && Math.abs(r.width/r.height-v.width/v.height)<.02; }), label + ' fits its canvas without clipping or distorting the pitch');
+      return field;
+    };
     const resetScroll = () => page.evaluate(() => { window.scrollTo(0, 0); for (const el of document.querySelectorAll('#library-form,.tactics-inspector')) el.scrollTop = 0; });
     const openPhases = async () => { if (!await page.locator('#tactics-phase-popover').isVisible()) await page.locator('#tactics-phases-toggle').click(); };
     // A real drill's phase dropdown must fit too, not just an empty one-phase board.
@@ -256,6 +262,9 @@ const { chromium } = require('playwright');
     await page.locator('#tactics-grid').click();
     assert.equal(await page.locator('#tactics-pitch-board').innerHTML(), beforeGrid, 'Turning the guide off restores the field');
     const beforeArrange = await draft();
+    await page.locator('#tactics-pitch-board').press('Escape');
+    assert.equal(await page.locator('#tactics-item').inputValue(), '', 'Arrange starts with no selected piece');
+    assert(await page.locator('.tactics-arrange > summary').isVisible(), 'Arrange remains available without a selection');
     await reveal('#tactics-select-players'); await page.locator('#tactics-select-players').click();
     await page.locator('#tactics-align-row').click();
     const aligned = await draft(), arrangedIds = aligned.items.filter(i=>['home','away'].includes(i.kind)).map(i=>i.id);
@@ -275,15 +284,25 @@ const { chromium } = require('playwright');
       assert(await page.locator('#tactics-play').isVisible(), 'Play remains on the toolbar at ' + size);
       assert(await page.locator('#tactics-add-frame').isVisible(), 'Next phase remains on the toolbar at ' + size);
       if (viewport.width >= 1000) {
-        const field = await inViewport('#tactics-pitch-board', 'The complete field');
+        const field = await fieldWithinCanvas('The complete field');
+        const rail = await rect('.tactics-inspector'), column = await rect('.tactics-field-column');
+        assert(rail.width <= 340, 'The desktop rail stays compact at ' + size + ': ' + rail.width);
+        assert(column.width > rail.width && field.width >= column.width - 32, 'The field uses the available main column at ' + size + ': ' + JSON.stringify({field,column,rail}));
         assert(field.width >= 500 && field.height >= 300, 'The normal desktop field remains a useful size at ' + size + ': ' + field.width + '×' + field.height);
-        await inViewport('#tactics-phases-toggle', 'The phase dropdown toggle');
-        await inViewport('#tactics-add-frame', 'Add phase');
-        await inViewport('#tactics-play', 'Playback');
+        for (const selector of ['#tactics-phases-toggle','#tactics-add-frame','#tactics-play']) { await page.locator(selector).scrollIntoViewIfNeeded(); await inViewport(selector, 'Reachable playback control'); }
+        await resetScroll();
         assert((await rect('#tactics-item')).width >= 180, 'The desktop inspector keeps a readable full-width piece selector at ' + size);
         for (const selector of ['#tactics-purpose', '#tactics-pitch']) assert((await rect(selector)).width >= 100, 'Inspector view choices remain readable at ' + size + ': ' + selector);
       }
       if(viewport.width<1000){
+        const paletteBox = await rect('.tactics-main-toolbar'), pitchBox = await rect('#tactics-pitch-board');
+        assert(paletteBox.bottom <= pitchBox.y, 'Mobile piece tools precede the pitch at ' + size);
+        await page.locator('#tactics-jump-notes').click();
+        assert(await page.locator('#tactics-phase-notes').evaluate(el => el === document.activeElement), 'Notes shortcut focuses notes at ' + size);
+        await inViewport('#tactics-phase-notes', 'Notes after the shortcut');
+        await page.locator('#tactics-back-field').click();
+        assert(await page.locator('#tactics-pitch-board').evaluate(el => el === document.activeElement && el.getBoundingClientRect().top >= 0 && el.getBoundingClientRect().top < innerHeight), 'Back returns focus and scroll to the field at ' + size);
+        await resetScroll();
         const inputs=await page.locator('#library-form select:visible,#library-form textarea:visible,#library-form input:visible:not([type=checkbox])').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {id:n.id,width:r.width,height:r.height,left:r.left,right:r.right,font:parseFloat(getComputedStyle(n).fontSize)};}));
         for(const c of inputs){assert(c.width>=43.5&&c.height>=43.5&&c.font>=16,'Readable touch-sized library input '+c.id+': '+JSON.stringify(c));assert(c.left>=-1&&c.right<=viewport.width+1,'Library input not clipped: '+c.id);}
       }
@@ -305,7 +324,7 @@ const { chromium } = require('playwright');
       assert.equal(await page.locator('.tactics-inspector').isVisible(), false, 'Field focus hides the inspector at ' + size);
       await inViewport('#tactics-focus-field', 'The control to restore the inspector');
       if (viewport.width >= 1000) {
-        const focusedField = await inViewport('#tactics-pitch-board', 'The focused field');
+        const focusedField = await fieldWithinCanvas('The focused field');
         assert(focusedField.width > fieldBeforeFocus.width + 100, 'Field focus reclaims inspector space at ' + size);
       }
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Focused field has no horizontal overflow at ' + size);
@@ -447,6 +466,7 @@ const { chromium } = require('playwright');
     await page.locator('#tactics-device-view').selectOption('wide');
     assert.equal(await page.locator('#tactics-pitch-board').getAttribute('data-orientation'), 'wide');
     await page.locator('#tactics-device-view').selectOption('auto');
+    assert.deepEqual(await draft(), saved, 'Mobile orientation preserves every saved piece and phase');
 
     await page.locator('#tactics-new-player').click();
     assert(await page.locator('[data-player-color="white"]').isVisible(), 'All colours remain available on a phone');

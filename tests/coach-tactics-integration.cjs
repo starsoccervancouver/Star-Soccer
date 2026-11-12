@@ -89,13 +89,24 @@ require('./coach-fixture-fonts.cjs')(assets);
   await f.page.locator('.planner-drawer-content').evaluate(n=>n.scrollTop=0);
   await f.page.screenshot({path:'outputs/coach-builder-mobile.png'});
   assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  assert(await f.page.locator('#tactics-pitch-board').evaluate(n=>n.getBoundingClientRect().top<600),'Board is reachable in the first phone screen');
+  for(const selector of ['#tactics-add-player','#tactics-add-ball','#tactics-mode-place','#tactics-mode-record','#tactics-save'])assert(await f.page.locator(selector).evaluate(n=>{const r=n.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}),'Primary session tools are available in the first phone screen: '+selector);
+  await f.page.locator('#tactics-pitch-board').scrollIntoViewIfNeeded();
+  assert(await f.page.locator('#tactics-pitch-board').evaluate(n=>{const r=n.getBoundingClientRect();const v=n.viewBox.baseVal;return r.top>=0&&r.top<innerHeight&&r.left>=0&&r.right<=innerWidth&&Math.abs(r.width/r.height-v.width/v.height)<.02;}),'The full-width phone field remains reachable without distorting the pitch');
   assert(await f.page.locator('#tactics-pitch-board .tactics-hit').first().evaluate(n=>n.getBoundingClientRect().width>=43),'Piece touch target is at least 44px within rounding');
   for(const viewport of [{width:390,height:844},{width:320,height:700},{width:768,height:900},{width:1024,height:768},{width:1440,height:700},{width:844,height:390}]){
    await f.page.setViewportSize(viewport);
    await f.page.locator('#tactics-title').click();
    await f.page.locator('.planner-drawer-content').evaluate(n=>n.scrollTop=0);
    assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'No horizontal cutoff at '+viewport.width+'px');
+   if(viewport.width<1000){
+    assert(await f.page.evaluate(()=>document.querySelector('.tactics-main-toolbar').getBoundingClientRect().bottom<=document.getElementById('tactics-pitch-board').getBoundingClientRect().top),'Session mobile piece tools precede the pitch');
+    await f.page.locator('#tactics-jump-notes').click();
+    assert(await f.page.locator('#tactics-phase-notes').evaluate(n=>n===document.activeElement&&n.getBoundingClientRect().top>=0&&n.getBoundingClientRect().bottom<=innerHeight),'Session notes shortcut focuses visible notes');
+    await f.page.locator('#tactics-back-field').click();
+    assert(await f.page.locator('#tactics-pitch-board').evaluate(n=>n===document.activeElement&&n.getBoundingClientRect().top>=0&&n.getBoundingClientRect().top<innerHeight),'Session Back restores field focus and scroll');
+   }else{
+    assert(await f.page.locator('.tactics-inspector').evaluate(n=>n.getBoundingClientRect().width<=340),'Session desktop rail stays compact');
+   }
    if(viewport.width<=390){
     for(const selector of ['#tactics-add-player','#tactics-add-ball','#tactics-add-cone','#tactics-add-goal','.tactics-shapes > summary','#tactics-view-menu > summary']){
      const control=f.page.locator(selector);await control.scrollIntoViewIfNeeded();
@@ -128,6 +139,21 @@ require('./coach-fixture-fonts.cjs')(assets);
    if(viewport.width===390){await f.page.locator('.planner-drawer-content').evaluate(n=>n.scrollTop=0);await f.page.screenshot({path:'outputs/session-builder-mobile.png'});}
   }
   await f.page.setViewportSize({width:1280,height:900});
+  const beforeView=await f.page.evaluate(()=>CoachTactics.getDraft());
+  await reveal(f,'#tactics-camera');
+  for(const camera of ['left-half','facing-goal','full']){
+   await f.page.locator('#tactics-camera').selectOption(camera);
+   for(const orientation of ['tall','wide','auto']){
+    await f.page.locator('#tactics-device-view').selectOption(orientation);
+    assert.deepEqual(await f.page.evaluate(()=>CoachTactics.getDraft()),beforeView,'Session views and orientation preserve every phase and piece');
+   }
+  }
+  await f.page.locator('#tactics-pitch-board').press('Escape');
+  await reveal(f,'#tactics-select-players');
+  assert(await f.page.locator('#tactics-select-players').isEnabled(),'Session All players works without a selection');
+  await f.page.locator('#tactics-select-players').click();
+  assert.equal(await f.page.locator('#tactics-item').inputValue(),'home_1');
+  assert.deepEqual(await f.page.evaluate(()=>CoachTactics.getDraft()),beforeView,'Selecting all players preserves session data');
   await f.page.evaluate(()=>CoachTactics.discard());
   checks++;
 

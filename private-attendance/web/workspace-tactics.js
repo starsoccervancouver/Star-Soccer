@@ -3,6 +3,7 @@
   'use strict';
   const $ = id => document.getElementById(id), mount = $('tactics-board-tools');
   if (!mount) return;
+  mount.classList.add('tactics-studio');
   const ns = 'http://www.w3.org/2000/svg';
   const clone = value => JSON.parse(JSON.stringify(value));
   const possessionPoint = player => ({ x: Math.min(100, player.x + 2), y: Math.min(100, player.y + 2) });
@@ -29,7 +30,7 @@
   let sourceSessionId = '', sourceDiagrams = [];
   let libraryBinding = null, sessionDraft = null, libraryLocked = false, librarySaveBlocked = false;
   let currentLoad = null;
-  let editMode = 'record', selectedIds = new Set(), zoom = 1, viewCenter = { x: 500, y: 325 };
+  let editMode = 'place', selectedIds = new Set(), zoom = 1, viewCenter = { x: 500, y: 325 };
   let currentPlayerColor = null, selectedArrow = '';
   let cameraMode = 'full', showGrid = false, showLanes = false, panelHidden = false, scene = null;
   const homeAnchor = document.createComment('session tactics editor'); mount.before(homeAnchor);
@@ -50,21 +51,21 @@
   function request(operation, payload) { return new Promise((resolve, reject) => window.dispatchEvent(new CustomEvent('coach:tactics-request', { detail: { operation, payload, resolve, reject } }))); }
   function stopPlayback(reset = true) { running = false; cancelAnimationFrame(animation); animation = 0; if (reset) { elapsed = 0; renderedPositions = null; } renderPlayback(); }
   function mutate(fn, text) { if (!editable()) return; stopPlayback(); remember(); fn(); if (text) tell(text); render(); notifyDraft(); }
-  function clear(next = blank()) { stopPlayback(); record = clone(next); record.content = clone(next.content); frameIndex = 0; selectedItem = selectedArrow = ''; currentPlayerColor = null; selectedIds.clear(); undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; lastAttempt = null; recoveryNeeded = false; baseline = snapshot(); render(); notifyDraft(); }
+  function clear(next = blank()) { stopPlayback(); record = clone(next); record.content = clone(next.content); editMode = record.content.frames.length > 1 ? 'record' : 'place'; frameIndex = 0; selectedItem = selectedArrow = ''; currentPlayerColor = null; selectedIds.clear(); undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; lastAttempt = null; recoveryNeeded = false; baseline = snapshot(); render(); notifyDraft(); }
   function discard() { stopPlayback(); const saved = JSON.parse(baseline); record.title = saved.title; record.content = saved.content; frameIndex = 0; selectedItem = ''; selectedIds.clear(); undo = []; redo = []; titleEditing = labelEditing = frameEditing = notesEditing = false; render(); notifyDraft(); }
   function openLibrary(binding) {
     if (!binding?.host || pending) return false;
     stopPlayback(); closePhases(); closeColors();
-    if (!libraryBinding) sessionDraft = { record: clone(record), baseline, frameIndex, selectedItem, selectedIds: selection(), undo: clone(undo), redo: clone(redo), loaded, loadAttempted, lastAttempt, recoveryNeeded, message, messageError, identity };
+    if (!libraryBinding) sessionDraft = { record: clone(record), baseline, frameIndex, selectedItem, selectedIds: selection(), undo: clone(undo), redo: clone(redo), loaded, loadAttempted, lastAttempt, recoveryNeeded, message, messageError, identity, editMode };
     libraryBinding = binding; libraryLocked = librarySaveBlocked = false; binding.host.append(mount);
     record = { ...blank(), title: binding.title || 'Drill diagram' }; if (binding.diagram) record.content = clone(binding.diagram);
-    baseline = snapshot(); frameIndex = 0; selectPiece(''); currentPlayerColor = null; undo = []; redo = []; loaded = true; recoveryNeeded = false; lastAttempt = null;
+    baseline = snapshot(); editMode = record.content.frames.length > 1 ? 'record' : 'place'; frameIndex = 0; selectPiece(''); currentPlayerColor = null; undo = []; redo = []; loaded = true; recoveryNeeded = false; lastAttempt = null;
     resetCamera(); setPanelHidden(false); tell('Diagram and phase notes save with this drill.'); render(); return true;
   }
   function closeLibrary() {
     if (!libraryBinding) return;
     stopPlayback(); closePhases(); closeColors(); pointer = null; libraryBinding = null; libraryLocked = librarySaveBlocked = false; homeAnchor.after(mount);
-    if (sessionDraft) { ({ record, baseline, frameIndex, selectedItem, undo, redo, loaded, loadAttempted, lastAttempt, recoveryNeeded, message, messageError } = sessionDraft); selectedIds = new Set(sessionDraft.selectedIds); }
+    if (sessionDraft) { ({ record, baseline, frameIndex, selectedItem, undo, redo, loaded, loadAttempted, lastAttempt, recoveryNeeded, message, messageError, editMode } = sessionDraft); selectedIds = new Set(sessionDraft.selectedIds); }
     sessionDraft = null; resetCamera(); setPanelHidden(false); render();
   }
   window.CoachTactics = Object.freeze({ isDirty: dirty, isBusy: () => pending, discard,
@@ -78,7 +79,7 @@
   function useDraft(value) {
     if (libraryBinding || !editable() || recoveryNeeded || value.sessionId !== context.session.id || value.diagram?.schemaVersion !== 1 || !Array.isArray(value.diagram.items) || !value.diagram.frames?.length) return false;
     if (dirty() && !confirm('Replace the current unsaved diagram with this drill’s diagram?')) return false;
-    clear(); record.title = String(value.title || 'Drill diagram').slice(0, 80); record.content = clone(value.diagram); $('tactics-disclosure').open = true;
+    clear(); record.title = String(value.title || 'Drill diagram').slice(0, 80); record.content = clone(value.diagram); editMode = record.content.frames.length > 1 ? 'record' : 'place'; $('tactics-disclosure').open = true;
     render(); tell('Drill diagram copied to this session draft. Save setup to keep it.'); notifyDraft(); return true;
   }
 
@@ -131,7 +132,7 @@
   function closeColors() { colorMenu.hidden = true; newPlayer.setAttribute('aria-expanded', 'false'); addPlayerButton.setAttribute('aria-expanded', 'false'); }
   function choosePlayerColor() { if (!editable()) return; colorMenu.hidden = !colorMenu.hidden; newPlayer.setAttribute('aria-expanded', String(!colorMenu.hidden)); addPlayerButton.setAttribute('aria-expanded', String(!colorMenu.hidden)); if (!colorMenu.hidden) colorMenu.querySelector('button').focus(); }
   function addPlayer(destination) { if (!currentPlayerColor) { choosePlayerColor(); return; } addPiece(currentPlayerColor === 'gold' ? 'away' : 'home', destination, currentPlayerColor); }
-  const addPlayerButton = button('Add player', 'tactics-add-player', () => addPlayer()); addPlayerButton.prepend(currentColor); addPlayerButton.draggable = true; addPlayerButton.title = 'Add another player in the current colour, or drag onto the field';
+  const addPlayerButton = button('Player', 'tactics-add-player', () => addPlayer()); addPlayerButton.setAttribute('aria-label', 'Add player'); addPlayerButton.prepend(currentColor); addPlayerButton.draggable = true; addPlayerButton.title = 'Add another player in the current colour, or drag onto the field';
   addPlayerButton.addEventListener('dragstart', event => { if (!editable() || !currentPlayerColor) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', 'player'); event.dataTransfer.effectAllowed = 'copy'; });
   const newPlayer = button('▾', 'tactics-new-player', choosePlayerColor); newPlayer.setAttribute('aria-label', 'Add player in a new colour'); newPlayer.setAttribute('aria-expanded', 'false'); newPlayer.setAttribute('aria-controls', colorMenu.id); newPlayer.title = 'Choose another player colour';
   addPlayerButton.setAttribute('aria-controls', colorMenu.id); addPlayerButton.setAttribute('aria-expanded', 'false');
@@ -168,9 +169,9 @@
   arrangeTools.append(button('Align across','tactics-align-row',()=>alignPlayers('y')),button('Align down','tactics-align-column',()=>alignPlayers('x'))); arrange.append(arrangeTools);
 
   const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
-  for (const [mode, text] of [['place', 'Edit layout'], ['record', 'Record movement']]) editModes.append(button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }));
-  const arrowTool = button('✎ Draw', 'tactics-draw-arrow', () => { if (!editable()) return; editMode = editMode === 'arrow' ? 'place' : 'arrow'; selectPiece(''); render(); tell(editMode === 'arrow' ? 'Draw any route on the field; it follows your curve and ends with an arrowhead. For a straight path, focus the field and press Enter. Drawings belong to this phase.' : 'Select and move pieces.'); }); arrowTool.setAttribute('aria-label', 'Draw curved arrow'); editModes.append(arrowTool);
-  const shapes = el('details', '', 'tactics-shapes'); shapes.append(el('summary','Shapes'));
+  for (const [mode, text] of [['place', 'Layout'], ['record', 'Movement']]) { const control = button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }); control.title = mode === 'place' ? 'Reposition pieces across every phase' : 'Record a route into this phase'; editModes.append(control); }
+  const arrowTool = button('Arrow', 'tactics-draw-arrow', () => { if (!editable()) return; editMode = editMode === 'arrow' ? 'place' : 'arrow'; selectPiece(''); render(); tell(editMode === 'arrow' ? 'Draw any route on the field; it follows your curve and ends with an arrowhead. For a straight path, focus the field and press Enter. Drawings belong to this phase.' : 'Select and move pieces.'); }); arrowTool.setAttribute('aria-label', 'Draw curved arrow'); arrowTool.title = 'Draw an arrow directly on the field'; editModes.append(arrowTool);
+  const shapes = el('details', '', 'tactics-shapes'); shapes.append(el('summary','Shape'));
   const shapeChoices = el('div', '', 'tactics-shape-choices');
   for (const [shape, label] of [['rect','▭ Rectangle'],['ellipse','◯ Oval'],['triangle','△ Triangle'],['diamond','◇ Diamond']]) shapeChoices.append(button(label,'tactics-shape-add-'+shape,()=>{addPiece('zone',undefined,undefined,{shape,outline:true});shapes.open=false;}));
   shapeChoices.append(button('▰ Filled area', 'tactics-add-zone', () => { addPiece('zone'); shapes.open = false; }));
@@ -189,6 +190,7 @@
   const help = el('p', 'Place the starting pieces, add a next phase, then drag players and balls along their route. The full drag is recorded, including curves. Paths show movement into the selected phase; during playback they show the next movement. Dashed: player. Solid: ball. Equipment and zones have no paths. Drag an attached ball to release it. Arrows: move · Shift: farther · Ctrl/⌘ Z: undo · Delete: remove from all steps · Escape: deselect.', 'tactics-board-help');
   const side = el('div', '', 'tactics-piece-panel');
   const itemSelect = select('tactics-item', [['', 'Choose a piece']]);
+  const selectionHint = el('p', 'Select a player or object on the field to edit it.', 'tactics-selection-hint');
   itemSelect.addEventListener('change', () => { if (!editable()) return; selectPiece(itemSelect.value); stopPlayback(); render(); });
   const labelInput = input('tactics-label'); labelInput.maxLength = 12;
   const pieceLabel = field('Shirt label', labelInput);
@@ -218,7 +220,7 @@
   for (const [control, key] of [[zoneShape, 'shape'], [zoneColor, 'color'], [zoneWidth, 'width'], [zoneHeight, 'height']]) control.addEventListener('change', () => mutate(() => { const item = record.content.items.find(i => i.id === selectedItem); if (!item?.zone) return; item.zone[key] = ['width', 'height'].includes(key) ? Number(control.value) : control.value; for (const f of record.content.frames) constrainZone(f, item); }, 'Zone updated in every phase.'));
   zoneControls.append(field('Zone shape', zoneShape), field('Zone colour', zoneColor), outlineLabel, field('Zone width', zoneWidth), field('Zone height', zoneHeight), el('p', 'Drag to move. Use the corner handle to resize a box. Shape and size apply to every phase.', 'small'));
   side.append(field('Selected piece', itemSelect), pieceLabel, button('Duplicate piece', 'tactics-duplicate-item', duplicatePiece), button('Remove from all steps', 'tactics-remove-item', () => mutate(() => { const ids = selection(); for (const f of record.content.frames) { for (const p of f.positions) if (ids.includes(p.attachedTo)) detachBall(f, p); f.positions = f.positions.filter(p => !ids.includes(p.id)); } record.content.items = record.content.items.filter(i => !ids.includes(i.id)); selectPiece(''); }, 'Piece removed from every step. Undo restores it.')));
-  side.append(zoneControls);
+  side.append(zoneControls, selectionHint);
   side.insertBefore(playerColorField, pieceLabel.nextSibling); side.prepend(removeArrow);
   const advanced = el('div', '', 'tactics-piece-settings'); advanced.append(carrierField, routeActions); side.append(advanced);
   const pieceActions = el('div', '', 'tactics-piece-actions'); for (const id of ['tactics-duplicate-item', 'tactics-remove-item']) pieceActions.append(side.querySelector('#' + id)); advanced.before(pieceActions);
@@ -288,7 +290,9 @@
   });
   workbar.append(heading.firstChild, saveControl, saveLibrary, status);
   const editHistory = el('div', '', 'tactics-edit-history'); editHistory.setAttribute('role', 'group'); editHistory.setAttribute('aria-label', 'Edit history'); editHistory.append(undoControl, redoControl);
-  const editTools = el('div', '', 'tactics-edit-tools'); editModes.replaceWith(editTools); editHistory.append(arrange); editTools.append(editModes, editHistory);
+  for (const [control, icon, name] of [[undoControl, '↶', 'Undo'], [redoControl, '↷', 'Redo']]) { control.textContent = icon; control.setAttribute('aria-label', name); control.title = name; }
+  const editTools = el('div', '', 'tactics-edit-tools'); editModes.replaceWith(editTools); editTools.append(editModes, editHistory);
+  const modeHint = el('p', '', 'tactics-mode-hint'); modeHint.id = 'tactics-mode-hint';
   const sequenceActions = el('div', '', 'tactics-sequence-actions'); sequenceActions.setAttribute('role', 'group'); sequenceActions.setAttribute('aria-label', 'Playback and phases');
   const phasePicker = el('div', '', 'tactics-phase-picker');
   phases.id = 'tactics-phase-popover'; phases.hidden = true;
@@ -310,19 +314,31 @@
   window.addEventListener('resize', () => closePhases());
   sequenceActions.append(phasePicker, playControl, phaseActions.querySelector('#tactics-add-frame')); topActions.append(sequenceActions);
   const extras = el('details', '', 'tactics-compact-details'); extras.append(el('summary', 'Setup options'), heading, editingActions, saveActions,
-    button('Save draft as new setup', 'tactics-save-copy', () => { if (!editable() || recoveryNeeded) return; const draft = clone(record); clear(); record.title = (draft.title.slice(0, 73) + ' (copy)').slice(0, 80); record.content = draft.content; render(); tell('New unsaved copy. Save setup to keep it.'); notifyDraft(); }), intro);
+    button('Save draft as new setup', 'tactics-save-copy', () => { if (!editable() || recoveryNeeded) return; const draft = clone(record), draftMode = editMode; clear(); record.title = (draft.title.slice(0, 73) + ' (copy)').slice(0, 80); record.content = draft.content; editMode = draftMode; render(); tell('New unsaved copy. Save setup to keep it.'); notifyDraft(); }), intro);
   // Preserve existing controls and IDs while bringing the board and main actions forward.
   extras.append(help);
   const fieldColumn = el('div', '', 'tactics-field-column'), inspector = el('aside', '', 'tactics-inspector'), phaseEditor = el('section', '', 'tactics-phase-editor');
-  phaseEditor.append(el('h3', 'Selected phase'), frameSettings, phaseNotes.parentElement, phaseActions);
+  phaseEditor.append(el('h3', 'Phase notes'), frameSettings, phaseNotes.parentElement, phaseActions);
   inspector.id = 'tactics-inspector';
-  fieldColumn.append(canvasWrap); inspector.append(viewOptions, side, phaseEditor, extras); const written = el('section', '', 'tactics-written'); written.append(field('Activity type', purpose)); boardLayout.replaceChildren(fieldColumn, inspector, written);
+  const paletteHeading = el('h3', 'Add to field', 'tactics-palette-heading');
+  topActions.replaceChildren(paletteHeading, addGroup, selectionCount);
+  side.append(arrange);
+  editTools.append(modeHint);
+  fieldColumn.append(editTools, canvasWrap, sequenceActions);
+  inspector.append(side, phaseEditor);
+  const written = el('section', '', 'tactics-written'); written.append(field('Activity type', purpose), extras);
+  boardLayout.replaceChildren(fieldColumn, topActions, inspector, written);
+  const mobileLinks = el('div', '', 'tactics-mobile-links');
+  function focusInspector(control) { setPanelHidden(false); control.scrollIntoView({ block: 'center', behavior: 'instant' }); control.focus({ preventScroll: true }); }
+  mobileLinks.append(button('Selected piece', 'tactics-jump-piece', () => focusInspector(itemSelect)), button('Phase notes', 'tactics-jump-notes', () => focusInspector(phaseNotes)));
+  sequenceActions.append(mobileLinks);
+  const backField = button('Back to field ↑', 'tactics-back-field', () => { editTools.scrollIntoView({ block: 'start', behavior: 'instant' }); board.focus({ preventScroll: true }); }); backField.className = 'secondary tactics-back-field'; inspector.prepend(backField);
   const camera = select('tactics-camera', [['full','Full field'],['left-half','Left half · side'],['right-half','Right half · side'],['facing-goal','Half · facing goal'],['away-from-goal','Half · away from goal']]);
   camera.setAttribute('aria-label', 'Camera view'); camera.title = 'Change your view without moving players or changing the drill';
   camera.addEventListener('change', () => { cameraMode = record.content.pitch === 'full' ? camera.value : 'full'; zoom = 1; const g = cameraGeometry(); viewCenter = { x: g.x + g.width / 2, y: g.y + g.height / 2 }; draw(); });
-  const focusField = button('Hide panel', 'tactics-focus-field', () => setPanelHidden(!panelHidden));
+  const focusField = button('Focus field', 'tactics-focus-field', () => setPanelHidden(!panelHidden));
   focusField.setAttribute('aria-controls', inspector.id); focusField.setAttribute('aria-expanded','true');
-  function setPanelHidden(hidden) { panelHidden = hidden; inspector.hidden = hidden; document.body.classList.toggle('tactics-field-focus', hidden); focusField.textContent = hidden ? 'Show panel' : 'Hide panel'; focusField.setAttribute('aria-expanded', String(!hidden)); requestAnimationFrame(() => { if (active()) draw(); }); }
+  function setPanelHidden(hidden) { panelHidden = hidden; inspector.hidden = topActions.hidden = hidden; document.body.classList.toggle('tactics-field-focus', hidden); focusField.textContent = hidden ? 'Show tools' : 'Focus field'; focusField.setAttribute('aria-expanded', String(!hidden)); requestAnimationFrame(() => { if (active()) draw(); }); }
   const gridControl = button('Thirds', 'tactics-grid', () => { showGrid = !showGrid; draw(); });
   gridControl.title = 'Show a thirds guide for spacing and positioning'; gridControl.setAttribute('aria-pressed','false');
   const laneControl = button('Lanes', 'tactics-lanes', () => { showLanes = !showLanes; draw(); });
@@ -382,13 +398,13 @@
   function placeFieldDock() {
     if (fieldDock.parentElement !== editor || fieldDock.nextElementSibling !== boardLayout) editor.insertBefore(fieldDock, boardLayout);
     if (viewOptions.parentElement !== fieldDock) fieldDock.prepend(viewOptions);
-    if (topActions.parentElement !== inspector) inspector.prepend(topActions);
+    if (topActions.parentElement !== boardLayout) fieldColumn.after(topActions);
     if (focusField.parentElement !== cameraTools) cameraTools.append(focusField);
     fieldColumn.dataset.dock = 'top';
   }
   new ResizeObserver(() => { if (active() && loaded) draw(); }).observe(fieldColumn);
   const guidance = el('details', '', 'tactics-guidance'); guidance.append(el('summary','Field controls'), pathCaption, help); inspector.append(guidance);
-  editor.append(topActions, boardLayout, recoveryActions);
+  editor.append(boardLayout, recoveryActions);
   mount.append(workbar, editor, library, reuse);
   function editedText() { $('tactics-undo').disabled = !undo.length; $('tactics-redo').disabled = !redo.length; $('tactics-save').disabled = recoveryNeeded || !record.title.trim() || (!dirty() && !!record.id); renderStatus(); notifyDraft(); }
   function duplicatePiece() {
@@ -634,6 +650,8 @@
     phaseOptions.hidden = previewControls.hidden = playback.hidden = record.content.frames.length < 2;
     for (const mode of ['place', 'record']) $('tactics-mode-' + mode).setAttribute('aria-pressed', String(editMode === mode));
     arrowTool.setAttribute('aria-pressed', String(editMode === 'arrow')); board.style.cursor = editMode === 'arrow' ? 'crosshair' : '';
+    modeHint.textContent = editMode === 'arrow' ? 'Draw on the field' : editMode === 'place' ? 'Moves every phase' : frameIndex ? 'Records this phase' : 'Set starting positions';
+    modeHint.title = editMode === 'place' ? 'Moving a piece adjusts its position in every phase and preserves its route.' : 'Add a next phase, then drag players and balls to record their movement.';
     currentColor.style.backgroundColor = currentPlayerColor ? playerColors[currentPlayerColor] : 'transparent'; currentColor.hidden = !currentPlayerColor;
     newPlayer.hidden = !record.content.items.some(item => ['home', 'away'].includes(item.kind));
     selectionCount.textContent = selection().length > 1 ? selection().length + ' selected · drag or duplicate together' : 'Shift-click pieces to select a group';
@@ -663,6 +681,7 @@
     if (!zoneControls.hidden) { const zone = record.content.items.find(i => i.id === selectedItem).zone; zoneShape.value = zone.shape; zoneColor.value = zone.color; zoneWidth.value = zone.width; zoneHeight.value = zone.height; zoneOutline.checked=!!zone.outline; }
     if (!currentFrame().arrows?.some(arrow => arrow.id === selectedArrow)) selectedArrow = '';
     side.dataset.selected = String(!!selectedItem || !!selectedArrow);
+    selectionHint.hidden = !!selectedItem || !!selectedArrow;
     playerColorField.hidden = !['home','away'].includes(selectedKind); if (!playerColorField.hidden) playerColorSelect.value = playerColor(record.content.items.find(item => item.id === selectedItem));
     removeArrow.hidden = !selectedArrow;
     const phaseScroll = frameButtons.scrollLeft;
@@ -681,7 +700,12 @@
     $('tactics-retry').disabled = !active() || pending || context.busy;
     pathToggle.disabled = !active() || !loaded;
     labelInput.disabled = disabled || !selectedItem;
-    for (const control of side.querySelectorAll('button')) control.disabled = disabled || !selectedItem;
+    for (const control of side.querySelectorAll('button')) control.disabled = disabled || (!selectedItem && !arrange.contains(control));
+    $('tactics-select-players').disabled = disabled || !record.content.items.some(item => ['home','away'].includes(item.kind));
+    $('tactics-select-colour').disabled = disabled || !['home','away'].includes(selectedKind);
+    $('tactics-clear-selection').disabled = disabled || !selection().length;
+    for (const id of ['tactics-align-row','tactics-align-column']) $(id).disabled = disabled || selection().filter(id => ['home','away','cone'].includes(record.content.items.find(item => item.id === id)?.kind)).length < 2;
+    for (const control of [backField, ...mobileLinks.querySelectorAll('button')]) control.disabled = !active() || !loaded || pending;
     removeArrow.disabled = disabled || !selectedArrow;
     $('tactics-duplicate-item').disabled = disabled || !selectedItem || record.content.items.length + selection().length > 40;
     $('tactics-duplicate-item').textContent = selection().length > 1 ? 'Duplicate selection' : 'Duplicate piece';
@@ -726,7 +750,9 @@
     viewCenter = { x: Math.max(bounds.left, Math.min(bounds.right, viewCenter.x)), y: Math.max(bounds.top, Math.min(bounds.bottom, viewCenter.y)) };
     updateViewControls();
     board.setAttribute('viewBox', [viewCenter.x - geometry.width / 2 / zoom, viewCenter.y - geometry.height / 2 / zoom, geometry.width / zoom, geometry.height / zoom].join(' '));
-    const fieldHeight = Math.max(240, innerHeight - (canvasWrap.getBoundingClientRect().top + (board.closest('#library-form')?.scrollTop || 0)) - 32); board.closest('#library-form')?.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
+    const fieldHeight = Math.max(220, innerHeight - (canvasWrap.getBoundingClientRect().top + (board.closest('#library-form')?.scrollTop || 0)) - 86);
+    fieldColumn.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
+    board.closest('#library-form')?.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
     boardLayout.dataset.upright = String(geometry.height > geometry.width); board.closest('#library-form')?.setAttribute('data-upright', String(geometry.height > geometry.width)); board.dataset.camera = cameraMode; board.style.setProperty('--field-height', fieldHeight + 'px'); board.style.setProperty('--field-ratio', geometry.width + ' / ' + geometry.height); board.dataset.orientation = geometry.height > geometry.width ? 'tall' : 'wide';
     board.replaceChildren();
     scene = svg('g', { 'data-camera-scene': '', transform: 'rotate(' + geometry.angle + ' 500 325)' });

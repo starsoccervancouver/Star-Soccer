@@ -1124,6 +1124,96 @@
       "height": 554,
       "source": "Owner-provided portrait of Valentinos Dinglis, November 12, 2026",
       "edits": "Full original frame preserved, resized and compressed. No crop, recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-960-v2.avif",
+      "bytes": 41539,
+      "width": 960,
+      "height": 475,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Owner colour treatment preserved. Responsive crop and compression only."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-960-v2.webp",
+      "bytes": 78572,
+      "width": 960,
+      "height": 475,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Owner colour treatment preserved. Responsive crop and compression only."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1600-v2.avif",
+      "bytes": 102049,
+      "width": 1600,
+      "height": 792,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Owner colour treatment preserved. Responsive crop and compression only."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1600-v2.webp",
+      "bytes": 182486,
+      "width": 1600,
+      "height": 792,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Owner colour treatment preserved. Responsive crop and compression only."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1920-v2.avif",
+      "bytes": 138053,
+      "width": 1920,
+      "height": 950,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Owner colour treatment preserved. Responsive crop and compression only."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1920-v2.webp",
+      "bytes": 241402,
+      "width": 1920,
+      "height": 950,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Owner colour treatment preserved. Responsive crop and compression only."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-480-v2.avif",
+      "bytes": 18099,
+      "width": 480,
+      "height": 384,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Owner colour treatment preserved. Responsive crop and compression only."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-480-v2.webp",
+      "bytes": 35024,
+      "width": 480,
+      "height": 384,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Owner colour treatment preserved. Responsive crop and compression only."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-800-v2.avif",
+      "bytes": 43942,
+      "width": 800,
+      "height": 640,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Owner colour treatment preserved. Responsive crop and compression only."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-800-v2.webp",
+      "bytes": 78030,
+      "width": 800,
+      "height": 640,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Owner colour treatment preserved. Responsive crop and compression only."
     }
   ]
 }

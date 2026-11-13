@@ -1,46 +1,33 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
-
 const read=file=>fs.readFileSync(file,'utf8');
 const attributes=tag=>Object.fromEntries([...tag.matchAll(/([\w:-]+)\s*=\s*"([^"]*)"/g)].map(([,key,value])=>[key,value.replace(/&amp;/g,'&')]));
 const matchesWidth=(media,width)=>[...media.matchAll(/\((min|max)-width:\s*([\d.]+)px\)/g)].every(([,bound,value])=>bound==='max'?width<=Number(value):width>=Number(value));
 
-// Read the cascade, including nested media blocks, so a preload cannot quietly
-// diverge from the image CSS actually selects at the navigation breakpoint.
-function heroBackgrounds(css,media='') {
-  const rules=[];
-  css=css.replace(/\/\*[\s\S]*?\*\//g,'');
-  for(let position=0;position<css.length;) {
-    const open=css.indexOf('{',position);
-    if(open<0)break;
-    let end=open+1,depth=1;
-    while(end<css.length&&depth) {if(css[end]==='{')depth++;if(css[end]==='}')depth--;end++;}
-    const selector=css.slice(position,open).trim(),body=css.slice(open+1,end-1);
-    if(selector.startsWith('@media'))rules.push(...heroBackgrounds(body,media+' '+selector));
-    else if(selector.split(',').some(value=>['.immersive-hero','body.home-landing .immersive-hero'].includes(value.trim()))) {
-      const url=body.match(/url\(["']?(site-photos\/home-\d+\.avif)["']?\)/)?.[1];
-      if(url)rules.push({media,url});
-    }
-    position=end;
+test('homepage discovers one responsive hero eagerly and keeps both crop families within budget',()=>{
+  const html=read('index.html');
+  const picture=html.match(/<picture class="home-training-photo">([\s\S]*?)<\/picture>/)?.[1];
+  assert(picture,'Hero must be discoverable in HTML without waiting for CSS or JavaScript');
+  const img=attributes(picture.match(/<img\b[^>]*>/)[0]);
+  assert.equal(img.fetchpriority,'high');
+  assert.notEqual(img.loading,'lazy');
+  assert(Number(img.width)>0&&Number(img.height)>0,'Reserve the image dimensions');
+  const preloads=[...html.matchAll(/<link\b[^>]*>/g)].map(m=>attributes(m[0])).filter(t=>t.rel==='preload'&&t.as==='image');
+  assert.equal(preloads.length,0,'HTML picture selection must not compete with obsolete stock-photo preloads');
+  const sources=[...picture.matchAll(/<source\b[^>]*>/g)].map(m=>attributes(m[0]));
+  const credits=JSON.parse(read('site-photos/credits.json')).assets;
+  for(const width of [320,390,600,700,701,900,1440,1920])for(const dpr of [1,2,3]){
+    const source=sources.find(s=>s.type==='image/avif'&&matchesWidth(s.media||'',width));
+    assert(source,'AVIF source missing at '+width+'px');
+    assert.equal(source.sizes,'100vw');
+    const candidates=source.srcset.split(',').map(s=>{const [file,w]=s.trim().split(/\s+/);return {file,width:parseInt(w,10)}});
+    const selected=candidates.find(c=>c.width>=width*dpr)||candidates.at(-1);
+    assert(selected.file.includes(width<=700?'home-mobile-':'home-wide-'),'Use the device-specific crop');
+    assert(selected.width<=(width<=700?800:1920),'Limit source resolution');
+    assert(fs.statSync(selected.file).size<(width<=700?70000:180000),'Keep hero bytes bounded even on high-density screens');
+    assert(credits.find(c=>c.file===selected.file)?.source.includes('DSC03269.ARW'),'Keep the owner-approved photograph');
   }
-  return rules;
-}
-
-test('homepage preloads exactly the hero image selected by the CSS at each breakpoint',()=>{
-  const preloads=[...read('index.html').matchAll(/<link\b[^>]*>/g)].map(match=>attributes(match[0])).filter(tag=>tag.rel==='preload'&&tag.as==='image');
-  const backgrounds=[...heroBackgrounds(read('styles.css')),...heroBackgrounds(read('homepage-conversion.css'))];
-  for(const width of [320,390,600,601,700,900,901,1050,1440,1920]) {
-    const selected=backgrounds.filter(rule=>matchesWidth(rule.media,width)).at(-1);
-    assert(selected,'Missing homepage hero at '+width+'px');
-    const preload=preloads.filter(tag=>matchesWidth(tag.media||'',width));
-    assert.equal(preload.length,1,'Exactly one hero should be preloaded at '+width+'px');
-    assert.equal(preload[0].href,selected.url,'Preload mismatch downloads an extra image at '+width+'px');
-    assert.equal(preload[0].fetchpriority,'high','The visible hero must retain priority');
-    assert.equal(preload[0].type,'image/avif');
-    assert.equal(selected.url,'site-photos/home-'+(width<=900?'800':'1600')+'.avif','Avoid oversized mobile images');
-    const source=JSON.parse(read('site-photos/credits.json')).assets.find(a=>a.file===selected.url);
-    assert(new URL(source.source).pathname.includes('photo-1517466787929-bc90951d0974'),'Keep the approved hero photograph');
-    assert(fs.statSync(selected.url).size<(width<=900?70000:180000),'Hero download stays within the responsive image budget');
-  }
+  assert(sources.some(s=>s.type==='image/webp'),'Keep a WebP fallback');
+  assert(fs.existsSync(img.src));
 });

@@ -27,7 +27,7 @@
   const change=(doc,id,value)=>{const el=doc.getElementById(id);el.value=value;el.dispatchEvent(new frame.contentWindow.Event('change',{bubbles:true}));};
   const formLabel=(doc,name)=>doc.querySelector('form').elements.namedItem(name).labels[0].textContent;
   try {
-    const pages=['index.html','programs.html','program-private-small-group.html','methodology.html','locations.html','contact.html','camps.html','christmas-camp-registration.html','boxing-camp-registration.html','christmas-camp-registration.html?kind=dropin','boxing-camp-registration.html?kind=dropin','selectivo.html','registration.html?sessionId=wednesday&type=pass4','registration.html?sessionId=wednesday&type=dropin','registration.html?sessionId=tuesday&type=dropin','registration-thank-you.html'];
+    const pages=['pro-d-camp-registration.html','index.html','programs.html','program-private-small-group.html','methodology.html','locations.html','contact.html','camps.html','christmas-camp-registration.html','boxing-camp-registration.html','christmas-camp-registration.html?kind=dropin','boxing-camp-registration.html?kind=dropin','selectivo.html','registration.html?sessionId=wednesday&type=pass4','registration.html?sessionId=wednesday&type=dropin','registration.html?sessionId=tuesday&type=dropin','registration-thank-you.html'];
     for(const width of [320,375,430,900,1024,1440]) {
       for(const page of pages) {
         const doc=await load(page,width);
@@ -51,7 +51,7 @@
           const heroImage=doc.querySelector('.home-training-photo img');
           check(heroPhotos.length===1 && heroPhotos[0].name===heroImage.currentSrc && heroImage.currentSrc.includes(width<=700?'home-mobile-':'home-wide-') && heroImage.currentSrc.endsWith('.avif'),`Homepage at ${width}px downloads one responsive autumn hero`);
           const programs=doc.querySelector('.hero-action-programs'),camps=doc.querySelector('.hero-action-camps');
-          check(programs && camps && programs.getAttribute('href')==='programs.html?age=youth#sessions' && programs.textContent.includes('Find your child’s group') && camps.getAttribute('href')==='camps.html',`Homepage at ${width}px directs parents to youth groups and keeps the camp destination`);
+          check(programs && camps && programs.getAttribute('href')==='pro-d-camp-registration.html' && programs.textContent.includes('Register for Pro-D camp') && camps.getAttribute('href')==='camps.html',`Homepage at ${width}px directs parents to the Pro-D camp and keeps the winter camp destination`);
           check(programs && camps && [programs,camps].every(el=>el.getClientRects().length && el.getBoundingClientRect().height>=48),`Homepage at ${width}px shows large program and camp actions`);
           check(camps && camps.textContent.includes('Register for discounted winter camps') && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with the streamlined discounted winter camp action`);
           check(doc.querySelector('h1').textContent.includes('Weekly soccer coaching.') && doc.querySelector('h1').textContent.includes('Ages 6–14 in Kitsilano.'),`Homepage at ${width}px describes the weekly service, ages and location`);
@@ -93,10 +93,12 @@
           const adultUrl=adultLinks.length===1?new URL(adultLinks[0].href):null;
           check(!!adultCard && adultCard.textContent.includes('9:30–11:00 AM') && adultCard.textContent.includes('Fen Burdett Stadium') && adultCard.textContent.includes('$20 drop-in') && adultCard.textContent.includes('Up to 8 players expected this week') && !/18\+|\$0|4 consecutive sessions/.test(adultCard.textContent) && adultUrl?.pathname.endsWith('/registration.html') && adultUrl.searchParams.get('sessionId')==='tuesday' && adultUrl.searchParams.get('type')==='dropin' && adultLinks[0].getClientRects().length && adultLinks[0].getBoundingClientRect().height>=48 && !adultCard.querySelector('.session-capacity,a[href*="type=pass4"]'),`Training at ${width}px gives Tuesday women direct $20 drop-in registration without an 18+ restriction or an invented pass`);
           check([...doc.querySelectorAll('#sessions .schedule-entry')].length===5 && doc.querySelector('#sessions .schedule-entry')===adultCard && !doc.querySelector('[data-filter-panel],#schedule-results,#schedule-empty'),`Training at ${width}px shows all five sessions without filters`);
-          const cards=[...doc.querySelectorAll('#sessions .schedule-entry')].map(el=>el.getBoundingClientRect());
+          const cards=[...doc.querySelectorAll('#sessions .schedule-list > article')].map(el=>el.getBoundingClientRect());
           check(width>700 ? Math.abs(cards[0].top-cards[1].top)<2 && cards[1].left>cards[0].right && cards[2].top>=cards[0].bottom : cards[1].top>=cards[0].bottom,`Training at ${width}px uses two cards per desktop row and readable single cards on phones`);
           check(!doc.querySelector('details.schedule-entry,.session-share'),`Training at ${width}px has no registration disclosure or copy-link step`);
-          if(width<=430)check(adultLinks[0].getBoundingClientRect().bottom<=640,`Training at ${width}px puts Tuesday's registration within the first screen (${Math.round(adultLinks[0].getBoundingClientRect().bottom)}px)`);
+          const campLink=doc.querySelector('.training-event-card .button');
+          check(campLink.getAttribute('href')==='pro-d-camp-registration.html',`Training at ${width}px offers the single-day camp separately from recurring sessions`);
+          if(width<=430)check(campLink.getBoundingClientRect().bottom<=640,`Training at ${width}px puts camp registration within the first screen (${Math.round(campLink.getBoundingClientRect().bottom)}px)`);
         }
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
@@ -128,7 +130,7 @@
           if(width>=900)check(panel.width>info.width*1.5 && info.left>=panel.right,`${page} at ${width}px gives the registration form more space beside the info card`);
           if(width<=430)check(info.top>=panel.bottom,`${page} at ${width}px keeps the form before the information card`);
           const theme=frame.contentWindow.getComputedStyle(doc.body).getPropertyValue('--registration-art');
-          check(theme.includes(page.includes('private-small-group') || page.startsWith('registration.html')?'autumn-field':'winter-field'),`${page} at ${width}px uses its matching seasonal artwork`);
+          check(theme.includes(page.includes('private-small-group') || page.startsWith('registration.html') || page.startsWith('pro-d-camp')?'autumn-field':'winter-field'),`${page} at ${width}px uses its matching seasonal artwork`);
           check(!doc.querySelector('.registration-info img') && frame.contentWindow.getComputedStyle(doc.querySelector('.registration-info')).backgroundColor==='rgb(16, 38, 61)',`${page} at ${width}px keeps imagery outside the opaque information card`);
           if(page.startsWith('registration.html') && page.includes('type=pass4')){
             const trigger=doc.querySelector('#pass-calendar-trigger'),picker=doc.querySelector('#pass-calendar');

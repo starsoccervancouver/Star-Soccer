@@ -66,3 +66,8 @@ body .fall-hero-copy{width:auto;margin:0;padding:0}
  .home-coach-copy .home-coach-card-title{grid-column:2;align-self:center}
  body.home-landing .home-coach-copy>ul,body.home-landing .home-coach-copy .home-coach-booking{grid-column:1/-1}
 }
+
+/* Use the portrait column fully, keeping the original frame as open as possible. */
+.home-coach-portrait-photo{position:relative;align-self:stretch;aspect-ratio:auto;min-height:192px}
+.home-coach-portrait-photo img{position:absolute;inset:0;object-fit:cover;object-position:50% 65%}
+@media(max-width:540px){.home-coach-portrait-photo{aspect-ratio:1;min-height:0;align-self:start}}

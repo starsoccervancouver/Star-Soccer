@@ -1,12 +1,12 @@
 /* A short introduction followed immediately by all weekly registration options. */
-body.training-compact .fall-program-hero{display:block;min-height:0;width:min(1040px,calc(100% - 48px));margin:0 auto;padding:20px 0 16px}
+body.training-compact .fall-program-hero{display:block;min-height:0;width:min(1040px,calc(100% - 48px));margin:12px auto 16px;padding:20px;border:1px solid #705442;border-radius:16px;background:linear-gradient(100deg,#251c16ed,#35261bda),url(autumn-field-1600.avif) center 60%/cover}
 body.training-compact .fall-hero-copy{width:auto;margin:0;padding:0}
 body.training-compact .fall-hero-copy h1{font-size:clamp(1.9rem,3.2vw,2.7rem);line-height:1.05;margin:0}
 body.training-compact .training-intro{font-size:.92rem;line-height:1.45;margin:7px 0 0;color:#c5d4df}
 body.training-compact #sessions{width:min(1040px,calc(100% - 48px));margin:0 auto 28px;padding:0;border:0;background:transparent;box-shadow:none}
 .training-compact .schedule-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:0 0 24px}
-body.training-compact article.schedule-entry{display:flex;flex-direction:column;scroll-margin-top:116px}
-body.training-compact article.schedule-entry .schedule-entry-main{flex:1;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start;gap:12px;padding:16px}
+body.training-compact article:is(.schedule-entry,.training-event-card){display:flex;flex-direction:column;scroll-margin-top:116px}
+body.training-compact article:is(.schedule-entry,.training-event-card) .schedule-entry-main{flex:1;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start;gap:12px;padding:16px}
 .training-compact .schedule-entry-main>span{min-width:0}
 .training-compact .schedule-day{grid-column:1;grid-row:1}
 .training-compact .schedule-price{grid-column:2;grid-row:1}
@@ -15,11 +15,16 @@ body.training-compact .schedule-direct-actions{padding:0 16px 16px;gap:8px}
 .training-compact .schedule-direct-actions a:only-child{grid-column:1/-1}
 body.training-compact article.schedule-entry-target{border-color:#f2bc8c;box-shadow:0 0 0 1px #f2bc8c}
 .training-compact .pass-note{margin-top:24px;padding:20px;border:1px solid #52677a;border-radius:14px;background:#102438}
-@media(max-width:900px){body.training-compact article.schedule-entry{scroll-margin-top:84px}}
+@media(max-width:900px){body.training-compact article:is(.schedule-entry,.training-event-card){scroll-margin-top:84px}}
 @media(max-width:700px){
  body.training-compact .fall-program-hero,body.training-compact #sessions{width:calc(100% - 32px)}
- body.training-compact .fall-program-hero{padding:14px 0}
+ body.training-compact .fall-program-hero{padding:14px;background-image:linear-gradient(100deg,#251c16ed,#35261bda),url(autumn-field-800.avif)}
  .training-compact .schedule-list{grid-template-columns:minmax(0,1fr);gap:12px}
- body.training-compact article.schedule-entry .schedule-entry-main{padding:14px;gap:10px}
+ body.training-compact article:is(.schedule-entry,.training-event-card) .schedule-entry-main{padding:14px;gap:10px}
  body.training-compact .schedule-direct-actions{padding:0 14px 14px}
 }
+
+body.training-compact .fall-hero-copy h1 span{color:#efbe91}
+body.training-compact .training-intro{color:#e1c9b5}
+.training-compact .training-event-card{background:#293f4c;border:1px solid #a78868;border-radius:12px;min-width:0;overflow:hidden}
+.training-event-card .schedule-day strong{color:#f2c38e}

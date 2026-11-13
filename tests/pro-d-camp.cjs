@@ -1,9 +1,8 @@
-const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const {chromium}=require('playwright');
 
-test('Pro-D camp requests preserve dates/contact/price and recover safely without live sends',async()=>{
+async function run(){
   const root=path.resolve(__dirname,'..');
   const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.woff2':'font/woff2','.avif':'image/avif','.webp':'image/webp'};
   const server=http.createServer((req,res)=>{
@@ -62,4 +61,6 @@ test('Pro-D camp requests preserve dates/contact/price and recover safely withou
     const late=await setup();await late.evaluate(()=>Date.now=()=>Date.parse('2026-11-20T20:00:00Z'));await send(late);
     assert.equal(await late.evaluate(()=>requests.length),0);assert.equal(await late.locator('button[type=submit]').innerText(),'Registration closed');await late.close();
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
-});
+}
+module.exports=run;
+if(require.main===module)run().then(()=>console.log('Pro-D camp mocked submission checks passed')).catch(error=>{console.error(error);process.exitCode=1;});

@@ -36,5 +36,6 @@ const server=http.createServer((req,res)=>{
     console.log(await page.locator('#status').textContent());
     const failures=await page.locator('.fail').allTextContents();
     if(failures.length){console.error(failures.join('\n'));process.exitCode=1;}
+    else {await require('./pro-d-camp.cjs')();console.log('Pro-D camp mocked submission checks passed');}
   } finally {if(browser)await browser.close();server.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;server.close();});

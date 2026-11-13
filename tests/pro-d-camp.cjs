@@ -36,8 +36,8 @@ async function run(){
     }
     const send=page=>page.evaluate(()=>document.querySelector('form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
     const accepted=await setup();
-    for(const age of ['5','15','6.5']){await accepted.locator('#camp-age').fill(age);await send(accepted);assert.equal(await accepted.evaluate(()=>requests.length),0);}
-    await accepted.locator('#camp-age').fill('14');
+    for(const age of ['5','14','15','6.5']){await accepted.locator('#camp-age').fill(age);await send(accepted);assert.equal(await accepted.evaluate(()=>requests.length),0);}
+    await accepted.locator('#camp-age').fill('13');
     await accepted.evaluate(()=>{const form=document.querySelector('form');for(let i=0;i<2;i++)form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));});
     await accepted.locator('#camp-registration[hidden]').waitFor({state:'attached'});
     const sent=await accepted.evaluate(()=>requests);

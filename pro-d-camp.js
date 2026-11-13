@@ -32,7 +32,7 @@
     field('Player name').setCustomValidity(!name || /[\r\n\x00-\x1f]/.test(name) ? 'Enter the player’s full name.' : '');
     if (!form.reportValidity() || field('_honey').value) return;
     const age = Number(field('Player age').value);
-    if (!Number.isInteger(age) || age < 6 || age > 14) return;
+    if (!Number.isInteger(age) || age < 6 || age > 13) return;
     const email = field('email').value.trim();
     const data = new FormData(form);
     reference ||= StarFamilyRegistration.reference('SS-DAY-');

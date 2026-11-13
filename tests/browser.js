@@ -47,7 +47,7 @@
           check(numeric.every(el=>[...el.closest('.ss-number-stepper').querySelectorAll('button')].length===2 && [...el.closest('.ss-number-stepper').querySelectorAll('button')].every(button=>button.type==='button' && button.getAttribute('aria-controls')===el.id && button.getAttribute('aria-label') && (!el.getClientRects().length || button.getBoundingClientRect().width>=44 && button.getBoundingClientRect().height>=44))),`${page} at ${width}px has labelled 44px visible minus and plus controls that cannot submit the form`);
         }
         if(page==='index.html') {
-          const heroPhotos=frame.contentWindow.performance.getEntriesByType('resource').filter(r=>/\/site-photos\/(?:autumn-2026\/)?home-/.test(r.name));
+          const heroPhotos=frame.contentWindow.performance.getEntriesByType('resource').filter(r=>/\/site-photos\/(?:[^/]+\/)?home-/.test(r.name));
           const heroImage=doc.querySelector('.home-training-photo img');
           check(heroPhotos.length===1 && heroPhotos[0].name===heroImage.currentSrc && heroImage.currentSrc.includes(width<=700?'home-mobile-':'home-wide-') && heroImage.currentSrc.endsWith('.avif'),`Homepage at ${width}px downloads one responsive autumn hero`);
           const programs=doc.querySelector('.hero-action-programs'),camps=doc.querySelector('.hero-action-camps');

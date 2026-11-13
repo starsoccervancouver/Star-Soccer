@@ -1,4 +1,4 @@
-/* Owner-supplied autumn photography: stable frames and device-specific crops. */
+/* Owner's finished edits: stable frames and device-specific crops. */
 body.home-landing .immersive-hero{position:relative;isolation:isolate;background:#091727;min-height:600px}
 .home-training-photo{position:absolute;inset:0;z-index:-2;display:block}
 .home-training-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:62% 50%}
@@ -21,6 +21,14 @@ body.home-landing .hero-action-label{display:none}
 .photo-story-grid .session-steps{display:grid;grid-template-columns:1fr;margin:0;gap:16px}
 .private-registration .private-photo-story .private-goals-grid{display:grid;grid-template-columns:1fr;gap:16px;margin:0}
 .private-photo-story{margin-bottom:24px}
+.owner-feature-photo{display:block;overflow:hidden;border-radius:16px;background:#243b32}
+.owner-feature-photo img{display:block;width:100%;height:auto}
+.owner-demo-photo{margin-bottom:22px}
+.contact-coach-photo{margin-top:24px}
+.owner-photo-pair{display:grid;grid-template-columns:3fr 2fr;gap:24px;align-items:start;margin-top:22px}
+.owner-photo-pair figure{min-width:0;margin:0}
+.owner-photo-pair figcaption{color:#ccd6dc;font-size:.88rem;margin-top:10px}
+.methodology-story-main .owner-principles-story .method-principles{display:grid;grid-template-columns:1fr;gap:16px;margin:0}
 body .fall-program-hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;width:min(1040px,calc(100% - 48px));margin-inline:auto;padding-block:18px;align-items:center}
 body .fall-hero-copy{width:auto;margin:0;padding:0}
 .weekly-training-photo{height:240px}
@@ -36,6 +44,8 @@ body .fall-hero-copy{width:auto;margin:0;padding:0}
  .home-training-photo img{object-position:center}
  body.home-landing .hero-action-panel{margin-top:20px}
  .photo-story-grid{grid-template-columns:1fr;gap:22px}
+ .owner-photo-pair{grid-template-columns:1fr}
+ .owner-demo-photo{max-width:100%}
  .photo-story-grid .coaching-story-photo{order:2;aspect-ratio:10/9}
  body .fall-program-hero{grid-template-columns:minmax(0,1fr) 108px;gap:15px;width:calc(100% - 40px);padding-block:16px}
  .weekly-training-photo{height:145px;border-radius:12px}

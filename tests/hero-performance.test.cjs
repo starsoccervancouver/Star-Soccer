@@ -26,7 +26,7 @@ test('homepage discovers one responsive hero eagerly and keeps both crop familie
     assert(selected.file.includes(width<=700?'home-mobile-':'home-wide-'),'Use the device-specific crop');
     assert(selected.width<=(width<=700?800:1920),'Limit source resolution');
     assert(fs.statSync(selected.file).size<(width<=700?70000:180000),'Keep hero bytes bounded even on high-density screens');
-    assert(credits.find(c=>c.file===selected.file)?.source.includes('DSC03269.ARW'),'Keep the owner-approved photograph');
+    assert(credits.find(c=>c.file===selected.file)?.source.includes('DSC03269.jpg'),'Keep the owner-approved photograph');
   }
   assert(sources.some(s=>s.type==='image/webp'),'Keep a WebP fallback');
   assert(fs.existsSync(img.src));

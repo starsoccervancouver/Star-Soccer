@@ -1,5 +1,5 @@
 {
-  "note": "Approved locally hosted photography; original stock assets retain their source credits. Autumn 2026 photos supplied and selected by the Star Soccer owner.",
+  "note": "Locally hosted photography. The owner-edits-2026 collection preserves the owner’s finished colour edits; only responsive crops and compression are applied. Earlier exports are retained for rollback.",
   "assets": [
     {
       "file": "fonts/bebas-neue-normal-latin.woff2",
@@ -468,6 +468,630 @@
       "height": 320,
       "source": "Owner-supplied Star Soccer photo DSC03264.ARW; owner identified coach as Valentinos Dinglis.",
       "edits": "Head-and-shoulders crop of the natural autumn edit; no generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-960.avif",
+      "bytes": 41539,
+      "width": 960,
+      "height": 475,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-960.webp",
+      "bytes": 78572,
+      "width": 960,
+      "height": 475,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1600.avif",
+      "bytes": 102049,
+      "width": 1600,
+      "height": 792,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1600.webp",
+      "bytes": 182486,
+      "width": 1600,
+      "height": 792,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1920.avif",
+      "bytes": 138053,
+      "width": 1920,
+      "height": 950,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1920.webp",
+      "bytes": 241402,
+      "width": 1920,
+      "height": 950,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-480.avif",
+      "bytes": 18099,
+      "width": 480,
+      "height": 384,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-480.webp",
+      "bytes": 35024,
+      "width": 480,
+      "height": 384,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-800.avif",
+      "bytes": 43942,
+      "width": 800,
+      "height": 640,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-800.webp",
+      "bytes": 78030,
+      "width": 800,
+      "height": 640,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/valentinos-profile-160.avif",
+      "bytes": 3048,
+      "width": 160,
+      "height": 160,
+      "source": "Owner-edited Star Soccer photo DSC03264.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/valentinos-profile-160.webp",
+      "bytes": 4776,
+      "width": 160,
+      "height": 160,
+      "source": "Owner-edited Star Soccer photo DSC03264.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/valentinos-profile-320.avif",
+      "bytes": 7778,
+      "width": 320,
+      "height": 320,
+      "source": "Owner-edited Star Soccer photo DSC03264.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/valentinos-profile-320.webp",
+      "bytes": 12562,
+      "width": 320,
+      "height": 320,
+      "source": "Owner-edited Star Soccer photo DSC03264.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/coaching-wide-640.avif",
+      "bytes": 28365,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03259.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/coaching-wide-640.webp",
+      "bytes": 50646,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03259.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/coaching-wide-1120.avif",
+      "bytes": 69396,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-edited Star Soccer photo DSC03259.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/coaching-wide-1120.webp",
+      "bytes": 116952,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-edited Star Soccer photo DSC03259.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/coaching-mobile-480.avif",
+      "bytes": 20832,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-edited Star Soccer photo DSC03259.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/coaching-mobile-480.webp",
+      "bytes": 38476,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-edited Star Soccer photo DSC03259.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/coaching-mobile-800.avif",
+      "bytes": 49946,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-edited Star Soccer photo DSC03259.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/coaching-mobile-800.webp",
+      "bytes": 87794,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-edited Star Soccer photo DSC03259.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/training-wide-640.avif",
+      "bytes": 22709,
+      "width": 640,
+      "height": 368,
+      "source": "Owner-edited Star Soccer photo DSC03270.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/training-wide-640.webp",
+      "bytes": 44834,
+      "width": 640,
+      "height": 368,
+      "source": "Owner-edited Star Soccer photo DSC03270.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/training-wide-1120.avif",
+      "bytes": 65030,
+      "width": 1120,
+      "height": 643,
+      "source": "Owner-edited Star Soccer photo DSC03270.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/training-wide-1120.webp",
+      "bytes": 124762,
+      "width": 1120,
+      "height": 643,
+      "source": "Owner-edited Star Soccer photo DSC03270.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/training-mobile-480.avif",
+      "bytes": 18906,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-edited Star Soccer photo DSC03270.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/training-mobile-480.webp",
+      "bytes": 35136,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-edited Star Soccer photo DSC03270.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/training-mobile-800.avif",
+      "bytes": 46921,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-edited Star Soccer photo DSC03270.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/training-mobile-800.webp",
+      "bytes": 81642,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-edited Star Soccer photo DSC03270.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/demonstration-wide-640.avif",
+      "bytes": 18979,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03278.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/demonstration-wide-640.webp",
+      "bytes": 30704,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03278.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/demonstration-wide-1120.avif",
+      "bytes": 48082,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-edited Star Soccer photo DSC03278.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/demonstration-wide-1120.webp",
+      "bytes": 72348,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-edited Star Soccer photo DSC03278.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/demonstration-mobile-480.avif",
+      "bytes": 13643,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-edited Star Soccer photo DSC03278.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/demonstration-mobile-480.webp",
+      "bytes": 20966,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-edited Star Soccer photo DSC03278.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/demonstration-mobile-800.avif",
+      "bytes": 34193,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-edited Star Soccer photo DSC03278.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/demonstration-mobile-800.webp",
+      "bytes": 53068,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-edited Star Soccer photo DSC03278.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/practice-wide-640.avif",
+      "bytes": 21972,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03279.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/practice-wide-640.webp",
+      "bytes": 34800,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03279.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/practice-wide-1120.avif",
+      "bytes": 57815,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-edited Star Soccer photo DSC03279.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/practice-wide-1120.webp",
+      "bytes": 87370,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-edited Star Soccer photo DSC03279.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/practice-mobile-480.avif",
+      "bytes": 16098,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-edited Star Soccer photo DSC03279.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/practice-mobile-480.webp",
+      "bytes": 26328,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-edited Star Soccer photo DSC03279.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/practice-mobile-800.avif",
+      "bytes": 40288,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-edited Star Soccer photo DSC03279.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/practice-mobile-800.webp",
+      "bytes": 65730,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-edited Star Soccer photo DSC03279.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/group-play-wide-640.avif",
+      "bytes": 23416,
+      "width": 640,
+      "height": 427,
+      "source": "Owner-edited Star Soccer photo DSC03280.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/group-play-wide-640.webp",
+      "bytes": 42144,
+      "width": 640,
+      "height": 427,
+      "source": "Owner-edited Star Soccer photo DSC03280.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/group-play-wide-1120.avif",
+      "bytes": 66497,
+      "width": 1120,
+      "height": 747,
+      "source": "Owner-edited Star Soccer photo DSC03280.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/group-play-wide-1120.webp",
+      "bytes": 118906,
+      "width": 1120,
+      "height": 747,
+      "source": "Owner-edited Star Soccer photo DSC03280.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/group-play-mobile-480.avif",
+      "bytes": 13361,
+      "width": 480,
+      "height": 320,
+      "source": "Owner-edited Star Soccer photo DSC03280.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/group-play-mobile-480.webp",
+      "bytes": 23876,
+      "width": 480,
+      "height": 320,
+      "source": "Owner-edited Star Soccer photo DSC03280.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/group-play-mobile-800.avif",
+      "bytes": 35312,
+      "width": 800,
+      "height": 533,
+      "source": "Owner-edited Star Soccer photo DSC03280.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/group-play-mobile-800.webp",
+      "bytes": 64604,
+      "width": 800,
+      "height": 533,
+      "source": "Owner-edited Star Soccer photo DSC03280.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/player-focus-wide-640.avif",
+      "bytes": 26885,
+      "width": 640,
+      "height": 640,
+      "source": "Owner-edited Star Soccer photo DSC03281.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/player-focus-wide-640.webp",
+      "bytes": 40570,
+      "width": 640,
+      "height": 640,
+      "source": "Owner-edited Star Soccer photo DSC03281.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/player-focus-wide-1120.avif",
+      "bytes": 71998,
+      "width": 1120,
+      "height": 1120,
+      "source": "Owner-edited Star Soccer photo DSC03281.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/player-focus-wide-1120.webp",
+      "bytes": 104820,
+      "width": 1120,
+      "height": 1120,
+      "source": "Owner-edited Star Soccer photo DSC03281.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/player-focus-mobile-480.avif",
+      "bytes": 15553,
+      "width": 480,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03281.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/player-focus-mobile-480.webp",
+      "bytes": 23892,
+      "width": 480,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03281.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/player-focus-mobile-800.avif",
+      "bytes": 40074,
+      "width": 800,
+      "height": 800,
+      "source": "Owner-edited Star Soccer photo DSC03281.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/player-focus-mobile-800.webp",
+      "bytes": 60778,
+      "width": 800,
+      "height": 800,
+      "source": "Owner-edited Star Soccer photo DSC03281.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/decisions-wide-640.avif",
+      "bytes": 16584,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03289.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/decisions-wide-640.webp",
+      "bytes": 22784,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03289.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/decisions-wide-1120.avif",
+      "bytes": 40333,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-edited Star Soccer photo DSC03289.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/decisions-wide-1120.webp",
+      "bytes": 56700,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-edited Star Soccer photo DSC03289.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/decisions-mobile-480.avif",
+      "bytes": 12804,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-edited Star Soccer photo DSC03289.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/decisions-mobile-480.webp",
+      "bytes": 18272,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-edited Star Soccer photo DSC03289.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/decisions-mobile-800.avif",
+      "bytes": 29249,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-edited Star Soccer photo DSC03289.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/decisions-mobile-800.webp",
+      "bytes": 41116,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-edited Star Soccer photo DSC03289.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/contact-coach-wide-640.avif",
+      "bytes": 20262,
+      "width": 640,
+      "height": 640,
+      "source": "Owner-edited Star Soccer photo DSC03295.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/contact-coach-wide-640.webp",
+      "bytes": 27274,
+      "width": 640,
+      "height": 640,
+      "source": "Owner-edited Star Soccer photo DSC03295.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/contact-coach-wide-1120.avif",
+      "bytes": 46555,
+      "width": 1120,
+      "height": 1120,
+      "source": "Owner-edited Star Soccer photo DSC03295.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/contact-coach-wide-1120.webp",
+      "bytes": 60358,
+      "width": 1120,
+      "height": 1120,
+      "source": "Owner-edited Star Soccer photo DSC03295.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/contact-coach-mobile-480.avif",
+      "bytes": 12700,
+      "width": 480,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03295.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/contact-coach-mobile-480.webp",
+      "bytes": 17432,
+      "width": 480,
+      "height": 480,
+      "source": "Owner-edited Star Soccer photo DSC03295.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/contact-coach-mobile-800.avif",
+      "bytes": 28345,
+      "width": 800,
+      "height": 800,
+      "source": "Owner-edited Star Soccer photo DSC03295.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/contact-coach-mobile-800.webp",
+      "bytes": 37564,
+      "width": 800,
+      "height": 800,
+      "source": "Owner-edited Star Soccer photo DSC03295.jpg",
+      "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
     }
   ]
 }

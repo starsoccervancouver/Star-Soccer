@@ -1092,6 +1092,38 @@
       "height": 800,
       "source": "Owner-edited Star Soccer photo DSC03295.jpg",
       "edits": "Owner colour treatment preserved. Cropped and resized for display; camera metadata removed. No recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/valentinos-full-240.avif",
+      "bytes": 8927,
+      "width": 240,
+      "height": 277,
+      "source": "Owner-provided portrait of Valentinos Dinglis, November 12, 2026",
+      "edits": "Full original frame preserved, resized and compressed. No crop, recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/valentinos-full-240.webp",
+      "bytes": 16960,
+      "width": 240,
+      "height": 277,
+      "source": "Owner-provided portrait of Valentinos Dinglis, November 12, 2026",
+      "edits": "Full original frame preserved, resized and compressed. No crop, recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/valentinos-full-480.avif",
+      "bytes": 24434,
+      "width": 480,
+      "height": 554,
+      "source": "Owner-provided portrait of Valentinos Dinglis, November 12, 2026",
+      "edits": "Full original frame preserved, resized and compressed. No crop, recolouring or generated imagery."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/valentinos-full-480.webp",
+      "bytes": 45934,
+      "width": 480,
+      "height": 554,
+      "source": "Owner-provided portrait of Valentinos Dinglis, November 12, 2026",
+      "edits": "Full original frame preserved, resized and compressed. No crop, recolouring or generated imagery."
     }
   ]
 }

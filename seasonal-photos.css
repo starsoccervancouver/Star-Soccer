@@ -13,11 +13,14 @@ body.home-landing a.hero-action{min-height:0;padding:15px 20px}
 body.home-landing .hero-action-title{font-size:1.3rem}
 body.home-landing .hero-action-label{display:none}
 .coaching-story-photo,.weekly-training-photo{display:block;overflow:hidden;border-radius:18px;background:#243b32}
-.home-coach-avatar-photo{display:block;width:160px;height:160px;border-radius:14px;background:#243b32}
-.home-coach-avatar-photo img{display:block;width:100%;height:100%;object-fit:cover}
-body.home-landing .home-coach-card-profile{grid-template-columns:minmax(0,1fr)}
-body.home-landing .home-coach-card-profile .home-coach-card-header{align-items:center;flex-wrap:wrap;gap:16px}
-.home-coach-card-profile .home-coach-card-title{flex:1 1 150px}
+body.home-landing .home-coach-card{grid-template-columns:192px minmax(0,1fr);align-items:start;gap:24px}
+.home-coach-portrait{display:block;width:100%;aspect-ratio:1;overflow:hidden;border:1px solid #526f87;border-radius:14px;background:#10263d}
+.home-coach-portrait img{display:block;width:100%;height:100%;object-fit:contain}
+.home-coach-initials{display:grid;place-items:center;background:linear-gradient(145deg,#1d3b54,#10263d);color:#b8d2e5;font:600 clamp(1.5rem,3vw,2.8rem)/1 Manrope,system-ui,sans-serif;letter-spacing:.06em}
+.home-coach-copy{display:grid;gap:14px;min-width:0}
+body.home-landing .home-coach-copy .home-coach-booking{grid-column:auto;margin:0}
+body.home-landing .home-coach-copy .home-coach-card-title h3{margin-top:5px}
+body.home-landing .home-coach-copy .home-news-box-tag{margin:0}
 .coaching-story-photo img,.weekly-training-photo img{display:block;width:100%;height:100%;object-fit:cover}
 .photo-story-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(20px,3vw,40px);align-items:center;margin-top:24px}
 .coaching-story-photo{aspect-ratio:4/3;box-shadow:0 12px 30px rgba(3,16,24,.15)}
@@ -37,7 +40,9 @@ body .fall-hero-copy{width:auto;margin:0;padding:0}
 .weekly-training-photo{height:240px}
 @media(max-width:1000px) and (min-width:701px){body.home-landing .immersive-hero-copy{width:51%}body.home-landing .immersive-hero h1{font-size:2.8rem}}
 @media(max-width:700px){
- .home-coach-avatar-photo{width:128px;height:128px}
+ body.home-landing .home-coach-card{grid-template-columns:clamp(80px,26vw,128px) minmax(0,1fr);gap:14px}
+ body.home-landing .home-coach-copy .home-coach-card-title h3{font-size:1.25rem}
+ body.home-landing .home-coach-copy .home-coach-booking .flow-actions{grid-template-columns:1fr}
  body.home-landing .immersive-hero{display:flex;flex-direction:column;min-height:0}
  body.home-landing .immersive-hero::after{display:none}
  body.home-landing .immersive-hero-copy{width:100%;max-width:none}
@@ -55,3 +60,9 @@ body .fall-hero-copy{width:auto;margin:0;padding:0}
  .weekly-training-photo img{object-position:53% 50%}
 }
 @media(max-width:360px){body .fall-hero-copy .eyebrow{display:none}.weekly-training-photo{height:112px}}
+@media(max-width:540px){
+ body.home-landing .home-coach-card{grid-template-columns:clamp(104px,32vw,128px) minmax(0,1fr);gap:16px}
+ .home-coach-copy{display:contents}
+ .home-coach-copy .home-coach-card-title{grid-column:2;align-self:center}
+ body.home-landing .home-coach-copy>ul,body.home-landing .home-coach-copy .home-coach-booking{grid-column:1/-1}
+}

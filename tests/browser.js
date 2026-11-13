@@ -64,8 +64,8 @@
           check(sidebarCards.length===3 && sidebarCards.every((card,i)=>{
             const link=card.querySelector('.home-camps-cta-button');
             return link && link.getAttribute('href')===sidebarDestinations[i] && link.getClientRects().length && link.getBoundingClientRect().height>=44;
-          }),`Homepage at ${width}px has three usable options beside the three coaching cards`);
-          check(sidebarCards[2]?.textContent.includes('Winter') && sidebarCards[2]?.textContent.includes('Kitsilano Turf') && doc.querySelectorAll('#coaching-team .home-coach-card').length===3,`Homepage at ${width}px adds winter camps without changing coaching profiles`);
+          }),`Homepage at ${width}px has three usable options beside the coaching cards`);
+          check(sidebarCards[2]?.textContent.includes('Winter') && sidebarCards[2]?.textContent.includes('Kitsilano Turf') && doc.querySelectorAll('#coaching-team .home-coach-card').length===4,`Homepage at ${width}px keeps winter camps beside all four coaching profiles`);
           const lead=doc.querySelector('.immersive-hero-lead').getBoundingClientRect(),actions=doc.querySelector('.hero-action-panel').getBoundingClientRect(),heroPhoto=doc.querySelector('.home-training-photo').getBoundingClientRect();
           check(actions.top>=lead.bottom && (width>700?actions.right<heroPhoto.right:heroPhoto.top>=actions.bottom),`Homepage at ${width}px keeps choices below the introduction and ahead of the mobile photo`);
         }

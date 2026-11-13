@@ -436,6 +436,38 @@
       "height": 720,
       "source": "Owner-supplied Star Soccer photo DSC03282.ARW",
       "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/valentinos-profile-160.avif",
+      "bytes": 3384,
+      "width": 160,
+      "height": 160,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW; owner identified coach as Valentinos Dinglis.",
+      "edits": "Head-and-shoulders crop of the natural autumn edit; no generated imagery."
+    },
+    {
+      "file": "site-photos/autumn-2026/valentinos-profile-160.webp",
+      "bytes": 5618,
+      "width": 160,
+      "height": 160,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW; owner identified coach as Valentinos Dinglis.",
+      "edits": "Head-and-shoulders crop of the natural autumn edit; no generated imagery."
+    },
+    {
+      "file": "site-photos/autumn-2026/valentinos-profile-320.avif",
+      "bytes": 8216,
+      "width": 320,
+      "height": 320,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW; owner identified coach as Valentinos Dinglis.",
+      "edits": "Head-and-shoulders crop of the natural autumn edit; no generated imagery."
+    },
+    {
+      "file": "site-photos/autumn-2026/valentinos-profile-320.webp",
+      "bytes": 14396,
+      "width": 320,
+      "height": 320,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW; owner identified coach as Valentinos Dinglis.",
+      "edits": "Head-and-shoulders crop of the natural autumn edit; no generated imagery."
     }
   ]
 }

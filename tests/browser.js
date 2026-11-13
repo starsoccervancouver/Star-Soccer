@@ -92,9 +92,11 @@
           const adultLinks=adultCard?[...adultCard.querySelectorAll('.schedule-direct-actions a')]:[];
           const adultUrl=adultLinks.length===1?new URL(adultLinks[0].href):null;
           check(!!adultCard && adultCard.textContent.includes('9:30–11:00 AM') && adultCard.textContent.includes('Fen Burdett Stadium') && adultCard.textContent.includes('$20 drop-in') && adultCard.textContent.includes('Up to 8 players expected this week') && !/18\+|\$0|4 consecutive sessions/.test(adultCard.textContent) && adultUrl?.pathname.endsWith('/registration.html') && adultUrl.searchParams.get('sessionId')==='tuesday' && adultUrl.searchParams.get('type')==='dropin' && adultLinks[0].getClientRects().length && adultLinks[0].getBoundingClientRect().height>=48 && !adultCard.querySelector('.session-capacity,a[href*="type=pass4"]'),`Training at ${width}px gives Tuesday women direct $20 drop-in registration without an 18+ restriction or an invented pass`);
-          check([...doc.querySelectorAll('#sessions .schedule-entry')].length===5 && doc.querySelector('#sessions .schedule-entry')===adultCard && doc.querySelector('#schedule-results').textContent==='Showing 5 of 5 sessions',`Training at ${width}px shows all five sessions in the weekly list`);
+          check([...doc.querySelectorAll('#sessions .schedule-entry')].length===5 && doc.querySelector('#sessions .schedule-entry')===adultCard && !doc.querySelector('[data-filter-panel],#schedule-results,#schedule-empty'),`Training at ${width}px shows all five sessions without filters`);
+          const cards=[...doc.querySelectorAll('#sessions .schedule-entry')].map(el=>el.getBoundingClientRect());
+          check(width>700 ? Math.abs(cards[0].top-cards[1].top)<2 && cards[1].left>cards[0].right && cards[2].top>=cards[0].bottom : cards[1].top>=cards[0].bottom,`Training at ${width}px uses two cards per desktop row and readable single cards on phones`);
           check(!doc.querySelector('details.schedule-entry,.session-share'),`Training at ${width}px has no registration disclosure or copy-link step`);
-          if(width<=430)check(adultLinks[0].getBoundingClientRect().bottom<=820,`Training at ${width}px puts Tuesday's registration within the first screen (${Math.round(adultLinks[0].getBoundingClientRect().bottom)}px)`);
+          if(width<=430)check(adultLinks[0].getBoundingClientRect().bottom<=640,`Training at ${width}px puts Tuesday's registration within the first screen (${Math.round(adultLinks[0].getBoundingClientRect().bottom)}px)`);
         }
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
@@ -205,9 +207,7 @@
     for(const details of doc.querySelectorAll('.camp-card-details'))details.querySelector('summary').click();
     check([...doc.querySelectorAll('.camp-card-details')].every(el=>el.open && el.querySelector('ul').getClientRects().length) && doc.documentElement.scrollWidth<=321,'Both camp detail disclosures open without overflow at 320px');
     doc=await load('programs.html',320);
-    check(!doc.querySelector('[data-filter-panel]').open && doc.querySelector('.schedule-entry-main').getBoundingClientRect().bottom<=740,'Training starts with visible sessions and expandable optional filters ('+Math.round(doc.querySelector('.schedule-entry-main').getBoundingClientRect().bottom)+'px)');
-    doc.querySelector('[data-filter-panel] summary').click();
-    check(doc.querySelector('#schedule-age').getClientRects().length>0,'Training filter disclosure exposes working controls');
+    check(!doc.querySelector('[data-filter-panel],.weekly-training-photo,#session-finder-title') && doc.querySelector('.schedule-entry-main').getBoundingClientRect().top<=250,'Training starts with registration cards and no filter, photo or finder heading');
     check(doc.querySelector('[data-session-day="friday"] .session-capacity').textContent==='3/20 players · 17 places remaining','Schedule shows the dated ledger count');
     check(doc.querySelector('[data-session-day="thursday"] .session-capacity').textContent==='0/20 players · 20 places remaining','Recorded zero is shown as zero');
     check(!doc.querySelector('.count-refresh') && doc.documentElement.dataset.countsState==='ready','Counts load automatically without a refresh button');
@@ -243,42 +243,13 @@
     doc=await load('registration.html?sessionId=tuesday&type=pass4',320);
     check(doc.querySelector('#training-registration').hidden && !doc.querySelector('#registration-status').hidden,'Tuesday rejects an unsupported four-session pass link');
     doc=await load('programs.html?age=14&day=sunday&source=test#sessions');
-    check(doc.querySelector('[data-filter-panel]').open,'Shared filtered links open the filter controls automatically');
-    check(!doc.querySelector('#schedule-empty').hidden,'Incompatible age/day shows empty state');
-    doc.querySelector('#schedule-reset').click();
-    check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===5 && doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===5 && !doc.querySelector('#adult-women').hidden && doc.querySelector('#schedule-results').textContent==='Showing 5 of 5 sessions','Clear filters restores four youth sessions and Tuesday adults in the same list');
-    check(frame.contentWindow.location.search==='?source=test' && frame.contentWindow.location.hash==='#sessions','Clear filters preserves unrelated query and anchor');
-    change(doc,'schedule-age','14');
-    check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===1,'Age 14 shows only eligible training');
-    check(frame.contentWindow.location.search.includes('age=14'),'Filter is reflected in shareable URL');
+    check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===5 && doc.querySelector('[data-session-day="sunday"]').classList.contains('schedule-entry-target'),'Old filtered links highlight their day and leave every registration option visible');
     check(doc.querySelectorAll('.schedule-next').length===5 && [...doc.querySelectorAll('#sessions .schedule-entry')].every(row=>row.querySelector('.schedule-next')?.textContent==='Next: '+frame.contentWindow.StarTraining.prettyDate(frame.contentWindow.StarTraining.nextDate(frame.contentWindow.StarTraining.getSession(row.dataset.sessionDay)))),'All five weekly sessions show their catalog-derived next Vancouver date');
-    doc.querySelector('#schedule-reset').click();
-    change(doc,'schedule-age','youth');
-    check(doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===4 && doc.querySelector('#adult-women').hidden && doc.querySelector('#schedule-results').textContent==='Showing 4 of 5 sessions','Youth age filter shows all four child groups and excludes adult women');
-    check(frame.contentWindow.location.search.includes('age=youth'),'Youth filtering is reflected in a shareable URL');
-    change(doc,'schedule-day','friday');
-    check(doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===1 && !doc.querySelector('[data-session-day="friday"]').hidden,'Youth filtering combines with the selected day');
-    change(doc,'schedule-location','fen-burdett');
-    check(!doc.querySelector('#schedule-empty').hidden && doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===0,'Incompatible youth and adult venue filters show an empty state');
     doc=await load('programs.html?age=youth#sessions');
-    check(doc.querySelector('#schedule-age').value==='youth' && doc.querySelector('[data-filter-panel]').open && doc.querySelector('#adult-women').hidden && doc.querySelectorAll('.schedule-entry:not([hidden])').length===4,'Homepage youth destination restores the child audience and opens its filter controls');
+    check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===5 && doc.querySelector('[data-session-day="wednesday"]').classList.contains('schedule-entry-target'),'Homepage youth link points to youth training without hiding other groups');
     frame.contentWindow.history.replaceState(null,'','programs.html?age=adult#sessions');
     frame.contentWindow.dispatchEvent(new frame.contentWindow.PopStateEvent('popstate'));
-    check(doc.querySelector('#schedule-age').value==='adult' && !doc.querySelector('#adult-women').hidden && doc.querySelectorAll('.schedule-entry:not([hidden])').length===1,'History navigation restores adult filtering after a youth route');
-    doc.querySelector('#schedule-reset').click();
-    change(doc,'schedule-age','adult');
-    check(doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===1 && !doc.querySelector('#adult-women').hidden && doc.querySelector('#schedule-results').textContent==='Showing 1 of 5 sessions','Adult age filter displays only Tuesday');
-    doc.querySelector('#schedule-reset').click();
-    change(doc,'schedule-day','tuesday');
-    check(!doc.querySelector('#adult-women').hidden && doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===1,'Tuesday filter displays adult women');
-    doc.querySelector('#schedule-reset').click();
-    change(doc,'schedule-location','fen-burdett');
-    check(!doc.querySelector('#adult-women').hidden && doc.querySelectorAll('#sessions .schedule-entry:not([hidden])').length===1,'Fen Burdett location filter displays adult women');
-    doc.querySelector('#schedule-reset').click();
-    change(doc,'schedule-age','14');
-    const url=frame.contentWindow.location.href;
-    doc=await load(url.split('/').pop());
-    check(doc.querySelector('#schedule-age').value==='14' && doc.querySelectorAll('.schedule-entry:not([hidden])').length===1,'Reload restores the selected filter');
+    check(doc.querySelector('#adult-women').classList.contains('schedule-entry-target') && doc.querySelectorAll('.schedule-entry:not([hidden])').length===5,'History navigation highlights adult training without filtering the schedule');
     const toggle=doc.querySelector('.mobile-nav-toggle');toggle.click();
     check(toggle.getAttribute('aria-label').toLowerCase().includes(toggle.textContent.toLowerCase()),'Navigation accessible name includes the visible button label');
     check(toggle.getAttribute('aria-expanded')==='true' && frame.contentWindow.getComputedStyle(doc.querySelector('nav')).display!=='none','Mobile menu opens');
@@ -288,8 +259,8 @@
     check(!doc.querySelector('.header-program-cta') && [...doc.querySelectorAll('nav a')].some(a=>a.getAttribute('href')==='programs.html'),'Navigation removes redundant session CTA and retains Weekly Training');
     for(const day of ['wednesday','thursday','friday','sunday']) {
       doc=await load('programs.html?day='+day,320);
-      const row=doc.querySelector('.schedule-entry:not([hidden])'),links=[...row.querySelectorAll('.schedule-direct-actions a')];
-      check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===1 && links.length===2 && links.every(el=>el.getClientRects().length),'Shared '+day+' link shows both registration options immediately');
+      const row=doc.querySelector('[data-session-day="'+day+'"]'),links=[...row.querySelectorAll('.schedule-direct-actions a')];
+      check(doc.querySelectorAll('.schedule-entry:not([hidden])').length===5 && row.classList.contains('schedule-entry-target') && links.length===2 && links.every(el=>el.getClientRects().length),'Shared '+day+' link shows both registration options immediately');
       check(links.every((el,i)=>{const u=new URL(el.href);return u.searchParams.get('sessionId')===day && u.searchParams.get('type')===['dropin','pass4'][i];}),'Direct '+day+' links select the correct group and registration type');
       check(doc.documentElement.scrollWidth<=doc.documentElement.clientWidth+1,day+' registration choices have no overflow at 320px');
     }

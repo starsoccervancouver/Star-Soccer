@@ -1,4 +1,4 @@
-/* Shared navigation and filtering. Core navigation stays usable without JS. */
+/* Shared navigation and weekly session details. Core navigation stays usable without JS. */
 (() => {
   'use strict';
   const nav=document.querySelector('#primary-navigation');
@@ -26,38 +26,8 @@
   // expanded fallback menu from painting and then collapsing on phones.
   // Session controls still wait until the document is available.
   function setupSessions() {
-  const age=document.querySelector('#schedule-age'),day=document.querySelector('#schedule-day'),locationSelect=document.querySelector('#schedule-location');
-  if(age && day && locationSelect) {
-    const rows=[...document.querySelectorAll('.schedule-entry')];
-    const restore=(el,value)=>{if([...el.options].some(o=>o.value===value))el.value=value;};
-    const controls=[['age',age],['day',day],['location',locationSelect]];
-    const panel=document.querySelector('[data-filter-panel]');
-    const restoreFilters=()=>{
-      const params=new URLSearchParams(window.location.search);
-      controls.forEach(([key,el])=>{el.value='all';restore(el,params.get(key));});
-      if(panel)panel.open=controls.some(([,el])=>el.value!=='all');
-    };
-    restoreFilters();
-    const update=(save=false)=>{
-      let visible=0;
-      rows.forEach(row=>{
-        const isAdult=row.dataset.audience==='adult';
-        const matchesAge=age.value==='all' || (age.value==='adult' ? isAdult : !isAdult && (age.value==='youth' || Number(age.value)>=Number(row.dataset.minAge) && Number(age.value)<=Number(row.dataset.maxAge)));
-        const matches=matchesAge && (day.value==='all'||day.value===row.dataset.sessionDay) && (locationSelect.value==='all'||locationSelect.value===row.dataset.sessionLocation);
-        row.hidden=!matches;if(matches)visible++;
-      });
-      document.querySelector('#schedule-results').textContent=`Showing ${visible} of ${rows.length} ${rows.length===1?'session':'sessions'}`;
-      document.querySelector('#schedule-empty').hidden=visible!==0;
-      if(save) {
-        const url=new URL(window.location.href);
-        controls.forEach(([key,el])=>{if(el.value==='all')url.searchParams.delete(key);else url.searchParams.set(key,el.value);});
-        // Replacing avoids filling browser history with every filter selection.
-        try {window.history.replaceState(null,'',url);} catch { /* Filtering still works when history is unavailable. */ }
-      }
-    };
-    [age,day,locationSelect].forEach(el=>el.addEventListener('change',()=>update(true)));
-    document.querySelector('#schedule-reset').addEventListener('click',()=>{age.value=day.value=locationSelect.value='all';update(true);});
-    window.addEventListener('popstate',()=>{restoreFilters();update();});
+    const rows=[...document.querySelectorAll('.schedule-entry[data-session-day]')];
+    if(!rows.length)return;
     const T=window.StarTraining;
     if(T) rows.forEach(row=>{
       const session=T.getSession(row.dataset.sessionDay);
@@ -72,10 +42,19 @@
       row.querySelector('.schedule-day').append(next);
 
     });
-    document.querySelector('[data-filter-controls]').hidden=false;
-    if(panel)panel.hidden=false;
-    update();
-  }
+    // Keep older day/audience/location links useful without hiding any groups.
+    const focusLinkedSession=()=>{
+      const params=new URLSearchParams(window.location.search);
+      const day=params.get('day'),audience=params.get('age'),venue=params.get('location');
+      const target=rows.find(r=>r.dataset.sessionDay===day)
+        || (audience==='adult'?rows.find(r=>r.dataset.audience==='adult'):null)
+        || rows.find(r=>r.dataset.sessionLocation===venue)
+        || (audience==='youth'?rows.find(r=>r.dataset.audience!=='adult'):null);
+      rows.forEach(row=>row.classList.toggle('schedule-entry-target',row===target));
+      if(target)requestAnimationFrame(()=>requestAnimationFrame(()=>target.scrollIntoView({block:'start'})));
+    };
+    focusLinkedSession();
+    window.addEventListener('popstate',focusLinkedSession);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setupSessions,{once:true});
   else setupSessions();

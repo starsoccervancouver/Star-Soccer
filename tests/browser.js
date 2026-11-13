@@ -47,8 +47,9 @@
           check(numeric.every(el=>[...el.closest('.ss-number-stepper').querySelectorAll('button')].length===2 && [...el.closest('.ss-number-stepper').querySelectorAll('button')].every(button=>button.type==='button' && button.getAttribute('aria-controls')===el.id && button.getAttribute('aria-label') && (!el.getClientRects().length || button.getBoundingClientRect().width>=44 && button.getBoundingClientRect().height>=44))),`${page} at ${width}px has labelled 44px visible minus and plus controls that cannot submit the form`);
         }
         if(page==='index.html') {
-          const heroPhotos=frame.contentWindow.performance.getEntriesByType('resource').filter(r=>r.name.includes('/site-photos/home-'));
-          check(heroPhotos.length===1 && heroPhotos[0].name.includes('-'+(width<=900?'800':'1600')+'.avif'),`Homepage at ${width}px downloads one local hero at the right size`);
+          const heroPhotos=frame.contentWindow.performance.getEntriesByType('resource').filter(r=>/\/site-photos\/(?:autumn-2026\/)?home-/.test(r.name));
+          const heroImage=doc.querySelector('.home-training-photo img');
+          check(heroPhotos.length===1 && heroPhotos[0].name===heroImage.currentSrc && heroImage.currentSrc.includes(width<=700?'home-mobile-':'home-wide-') && heroImage.currentSrc.endsWith('.avif'),`Homepage at ${width}px downloads one responsive autumn hero`);
           const programs=doc.querySelector('.hero-action-programs'),camps=doc.querySelector('.hero-action-camps');
           check(programs && camps && programs.getAttribute('href')==='programs.html?age=youth#sessions' && programs.textContent.includes('Find your child’s group') && camps.getAttribute('href')==='camps.html',`Homepage at ${width}px directs parents to youth groups and keeps the camp destination`);
           check(programs && camps && [programs,camps].every(el=>el.getClientRects().length && el.getBoundingClientRect().height>=48),`Homepage at ${width}px shows large program and camp actions`);
@@ -65,8 +66,8 @@
             return link && link.getAttribute('href')===sidebarDestinations[i] && link.getClientRects().length && link.getBoundingClientRect().height>=44;
           }),`Homepage at ${width}px has three usable options beside the three coaching cards`);
           check(sidebarCards[2]?.textContent.includes('Winter') && sidebarCards[2]?.textContent.includes('Kitsilano Turf') && doc.querySelectorAll('#coaching-team .home-coach-card').length===3,`Homepage at ${width}px adds winter camps without changing coaching profiles`);
-          const copy=doc.querySelector('.immersive-hero-copy').getBoundingClientRect(),actions=doc.querySelector('.hero-action-panel').getBoundingClientRect();
-          check(width>900?actions.left>=copy.right:actions.top>=copy.bottom,`Homepage at ${width}px places choices to the right on desktop and below on mobile`);
+          const lead=doc.querySelector('.immersive-hero-lead').getBoundingClientRect(),actions=doc.querySelector('.hero-action-panel').getBoundingClientRect(),heroPhoto=doc.querySelector('.home-training-photo').getBoundingClientRect();
+          check(actions.top>=lead.bottom && (width>700?actions.right<heroPhoto.right:heroPhoto.top>=actions.bottom),`Homepage at ${width}px keeps choices below the introduction and ahead of the mobile photo`);
         }
         if(page==='camps.html') {
           const links=[...doc.querySelectorAll('.camp-week-card .winter-camp-cta')];

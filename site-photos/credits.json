@@ -1,5 +1,5 @@
 {
-  "note": "Existing approved Unsplash photographs served locally at responsive sizes; no AI-generated replacements.",
+  "note": "Approved locally hosted photography; original stock assets retain their source credits. Autumn 2026 photos supplied and selected by the Star Soccer owner.",
   "assets": [
     {
       "file": "fonts/bebas-neue-normal-latin.woff2",
@@ -100,6 +100,342 @@
       "file": "site-photos/locations-1600.webp",
       "source": "https://images.unsplash.com/photo-1556056504-5c7696c4c28d?fm=webp&fit=crop&w=1600&q=35&h=1000",
       "bytes": 251608
+    },
+    {
+      "file": "site-photos/autumn-2026/home-wide-960.avif",
+      "bytes": 45989,
+      "width": 960,
+      "height": 418,
+      "source": "Owner-supplied Star Soccer photo DSC03269.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/home-wide-960.webp",
+      "bytes": 91192,
+      "width": 960,
+      "height": 418,
+      "source": "Owner-supplied Star Soccer photo DSC03269.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/home-wide-1600.avif",
+      "bytes": 111532,
+      "width": 1600,
+      "height": 696,
+      "source": "Owner-supplied Star Soccer photo DSC03269.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/home-wide-1600.webp",
+      "bytes": 212636,
+      "width": 1600,
+      "height": 696,
+      "source": "Owner-supplied Star Soccer photo DSC03269.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/home-wide-1920.avif",
+      "bytes": 151074,
+      "width": 1920,
+      "height": 835,
+      "source": "Owner-supplied Star Soccer photo DSC03269.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/home-wide-1920.webp",
+      "bytes": 277536,
+      "width": 1920,
+      "height": 835,
+      "source": "Owner-supplied Star Soccer photo DSC03269.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/home-mobile-480.avif",
+      "bytes": 21449,
+      "width": 480,
+      "height": 383,
+      "source": "Owner-supplied Star Soccer photo DSC03269.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/home-mobile-480.webp",
+      "bytes": 42766,
+      "width": 480,
+      "height": 383,
+      "source": "Owner-supplied Star Soccer photo DSC03269.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/home-mobile-800.avif",
+      "bytes": 53163,
+      "width": 800,
+      "height": 638,
+      "source": "Owner-supplied Star Soccer photo DSC03269.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/home-mobile-800.webp",
+      "bytes": 103020,
+      "width": 800,
+      "height": 638,
+      "source": "Owner-supplied Star Soccer photo DSC03269.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coaching-wide-640.avif",
+      "bytes": 36560,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-supplied Star Soccer photo DSC03259.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coaching-wide-640.webp",
+      "bytes": 72942,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-supplied Star Soccer photo DSC03259.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coaching-wide-1120.avif",
+      "bytes": 95205,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-supplied Star Soccer photo DSC03259.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coaching-wide-1120.webp",
+      "bytes": 182414,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-supplied Star Soccer photo DSC03259.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coaching-mobile-480.avif",
+      "bytes": 26265,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-supplied Star Soccer photo DSC03259.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coaching-mobile-480.webp",
+      "bytes": 53712,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-supplied Star Soccer photo DSC03259.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coaching-mobile-800.avif",
+      "bytes": 66433,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-supplied Star Soccer photo DSC03259.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coaching-mobile-800.webp",
+      "bytes": 132774,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-supplied Star Soccer photo DSC03259.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/technique-wide-640.avif",
+      "bytes": 26097,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-supplied Star Soccer photo DSC03273.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/technique-wide-640.webp",
+      "bytes": 48064,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-supplied Star Soccer photo DSC03273.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/technique-wide-1120.avif",
+      "bytes": 68631,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-supplied Star Soccer photo DSC03273.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/technique-wide-1120.webp",
+      "bytes": 115816,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-supplied Star Soccer photo DSC03273.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/technique-mobile-480.avif",
+      "bytes": 18337,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-supplied Star Soccer photo DSC03273.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/technique-mobile-480.webp",
+      "bytes": 32462,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-supplied Star Soccer photo DSC03273.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/technique-mobile-800.avif",
+      "bytes": 46579,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-supplied Star Soccer photo DSC03273.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/technique-mobile-800.webp",
+      "bytes": 84204,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-supplied Star Soccer photo DSC03273.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coach-wide-480.avif",
+      "bytes": 17417,
+      "width": 480,
+      "height": 480,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coach-wide-480.webp",
+      "bytes": 29790,
+      "width": 480,
+      "height": 480,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coach-wide-800.avif",
+      "bytes": 32911,
+      "width": 800,
+      "height": 800,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coach-wide-800.webp",
+      "bytes": 54666,
+      "width": 800,
+      "height": 800,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coach-mobile-480.avif",
+      "bytes": 17417,
+      "width": 480,
+      "height": 480,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coach-mobile-480.webp",
+      "bytes": 29790,
+      "width": 480,
+      "height": 480,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coach-mobile-800.avif",
+      "bytes": 32911,
+      "width": 800,
+      "height": 800,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/coach-mobile-800.webp",
+      "bytes": 54666,
+      "width": 800,
+      "height": 800,
+      "source": "Owner-supplied Star Soccer photo DSC03264.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/training-wide-640.avif",
+      "bytes": 25998,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-supplied Star Soccer photo DSC03282.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/training-wide-640.webp",
+      "bytes": 44416,
+      "width": 640,
+      "height": 480,
+      "source": "Owner-supplied Star Soccer photo DSC03282.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/training-wide-1120.avif",
+      "bytes": 70203,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-supplied Star Soccer photo DSC03282.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/training-wide-1120.webp",
+      "bytes": 112710,
+      "width": 1120,
+      "height": 840,
+      "source": "Owner-supplied Star Soccer photo DSC03282.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/training-mobile-480.avif",
+      "bytes": 18035,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-supplied Star Soccer photo DSC03282.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/training-mobile-480.webp",
+      "bytes": 31620,
+      "width": 480,
+      "height": 432,
+      "source": "Owner-supplied Star Soccer photo DSC03282.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/training-mobile-800.avif",
+      "bytes": 47195,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-supplied Star Soccer photo DSC03282.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
+    },
+    {
+      "file": "site-photos/autumn-2026/training-mobile-800.webp",
+      "bytes": 80492,
+      "width": 800,
+      "height": 720,
+      "source": "Owner-supplied Star Soccer photo DSC03282.ARW",
+      "edits": "RAW development, gentle shadow lift, warm autumn colour and responsive crops. No generated imagery; camera metadata removed."
     }
   ]
 }

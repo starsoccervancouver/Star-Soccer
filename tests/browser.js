@@ -288,7 +288,7 @@
     calendarTrigger.click();
     if(!picker.querySelector('[data-date="'+changedStart+'"]'))picker.querySelector('.pass-calendar-arrow[aria-label="Next month"]').click();
     picker.querySelector('[data-date="'+changedStart+'"]').click();
-    await new Promise(resolve=>setTimeout(resolve,20));
+    for(let i=0;i<100 && (picker.open || doc.querySelector('#pass-start').value!==changedStart || doc.activeElement!==calendarTrigger || calendarTrigger.getAttribute('aria-expanded')!=='false');i++)await new Promise(resolve=>setTimeout(resolve,10));
     check(!picker.open && doc.querySelector('#pass-start').value===changedStart && doc.activeElement===calendarTrigger && calendarTrigger.getAttribute('aria-expanded')==='false','Choosing a calendar day saves the date, closes the panel and returns focus');
     const chosenPassPlan=frame.contentWindow.StarWeeklySignup.passPlan('wednesday',changedStart);
     check(doc.querySelector('#pass-end').textContent===frame.contentWindow.StarTraining.prettyDate(chosenPassPlan.end),'Changing the start on the form updates the fourth-session end immediately');

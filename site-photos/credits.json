@@ -1214,6 +1214,96 @@
       "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 12, 2026",
       "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
       "edits": "Owner colour treatment preserved. Responsive crop and compression only."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-480-v3.avif",
+      "bytes": 18128,
+      "width": 480,
+      "height": 384,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 16, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Conventional noise reduction, gentle shadow lift and restrained sharpening. Original people and scene preserved; no generative editing. Responsive crops and compression."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-480-v3.webp",
+      "bytes": 38982,
+      "width": 480,
+      "height": 384,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 16, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Conventional noise reduction, gentle shadow lift and restrained sharpening. Original people and scene preserved; no generative editing. Responsive crops and compression."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-800-v3.avif",
+      "bytes": 46870,
+      "width": 800,
+      "height": 640,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 16, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Conventional noise reduction, gentle shadow lift and restrained sharpening. Original people and scene preserved; no generative editing. Responsive crops and compression."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-mobile-800-v3.webp",
+      "bytes": 97124,
+      "width": 800,
+      "height": 640,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 16, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Conventional noise reduction, gentle shadow lift and restrained sharpening. Original people and scene preserved; no generative editing. Responsive crops and compression."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1600-v3.avif",
+      "bytes": 107774,
+      "width": 1600,
+      "height": 792,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 16, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Conventional noise reduction, gentle shadow lift and restrained sharpening. Original people and scene preserved; no generative editing. Responsive crops and compression."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1600-v3.webp",
+      "bytes": 218624,
+      "width": 1600,
+      "height": 792,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 16, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Conventional noise reduction, gentle shadow lift and restrained sharpening. Original people and scene preserved; no generative editing. Responsive crops and compression."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1920-v3.avif",
+      "bytes": 146692,
+      "width": 1920,
+      "height": 951,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 16, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Conventional noise reduction, gentle shadow lift and restrained sharpening. Original people and scene preserved; no generative editing. Responsive crops and compression."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-1920-v3.webp",
+      "bytes": 287046,
+      "width": 1920,
+      "height": 951,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 16, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Conventional noise reduction, gentle shadow lift and restrained sharpening. Original people and scene preserved; no generative editing. Responsive crops and compression."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-960-v3.avif",
+      "bytes": 43074,
+      "width": 960,
+      "height": 475,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 16, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Conventional noise reduction, gentle shadow lift and restrained sharpening. Original people and scene preserved; no generative editing. Responsive crops and compression."
+    },
+    {
+      "file": "site-photos/owner-edits-2026/home-wide-960-v3.webp",
+      "bytes": 91058,
+      "width": 960,
+      "height": 475,
+      "source": "Owner-edited Star Soccer photo DSC03269.jpg, refreshed November 16, 2026",
+      "sourceSha256": "a6dafb30b166ced9477f7bfd0bb43c037266ba7d62a3821fd55cf2795302b160",
+      "edits": "Conventional noise reduction, gentle shadow lift and restrained sharpening. Original people and scene preserved; no generative editing. Responsive crops and compression."
     }
   ]
 }

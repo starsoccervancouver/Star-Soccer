@@ -348,3 +348,115 @@ body.home-landing .home-coach-booking .button{width:100%;min-width:0;min-height:
 body.home-landing .home-coach-book-link{width:100%;min-height:44px;margin:0;justify-content:center;text-align:center;font-size:.9rem;line-height:1.5;white-space:normal}
 @media(max-width:980px){body.home-landing .home-coach-card{grid-template-columns:1fr;gap:16px}}
 @media(max-width:540px){body.home-landing .home-coach-card{padding:20px 16px}body.home-landing .home-coach-booking .flow-actions{grid-template-columns:1fr}}
+
+/* Bright public homepage. Kept separate from registration and account screens. */
+body.home-landing{--text:#132d46;--muted:#526678;--line:#d8e2e8;background:#f4f7f8;color:#132d46}
+body.home-landing::before{display:none}
+body.home-landing .home-story-main{gap:0;background:#f4f7f8}
+body.home-landing :is(h1,h2,h3){font-family:Manrope,system-ui,sans-serif;text-transform:none;letter-spacing:-.035em}
+body.home-landing .immersive-hero{position:relative;display:grid;grid-template-columns:1fr 1fr;min-height:0;background:#f4f7f8;overflow:hidden}
+body.home-landing .immersive-hero::before,body.home-landing .immersive-hero::after{display:none}
+body.home-landing .home-training-photo{position:relative;grid-column:2;grid-row:1;inset:auto;z-index:auto;display:block;min-width:0;overflow:hidden}
+body.home-landing .home-training-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:65% 60%}
+body.home-landing .immersive-hero-overlay{grid-column:1;grid-row:1;display:flex;justify-content:center;padding:clamp(30px,4vw,60px);background:none}
+body.home-landing .immersive-hero-stage{display:block;width:100%;max-width:560px;min-height:0;margin-inline:auto}
+body.home-landing .immersive-hero-copy{width:100%;max-width:none;padding:0}
+body.home-landing .mission-label{color:#09655f;font:800 .72rem/1.5 Manrope,system-ui,sans-serif;letter-spacing:.11em;margin:0}
+body.home-landing .immersive-hero h1{font-family:Manrope,system-ui,sans-serif;font-size:clamp(2.25rem,3.5vw,3.4rem);font-style:normal;font-weight:800;line-height:1.1;margin:14px 0 20px;max-width:19ch;color:#132d46;text-shadow:none}
+body.home-landing .immersive-hero h1 span{display:inline-block;color:#0b706b;font-size:.76em;line-height:1.2;margin-top:8px}
+body.home-landing .immersive-hero-lead{max-width:52ch;color:#526678;font-size:1rem;font-weight:500;line-height:1.7;margin:0;text-shadow:none}
+body.home-landing .hero-action-panel{display:grid;gap:12px;margin-top:26px;max-width:none}
+body.home-landing .hero-action-label{display:none}
+body.home-landing a.hero-action{display:grid;justify-content:stretch;gap:6px;min-width:0;min-height:0;padding:17px 20px;border:1px solid #b9d1ce;border-radius:12px;background:#fff;color:#132d46;box-shadow:0 3px 12px #132d4606;-webkit-backdrop-filter:none;backdrop-filter:none;transition:background .15s,border-color .15s;text-decoration:none;transform:none}
+body.home-landing a.hero-action-programs{background:#0b706b;border-color:#0b706b;color:#fff}
+body.home-landing a.hero-action:hover,body.home-landing a.hero-action:focus-visible{background:#edf5f3;border-color:#0b706b;box-shadow:0 3px 12px #132d4606;transform:none}
+body.home-landing a.hero-action-programs:hover{background:#085b57;color:#fff}
+body.home-landing .hero-action-eyebrow{color:#09655f;font-size:.66rem;font-weight:800;letter-spacing:.08em;line-height:1.5}
+body.home-landing .hero-action-programs .hero-action-eyebrow{color:#d9eeeb}
+body.home-landing .hero-action-title{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:1.1rem;font-weight:800;line-height:1.4}
+body.home-landing .hero-action-detail{color:#526678;font-size:.83rem;line-height:1.5}
+body.home-landing .hero-action-programs .hero-action-detail{color:#eff9f7}
+body.home-landing .hero-action-camps .hero-action-eyebrow{color:#09655f}
+body.home-landing .hero-action-camps .hero-action-detail{color:#526678}
+body.home-landing a.hero-action-programs:focus-visible{background:#085b57;color:#fff}
+body.home-landing .hero-women-link{color:#09655f;font-size:.87rem;padding:6px 0}
+body.home-landing .home-proof-strip{padding:24px;background:#fff;border-color:#d8e2e8}
+body.home-landing .home-proof-item+.home-proof-item{border-color:#d8e2e8}
+body.home-landing .home-proof-item strong{color:#132d46;font-weight:800}
+body.home-landing .home-proof-item span{color:#526678}
+body.home-landing .home-local-guide{padding:64px 24px;background:#f4f7f8}
+body.home-landing .home-local-guide-inner{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(24px,5vw,64px)}
+body.home-landing :is(.home-local-guide,.home-parent-faq) h2{font-size:clamp(1.65rem,2.7vw,2.3rem);font-weight:800;line-height:1.3;color:#132d46}
+body.home-landing :is(.home-local-guide,.home-parent-faq) p{color:#526678;line-height:1.8}
+body.home-landing :is(.home-local-guide,.home-parent-faq) .eyebrow{color:#09655f;font-size:.7rem;font-weight:800;letter-spacing:.11em}
+body.home-landing .home-local-guide aside{padding:24px;border-color:#d8e2e8;border-radius:18px;background:#fff}
+body.home-landing .home-local-guide h3{color:#132d46;font-weight:800}
+body.home-landing main a:not(.button):not(.hero-action):not(.home-coach-book-link):not(.home-camps-cta-button){color:#09655f;text-underline-offset:4px}
+body.home-landing .home-story-main :is(.button,.home-camps-cta-button){min-height:48px;padding:12px 18px;border:1px solid #0b706b;border-radius:10px;background:#0b706b;color:#fff;font:700 .9rem/1.5 Manrope,system-ui,sans-serif;box-shadow:none;white-space:normal;text-align:center}
+body.home-landing .home-story-main :is(.button,.home-camps-cta-button):hover{background:#085b57;filter:none}
+body.home-landing .home-story-main :is(.button-ghost,.button-outline){background:#edf5f3;color:#09655f;border-color:#b9d1ce}
+body.home-landing .home-story-main :is(.button-ghost,.button-outline):hover{background:#dcece8;color:#09655f}
+/* The legacy global outline button sets these three properties as important. */
+body.home-landing .home-closing-actions .button-outline{background:#edf5f3!important;border-color:#b9d1ce!important;color:#09655f!important}
+body.home-landing .home-closing-actions .button-outline:hover{background:#dcece8!important}
+body.home-landing .home-latest-band{padding:48px 0;background:#eaf0f2}
+body.home-landing .home-latest-band-inner{width:min(1200px,calc(100% - 48px));padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+body.home-landing .home-trust-grid{grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);gap:24px}
+body.home-landing .home-coaching-column{gap:20px}
+body.home-landing .home-news-copy h2{font-size:clamp(1.65rem,2.6vw,2.2rem);line-height:1.25;font-weight:800;color:#132d46;white-space:normal;margin:0 0 12px}
+body.home-landing .home-news-copy p{color:#526678;line-height:1.7}
+body.home-landing .home-coach-card{grid-template-columns:160px minmax(0,1fr);background:#fff;border-color:#d8e2e8;box-shadow:0 3px 12px #132d4604}
+body.home-landing .home-coach-card-title h3{font-size:1.45rem;font-weight:800;line-height:1.3;color:#132d46}
+body.home-landing .home-coach-card ul{color:#526678}
+body.home-landing .home-coach-card li{line-height:1.6}
+body.home-landing .home-news-box-tag{color:#09655f;font-size:.65rem;line-height:1.6;letter-spacing:.09em}
+body.home-landing .home-coach-booking{border-color:#d8e2e8}
+body.home-landing .home-coach-booking .button{min-height:48px;font-size:.8rem;padding:10px 12px}
+body.home-landing .home-coach-book-link{min-height:48px;padding:10px 12px;border-radius:10px;border-color:#b9d1ce;background:#edf5f3;color:#09655f;font-size:.85rem;box-shadow:none}
+body.home-landing .home-coach-book-link:hover{background:#dcece8}
+body.home-landing .home-coach-portrait{border-color:#d8e2e8}
+body.home-landing .home-coach-initials{background:#edf2f4;color:#526678}
+body.home-landing .home-cta-stack{gap:16px;top:100px}
+body.home-landing .home-cta-card{padding:24px;background:#fff;border-color:#d8e2e8;box-shadow:none}
+body.home-landing .home-cta-card h3{font-size:1.4rem;font-weight:800;line-height:1.3;color:#132d46;margin:8px 0 12px}
+body.home-landing .home-cta-card>p{color:#526678;font-size:.94rem;line-height:1.7}
+body.home-landing .home-cta-card .button{margin-top:16px}
+body.home-landing .home-story-main>section.home-parent-faq{width:min(1120px,calc(100% - 48px));max-width:none;align-self:center;margin:48px auto;padding:32px;background:#fff;border-color:#d8e2e8;border-radius:18px;box-shadow:none}
+body.home-landing .home-parent-faq details{border-color:#d8e2e8}
+body.home-landing .home-parent-faq summary{min-height:56px;padding:16px 0;color:#132d46}
+body.home-landing .home-parent-faq details p{padding:0 0 14px;margin:0;color:#526678}
+body.home-landing .home-closing-cta{padding:64px 24px;background:#e2eeeb}
+body.home-landing .home-closing-cta h2{font-size:clamp(1.8rem,3.5vw,2.8rem);line-height:1.2;color:#132d46;max-width:22ch;margin:16px auto}
+body.home-landing .home-closing-cta p{color:#526678}
+body.home-landing .home-closing-cta .eyebrow{color:#09655f}
+body.home-landing :is(a,summary):focus-visible{outline:3px solid #c38339;outline-offset:4px}
+@media(max-width:1100px) and (min-width:701px){body.home-landing .immersive-hero-overlay{padding:32px 26px}body.home-landing .immersive-hero h1{font-size:2.4rem}}
+@media(max-width:900px){body.home-landing .home-trust-grid{grid-template-columns:1fr}body.home-landing .home-cta-stack{position:static;grid-template-columns:repeat(3,minmax(0,1fr))}body.home-landing .home-cta-card{padding:20px}body.home-landing .home-cta-card h3{font-size:1.2rem}}
+@media(max-width:700px){
+ body.home-landing .immersive-hero{display:flex;flex-direction:column}
+ body.home-landing .immersive-hero-overlay{order:0;padding:28px 22px 22px}
+ body.home-landing .immersive-hero h1{font-size:clamp(2rem,7.8vw,2.65rem);max-width:20ch;margin:10px 0 16px}
+ body.home-landing .immersive-hero h1 span{font-size:.74em;margin-top:5px}
+ body.home-landing .immersive-hero-lead{font-size:.92rem;line-height:1.65}
+ body.home-landing .hero-action-panel{margin-top:20px;gap:10px}
+ body.home-landing a.hero-action{padding:14px 16px}
+ body.home-landing .hero-action-title{font-size:1rem}
+ body.home-landing .hero-action-detail{font-size:.8rem}
+ body.home-landing .home-training-photo{order:1;aspect-ratio:5/4;max-height:360px}
+ body.home-landing .home-training-photo img{object-position:center}
+ body.home-landing .home-proof-strip{padding:20px 10px}
+ body.home-landing .home-proof-inner{grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+ body.home-landing .home-proof-item+.home-proof-item{border-top:0;border-left:1px solid #d8e2e8}
+ body.home-landing .home-proof-item{padding:0 8px;gap:6px}
+ body.home-landing .home-proof-item strong{font-size:.95rem;line-height:1.4}
+ body.home-landing .home-proof-item span{font-size:.7rem}
+ body.home-landing .home-local-guide{padding:36px 20px}
+ body.home-landing .home-local-guide-inner{grid-template-columns:1fr;gap:28px}
+ body.home-landing .home-local-guide aside{padding:20px}
+ body.home-landing .home-latest-band{padding:32px 0}
+ body.home-landing .home-latest-band-inner{width:calc(100% - 32px)}
+ body.home-landing .home-cta-stack{grid-template-columns:1fr}
+ body.home-landing .home-story-main>section.home-parent-faq{width:calc(100% - 32px);margin:32px auto;padding:24px 20px}
+ body.home-landing .home-closing-cta{padding:40px 20px}
+}
+@media(max-width:540px){body.home-landing .home-coach-card{grid-template-columns:clamp(104px,32vw,128px) minmax(0,1fr);gap:16px}body.home-landing .home-coach-card-title h3{font-size:1.2rem}}

@@ -133,7 +133,11 @@
   function choosePlayerColor() { if (!editable()) return; colorMenu.hidden = !colorMenu.hidden; newPlayer.setAttribute('aria-expanded', String(!colorMenu.hidden)); addPlayerButton.setAttribute('aria-expanded', String(!colorMenu.hidden)); if (!colorMenu.hidden) colorMenu.querySelector('button').focus(); }
   function addPlayer(destination) { if (!currentPlayerColor) { choosePlayerColor(); return; } addPiece(currentPlayerColor === 'gold' ? 'away' : 'home', destination, currentPlayerColor); }
   const addPlayerButton = button('Player', 'tactics-add-player', () => addPlayer()); addPlayerButton.setAttribute('aria-label', 'Add player'); addPlayerButton.prepend(currentColor); addPlayerButton.draggable = true; addPlayerButton.title = 'Add another player in the current colour, or drag onto the field';
-  addPlayerButton.addEventListener('dragstart', event => { if (!editable() || !currentPlayerColor) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', 'player'); event.dataTransfer.effectAllowed = 'copy'; });
+  function startPieceDrag(event, kind, icon) {
+    event.dataTransfer.setData('application/x-coach-piece', kind); event.dataTransfer.effectAllowed = 'copy';
+    const bounds = icon.getBoundingClientRect(); event.dataTransfer.setDragImage(icon, bounds.width / 2, bounds.height / 2);
+  }
+  addPlayerButton.addEventListener('dragstart', event => { if (!editable() || !currentPlayerColor) return event.preventDefault(); startPieceDrag(event, 'player', currentColor); });
   const newPlayer = button('▾', 'tactics-new-player', choosePlayerColor); newPlayer.setAttribute('aria-label', 'Add player in a new colour'); newPlayer.setAttribute('aria-expanded', 'false'); newPlayer.setAttribute('aria-controls', colorMenu.id); newPlayer.title = 'Choose another player colour';
   addPlayerButton.setAttribute('aria-controls', colorMenu.id); addPlayerButton.setAttribute('aria-expanded', 'false');
   for (const [color, fill] of Object.entries(playerColors)) { const swatch = button(color[0].toUpperCase() + color.slice(1), '', () => { currentPlayerColor = color; closeColors(); addPlayer(); addPlayerButton.focus(); }); swatch.dataset.playerColor = color; swatch.title = 'Add ' + color + ' player'; const dot = el('span', '', 'tactics-current-color'); dot.style.backgroundColor = fill; dot.setAttribute('aria-hidden', 'true'); swatch.prepend(dot); colorMenu.append(swatch); }
@@ -145,7 +149,7 @@
     const add = button('', 'tactics-add-' + kind, () => addPiece(kind)); add.setAttribute('aria-label', 'Add ' + label.toLowerCase());
     const icon = svg('svg', { viewBox: '-36 -32 72 64', width: 22, height: 22, 'aria-hidden': 'true' }); icon.append(pieceArtwork(kind)); add.prepend(icon);
     add.draggable = true; add.title = 'Add ' + label.toLowerCase() + ' · drag onto field';
-    add.addEventListener('dragstart', event => { if (!editable() || add.disabled) return event.preventDefault(); event.dataTransfer.setData('application/x-coach-piece', kind); event.dataTransfer.effectAllowed = 'copy'; });
+    add.addEventListener('dragstart', event => { if (!editable() || add.disabled) return event.preventDefault(); startPieceDrag(event, kind, icon); });
     add.dataset.pieceKind = kind; addGroup.append(add);
   }
   function addPlayerTool(tool, destination) {

@@ -66,6 +66,21 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#tactics-progress').isVisible(), false, 'The playback scrubber stays inside the closed phase dropdown');
     assert.equal(await page.locator('.tactics-compact-details').isVisible(), false, 'Templates and export are absent from the library creator');
 
+    await page.evaluate(() => {
+      window.pieceDragPreviews=[];const native=DataTransfer.prototype.setDragImage;
+      DataTransfer.prototype.setDragImage=function(icon,x,y){const r=icon.getBoundingClientRect();pieceDragPreviews.push({tag:icon.tagName.toLowerCase(),text:icon.textContent,width:r.width,height:r.height,x,y});return native.call(this,icon,x,y);};
+    });
+    for(const kind of ['ball','cone','goal']){
+      await page.locator('#tactics-add-'+kind).dragTo(page.locator('#tactics-pitch-board'));
+      const placed=await draft();assert.equal(placed.items.length,1);assert.equal(placed.items[0].kind,kind);
+      closeTo(placed.frames[0].positions[0].x,50,'Dropped '+kind+' lands under the pointer');
+      closeTo(placed.frames[0].positions[0].y,50,'Dropped '+kind+' lands under the pointer');
+      const preview=await page.evaluate(()=>pieceDragPreviews.at(-1));
+      assert.equal(preview.tag,'svg');assert.equal(preview.text,'');assert(preview.width<=32&&preview.height<=32,'Drag preview contains only the compact icon');
+      assert.equal(preview.x,preview.width/2);assert.equal(preview.y,preview.height/2);
+      await page.locator('#tactics-undo').click();assert.equal(await draft(),null,'Undo removes the dropped item');
+    }
+
     // A drawn arrow is useful even before players are placed, and must count as draft content.
     await draw({ x: 15, y: 20 }, { x: 70, y: 20 });
     const originalArrow = await arrow();

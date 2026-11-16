@@ -401,7 +401,7 @@
   function updateViewControls() {
     const locked = !active() || !loaded || pending, bounds = viewBounds(), fit = zoom === 1, near = (a, b) => Math.abs(a - b) < .001;
     camera.hidden = cameraField.hidden = record.content.pitch !== 'full'; camera.value = cameraMode; camera.disabled = locked || camera.hidden; deviceControl.disabled = locked; deviceControl.value = deviceView; gridControl.disabled = focusField.disabled = locked; gridControl.setAttribute('aria-pressed',String(showGrid));
-    laneControl.hidden = record.content.pitch === 'blank'; laneControl.disabled = locked || laneControl.hidden; laneControl.setAttribute('aria-pressed', String(showLanes && !laneControl.hidden));
+    laneControl.disabled = locked; laneControl.setAttribute('aria-pressed', String(showLanes));
     $('tactics-zoom-out').disabled = locked || fit; $('tactics-zoom-in').disabled = locked || zoom === 2.5;
     $('tactics-zoom-fit').hidden = fit; $('tactics-zoom-fit').disabled = locked || fit;
     const percentage = Math.round(zoom * 100) + '%'; if (zoomValue.textContent !== percentage) zoomValue.textContent = percentage; panControls.hidden = fit;
@@ -797,7 +797,7 @@
     board.replaceChildren();
     scene = svg('g', { 'data-camera-scene': '', transform: 'rotate(' + geometry.angle + ' ' + width / 2 + ' ' + height / 2 + ')' });
     board.append(scene); scene.append(fieldArtwork(record.content.pitch));
-    if (showLanes && record.content.pitch !== 'blank') {
+    if (showLanes) {
       const lanes = svg('g', { 'data-tactics-lanes': '', 'pointer-events': 'none' });
       const vertical = ['facing-goal', 'away-from-goal'].includes(record.content.pitch);
       const labelX = record.content.pitch === 'full' && cameraMode !== 'full' ? (cameraMode === 'left-half' ? 250 : 750) : width / 2, laneWidth = (width - 50) / 5, laneHeight = (height - 50) / 5;

@@ -112,13 +112,21 @@ require('./coach-fixture-fonts.cjs')(assets);
     assert(await f.page.locator('#tactics-pitch-board').evaluate(n=>n===document.activeElement&&n.getBoundingClientRect().top>=0&&n.getBoundingClientRect().top<innerHeight),'Session Back restores field focus and scroll');
    }else{
     assert(await f.page.locator('.tactics-inspector').evaluate(n=>n.getBoundingClientRect().width<=340),'Session desktop rail stays compact');
-    for(const pitch of ['full','half']){
+    for(const pitch of ['full','half','blank']){
      await f.page.locator('#tactics-pitch').selectOption(pitch);
      await f.page.waitForTimeout(80);
      const fit=await f.page.locator('#tactics-pitch-board').evaluate(n=>({rect:n.closest('.tactics-canvas-wrap').getBoundingClientRect().toJSON(),phases:document.querySelector('.tactics-sequence-actions').getBoundingClientRect().toJSON(),max:n.parentElement.parentElement.style.getPropertyValue('--pitch-max-width'),scroll:n.closest('.planner-drawer-content').scrollTop}));
      // Desktop playback now sits beside the field, so no bottom toolbar gap is needed.
      assert(fit.rect.top>=0&&fit.rect.bottom<=viewport.height&&fit.rect.left>=0&&fit.rect.right<=viewport.width,'Entire '+pitch+' field and frame fit the desktop screen at '+viewport.width+'×'+viewport.height+': '+JSON.stringify(fit));
      assert(fit.phases.left>=fit.rect.right,'Desktop playback remains beside the '+pitch+' field');
+     if(pitch==='blank')for(const [control,overlay]of [['#tactics-grid','[data-tactics-grid]'],['#tactics-lanes','[data-tactics-lanes]']]){
+      await reveal(f,control);
+      for(let toggle=0;toggle<2;toggle++){
+       const enabled=await f.page.locator(control).getAttribute('aria-pressed')!=='true';await f.page.locator(control).click();
+       assert.equal(await f.page.locator(control).getAttribute('aria-pressed'),String(enabled));
+       assert.equal(await f.page.locator('#tactics-pitch-board '+overlay).count(),Number(enabled),'Session Training field toggles '+control);
+      }
+     }
     }
     await f.page.locator('#tactics-pitch').selectOption('full');
    }

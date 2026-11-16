@@ -22,7 +22,8 @@
 }
 #tactics-board-tools.tactics-studio button:hover:not(:disabled) { background: #f9f6ee; border-color: #879580; }
 #tactics-board-tools.tactics-studio button:disabled { opacity: .43; cursor: default; }
-#tactics-board-tools.tactics-studio button[aria-pressed=true] { background: var(--studio-dark); border-color: var(--studio-dark); color: #f4f3e9; }
+#tactics-board-tools.tactics-studio button[aria-pressed=true],
+#tactics-board-tools.tactics-studio .tactics-view-guides button[aria-pressed=true]:hover:not(:disabled) { background: var(--studio-dark); border-color: var(--studio-dark); color: #f4f3e9; }
 #tactics-board-tools.tactics-studio label { display: block; margin: 0; color: var(--studio-muted); font-size: 12px; font-weight: 600; line-height: 1.4; }
 #tactics-board-tools.tactics-studio :is(input:not([type=checkbox]),select,textarea) {
   display: block; width: 100%; min-width: 0; max-width: 100%; min-height: 44px; margin: 5px 0 0;
@@ -76,7 +77,7 @@ body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-main-toolb
 #tactics-board-tools.tactics-studio .tactics-view-menu { position: relative; border: 1px solid var(--studio-line); border-radius: 8px; background: var(--studio-field); color: var(--studio-ink); }
 #tactics-board-tools.tactics-studio .tactics-view-menu > summary { min-height: 44px; padding: 12px; font-size: 12px; font-weight: 650; cursor: pointer; }
 #tactics-board-tools.tactics-studio .tactics-view-menu-body { position: absolute; z-index: 22; top: calc(100% + 7px); left: 0; display: grid; gap: 8px; width: 270px; max-width: calc(100vw - 32px); padding: 12px; border: 1px solid var(--studio-line); border-radius: 10px; background: var(--studio-field); box-shadow: 0 8px 24px #293b3126; }
-#tactics-board-tools.tactics-studio .tactics-view-menu-body label { color: var(--studio-ink); }
+#tactics-board-tools.tactics-studio .tactics-field-dock .tactics-view-menu-body label { color: var(--studio-ink); }
 #tactics-board-tools.tactics-studio .tactics-view-guides { display: flex; gap: 6px; }
 #tactics-board-tools.tactics-studio .tactics-canvas-wrap { position: relative; width: min(100%,var(--pitch-max-width,100%)); justify-self: start; min-width: 0; overflow: hidden; border: 1px solid #34473c; border-radius: 10px; background: #30483a; box-shadow: 0 2px 8px #26382d18; }
 #tactics-board-tools.tactics-studio #tactics-pitch-board { display: block; width: 100%; height: auto; max-height: none; aspect-ratio: var(--field-ratio,1000 / 650); background: #30483a; touch-action: none; user-select: none; -webkit-user-select: none; }

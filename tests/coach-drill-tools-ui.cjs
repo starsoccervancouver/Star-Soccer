@@ -239,7 +239,7 @@ const { chromium } = require('playwright');
       assert.equal(await page.locator('#tactics-camera').isVisible(), true, 'Returning to the full field restores camera choices');
     }
     assert.deepEqual(await draft(), layoutDraft, 'Changing field surfaces and returning to full preserves diagram content');
-    for (const surface of ['full', 'half', 'facing-goal', 'away-from-goal']) {
+    for (const surface of ['full', 'half', 'facing-goal', 'away-from-goal', 'blank']) {
       await page.locator('#tactics-pitch').selectOption(surface);
       const beforeLanes = await draft();
       assert.equal(await page.locator('#tactics-lanes').isVisible(), true);
@@ -252,8 +252,34 @@ const { chromium } = require('playwright');
     }
     await page.locator('#tactics-lanes').click();
     await page.locator('#tactics-pitch').selectOption('blank');
-    assert.equal(await page.locator('#tactics-lanes').isVisible(), false);
-    assert.equal(await page.locator('#tactics-pitch-board [data-tactics-lanes]').count(), 0, 'Blank field hides an enabled lane overlay');
+    assert.equal(await page.locator('#tactics-lanes').isVisible(), true);
+    assert.equal(await page.locator('#tactics-pitch-board [data-tactics-lanes]').count(), 1, 'Training field preserves an enabled lane overlay');
+    const trainingDraft = await draft();
+    for (const width of [1280,390]) {
+      await page.setViewportSize({width,height:900});
+      for (const orientation of ['wide','tall']) {
+        await page.locator('#tactics-device-view').selectOption(orientation);
+        for (const [control,overlay] of [['#tactics-grid','[data-tactics-grid]'],['#tactics-lanes','[data-tactics-lanes]']]) {
+          for (let toggle=0;toggle<2;toggle++) {
+            const enabled=await page.locator(control).getAttribute('aria-pressed')!=='true';
+            await reveal(control);await page.locator(control).click();
+            assert.equal(await page.locator(control).getAttribute('aria-pressed'),String(enabled),'Training field guide state: '+control);
+            assert.equal(await page.locator('#tactics-pitch-board '+overlay).count(),Number(enabled),'Training field guide overlay: '+control);
+            if (enabled) {
+              await page.mouse.move(0,0);
+              const colors=()=>page.locator(control).evaluate(async n=>{await Promise.all(n.getAnimations().map(a=>a.finished));const s=getComputedStyle(n);return [s.backgroundColor,s.color];});
+              const selectedColors=await colors();await page.locator(control).hover();
+              assert.deepEqual(await colors(),selectedColors,'Selected guide stays legible while hovered: '+control);
+            }
+          }
+        }
+        assert(await page.evaluate(()=>{const r=document.querySelector('.tactics-view-menu-body').getBoundingClientRect();return r.left>=0&&r.right<=innerWidth;}),'Training field view choices stay on screen');
+        assert.deepEqual(await draft(),trainingDraft,'Training field view choices preserve the drill');
+      }
+    }
+    await page.screenshot({path:'outputs/training-field-guides-mobile.png'});
+    await page.setViewportSize({width:1440,height:1000});
+    await page.locator('#tactics-device-view').selectOption('auto');
     await page.locator('#tactics-pitch').selectOption('full');
     if (await page.locator('#tactics-lanes').getAttribute('aria-pressed') === 'true') await page.locator('#tactics-lanes').click();
     const beforeGrid = await page.locator('#tactics-pitch-board').innerHTML();

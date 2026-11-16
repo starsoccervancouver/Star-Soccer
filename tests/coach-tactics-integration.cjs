@@ -115,8 +115,10 @@ require('./coach-fixture-fonts.cjs')(assets);
     for(const pitch of ['full','half']){
      await f.page.locator('#tactics-pitch').selectOption(pitch);
      await f.page.waitForTimeout(80);
-     const fit=await f.page.locator('#tactics-pitch-board').evaluate(n=>({rect:n.getBoundingClientRect().toJSON(),max:n.parentElement.parentElement.style.getPropertyValue('--pitch-max-width'),scroll:n.closest('.planner-drawer-content').scrollTop}));
-     assert(fit.rect.top>=0&&fit.rect.bottom<=viewport.height-40,'Entire '+pitch+' field fits the desktop screen at '+viewport.width+'×'+viewport.height+': '+JSON.stringify(fit));
+     const fit=await f.page.locator('#tactics-pitch-board').evaluate(n=>({rect:n.closest('.tactics-canvas-wrap').getBoundingClientRect().toJSON(),phases:document.querySelector('.tactics-sequence-actions').getBoundingClientRect().toJSON(),max:n.parentElement.parentElement.style.getPropertyValue('--pitch-max-width'),scroll:n.closest('.planner-drawer-content').scrollTop}));
+     // Desktop playback now sits beside the field, so no bottom toolbar gap is needed.
+     assert(fit.rect.top>=0&&fit.rect.bottom<=viewport.height&&fit.rect.left>=0&&fit.rect.right<=viewport.width,'Entire '+pitch+' field and frame fit the desktop screen at '+viewport.width+'×'+viewport.height+': '+JSON.stringify(fit));
+     assert(fit.phases.left>=fit.rect.right,'Desktop playback remains beside the '+pitch+' field');
     }
     await f.page.locator('#tactics-pitch').selectOption('full');
    }

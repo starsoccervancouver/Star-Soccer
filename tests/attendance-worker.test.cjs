@@ -1,6 +1,7 @@
-const {test}=require('node:test'),assert=require('node:assert/strict'),{execFileSync}=require('node:child_process');
+const {test}=require('node:test'),assert=require('node:assert/strict');
 const {DatabaseSync}=require('node:sqlite');
-const loaded=Promise.resolve().then(()=>{execFileSync(process.execPath,['private-attendance/cloudflare/build-assets.mjs'],{stdio:'ignore'});return import('../private-attendance/cloudflare/production-worker.mjs');});
+// Build once in the test command, before parallel workers import shared assets.
+const loaded=import('../private-attendance/cloudflare/production-worker.mjs');
 const fid=n=>'fld'+String(n).padStart(14,'0');
 test('production Worker remains closed without the complete approved configuration',async()=>{const {default:worker}=await loaded;let touched=false;const r=await worker.fetch(new Request('https://attendance.starsoccer.ca/respond'),{ATTENDANCE_MODE:'live',LIVE_EMAIL_SENDS:'false',ATTENDANCE_COORDINATOR:{idFromName(){touched=true;}}});assert.equal(r.status,503);assert.equal(touched,false);assert.equal((await r.json()).draftOnly,true);});
 test('Durable Object initializes shared SQL schema and exposes no public coach or admin roster',async t=>{

@@ -17,3 +17,36 @@ test('wrong issuer, audience, nonce, verification, issued/expiry times and unsig
 test('stable Google subject is pinned and cannot be replaced by another account claiming the same email',async t=>{const x=await setup(t),first=await x.prepare();await x.google.finish({code:first.code,state:first.state,browser:x.browser});const changed=await x.prepare({sub:'different-subject'});await assert.rejects(()=>x.google.finish({code:changed.code,state:changed.state,browser:x.browser}),/GOOGLE_ACCOUNT_CHANGED/);assert.equal(x.sessions.length,1);const again=await x.prepare();await x.google.finish({code:again.code,state:again.state,browser:x.browser});assert.equal(x.sessions.length,2);});
 
 test('non-Google mailbox claims require a verified Workspace hosted-domain claim, and network failures consume state',async t=>{const x=await setup(t);x.coaches.saveUser(x.owner,{email:'coach@example.test',name:'Workspace coach',role:'coach'});const unsupported=await x.prepare({email:'coach@example.test',sub:'workspace-sub'});await assert.rejects(()=>x.google.finish({code:unsupported.code,state:unsupported.state,browser:x.browser}),/GOOGLE_ACCOUNT_NOT_SUPPORTED/);const workspace=await x.prepare({email:'coach@example.test',sub:'workspace-sub',hd:'example.test'});assert.equal((await x.google.finish({code:workspace.code,state:workspace.state,browser:x.browser})).profile.role,'coach');const failed=await x.prepare();x.networkFailure();await assert.rejects(()=>x.google.finish({code:failed.code,state:failed.state,browser:x.browser}),/GOOGLE_SIGN_IN_FAILED/);await assert.rejects(()=>x.google.finish({code:failed.code,state:failed.state,browser:x.browser}),/GOOGLE_SIGN_IN_EXPIRED/);});
+
+test('renamed Google account retains its established coach identity and record ownership',async t=>{
+ const x=await setup(t),first=await x.prepare();
+ await x.google.finish({code:first.code,state:first.state,browser:x.browser});
+ const renamed=await x.prepare({email:'romeo@example.test',hd:'example.test'});
+ const result=await x.google.finish({code:renamed.code,state:renamed.state,browser:x.browser});
+ assert.equal(result.profile.email,x.owner.email);assert.equal(result.profile.role,'owner');
+ assert.equal(x.store.get('SELECT COUNT(*) AS n FROM coach_users').n,1);
+ assert.equal(x.store.get('SELECT COUNT(*) AS n FROM staff_google_accounts').n,1);
+ assert.equal(x.store.get('SELECT email FROM staff_google_accounts').email,x.owner.email);
+ const unrelated=await x.prepare({email:'romeo@example.test',hd:'example.test',sub:'different-google-account'});
+ await assert.rejects(()=>x.google.finish({code:unrelated.code,state:unrelated.state,browser:x.browser}),/ACCOUNT_NOT_ACTIVE/);
+});
+
+test('renamed coaches retain their role and disabled accounts cannot regain access',async t=>{
+ const x=await setup(t);x.coaches.saveUser(x.owner,{email:'coach@gmail.com',name:'Fixture coach',role:'coach'});
+ const first=await x.prepare({email:'coach@gmail.com',sub:'coach-sub'});
+ await x.google.finish({code:first.code,state:first.state,browser:x.browser});
+ const renamed=await x.prepare({email:'renamed@example.test',hd:'example.test',sub:'coach-sub',role:'owner'});
+ const result=await x.google.finish({code:renamed.code,state:renamed.state,browser:x.browser});
+ assert.equal(result.profile.role,'coach');assert.equal(result.profile.email,'coach@gmail.com');
+ x.coaches.saveUser(x.owner,{email:'coach@gmail.com',name:'Fixture coach',role:'coach',active:false,expectedVersion:1});
+ const disabled=await x.prepare({email:'renamed@example.test',hd:'example.test',sub:'coach-sub'});
+ await assert.rejects(()=>x.google.finish({code:disabled.code,state:disabled.state,browser:x.browser}),/ACCOUNT_NOT_ACTIVE/);
+});
+
+test('a Google email rename never merges existing approved accounts',async t=>{
+ const x=await setup(t),first=await x.prepare();await x.google.finish({code:first.code,state:first.state,browser:x.browser});
+ x.coaches.saveUser(x.owner,{email:'other@example.test',name:'Other coach',role:'coach'});
+ const collision=await x.prepare({email:'other@example.test',hd:'example.test'});
+ await assert.rejects(()=>x.google.finish({code:collision.code,state:collision.state,browser:x.browser}),/GOOGLE_ACCOUNT_CHANGED/);
+ assert.equal(x.sessions.length,1);assert.equal(x.coaches.actor('other@example.test').role,'coach');
+});

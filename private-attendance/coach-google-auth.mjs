@@ -50,11 +50,15 @@ export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,
    // A verified non-Google third-party email alone does not prove continuing mailbox ownership.
    if(!['gmail.com','googlemail.com'].includes(domain)&&!hosted)deny('GOOGLE_ACCOUNT_NOT_SUPPORTED',403);
    return store.transaction(()=>{
-    const actor=coaches.actor(address),linked=store.get('SELECT * FROM staff_google_accounts WHERE email=?',address),subjectOwner=store.get('SELECT email FROM staff_google_accounts WHERE subject=?',payload.sub);
-    if(linked&&linked.subject!==payload.sub||subjectOwner&&subjectOwner.email!==address)deny('GOOGLE_ACCOUNT_CHANGED',403);
-    if(!linked)store.run('INSERT INTO staff_google_accounts VALUES(?,?,?)',address,payload.sub,new Date(clock()).toISOString());
-    coaches.recordAudit(actor,'google-sign-in',address,{});
-    return auth.createVerifiedSession(address);
+    const linked=store.get('SELECT * FROM staff_google_accounts WHERE email=?',address),subjectOwner=store.get('SELECT email FROM staff_google_accounts WHERE subject=?',payload.sub);
+    if(linked&&linked.subject!==payload.sub)deny('GOOGLE_ACCOUNT_CHANGED',403);
+    // Google subjects survive email renames. Keep the established coach identity,
+    // permissions and record ownership; never merge two approved coach accounts.
+    if(subjectOwner&&subjectOwner.email!==address&&store.get('SELECT email FROM coach_users WHERE email=?',address))deny('GOOGLE_ACCOUNT_CHANGED',403);
+    const coachAddress=subjectOwner?.email||address,actor=coaches.actor(coachAddress);
+    if(!subjectOwner)store.run('INSERT INTO staff_google_accounts VALUES(?,?,?)',coachAddress,payload.sub,new Date(clock()).toISOString());
+    coaches.recordAudit(actor,'google-sign-in',coachAddress,{});
+    return auth.createVerifiedSession(coachAddress);
    });
   }
  };

@@ -328,6 +328,9 @@ const { chromium } = require('playwright');
         const focusedField = await fieldWithinCanvas('The focused field');
         assert(focusedField.width >= fieldBeforeFocus.width - 1, 'Field focus preserves usable field size at ' + size);
         await inViewport('#tactics-pitch-board', 'The complete focused field');
+        for (const selector of ['.tactics-edit-tools','.tactics-sequence-actions']) assert((await rect(selector)).x >= focusedField.right, 'Focused controls stay beside the field: ' + selector);
+        for (const selector of ['#tactics-mode-place','#tactics-play','#tactics-add-frame']) await inViewport(selector, 'Focused control');
+        if (size === '1280x720') await page.screenshot({ path: 'outputs/drill-creator-focus-desktop.png' });
       }
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Focused field has no horizontal overflow at ' + size);
       assert.deepEqual(await draft(), layoutDraft, 'Field focus does not alter the drill at ' + size);

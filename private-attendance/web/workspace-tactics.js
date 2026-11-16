@@ -788,7 +788,7 @@
     board.setAttribute('viewBox', [viewCenter.x - geometry.width / 2 / zoom, viewCenter.y - geometry.height / 2 / zoom, geometry.width / zoom, geometry.height / zoom].join(' '));
     const scrollContainer = board.closest('#library-form') || board.closest('.planner-drawer-content');
     const fieldTop = canvasWrap.getBoundingClientRect().top + (scrollContainer?.scrollTop || window.scrollY);
-    const footerHeight = innerWidth >= 1000 && !panelHidden ? 0 : sequenceActions.getBoundingClientRect().height || 44;
+    const footerHeight = innerWidth >= 1000 ? 0 : sequenceActions.getBoundingClientRect().height || 44;
     const fieldHeight = Math.max(180, innerHeight - (innerWidth >= 1000 ? fieldTop : 150) - footerHeight - 20);
     boardLayout.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
     fieldColumn.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');

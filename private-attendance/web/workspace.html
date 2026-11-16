@@ -109,13 +109,13 @@
 <aside class="desk-nav">
 <p class="nav-section">WORKSPACE</p>
 <nav id="navigation">
-<button data-tab="home" class="nav-active">Overview</button>
-<button data-tab="profiles">Player profiles</button>
-<button data-tab="plan">Training groups</button>
-<button data-tab="library">Coach resources</button>
-<button data-tab="coaches" data-full hidden>Coaching team</button>
+<button data-tab="home" class="nav-active"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Overview</span></button>
+<button data-tab="profiles"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>Player profiles</span></button>
+<button data-tab="plan"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h3M8 18h7"/></svg><span>Training groups</span></button>
+<button data-tab="library"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6a2 2 0 0 1 2 2v15a3 3 0 0 0-3-2H3V4zm16 0h-6a2 2 0 0 0-2 2v15a3 3 0 0 1 3-2h6V4z"/></svg><span>Coach resources</span></button>
+<button data-tab="coaches" data-full hidden><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5v1"/></svg><span>Coaching team</span></button>
 
-<button data-tab="settings" class="nav-settings">Settings &amp; profile</button>
+<button data-tab="settings" class="nav-settings"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></svg><span>Settings &amp; profile</span></button>
 </nav>
 <div class="nav-foot">
 <span id="role">
@@ -235,8 +235,7 @@
 <div class="planner-focus-heading"><div><p class="eyebrow">Training group</p><h1 id="planner-focus-title" tabindex="-1"></h1><p id="planner-focus-detail" class="small"></p></div><div class="planner-focus-controls"><button id="planner-focus-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-drawer">View other sessions</button><button id="planner-save" type="submit" form="plan-form" disabled>Save plan</button></div></div>
 </header>
 <section id="planner-session-browser" class="planner-session-browser" aria-label="Choose a planning session">
-<div class="planner-day-heading"><div><p class="eyebrow">Start with a day</p><h2 id="planner-chooser-title" tabindex="-1">Choose a training group</h2></div><button hidden id="planner-other-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-drawer">View other sessions</button></div>
-<p class="planner-chooser-intro">Choose a recurring group first. Its dates, attendance, plans and individual player notes stay together.</p>
+<div class="planner-day-heading"><div><h2 id="planner-chooser-title" tabindex="-1">Your training groups</h2></div><button hidden id="planner-other-date" class="secondary" type="button" aria-expanded="false" aria-controls="planner-drawer">View other sessions</button></div>
 <div id="planner-days" class="planner-days" role="group" aria-label="Training days"></div>
 <div class="planner-session-summary" hidden><div><span id="planner-session-mode" class="planner-session-mode"></span><h2 id="planner-session-title">Choose a training day</h2><p id="planner-session-detail" class="small"></p></div><button id="planner-open-selected" type="button">Plan this session <span aria-hidden="true">→</span></button></div>
 </section>
@@ -299,7 +298,7 @@
 </div>
 <p class="small" id="marking-help">Parent replies help you prepare. Mark Present or Absent only after checking the player is there.</p>
 <div class="roster-tools">
-<label>Find a player<input id="roster-search" type="search" autocomplete="off" placeholder="Search this roster by name">
+<label>Find a player<input id="roster-search" type="search" autocomplete="off" placeholder="Player name">
 </label>
 <label class="roster-status-filter">Show attendance<select id="roster-status-filter" aria-label="Show attendance">
 <option value="all">All players</option>

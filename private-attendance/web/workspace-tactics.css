@@ -1,26 +1,26 @@
 /* Shared drill studio. Session and library entry points use this same layout. */
 #tactics-board-tools.tactics-studio {
-  --studio-paper: var(--desk-surface, #dbd5ca);
-  --studio-card: #e7e2d8;
-  --studio-field: #f3efe6;
-  --studio-line: #bdb6a7;
-  --studio-ink: #293b31;
-  --studio-muted: #62685d;
-  --studio-dark: #303a34;
+  --studio-paper: var(--desk-canvas, #f3f6f8);
+  --studio-card: var(--desk-surface, #fff);
+  --studio-field: var(--desk-field, #fff);
+  --studio-line: var(--desk-control-line, #b9c8d0);
+  --studio-ink: var(--desk-ink, #1e3040);
+  --studio-muted: var(--desk-muted, #566878);
+  --studio-dark: var(--desk-navy, #142332);
   display: block; min-width: 0; color: var(--studio-ink);
 }
 #tactics-board-tools.tactics-studio,
 #tactics-board-tools.tactics-studio * { box-sizing: border-box; }
 #tactics-board-tools.tactics-studio [hidden] { display: none !important; }
 #tactics-board-tools.tactics-studio :is(section,aside,div,label,details) { min-width: 0; }
-#tactics-board-tools.tactics-studio :is(button,input,select,textarea,summary):focus-visible { outline: 3px solid #486f50; outline-offset: 3px; }
+#tactics-board-tools.tactics-studio :is(button,input,select,textarea,summary):focus-visible { outline: 3px solid var(--desk-accent); outline-offset: 3px; }
 #tactics-board-tools.tactics-studio button {
   min-width: 44px; min-height: 44px; max-width: 100%; padding: 9px 12px;
   border: 1px solid var(--studio-line); border-radius: 9px; background: var(--studio-field);
   color: var(--studio-ink); font-size: 12px; font-weight: 650; line-height: 1.35;
   white-space: normal; overflow-wrap: anywhere; cursor: pointer; box-shadow: none;
 }
-#tactics-board-tools.tactics-studio button:hover:not(:disabled) { background: #f9f6ee; border-color: #879580; }
+#tactics-board-tools.tactics-studio button:hover:not(:disabled) { background: var(--desk-accent-soft); border-color: var(--desk-accent); }
 #tactics-board-tools.tactics-studio button:disabled { opacity: .43; cursor: default; }
 #tactics-board-tools.tactics-studio button[aria-pressed=true],
 #tactics-board-tools.tactics-studio .tactics-view-guides button[aria-pressed=true]:hover:not(:disabled) { background: var(--studio-dark); border-color: var(--studio-dark); color: #f4f3e9; }
@@ -197,7 +197,7 @@ body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-main-toolb
 /* Cancel the outer library's legacy field grid so the shared studio owns it. */
 body.drill-creator-focus #library-form { display: block; overflow: auto; padding: 0 12px max(16px,env(safe-area-inset-bottom)); scroll-padding-top: 88px; }
 body.drill-creator-focus #library-form #library-diagram-editor { display: block; min-width: 0; max-width: 100%; margin: 12px 0 0; }
-body.drill-creator-focus #library-form .library-editor-header { position: sticky; top: 0; z-index: 26; display: grid; grid-template-columns: auto minmax(240px,460px) minmax(0,1fr); align-items: center; gap: 8px 16px; margin: 0 -12px; padding: 10px 12px; border-radius: 0; border-bottom: 1px solid #677760; background: #303a34; }
+body.drill-creator-focus #library-form .library-editor-header { position: sticky; top: 0; z-index: 26; display: grid; grid-template-columns: auto minmax(240px,460px) minmax(0,1fr); align-items: center; gap: 8px 16px; margin: 0 -12px; padding: 10px 12px; border-radius: 0; border-bottom: 1px solid #677760; background: var(--desk-navy); }
 body.drill-creator-focus #library-form .library-editor-header > label { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 8px; grid-column: auto; grid-row: auto; color: #eceee4; }
 body.drill-creator-focus #library-form .library-editor-header > .library-actions { grid-column: auto; grid-row: auto; justify-self: end; justify-content: end; }
 body.drill-creator-focus #library-form .library-editor-header > .library-status { grid-column: 1/-1; grid-row: auto; }
@@ -209,7 +209,7 @@ body.drill-creator-focus #library-form #tactics-board-tools .tactics-workbar .ta
 body.drill-creator-focus #library-form #tactics-board-tools .tactics-workbar:has(.tactics-status:not(.tactics-error)) { margin: 0; }
 body.drill-creator-focus #library-form #tactics-board-tools .tactics-workbar .tactics-status:not(.tactics-error) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 body.drill-creator-focus #library-form #tactics-board-tools .tactics-workbar .tactics-error { color: #a03a2d; }
-body.drill-creator-focus #library-form .tactics-written .library-drill-details { grid-area: auto; min-height: 0; max-height: none; overflow: visible; align-self: start; margin: 0; padding: 0 14px 4px; border: 1px solid #bdb6a7; border-radius: 11px; background: #e7e2d8; scroll-margin-top: 88px; }
+body.drill-creator-focus #library-form .tactics-written .library-drill-details { grid-area: auto; min-height: 0; max-height: none; overflow: visible; align-self: start; margin: 0; padding: 0 14px 4px; border: 1px solid #bdb6a7; border-radius: 11px; background: var(--studio-card); scroll-margin-top: 88px; }
 body.drill-creator-focus #library-form .tactics-written .library-drill-details > summary { position: static; min-height: 44px; padding: 12px 0; background: transparent; }
 body.drill-creator-focus #library-form .tactics-written .library-details-body { padding: 0 0 10px; gap: 12px; }
 body.drill-creator-focus #library-form .tactics-written .library-editor-grid { grid-template-columns: minmax(0,2fr) minmax(80px,.6fr) minmax(0,1fr); gap: 12px; }

@@ -16,20 +16,22 @@
 
 :root {
   color-scheme: light;
-  --desk-navy: #27292d;
-  --desk-navy-soft: #3c4046;
-  --desk-gold: #d5d8dd;
-  --desk-blue: #d5d8dd;
-  --desk-ink: #292d33;
-  --desk-muted: #4d4a45;
-  --desk-line: #b6afa2;
-  --desk-canvas: #ccc6bc;
-  --desk-surface: #dbd5ca;
-  --desk-inset: #d2cabc;
-  --desk-field: #e3ddd3;
-  --desk-accent: #596779;
+  --desk-navy: #142332;
+  --desk-navy-soft: #233d50;
+  --desk-gold: #9cddcf;
+  --desk-blue: #dae8ef;
+  --desk-ink: #1e3040;
+  --desk-muted: #566878;
+  --desk-line: #dbe3e8;
+  --desk-canvas: #f3f6f8;
+  --desk-surface: #ffffff;
+  --desk-inset: #f6f8fa;
+  --desk-field: #ffffff;
+  --desk-accent: #146e65;
   --desk-green: #21664e;
   --desk-red: #923f35;
+  --desk-accent-soft: #e6f3ef;
+  --desk-control-line: #b9c8d0;
   --desk-header-height: 88px;
   --navy: var(--desk-navy);
   --ink: var(--desk-ink);
@@ -1936,9 +1938,9 @@ body[data-desk-text-size="large"] #app .desk-main :is(input,select,textarea,.not
   font-family: "Manrope", Arial, sans-serif;
   font-style: normal;
 }
-#app .page-heading h1 { font-size: clamp(29px, 3vw, 42px); font-weight: 750; line-height: 1.18; letter-spacing: -.045em; }
+#app .page-heading h1 { font-size: clamp(28px, 2.7vw, 36px); font-weight: 750; line-height: 1.18; letter-spacing: -.045em; }
 #login .signin-story h1 { font-size: clamp(40px, 4.5vw, 62px); font-weight: 750; line-height: 1.08; letter-spacing: -.045em; }
-#app button, #app .button, #login button, #planner-drawer button { border-radius: 999px; min-height: 44px; }
+#app button, #app .button, #login button, #planner-drawer button { border-radius: 10px; min-height: 44px; }
 #app .desk-nav #navigation button, #app .desk-nav #navigation .nav-settings { border-radius: 14px; }
 #app button.priority-action { padding-right: 12px; padding-left: 12px; border-radius: 14px; margin-bottom: 5px; }
 #app input, #app select, #app textarea, #planner-drawer input, #planner-drawer select, #planner-drawer textarea { border-radius: 12px; }
@@ -2085,7 +2087,7 @@ body.planner-drawer-open .global-error { z-index: 90; }
 }
 
 /* Dedicated session workspace: a quiet canvas with deliberate exits. */
-:root { --desk-canvas: #ccc6bc; }
+:root { --desk-canvas: #f3f6f8; }
 #app .card { box-shadow: 0 3px 14px #10263d05; }
 #app .page-heading h1 { letter-spacing: -.035em; }
 #app .desk-nav #navigation button { font-weight: 650; }
@@ -2238,88 +2240,98 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
   #app .audit-row::before { left:16px; top:22px; }
   #app .audit-row p { text-align:left; }
 }
-/* Quiet working surfaces; warning, attendance and tactics colours retain meaning. */
-body .card { box-shadow: none; }
-body .session-spotlight { background: #fff; border-color: var(--desk-line); color: var(--desk-ink); }
-body .session-spotlight::after { display: none; }
-body .session-spotlight h2 { color: var(--desk-ink); font-size: clamp(24px, 2.3vw, 32px); }
-body .session-spotlight .eyebrow, body .session-spotlight #next-details { color: var(--desk-muted); }
-body .session-spotlight .callout { background: #f3f4f5; border-color: var(--desk-accent); color: var(--desk-ink); }
-body .session-spotlight .button { background: var(--desk-navy-soft); border-color: var(--desk-navy-soft); color: #fff; }
-body .session-spotlight .button:hover:not(:disabled) { background: #50565f; border-color: #50565f; }
-body .session-spotlight .secondary { background: #fff; border-color: #858b94; color: var(--desk-ink); }
-body .session-spotlight .secondary:hover:not(:disabled) { background: #eceef0; border-color: var(--desk-accent); color: var(--desk-ink); }
-body .coaching-tools-disclosure > summary,
-body .coaching-agenda-row.is-current,
-body .field-saved-notice,
-body .attendance-day[aria-pressed="true"],
-body #app .planner-workspace-actions button[aria-expanded="true"],
-body #app .planner-workspace-actions #planner-open-notes {
-  background: #eceef0;
-  border-color: #858b94;
-  color: var(--desk-ink);
-}
-body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accent); }
-.desk-nav :focus-visible, .desk-header :focus-visible, .desk-skip:focus-visible { outline-color: #d5d8dd; }
-
-/* Warm, low-glare surfaces alongside the charcoal navigation. */
+/* Shared visual hierarchy: navy navigation, light canvas, white working surfaces. */
 @media screen {
+  .desk-header, .desk-nav { background:var(--desk-navy); border-color:transparent; }
+  .desk-layout { background:transparent; }
+  #app .desk-main {
+    width:calc(100% - 18px); margin:12px 18px 22px 0; border:1px solid var(--desk-line); border-radius:20px;
+    background:var(--desk-canvas); box-shadow:none;
+  }
   body #app .desk-main .card:not(.profile-card),
-  body #app :is(.desk-stat,.planner-session-browser,#player-note-folders),
+  body #app :is(.planner-session-browser,#player-note-folders),
   body .planner-drawer-header, body .planner-drawer-content .coaching-tools-disclosure {
-    background:var(--desk-surface); border-color:var(--desk-line);
+    background:var(--desk-surface); border-color:var(--desk-line); border-radius:16px;
+    box-shadow:0 2px 6px #14233204;
   }
   body #app :is(.roster-row,.note-card,.task-row,.account-row,.audit-row,.coaching-agenda-row,.development-observation,.development-attendance li),
   body #app #planner-days button:not([aria-pressed="true"]),
   body #app #player-note-folders button.note-folder-card,
   body #planner-drawer :is(.note-card,.library-card,.library-suggestion,.practice-activity) {
-    background:var(--desk-inset); border-color:var(--desk-line);
+    background:var(--desk-inset); border-color:var(--desk-line); border-radius:12px; box-shadow:none;
   }
-  body #app #player-note-folders button.note-folder-card[aria-pressed="true"] { background:#c6bba9; border-color:#86745c; }
+  body #app #planner-days button:hover:not(:disabled):not([aria-pressed="true"]),
+  body #app #player-note-folders button.note-folder-card:hover:not(:disabled) { background:var(--desk-accent-soft); border-color:var(--desk-accent); }
+  body #app #player-note-folders button.note-folder-card[aria-pressed="true"],
+  body .attendance-day[aria-pressed="true"], body .coaching-agenda-row.is-current,
+  body #app .planner-workspace-actions button[aria-expanded="true"] {
+    background:var(--desk-accent-soft); border-color:var(--desk-accent); color:var(--desk-accent);
+  }
   body #app .desk-main :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea),
   body #planner-drawer :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
-    background:var(--desk-field); border-color:#aaa193; color:var(--desk-ink);
+    background-color:var(--desk-field); border-color:var(--desk-control-line); color:var(--desk-ink);
   }
   body #app .desk-main :is(.privacy-message,.callout,.empty-state,.note-folder-selected,.coaching-tools-disclosure>summary,.field-saved-notice),
-  body #app .planner-plan-card .privacy-message { background:var(--desk-inset); border-color:var(--desk-line); color:#55534d; }
+  body #app .planner-plan-card .privacy-message { background:var(--desk-inset); border-color:var(--desk-line); color:var(--desk-muted); }
   body #app .desk-main button.secondary,
-  body #app .planner-workspace-actions button { background:var(--desk-field); border-color:#aaa193; color:var(--desk-ink); }
-  body #app .desk-main button.secondary:hover:not(:disabled) { background:#cbc2b3; }
-  body #app .desk-main #plan-form textarea:focus { background:var(--desk-field); border-color:#86745c; }
+  body #app .planner-workspace-actions button { background:var(--desk-field); border-color:var(--desk-control-line); color:var(--desk-ink); }
+  body #app .desk-main button.secondary:hover:not(:disabled):not([aria-pressed="true"]):not([aria-current]) { background:var(--desk-accent-soft); border-color:var(--desk-accent); }
+  body #app .desk-main #plan-form textarea:focus { background:var(--desk-field); border-color:var(--desk-accent); }
   body #app .desk-main :is(.note-meta,.note-folder-kind,.note-folder-roster,.roster-row p,.task-row p,.account-row p,.audit-row p),
   body #app #planner-days button:not([aria-pressed="true"]) span { color:var(--desk-muted); }
-}
-
-/* Rounded working canvas with a soft transition into the charcoal shell. */
-@media screen {
-  .desk-header { background:linear-gradient(110deg,#27292d,#343536); border-bottom-color:transparent; }
-  .desk-layout { background:transparent; }
-  .desk-nav { background:linear-gradient(180deg,#27292d,#323335); border-right-color:transparent; }
-  #app .desk-main {
-    width:calc(100% - 18px); margin:12px 18px 22px 0; border:1px solid #e0d7c744; border-radius:30px;
-    background:radial-gradient(ellipse at 0 0,#bbb7af66,transparent 55%),linear-gradient(140deg,#cac4ba,#d5cdbf 55%,#c3bfb7);
-    box-shadow:0 14px 40px #16181b26,inset 0 1px 0 #fff3;
+  body #app .roster-row .attendance-save-error { color:var(--desk-red); }
+  body #app :is(#library-new,#plan-save,#planner-add-drill), body .session-spotlight .button {
+    background:var(--desk-accent); border-color:var(--desk-accent); color:#fff;
   }
-  body #app .desk-main .card:not(.profile-card),
-  body #app :is(.planner-session-browser,#player-note-folders) {
-    border-radius:23px; border-color:#b6afa28c;
-    background:linear-gradient(135deg,#e1dacfed,#d7cfc3e8 65%,#d0c9bee8);
-    box-shadow:0 6px 22px #34312b08,inset 0 1px 0 #fff3;
+  body #app :is(#library-new,#plan-save,#planner-add-drill):hover:not(:disabled), body .session-spotlight .button:hover:not(:disabled) {
+    background:#105a53; border-color:#105a53;
   }
-  body #app :is(.roster-row,.note-card,.task-row,.account-row,.audit-row),
-  body #app .coaching-agenda-row:not(.is-current) {
-    background:linear-gradient(125deg,#d7cfc2d9,#cdc6bad9); border-color:#b0a89b78; border-radius:18px;
-  }
-  body #app #planner-days button:not([aria-pressed="true"]) { background:linear-gradient(125deg,#d6cec2,#cac3b7); }
-  body.planner-focus-mode { background:#303235; }
+  body .session-spotlight { background:var(--desk-surface); border-color:var(--desk-line); color:var(--desk-ink); }
+  body .session-spotlight::after { display:none; }
+  body .session-spotlight h2 { color:var(--desk-ink); font-size:clamp(24px,2.3vw,32px); }
+  body .session-spotlight .eyebrow, body .session-spotlight #next-details { color:var(--desk-muted); }
+  body .session-spotlight .callout { background:var(--desk-inset); border-color:var(--desk-accent); color:var(--desk-ink); }
+  body .session-spotlight .secondary { background:#fff; border-color:var(--desk-control-line); color:var(--desk-ink); }
+  body .session-spotlight .secondary:hover:not(:disabled) { background:var(--desk-accent-soft); border-color:var(--desk-accent); color:var(--desk-ink); }
+  #app .desk-nav #navigation button { display:flex; align-items:center; gap:10px; border-radius:10px; }
+  #app .desk-nav #navigation button.nav-active { background:#244453; border-color:#3b5c68; box-shadow:inset 3px 0 0 var(--desk-gold); color:#fff; }
+  .desk-nav-icon { width:19px; height:19px; flex-shrink:0; stroke-width:1.7; }
+  .desk-nav .nav-foot #role { color:var(--desk-gold); }
+  .desk-nav :focus-visible, .desk-header :focus-visible, .desk-skip:focus-visible { outline-color:var(--desk-gold); }
+  #app .page-heading { margin-bottom:24px; }
+  #app .planner-chooser-intro { margin-bottom:16px; }
+  #app .priorities-card:has(#home-priorities .empty-state) { padding-block:18px; }
+  .priorities-card:has(#home-priorities .empty-state) > .eyebrow { display:none; }
+  .priorities-card:has(#home-priorities .empty-state) h2 { margin-bottom:10px; font-size:17px; }
+  #app #home-priorities > .empty-state { padding:0; border:0; background:transparent; }
+  #app .desk-stat { background:var(--desk-surface); border-color:var(--desk-line); border-radius:12px; box-shadow:none; }
+  #attendance-stats { grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin-bottom:18px; }
+  #attendance-stats .desk-stat { padding:12px 14px; }
+  #attendance-stats .desk-stat span { font-size:12px; margin-bottom:5px; }
+  #attendance-stats .desk-stat strong { font-size:26px; }
+  #marking-help { font-size:13px; line-height:1.55; }
+  body.planner-focus-mode { background:var(--desk-canvas); }
   body.planner-focus-mode .desk-layout { padding:12px; background:transparent; }
-  body.planner-focus-mode #app .desk-main { width:100%; min-height:calc(100dvh - 24px); margin:0; border-radius:28px; }
+  body.planner-focus-mode #app .desk-main { width:100%; min-height:calc(100dvh - 24px); margin:0; border-radius:16px; }
 }
 @media screen and (max-width:900px) {
-  #app .desk-main { width:calc(100% - 16px); margin:8px 8px 16px; border-radius:24px; padding-right:18px; padding-left:18px; }
+  #app .desk-main { width:calc(100% - 16px); margin:8px 8px 16px; border-radius:16px; padding-right:18px; padding-left:18px; }
   .desk-nav { border-bottom-color:transparent; box-shadow:none; }
+  .desk-nav-icon { display:none; }
   body.planner-focus-mode .desk-layout { padding:8px; }
-  body.planner-focus-mode #app .desk-main { min-height:calc(100dvh - 16px); border-radius:22px; }
+  body.planner-focus-mode #app .desk-main { min-height:calc(100dvh - 16px); border-radius:14px; }
+}
+@media screen and (max-width:600px) {
+  #attendance-stats { grid-template-columns:repeat(6,minmax(0,1fr)); gap:6px; margin-bottom:14px; }
+  #attendance-stats .desk-stat { padding:10px; grid-column:span 2; }
+  #attendance-stats .desk-stat:nth-child(n+4) { grid-column:span 3; }
+  #attendance-stats .desk-stat span { font-size:11px; line-height:1.4; }
+  #attendance-stats .desk-stat strong { font-size:23px; }
+  #app .planner-focus-heading { padding-bottom:14px; }
+  #app .planner-focus-exits { margin-bottom:14px; }
+  #panel-attendance .card { padding:16px; }
+  #panel-attendance .roster-tools { margin-top:14px; gap:8px; }
+  #panel-attendance .roster-tools label { flex:1 1 125px; margin-block:4px; font-size:13px; }
 }
 
 /* Session dates stay in a quiet, keyboard-accessible sidebar. */
@@ -2346,19 +2358,19 @@ body .coaching-tools-disclosure[open] > summary { border-color: var(--desk-accen
 }
 
 /* Academy-style selectors retain native keyboard and mobile pickers. */
-body select { appearance:none; border:1px solid #aaa697; border-radius:12px; padding:10px 36px 10px 12px; min-height:44px; color:#283a31; background-color:#eeeade; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23445549' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; box-shadow:0 1px 2px #24342a0a; }
-body select:focus-visible { outline:3px solid #8eaa80; outline-offset:2px; }
+body select { appearance:none; border:1px solid var(--desk-control-line); border-radius:12px; padding:10px 36px 10px 12px; min-height:44px; color:var(--desk-ink); background-color:var(--desk-field); background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23445549' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; box-shadow:0 1px 2px #24342a0a; }
+body select:focus-visible { outline:3px solid var(--desk-accent); outline-offset:2px; }
 body select:disabled { opacity:.6; }
 
 /* Shared academy dropdowns, including the session and library studios. */
 :is(body, #tactics-board-tools.tactics-studio) select:not([multiple]):not([size]) {
-  border-radius:14px; border-color:#b4ae9f; background-color:#f3efe6;
-  color:#293b31; min-height:44px; padding:10px 36px 10px 12px;
+  border-radius:10px; border-color:var(--desk-control-line); background-color:var(--desk-field);
+  color:var(--desk-ink); min-height:44px; padding:10px 36px 10px 12px;
   font-size:14px; line-height:1.4; cursor:pointer;
   box-shadow:inset 0 1px 0 #ffffff80, 0 1px 2px #24342a0a;
   transition:border-color 140ms ease, box-shadow 140ms ease;
 }
-:is(body, #tactics-board-tools.tactics-studio) select:not(:disabled):hover { border-color:#7b8876; }
+:is(body, #tactics-board-tools.tactics-studio) select:not(:disabled):hover { border-color:var(--desk-accent); }
 :is(body, #tactics-board-tools.tactics-studio) select:disabled { cursor:default; }
 @supports (appearance:base-select) {
   :is(body, #tactics-board-tools.tactics-studio) select:not([multiple]):not([size]),
@@ -2368,11 +2380,11 @@ body select:disabled { opacity:.6; }
   }
   body select::picker-icon {
     content:""; width:7px; height:7px; flex-shrink:0; margin:0 2px 3px auto;
-    color:#52604e; border-right:2px solid; border-bottom:2px solid; transform:rotate(45deg);
+    color:var(--desk-muted); border-right:2px solid; border-bottom:2px solid; transform:rotate(45deg);
   }
   body select:open::picker-icon { rotate:180deg; }
   body select::picker(select) {
-    color:#293b31; background:#f7f3eb; border:1px solid #b4ae9f; border-radius:16px;
+    color:var(--desk-ink); background:var(--desk-surface); border:1px solid var(--desk-control-line); border-radius:12px;
     padding:6px; margin-block:6px; box-shadow:0 12px 32px #19251d26, 0 2px 6px #19251d12;
     font:inherit; line-height:1.4; max-height:min(360px,60dvh);
     max-width:calc(100vw - 16px); overflow-y:auto; overscroll-behavior:contain;
@@ -2380,12 +2392,12 @@ body select:disabled { opacity:.6; }
   }
   body select:not([multiple]):not([size]) option {
     display:flex; align-items:center; gap:10px; min-height:44px; padding:10px 12px;
-    border:0; border-radius:10px; color:#293b31; background:transparent;
+    border:0; border-radius:10px; color:var(--desk-ink); background:transparent;
     white-space:normal; overflow-wrap:anywhere; cursor:pointer;
   }
-  body select:not([multiple]):not([size]) option:checked { background:#e1e7d8; font-weight:650; }
-  body select:not([multiple]):not([size]) option:not(:disabled):is(:hover,:focus-visible) { background:#303a34; color:#faf7ef; outline:none; }
-  body select:not([multiple]):not([size]) option:disabled { color:#7a7d72; cursor:default; }
+  body select:not([multiple]):not([size]) option:checked { background:var(--desk-accent-soft); font-weight:650; }
+  body select:not([multiple]):not([size]) option:not(:disabled):is(:hover,:focus-visible) { background:var(--desk-accent); color:#fff; outline:none; }
+  body select:not([multiple]):not([size]) option:disabled { color:var(--desk-muted); cursor:default; }
   body select:not([multiple]):not([size]) option::checkmark { order:1; margin-left:auto; color:currentColor; }
 }
 @media (max-width:700px), (pointer:coarse) {

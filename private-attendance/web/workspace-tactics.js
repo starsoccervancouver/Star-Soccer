@@ -173,7 +173,16 @@
   arrangeTools.append(button('Align across','tactics-align-row',()=>alignPlayers('y')),button('Align down','tactics-align-column',()=>alignPlayers('x'))); arrange.append(arrangeTools);
 
   const editModes = el('div', '', 'tactics-edit-modes'); editModes.setAttribute('role', 'group'); editModes.setAttribute('aria-label', 'Editing mode');
-  for (const [mode, text] of [['place', 'Layout'], ['record', 'Movement']]) { const control = button(text, 'tactics-mode-' + mode, () => { editMode = mode; render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : frameIndex ? 'Drag a player or ball to record its route into this phase.' : 'Add a next phase to record movement.'); }); control.title = mode === 'place' ? 'Reposition pieces across every phase' : 'Record a route into this phase'; editModes.append(control); }
+  for (const [mode, text] of [['place', 'Layout'], ['record', 'Movement']]) { const control = button(text, 'tactics-mode-' + mode, () => {
+    if (!editable()) return;
+    editMode = mode;
+    if (mode === 'record') {
+      pathToggle.checked = true;
+      if (!frameIndex && record.content.frames.length === 1) return mutate(addMovementPhase, 'Starting positions kept. Drag a player or ball to record its movement.');
+      if (!frameIndex) frameIndex = 1;
+    }
+    render(); tell(mode === 'place' ? 'Move the layout: selected pieces shift in every phase, preserving their routes.' : 'Drag a player or ball to record its route into this phase.');
+  }); control.title = mode === 'place' ? 'Reposition pieces across every phase' : 'Record a route into this phase'; editModes.append(control); }
   const arrowTool = button('Arrow', 'tactics-draw-arrow', () => { if (!editable()) return; editMode = editMode === 'arrow' ? 'place' : 'arrow'; selectPiece(''); render(); tell(editMode === 'arrow' ? 'Draw any route on the field; it follows your curve and ends with an arrowhead. For a straight path, focus the field and press Enter. Drawings belong to this phase.' : 'Select and move pieces.'); }); arrowTool.setAttribute('aria-label', 'Draw curved arrow'); arrowTool.title = 'Draw an arrow directly on the field'; editModes.append(arrowTool);
   const shapes = el('details', '', 'tactics-shapes'); shapes.append(el('summary','Shape'));
   const shapeChoices = el('div', '', 'tactics-shape-choices');
@@ -257,7 +266,13 @@
   const durationField = field('Seconds to next step', duration);
   frameSettings.append(field('Step name', frameTitle), durationField);
   const phaseActions = el('div', '', 'tactics-toolbar');
-  phaseActions.append(button('+ Next phase', 'tactics-add-frame', () => mutate(() => { if (record.content.frames.length >= 12) return tell('Use up to 12 phases in one setup.', true); const next = clone(currentFrame()); next.id = uid('phase_'); next.title = 'Phase ' + (record.content.frames.length + 1); for (const p of next.positions) delete p.trail; record.content.frames.splice(frameIndex + 1, 0, next); frameIndex++; editMode = 'record'; }, 'Phase copied. Drag players and balls along the route you want to record.')), button('Remove phase', 'tactics-remove-frame', () => mutate(() => { if (record.content.frames.length <= 1) return; record.content.frames.splice(frameIndex, 1); frameIndex = Math.min(frameIndex, record.content.frames.length - 1); }, 'Phase removed.')));
+  function addMovementPhase() {
+    if (record.content.frames.length >= 12) return tell('Use up to 12 phases in one setup.', true);
+    const next = clone(currentFrame()); next.id = uid('phase_'); next.title = 'Phase ' + (record.content.frames.length + 1);
+    for (const p of next.positions) delete p.trail;
+    record.content.frames.splice(frameIndex + 1, 0, next); frameIndex++; editMode = 'record'; pathToggle.checked = true;
+  }
+  phaseActions.append(button('+ Next phase', 'tactics-add-frame', () => mutate(addMovementPhase, 'Phase copied. Drag players and balls along the route you want to record.')), button('Remove phase', 'tactics-remove-frame', () => mutate(() => { if (record.content.frames.length <= 1) return; record.content.frames.splice(frameIndex, 1); frameIndex = Math.min(frameIndex, record.content.frames.length - 1); }, 'Phase removed.')));
   const playback = el('div', '', 'tactics-playback');
   playback.append(button('Play movement', 'tactics-play', togglePlayback, true), button('Back to start', 'tactics-reset', () => { if (!active() || pending) return; stopPlayback(); frameIndex = 0; render(); }), el('span', '', 'small'));
   playback.lastChild.id = 'tactics-playback-status'; playback.lastChild.setAttribute('aria-live', 'off');

@@ -14,9 +14,9 @@ require('./coach-fixture-fonts.cjs')(assets);
 (async () => {
   const browser = await chromium.launch(); let checks = 0;
   try {
-    async function fixture({ role = 'owner', stored, hash = '', deniedStorage = false } = {}) {
+    async function fixture({ role = 'owner', stored, hash = '', deniedStorage = false, displayEmail } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
-      const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, sessionVersion: 1 } }, requests = [], errors = [];
+      const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, sessionVersion: 1, ...(displayEmail ? { displayEmail } : {}) } }, requests = [], errors = [];
       await context.addInitScript(({ now, key, stored, deniedStorage }) => {
         const Base = Date; window.Date = class extends Base { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return Base.parse(now); } };
         if (stored !== undefined && !sessionStorage.getItem('fixture-seeded')) { localStorage.setItem(key, stored); sessionStorage.setItem('fixture-seeded', 'true'); }
@@ -86,6 +86,15 @@ require('./coach-fixture-fonts.cjs')(assets);
       }
       assert.deepEqual(f.errors, []); checks++; await f.context.close();
     }
+
+    const renamed = await fixture({ displayEmail: 'Renamed@example.test' });
+    await clickSettings(renamed);
+    assert.equal(await renamed.page.locator('#profile-email').innerText(), 'Renamed@example.test');
+    assert.match(await renamed.page.locator('#identity').innerText(), /Renamed@example\.test/);
+    await section(renamed, 'team').click();
+    await renamed.page.getByText('Renamed@example.test · Owner · Active', { exact: true }).waitFor();
+    assert.equal(renamed.state.profile.email, 'fictional-owner@example.test');
+    assert.deepEqual(renamed.errors, []); checks++; await renamed.context.close();
 
     const p = await fixture();
     assert.equal(await p.page.locator('#home-notes,#go-notes').count(), 0, 'Overview no longer includes the recent-notes widget');

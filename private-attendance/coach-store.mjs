@@ -43,6 +43,8 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
  CREATE TABLE IF NOT EXISTS coach_attendance_commands(id TEXT PRIMARY KEY,actor_email TEXT NOT NULL,session_id TEXT NOT NULL,attendance_id TEXT NOT NULL,payload TEXT NOT NULL,state TEXT NOT NULL,created_at TEXT NOT NULL);`);
  // Additive and repeatable for existing local SQLite and Durable Object databases.
  if(!store.all('PRAGMA table_info(coach_notes)').some(column=>column.name==='goal_json'))store.run('ALTER TABLE coach_notes ADD COLUMN goal_json TEXT');
+ // Presentation only: canonical email continues to own every record and permission.
+ if(!store.all('PRAGMA table_info(coach_users)').some(column=>column.name==='display_email'))store.run('ALTER TABLE coach_users ADD COLUMN display_email TEXT');
  const stamp=()=>clock().toISOString(),audit=(actor,action,target,detail)=>store.run('INSERT INTO coach_audit VALUES(?,?,?,?,?,?)',token('audit_'),actor.email,action,target,stamp(),JSON.stringify(detail));
  const existingOwners=store.all("SELECT email FROM coach_users WHERE role='owner'");
  if(existingOwners.length>1||existingOwners.some(owner=>owner.email!==ownerEmail))throw Error('COACH_OWNER_CONFIGURATION_MISMATCH');
@@ -50,13 +52,13 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
  store.run('INSERT OR IGNORE INTO coach_users(email,name,role,created_at) VALUES(?,?,?,?)',ownerEmail,ownerName,'owner',stamp());
  const api={
   ownerEmail,
-  actor(address){const r=store.get('SELECT * FROM coach_users WHERE email=?',email(address));if(!r||!r.active)deny('ACCOUNT_NOT_ACTIVE');return {email:r.email,name:r.name,role:r.role,sessionVersion:r.session_version};},
+  actor(address){const r=store.get('SELECT * FROM coach_users WHERE email=?',email(address));if(!r||!r.active)deny('ACCOUNT_NOT_ACTIVE');return {email:r.email,name:r.name,role:r.role,sessionVersion:r.session_version,...(r.display_email?{displayEmail:r.display_email}:{})};},
   full(actor){return ['owner','admin'].includes(api.actor(actor.email).role);},
   owner(actor){if(api.actor(actor.email).role!=='owner')deny('OWNER_ONLY');},
   canSession(actor,sessionId){rid(sessionId);return api.full(actor)||!!store.get('SELECT email FROM coach_assignments WHERE email=? AND session_id=?',actor.email,sessionId);},
   requireSession(actor,sessionId){if(!api.canSession(actor,sessionId))deny();},
   scope(actor,data){const fresh=api.actor(actor.email),full=api.full(fresh);return {...data,sessions:data.sessions.filter(s=>full||api.canSession(fresh,s.id)).map(s=>({...s,...(!full?{issues:[],players:s.players.map(p=>({attendanceId:p.attendanceId,age:p.age,playerId:p.playerId,name:p.name,kind:p.kind,status:p.status,response:p.response,actualAttendance:p.actualAttendance,updatedAt:p.updatedAt,issues:[]}))}:{})})),profile:fresh};},
-  users(actor){api.owner(actor);return store.all('SELECT email,name,role,active,session_version FROM coach_users ORDER BY role,email').map(u=>({...u,assignments:store.all('SELECT session_id FROM coach_assignments WHERE email=?',u.email).map(s=>s.session_id)}));},
+  users(actor){api.owner(actor);return store.all('SELECT email,name,role,active,session_version,display_email FROM coach_users ORDER BY role,email').map(({display_email,...u})=>({...u,...(display_email?{displayEmail:display_email}:{}),assignments:store.all('SELECT session_id FROM coach_assignments WHERE email=?',u.email).map(s=>s.session_id)}));},
   coachingTeam(actor){if(!api.full(actor))deny();return store.all('SELECT email,name,role,active FROM coach_users ORDER BY role,email').map(u=>({email:u.email,name:u.name,role:u.role,active:u.active,assignments:store.all('SELECT session_id FROM coach_assignments WHERE email=? ORDER BY session_id',u.email).map(s=>s.session_id)}));},
   coachingNotes(actor,address){if(!api.full(actor))deny();address=email(address);if(!store.get('SELECT email FROM coach_users WHERE email=?',address))deny('COACH_NOT_FOUND',404);return store.all('SELECT * FROM coach_notes WHERE archived=0 AND author_email=? ORDER BY updated_at DESC,id LIMIT 200',address).map(noteRow);},
   saveUser(actor,{email:address,name,role,active=true,expectedVersion=null}){api.owner(actor);address=email(address);if(!['admin','coach'].includes(role)||address===ownerEmail||typeof active!=='boolean')deny('INVALID_ACCOUNT_CHANGE',400);name=txt(name,100);return store.transaction(()=>{const old=store.get('SELECT * FROM coach_users WHERE email=?',address);if(old&&expectedVersion!==old.session_version)deny('ACCOUNT_CHANGED',409);if(!old&&expectedVersion!==null)deny('ACCOUNT_CHANGED',409);if(old)store.run('UPDATE coach_users SET name=?,role=?,active=?,session_version=session_version+1 WHERE email=?',name,role,+active,address);else store.run('INSERT INTO coach_users(email,name,role,active,created_at) VALUES(?,?,?,?,?)',address,name,role,+active,stamp());audit(actor,old?'account-updated':'account-created',address,{role,active});return api.users(actor);});},

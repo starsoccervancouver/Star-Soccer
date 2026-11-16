@@ -21,9 +21,18 @@ test('non-Google mailbox claims require a verified Workspace hosted-domain claim
 test('renamed Google account retains its established coach identity and record ownership',async t=>{
  const x=await setup(t),first=await x.prepare();
  await x.google.finish({code:first.code,state:first.state,browser:x.browser});
- const renamed=await x.prepare({email:'romeo@example.test',hd:'example.test'});
+ x.store.run('INSERT INTO coach_notes(id,author_email,session_id,category,body,created_at,updated_at,version) VALUES(?,?,?,?,?,?,?,?)','rename-note',x.owner.email,'fixture-session','General','Keep this note','2026-01-01','2026-01-01',1);
+ x.store.run('INSERT INTO coach_plans VALUES(?,?,?,?,?)','fixture-session',JSON.stringify({objective:'Keep this plan'}),x.owner.email,'2026-01-01',1);
+ const notesBefore=x.store.all('SELECT * FROM coach_notes'),plansBefore=x.store.all('SELECT * FROM coach_plans');
+ const renamed=await x.prepare({email:'Romeo@example.test',hd:'example.test'});
  const result=await x.google.finish({code:renamed.code,state:renamed.state,browser:x.browser});
  assert.equal(result.profile.email,x.owner.email);assert.equal(result.profile.role,'owner');
+ assert.equal(result.profile.displayEmail,'Romeo@example.test');
+ assert.equal(x.coaches.actor(x.owner.email).displayEmail,'Romeo@example.test');
+ assert.equal(x.store.get('SELECT display_email FROM coach_users WHERE email=?',x.owner.email).display_email,'Romeo@example.test');
+ assert.equal(x.sessions.at(-1),x.owner.email);
+ assert.deepEqual(x.store.all('SELECT * FROM coach_notes'),notesBefore);
+ assert.deepEqual(x.store.all('SELECT * FROM coach_plans'),plansBefore);
  assert.equal(x.store.get('SELECT COUNT(*) AS n FROM coach_users').n,1);
  assert.equal(x.store.get('SELECT COUNT(*) AS n FROM staff_google_accounts').n,1);
  assert.equal(x.store.get('SELECT email FROM staff_google_accounts').email,x.owner.email);
@@ -38,9 +47,11 @@ test('renamed coaches retain their role and disabled accounts cannot regain acce
  const renamed=await x.prepare({email:'renamed@example.test',hd:'example.test',sub:'coach-sub',role:'owner'});
  const result=await x.google.finish({code:renamed.code,state:renamed.state,browser:x.browser});
  assert.equal(result.profile.role,'coach');assert.equal(result.profile.email,'coach@gmail.com');
+ assert.equal(result.profile.displayEmail,'renamed@example.test');
  x.coaches.saveUser(x.owner,{email:'coach@gmail.com',name:'Fixture coach',role:'coach',active:false,expectedVersion:1});
- const disabled=await x.prepare({email:'renamed@example.test',hd:'example.test',sub:'coach-sub'});
+ const disabled=await x.prepare({email:'disabled-rename@example.test',hd:'example.test',sub:'coach-sub'});
  await assert.rejects(()=>x.google.finish({code:disabled.code,state:disabled.state,browser:x.browser}),/ACCOUNT_NOT_ACTIVE/);
+ assert.equal(x.store.get('SELECT display_email FROM coach_users WHERE email=?','coach@gmail.com').display_email,'renamed@example.test');
 });
 
 test('a Google email rename never merges existing approved accounts',async t=>{
@@ -49,4 +60,18 @@ test('a Google email rename never merges existing approved accounts',async t=>{
  const collision=await x.prepare({email:'other@example.test',hd:'example.test'});
  await assert.rejects(()=>x.google.finish({code:collision.code,state:collision.state,browser:x.browser}),/GOOGLE_ACCOUNT_CHANGED/);
  assert.equal(x.sessions.length,1);assert.equal(x.coaches.actor('other@example.test').role,'coach');
+ assert.equal(x.coaches.actor(x.owner.email).displayEmail,first.claims.email);
+ assert.equal(x.store.get('SELECT display_email FROM coach_users WHERE email=?',x.owner.email).display_email,first.claims.email);
+ assert.equal(x.store.get('SELECT display_email FROM coach_users WHERE email=?','other@example.test').display_email,null);
+});
+
+test('unverified renamed Google email cannot overwrite the last verified display email',async t=>{
+ const x=await setup(t),first=await x.prepare();
+ await x.google.finish({code:first.code,state:first.state,browser:x.browser});
+ const unverified=await x.prepare({email:'unverified@example.test',hd:'example.test',email_verified:false});
+ await assert.rejects(()=>x.google.finish({code:unverified.code,state:unverified.state,browser:x.browser}),/GOOGLE_SIGN_IN_FAILED/);
+ assert.equal(x.sessions.length,1);
+ assert.equal(x.coaches.actor(x.owner.email).email,x.owner.email);
+ assert.equal(x.coaches.actor(x.owner.email).displayEmail,first.claims.email);
+ assert.equal(x.store.get('SELECT display_email FROM coach_users WHERE email=?',x.owner.email).display_email,first.claims.email);
 });

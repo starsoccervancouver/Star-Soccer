@@ -57,6 +57,8 @@ export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,
     if(subjectOwner&&subjectOwner.email!==address&&store.get('SELECT email FROM coach_users WHERE email=?',address))deny('GOOGLE_ACCOUNT_CHANGED',403);
     const coachAddress=subjectOwner?.email||address,actor=coaches.actor(coachAddress);
     if(!subjectOwner)store.run('INSERT INTO staff_google_accounts VALUES(?,?,?)',coachAddress,payload.sub,new Date(clock()).toISOString());
+    // Only a successful, verified sign-in can refresh the visible address.
+    store.run('UPDATE coach_users SET display_email=? WHERE email=?',payload.email,coachAddress);
     coaches.recordAudit(actor,'google-sign-in',coachAddress,{});
     return auth.createVerifiedSession(coachAddress);
    });

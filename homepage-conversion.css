@@ -348,3 +348,53 @@ body.home-landing .home-coach-booking .button{width:100%;min-width:0;min-height:
 body.home-landing .home-coach-book-link{width:100%;min-height:44px;margin:0;justify-content:center;text-align:center;font-size:.9rem;line-height:1.5;white-space:normal}
 @media(max-width:980px){body.home-landing .home-coach-card{grid-template-columns:1fr;gap:16px}}
 @media(max-width:540px){body.home-landing .home-coach-card{padding:20px 16px}body.home-landing .home-coach-booking .flow-actions{grid-template-columns:1fr}}
+
+/* Keep the photographic, navy identity with a quieter, more readable hierarchy. */
+body.home-landing{background:#081523;color:#e6eef5}
+body.home-landing .home-story-main{gap:0;background:#081523}
+body.home-landing .immersive-hero h1{font-family:Manrope,system-ui,sans-serif;font-style:normal;font-weight:800;font-size:clamp(2.5rem,3.4vw,3.7rem);line-height:1.12;letter-spacing:-.045em;text-shadow:0 2px 16px #06121e66}
+body.home-landing .immersive-hero h1 span{display:inline-block;font-size:.78em;line-height:1.2;margin-top:6px;color:#eac89f}
+body.home-landing .immersive-hero-lead{font-size:1rem;line-height:1.7;text-shadow:none}
+body.home-landing .hero-action-panel{gap:12px}
+body.home-landing a.hero-action{min-height:0;padding:17px 20px;border-radius:12px;box-shadow:0 4px 16px #020b1433;-webkit-backdrop-filter:none;backdrop-filter:none}
+body.home-landing .hero-action-title{font-size:1.15rem;line-height:1.4;font-weight:800}
+body.home-landing .hero-action-eyebrow{font-size:.68rem;line-height:1.5;letter-spacing:.08em}
+body.home-landing .hero-action-detail{font-size:.85rem;line-height:1.5}
+body.home-landing a.hero-action:hover,body.home-landing a.hero-action:focus-visible{transform:none;box-shadow:0 4px 16px #020b1433;border-color:#eac89f}
+body.home-landing .home-proof-strip{background:#0b1c2c;border-color:#314b61}
+body.home-landing .home-local-guide{background:#081523}
+body.home-landing .home-local-guide aside{background:#10253a;border-color:#314b61;box-shadow:none}
+body.home-landing .home-latest-band{background:#0b1c2c;padding:40px 0}
+body.home-landing .home-latest-band-inner{width:min(1200px,calc(100% - 48px));padding:0;background:none;border:0;box-shadow:none}
+body.home-landing .home-trust-grid{gap:24px}
+body.home-landing .home-coach-card,body.home-landing .home-cta-card{background:#10253a;border-color:#314b61;box-shadow:none}
+body.home-landing .home-news-copy h2,body.home-landing .home-coach-card h3,body.home-landing .home-cta-card h3{font-family:Manrope,system-ui,sans-serif;font-weight:800;line-height:1.3;letter-spacing:-.03em;text-transform:none;color:#e6eef5;white-space:normal}
+body.home-landing .home-news-copy h2{font-size:clamp(1.65rem,2.6vw,2.2rem)}
+body.home-landing .home-coach-card-title h3{font-size:1.4rem}
+body.home-landing .home-cta-card h3{font-size:1.4rem;margin:8px 0 12px}
+body.home-landing .home-news-copy p,body.home-landing .home-coach-card li,body.home-landing .home-cta-card>p{color:#b4c5d4;line-height:1.7}
+body.home-landing .home-news-box-tag{font-size:.66rem;line-height:1.6;letter-spacing:.09em;color:#9bc9ed}
+body.home-landing .home-cta-stack{gap:16px;top:100px}
+body.home-landing .home-cta-card .home-camps-cta-button{margin-top:16px}
+body.home-landing :is(.home-camps-cta-button,.home-coach-book-link){min-height:48px;border-radius:10px;box-shadow:none}
+body.home-landing .home-coach-booking .button{min-height:48px}
+body.home-landing .home-story-main>section.home-parent-faq{width:min(1120px,calc(100% - 48px));margin:40px auto;padding:32px;background:#10253a;border-color:#314b61;box-shadow:none}
+body.home-landing .home-parent-faq details{border-color:#314b61}
+body.home-landing .home-parent-faq summary{min-height:56px;color:#e6eef5}
+body.home-landing .home-parent-faq details p{color:#b4c5d4}
+body.home-landing .home-closing-cta{background:#10253a;padding:56px 24px}
+body.home-landing .home-closing-cta h2{font-family:Manrope,system-ui,sans-serif;font-size:clamp(1.9rem,3.5vw,2.8rem);line-height:1.2;letter-spacing:-.035em}
+@media(max-width:900px){body.home-landing .home-trust-grid{grid-template-columns:1fr}body.home-landing .home-cta-stack{position:static}}
+@media(max-width:700px){
+ body.home-landing .immersive-hero h1{font-size:clamp(2rem,8vw,2.8rem);max-width:19ch}
+ body.home-landing .immersive-hero-lead{font-size:.92rem}
+ body.home-landing .hero-action-title{font-size:1.05rem}
+ body.home-landing .home-proof-inner{grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+ body.home-landing .home-proof-item{padding:0 8px;gap:6px}
+ body.home-landing .home-proof-item+.home-proof-item{border-top:0;border-left:1px solid #314b61}
+ body.home-landing .home-proof-item strong{font-size:.95rem;line-height:1.4}
+ body.home-landing .home-proof-item span{font-size:.7rem}
+ body.home-landing .home-latest-band-inner{width:calc(100% - 32px)}
+ body.home-landing .home-story-main>section.home-parent-faq{width:calc(100% - 32px);margin:32px auto;padding:24px 20px}
+ body.home-landing .home-closing-cta{padding:40px 20px}
+}

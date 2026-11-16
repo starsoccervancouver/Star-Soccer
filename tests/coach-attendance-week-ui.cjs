@@ -15,21 +15,22 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
   async function fixture(rows = sessions, role = 'owner', allowMark = false) {
     const context = await browser.newContext();
     await context.addInitScript(now => { const Base = Date; window.Date = class extends Base { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return Base.parse(now); } }; }, now);
-    const writes = [], errors = []; let releaseMark;
+    const writes = [], errors = [], pendingMarks = [];
     await context.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url()); assert.equal(url.origin, origin, 'No live network');
       if (assets[url.pathname]) return route.fulfill({ status: 200, contentType: assets[url.pathname].type, body: assets[url.pathname].body });
       let value;
       if (url.pathname.endsWith('/bootstrap')) value = { profile: { ...profile, role }, csrfToken: 'fictional-csrf', googleEnabled: true };
       else if (url.pathname.endsWith('/desk')) value = { profile: { ...profile, role }, sessions: rows, notes: [], tasks: [], observedAt: now };
+      else if (url.pathname.endsWith('/refresh')) value = { refreshed: true };
       else if (url.pathname.endsWith('/session')) value = { plan: { version: 0, content: {} } };
-      else if (allowMark && url.pathname.endsWith('/attendance')) { const payload = request.postDataJSON(); writes.push(payload); const result = await new Promise(resolve => { releaseMark = resolve; }); releaseMark = null; if (result === 'lost') return route.abort(); value = result || { saved: true, status: payload.status }; }
+      else if (allowMark && url.pathname.endsWith('/attendance')) { const payload = request.postDataJSON(); writes.push(payload);const index=writes.length-1;const result=await new Promise(resolve=>{pendingMarks[index]=resolve;});pendingMarks[index]=null;if(result==='lost')return route.abort();if(['fail','unauthorized'].includes(result))return route.fulfill({status:result==='fail'?503:401,json:{error:result==='fail'?'SAVE_UNAVAILABLE':'SIGN_IN_REQUIRED',message:'Fictional save could not be confirmed.'}});value=result||{saved:true,status:payload.status}; }
       else throw Error('Unexpected fixture request: ' + url.pathname);
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
     });
     const page = await context.newPage(); page.setDefaultTimeout(6000); page.on('pageerror', e => errors.push(e.message));
     await page.goto(origin + '/workspace'); await page.locator('#app').waitFor({ state: 'visible' });
-    return { page, context, writes, errors, release: result => releaseMark?.(result) };
+    return { page, context, writes, errors, release: (result,index) => (index===undefined?pendingMarks.find(Boolean):pendingMarks[index])?.(result) };
   }
   try {
     const f = await fixture(), page = f.page;
@@ -69,10 +70,12 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     await openSession(pending.page, pendingRows, rid(2), 'attendance');
     await pending.page.locator('#roster').getByRole('button', { name: 'Present', exact: true }).click();
     await pending.page.waitForFunction(() => document.querySelector('#planner-back').disabled);
+    assert.match(await pending.page.locator('.attendance-status').innerText(),/Present · Saving/,'Selection changes before the server responds');
     assert.equal(pending.writes.length, 1); assert.equal(pending.writes[0].sessionId, rid(2));
     assert.equal(await pending.page.locator('#planner-focus-date').isDisabled(), true);
     assert.equal(await pending.page.locator('#session-workspace-tabs [data-session-view="notes"]').isDisabled(), true);
-    pending.release(); await pending.page.locator('#roster button.current').getByText('Present', { exact: true }).waitFor();
+    pending.release(); await pending.page.waitForFunction(() => !document.querySelector('#planner-back').disabled);
+    assert.equal(await pending.page.locator('.attendance-status').innerText(),'Present');
     assert.equal(await pending.page.locator('#planner-back').isDisabled(), false);
     assert.deepEqual(pending.errors, []); await pending.context.close(); checks++;
     const superseded = await fixture(pendingRows, 'owner', true);
@@ -90,6 +93,60 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     assert.match(await superseded.page.locator('#notice').innerText(), /attendance changed after your earlier action\. Current status: absent\./);
     assert.doesNotMatch(await superseded.page.locator('#notice').innerText(), /marked present/);
     assert.deepEqual(superseded.errors, []); await superseded.context.close(); checks++;
+    const multiRows=[session(2,'2026-12-31','4:00 PM',[player(2),player(20)])],multi=await fixture(multiRows,'owner',true);
+    await multi.page.setViewportSize({width:390,height:844});await openSession(multi.page,multiRows,rid(2),'attendance');
+    const first=multi.page.locator('[data-attendance-id="'+rid(202)+'"]'),second=multi.page.locator('[data-attendance-id="'+rid(220)+'"]');
+    await multi.page.locator('#roster-status-filter').selectOption('Not marked');
+    await first.getByRole('button',{name:'Present',exact:true}).click();
+    assert.match(await first.innerText(),/Present · Saving/,'Pending player stays visible under the Not marked filter');
+    assert.equal(await second.getByRole('button',{name:'Absent',exact:true}).isEnabled(),true,'Another player can be marked without waiting');
+    await second.getByRole('button',{name:'Absent',exact:true}).click();
+    await first.getByRole('button',{name:'Absent',exact:true}).evaluate(n=>n.click());assert.equal(multi.writes.length,2,'Pending player cannot start a conflicting write');
+    multi.release(undefined,1);await second.waitFor({state:'hidden'});
+    assert.equal(await multi.page.locator('#planner-back').isDisabled(),true,'Navigation stays locked until every save settles');
+    multi.release('fail',0);await first.locator('.attendance-save-error').waitFor();
+    assert.equal(await first.locator('.attendance-status').innerText(),'Not marked','Failed save restores only that player');
+    assert.equal(await multi.page.locator('#planner-back').isDisabled(),false);
+    await multi.page.screenshot({path:'outputs/attendance-instant-mobile.png',fullPage:true});
+    await first.getByRole('button',{name:'Present',exact:true}).click();
+    assert.deepEqual(multi.writes[2],multi.writes[0],'Retry reuses the original command and expected status');
+    multi.release(undefined,2);await first.waitFor({state:'hidden'});
+    assert.equal(await multi.page.locator('#global-error').isVisible(),false);
+    assert.deepEqual(multi.errors,[]);await multi.context.close();checks++;
+    const refreshedRows=[session(2,'2026-12-31','4:00 PM',[player(2),player(20)])],refreshed=await fixture(refreshedRows,'owner',true);
+    await openSession(refreshed.page,refreshedRows,rid(2),'attendance');
+    const refreshedFirst=refreshed.page.locator('[data-attendance-id="'+rid(202)+'"]');
+    await refreshed.page.locator('#roster').getByRole('button',{name:'Present',exact:true}).nth(0).click();
+    await refreshed.page.locator('#roster').getByRole('button',{name:'Present',exact:true}).nth(1).click();
+    refreshed.release('lost',0);await refreshedFirst.locator('.attendance-save-error').waitFor();
+    refreshed.release(undefined,1);await refreshed.page.waitForFunction(()=>!document.querySelector('#planner-back').disabled);
+    assert.equal(await refreshed.page.locator('#global-error').isVisible(),true,'Another player saving must not hide the failed save');
+    refreshedRows[0].players[0].actualAttendance='Present';
+    await leaveGroup(refreshed.page);await refreshed.page.locator('#refresh').click();await refreshed.page.waitForFunction(()=>!document.querySelector('#refresh').disabled);
+    await openSession(refreshed.page,refreshedRows,rid(2),'attendance');
+    assert.equal(await refreshedFirst.locator('.attendance-status').innerText(),'Present');
+    assert.equal(await refreshed.page.locator('.attendance-save-error').count(),0,'Successful roster refresh replaces uncertain local status with server records');
+    assert.deepEqual(refreshed.errors,[]);await refreshed.context.close();checks++;
+    const expired=await fixture(multiRows,'owner',true);await openSession(expired.page,multiRows,rid(2),'attendance');
+    await expired.page.locator('#roster').getByRole('button',{name:'Present',exact:true}).nth(0).click();
+    await expired.page.locator('#roster').getByRole('button',{name:'Present',exact:true}).nth(1).click();
+    expired.release('unauthorized',0);await expired.page.locator('#login').waitFor({state:'visible'});
+    const staleResponse=expired.page.waitForResponse(r=>r.url().endsWith('/attendance')&&r.status()===200);expired.release(undefined,1);await staleResponse;
+    await expired.page.waitForLoadState('networkidle');
+    assert.equal(await expired.page.locator('#app').isVisible(),false);assert.equal(await expired.page.locator('#roster').innerText(),'');
+    assert.deepEqual(expired.errors,[]);await expired.context.close();checks++;
+    // A fresh bootstrap models the browser receiving a new authenticated session.
+    const signedInAgain=await fixture(multiRows,'owner',true);await openSession(signedInAgain.page,multiRows,rid(2),'attendance');
+    await signedInAgain.page.locator('#roster').getByRole('button',{name:'Present',exact:true}).nth(0).click();
+    await signedInAgain.page.locator('#roster').getByRole('button',{name:'Present',exact:true}).nth(1).click();
+    signedInAgain.release('unauthorized',0);await signedInAgain.page.locator('#login').waitFor({state:'visible'});
+    await signedInAgain.page.locator('#retry-workspace').evaluate(button=>button.click());
+    await signedInAgain.page.locator('#app').waitFor({state:'visible'});
+    const staleFailure=signedInAgain.page.waitForResponse(r=>r.url().endsWith('/attendance')&&r.status()===401);signedInAgain.release('unauthorized',1);await staleFailure;
+    await signedInAgain.page.waitForLoadState('networkidle');
+    assert.equal(await signedInAgain.page.locator('#app').isVisible(),true,'An old unauthorized response must not sign out the fresh session');
+    assert.deepEqual(signedInAgain.errors,[]);await signedInAgain.context.close();checks++;
+
     console.log('Attendance group/history UI: ' + checks + ' isolated group, date, cancellation, role-scope, pending-save and mobile checks passed.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

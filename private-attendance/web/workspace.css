@@ -861,6 +861,11 @@ input:disabled, select:disabled, textarea:disabled {
   background: #faece7;
 }
 
+.roster-row .attendance-save-error {
+  color: #8c3d32;
+  font-weight: 600;
+}
+
 .attendance-controls {
   display: flex;
   flex-wrap: wrap;

@@ -324,10 +324,10 @@
   topActions.replaceChildren(paletteHeading, addGroup, selectionCount);
   side.append(arrange);
   editTools.append(modeHint);
-  fieldColumn.append(editTools, canvasWrap, sequenceActions);
+  fieldColumn.append(canvasWrap);
   inspector.append(side);
   const written = el('section', '', 'tactics-written'); written.append(field('Activity type', purpose), extras);
-  boardLayout.replaceChildren(fieldColumn, topActions, inspector, written);
+  boardLayout.replaceChildren(fieldColumn, editTools, topActions, sequenceActions, inspector, written);
   const mobileLinks = el('div', '', 'tactics-mobile-links');
   function focusInspector(control) { setPanelHidden(false); control.scrollIntoView({ block: 'center', behavior: 'instant' }); control.focus({ preventScroll: true }); }
   mobileLinks.append(button('Selected piece', 'tactics-jump-piece', () => focusInspector(itemSelect)), button('Phase notes', 'tactics-jump-notes', () => { notesMenu.open = true; placeNotesMenu(); phaseNotes.focus({ preventScroll: true }); }));
@@ -426,6 +426,7 @@
     fieldColumn.dataset.dock = 'top';
   }
   new ResizeObserver(() => { if (active() && loaded) draw(); }).observe(fieldColumn);
+  window.addEventListener('resize', () => requestAnimationFrame(() => { if (active() && loaded) draw(); }));
   // Keep the phase description available to assistive tools without another controls panel.
   pathCaption.hidden = true; canvasWrap.append(pathCaption); board.setAttribute('aria-describedby', pathCaption.id);
   editor.append(boardLayout, recoveryActions);
@@ -787,7 +788,7 @@
     board.setAttribute('viewBox', [viewCenter.x - geometry.width / 2 / zoom, viewCenter.y - geometry.height / 2 / zoom, geometry.width / zoom, geometry.height / zoom].join(' '));
     const scrollContainer = board.closest('#library-form') || board.closest('.planner-drawer-content');
     const fieldTop = canvasWrap.getBoundingClientRect().top + (scrollContainer?.scrollTop || window.scrollY);
-    const footerHeight = sequenceActions.getBoundingClientRect().height || 44;
+    const footerHeight = innerWidth >= 1000 && !panelHidden ? 0 : sequenceActions.getBoundingClientRect().height || 44;
     const fieldHeight = Math.max(180, innerHeight - (innerWidth >= 1000 ? fieldTop : 150) - footerHeight - 20);
     boardLayout.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');
     fieldColumn.style.setProperty('--pitch-max-width', fieldHeight * geometry.width / geometry.height + 'px');

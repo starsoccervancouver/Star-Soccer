@@ -83,6 +83,26 @@ const { chromium } = require('playwright');
     assert(await page.locator('#tactics-phase-popover').isHidden(), 'Phase dropdown starts closed'); assert.equal(await page.locator('#tactics-phase-popover #tactics-reset').count(), 1, 'Reset remains available inside the phase dropdown');
     assert.equal(await page.locator('#tactics-add-frame').count(), 1, 'Exactly one phase creation action in the right-side toolbar');
     assert.equal(await page.locator('.library-editor-header > #library-cancel').count(), 1, 'Back is separate from the save actions');
+    const sizeField = async height => {
+      await page.setViewportSize({ width: 1614, height });
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      return page.evaluate(() => {
+        const field = document.getElementById('tactics-pitch-board').getBoundingClientRect();
+        const tools = document.querySelector('.tactics-edit-tools').getBoundingClientRect();
+        const phases = document.querySelector('.tactics-sequence-actions').getBoundingClientRect();
+        const details = document.getElementById('library-drill-details').getBoundingClientRect();
+        return { height: field.height, bottom: field.bottom, right: field.right, toolsLeft: tools.left, phasesLeft: phases.left, detailsTop: details.top };
+      });
+    };
+    const shortScreen = await sizeField(723);
+    assert(shortScreen.bottom <= 723, 'The complete pitch fits a short laptop viewport');
+    assert(shortScreen.height > 480, 'Desktop tools free vertical space for the pitch');
+    assert(shortScreen.toolsLeft >= shortScreen.right && shortScreen.phasesLeft >= shortScreen.right, 'Desktop editing and playback sit beside the pitch');
+    assert(shortScreen.detailsTop >= shortScreen.bottom, 'Written details never overlap the pitch');
+    await page.screenshot({ path: 'outputs/coach-builder-sizing-laptop.png' });
+    const tallScreen = await sizeField(1000);
+    assert(tallScreen.height > shortScreen.height + 100, 'Height-only window resizing enlarges the pitch instead of retaining its old cap');
+    assert(tallScreen.bottom <= 1000, 'The resized pitch remains within the viewport');
     for (const width of [390, 1280]) {
       await page.setViewportSize({ width, height: 844 });
       await page.locator('#library-cancel').click();

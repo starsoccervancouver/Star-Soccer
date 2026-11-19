@@ -8,7 +8,7 @@ const random=()=>randomBytes(32).toString('base64url');
 const same=(a,b)=>{const x=Buffer.from(a||''),y=Buffer.from(b||'');return x.length===y.length&&timingSafeEqual(x,y);};
 const cookie=(request,name)=>request.headers.get('cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith(name+'='))?.slice(name.length+1);
 const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow','Strict-Transport-Security':'max-age=31536000','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'",'Permissions-Policy':'publickey-credentials-create=(self), publickey-credentials-get=(self), camera=(), microphone=(self), geolocation=()'};
-export function createCoachHandler({coaches,auth,cookieKey,overview,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
+export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
  origin=validateWorkspaceOrigin(origin);basePath=validateCoachPath(basePath);
  const sign=v=>createHmac('sha256',cookieKey).update(v).digest('base64url'),rates=new Map();
 
@@ -44,6 +44,18 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,attendance,o
    return json(200,{profile:result.profile,csrfToken:result.csrf},{'Set-Cookie':'__Host-ss_staff='+result.token+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=43200'});
   }
   if(!signed)deny('SIGN_IN_REQUIRED',401);const actor=signed.actor;
+  if(path==='/workspace/api/families'&&request.method==='GET'){
+   coaches.requireFamilyAccess(actor);
+   return json(200,{families:await familyLedger.directory()});
+  }
+  if(path==='/workspace/api/family'&&request.method==='POST'){
+   coaches.requireFamilyAccess(actor);
+   const {familyId}=await body(request,['familyId']);
+   if(typeof familyId!=='string'||!/^rec[A-Za-z0-9]{14}$/.test(familyId))deny('INVALID_FAMILY',400);
+   const family=await familyLedger.detail(familyId);
+   if(!family)deny('FAMILY_NOT_FOUND',404);
+   return json(200,{family});
+  }
   if(path==='/workspace/api/desk'&&request.method==='GET'){const data=coaches.scope(actor,await overview({}));return json(200,{...data,notes:coaches.notes(actor),tasks:coaches.tasks(actor)});}
   if(path==='/workspace/api/audit'&&request.method==='GET')return json(200,{events:coaches.audit(actor)});
   if(path==='/workspace/api/users'&&request.method==='GET')return json(200,{users:coaches.users(actor),credentials:auth.credentialSummary(actor)});

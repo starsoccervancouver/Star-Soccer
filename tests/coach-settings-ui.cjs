@@ -14,9 +14,9 @@ require('./coach-fixture-fonts.cjs')(assets);
 (async () => {
   const browser = await chromium.launch(); let checks = 0;
   try {
-    async function fixture({ role = 'owner', stored, hash = '', deniedStorage = false, displayEmail } = {}) {
+    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
-      const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, sessionVersion: 1, ...(displayEmail ? { displayEmail } : {}) } }, requests = [], errors = [];
+      const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, familyAccess, sessionVersion: 1, ...(displayEmail ? { displayEmail } : {}) } }, requests = [], errors = [];
       await context.addInitScript(({ now, key, stored, deniedStorage }) => {
         const Base = Date; window.Date = class extends Base { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return Base.parse(now); } };
         if (stored !== undefined && !sessionStorage.getItem('fixture-seeded')) { localStorage.setItem(key, stored); sessionStorage.setItem('fixture-seeded', 'true'); }
@@ -33,6 +33,8 @@ require('./coach-fixture-fonts.cjs')(assets);
         let value;
         if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true };
         else if (path.endsWith('/desk')) value = { profile: state.profile, sessions, notes: [], tasks: [], observedAt: now };
+        else if (path.endsWith('/families') && familyAccess) value = { families: [{id:rid(50),name:'Example family'}] };
+        else if (path.endsWith('/family') && familyAccess && payload.familyId === rid(50)) value = { family: {name:'Example family', players:['Player A','Player B'], balance:15, dueNow:15, verifiedReceipts:60, payments:[{amount:60,verification:'Verified'}], bookings:[], registrations:[{child:'Player B',program:'Camp'}]} };
         else if (path.endsWith('/session')) value = { plan: { session_id: payload.sessionId, version: 0, content: {} } };
         else if (path.endsWith('/users') && role === 'owner') value = { users: [{ ...state.profile, active: 1, session_version: 1, assignments: [] }], credentials: [] };
         else if (path.endsWith('/audit') && role !== 'coach') value = { events: [{ id: 'fictional-event', action: 'plan-updated', actor_email: state.profile.email, occurred_at: now, detail: '{}' }] };
@@ -87,6 +89,22 @@ require('./coach-fixture-fonts.cjs')(assets);
       assert.deepEqual(f.errors, []); checks++; await f.context.close();
     }
 
+    for (const [role, familyAccess] of [['coach',false],['admin',false],['admin',true],['owner',true]]) {
+      const f = await fixture({ role, familyAccess });
+      await openDestination(f.page,'home');
+      assert.equal(await f.page.locator('#family-records').isVisible(),familyAccess);
+      assert.equal(count(f,'/families'),0);
+      if (familyAccess) {
+        await f.page.locator('#family-records summary').click();
+        await f.page.locator('#family-picker').selectOption(rid(50));
+        await f.page.getByText('Player B · Camp').waitFor();
+        assert.match(await f.page.locator('#family-results').innerText(), /Verified receipts/);
+        await f.page.locator('#logout').click();
+        await f.page.locator('#login').waitFor();
+        assert.equal(await f.page.locator('#family-results').textContent(),'');
+      }
+      assert.deepEqual(f.errors,[]); await f.context.close(); checks++;
+    }
     const renamed = await fixture({ displayEmail: 'Renamed@example.test' });
     await clickSettings(renamed);
     assert.equal(await renamed.page.locator('#profile-email').innerText(), 'Renamed@example.test');

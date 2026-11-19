@@ -68,6 +68,10 @@ Operating base/table/field mappings belong in the protected configuration. Physi
 
 ## Data and communication rules
 
+In Coach Desk, the owner grants **Super admin** through **Settings → Team & access**. This adds read access to **Home → Family registrations and payments** alongside academy-wide coaching access. Existing admins retain coaching access. Only the owner manages staff roles. Changing access invalidates that account’s existing sessions.
+
+The family view reads linked players, registrations, bookings and payments from Airtable when opened. Balances, applied payments and verified receipts come from the ledger’s reconciliation fields. The private configuration can map `tables.payments` to the club’s payment table, with `Payments` as the default table name.
+
 Airtable remains authoritative for dated rosters and coach-marked physical attendance. A parent's response is separate from the coach observing a player at training. Four-session passes and camps are confirmed by registration. Capacity checks stay at 20 for each dated session; no browser view may expand capacity or create bookings.
 
 Session plans are shared with the coaches assigned to a session and approved full-access staff. Individual coach notes remain restricted by author and role. No public-page code should contain operating roster records or parent contact information.

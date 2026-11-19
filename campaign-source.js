@@ -1,4 +1,4 @@
-/* Explicit campaign tags only. No referrer, URL, cookie or analytics request is stored. */
+/* Only validated campaign tags and a recognized public entry path are retained. */
 (function(root) {
   'use strict';
   const storageKey='star-soccer-campaign-v1',maxAge=24*60*60*1000;
@@ -71,5 +71,36 @@
   if(typeof module!=='undefined' && module.exports){module.exports=api;return;}
   let storage;
   try{storage=root.sessionStorage;}catch{/* The getter can also be denied. */}
-  root.StarCampaignSource=create(root.location.search,storage);
+  const campaign=create(root.location.search,storage);
+  const landingKey='star-soccer-landing-v1';
+  const publicPaths=new Set([
+    '/', '/index.html', '/programs.html', '/camps.html', '/coach.html',
+    '/contact.html', '/locations.html', '/methodology.html', '/privacy.html',
+    '/registration.html', '/pro-d-camp-registration.html', '/selectivo.html',
+    '/boxing-camp-registration.html', '/christmas-camp-registration.html',
+    '/program-private-small-group.html'
+  ]);
+  function readLanding(now) {
+    try {
+      const raw=storage?.getItem(landingKey);
+      if(raw) {
+        const record=JSON.parse(raw);
+        if(Number.isSafeInteger(record?.time) && record.time<=now && now-record.time<maxAge)
+          return record;
+      }
+      const pathname=root.location.pathname;
+      const record={path:publicPaths.has(pathname)?pathname:null,time:now};
+      storage?.setItem(landingKey,JSON.stringify(record));
+      return storage?record:null;
+    } catch { return null; }
+  }
+  const landing=readLanding(Date.now());
+  root.StarCampaignSource=Object.freeze({append(data) {
+    campaign.append(data);
+    const age=landing?Date.now()-landing.time:maxAge;
+    if(landing && age>=0 && age<maxAge && publicPaths.has(landing.path))
+      data.set('Landing page path',landing.path);
+    else data.delete('Landing page path');
+    return data;
+  }});
 })(typeof window!=='undefined'?window:globalThis);

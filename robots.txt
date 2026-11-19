@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /cdn-cgi/l/email-protection
 
 Sitemap: https://starsoccer.ca/sitemap.xml

@@ -171,14 +171,11 @@
     const players=privateForm.elements.namedItem('Players'),duration=privateForm.elements.namedItem('Minutes');
     const formats=[...privateForm.querySelectorAll('[name="Training format"]')];
     const smallGroup=()=>formats.some(el=>el.checked && el.value==='smallgroup');
+    const playerHelp=document.getElementById('private-player-help');
+    const privateHint=playerHelp?.textContent;
     const applyFormat=()=>{
       const group=smallGroup(),min=group?6:1,max=group?18:5;
-      const playerHelp=document.getElementById('private-player-help');
-      if(playerHelp) {
-        playerHelp.hidden=group;
-        if(group)players.removeAttribute('aria-describedby');
-        else players.setAttribute('aria-describedby',playerHelp.id);
-      }
+      if(playerHelp) playerHelp.textContent=group?'Bring your own group of 6–18 players':privateHint;
       players.min=String(min);players.max=String(max);
       if(!Number.isSafeInteger(Number(players.value)) || Number(players.value)<min || Number(players.value)>max)players.value=String(min);
       // Let the shared number stepper refresh its boundary buttons as well.

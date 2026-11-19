@@ -141,3 +141,6 @@ body.private-registration .private-goals-grid p { font-size: .9rem; }
   body.private-registration .quick-context { margin-bottom: 12px; font-size: .82rem; }
   body.private-registration .registration-info-content { padding: 18px; }
 }
+@media (max-width: 360px) {
+  body.private-registration .quick-panel .quick-context { margin-bottom: 0; }
+}

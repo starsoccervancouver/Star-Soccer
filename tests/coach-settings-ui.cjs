@@ -57,7 +57,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     for (const role of ['owner', 'admin', 'coach']) {
       const f = await fixture({ role }); await clickSettings(f);
       assert.equal(await f.page.locator('#panel-settings').isVisible(), true);
-      assert.deepEqual(await f.page.locator('#navigation button[data-tab]').evaluateAll(buttons=>buttons.map(button=>button.dataset.tab)), ['home','plan','profiles','library','coaches','settings'], 'Main navigation contains only active coaching sections');
+      assert.deepEqual(await f.page.locator('#navigation button[data-tab]').evaluateAll(buttons=>buttons.map(button=>button.dataset.tab)), ['home','plan','profiles','families','library','coaches','settings'], 'Main navigation contains only active coaching sections');
       assert.equal(await f.page.locator('#navigation [data-tab="coaches"]').isVisible(), role !== 'coach', 'Coaching team is restricted to full-access roles');
       assert.equal(await f.page.locator('#navigation [data-tab="team"],#navigation [data-tab="activity"],#navigation [data-tab="legacy"]').count(), 0);
       assert.equal(await f.page.locator('#profile-name').innerText(), 'Fictional ' + role);
@@ -92,10 +92,13 @@ require('./coach-fixture-fonts.cjs')(assets);
     for (const [role, familyAccess] of [['coach',false],['admin',false],['admin',true],['owner',true]]) {
       const f = await fixture({ role, familyAccess });
       await openDestination(f.page,'home');
-      assert.equal(await f.page.locator('#family-records').isVisible(),familyAccess);
+      assert.equal(await f.page.locator('#nav-families').isVisible(),familyAccess);
+      assert.equal(await f.page.locator('#panel-families').isVisible(),false);
       assert.equal(count(f,'/families'),0);
       if (familyAccess) {
-        await f.page.locator('#family-records summary').click();
+        await openDestination(f.page,'families');
+        assert.equal(await f.page.locator('#page-title').innerText(),'Families');
+        assert.equal(await f.page.locator('#nav-families').getAttribute('aria-current'),'page');
         await f.page.locator('#family-picker').selectOption(rid(50));
         await f.page.getByText('Player B · Camp').waitFor();
         assert.match(await f.page.locator('#family-results').innerText(), /Verified receipts/);
@@ -103,7 +106,13 @@ require('./coach-fixture-fonts.cjs')(assets);
         await f.page.locator('#login').waitFor();
         assert.equal(await f.page.locator('#family-results').textContent(),'');
       }
-      assert.deepEqual(f.errors,[]); await f.context.close(); checks++;
+      assert.deepEqual(f.errors,[]); await f.context.close();
+      const direct=await fixture({role,familyAccess,hash:'#view=families'});
+      if(familyAccess)await direct.page.locator('#family-picker').waitFor();
+      else await direct.page.waitForFunction(()=>location.hash!=='#view=families' && !document.getElementById('app').hidden);
+      assert.equal(await direct.page.locator('#panel-families').isVisible(),familyAccess);
+      assert.equal(count(direct,'/families'),familyAccess?1:0);
+      assert.deepEqual(direct.errors,[]); await direct.context.close(); checks++;
     }
     const renamed = await fixture({ displayEmail: 'Renamed@example.test' });
     await clickSettings(renamed);

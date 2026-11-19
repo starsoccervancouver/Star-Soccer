@@ -110,6 +110,7 @@ body.camp-registration-page .flow-hero {width:min(1040px,calc(100% - 32px));}
 body .camp-week-grid {width:min(1040px,calc(100% - 32px));margin:0 auto 24px;display:grid;grid-template-columns:1fr 1fr;gap:22px;scroll-margin-top:110px;}
 body.winter-camps-page .camp-week-grid .flow-surface {width:100%;margin:0;display:flex;flex-direction:column;}
 body .camp-week-card .flow-actions {margin:12px 0 4px;}
+body .camp-drop-in-price {display:block;text-align:right;}
 body .camp-week-card {padding:20px;position:relative;isolation:isolate;overflow:hidden;border-color:#486878;background:#102438;}
 body .camp-week-sale {border-color:#c49d59;background:#132c3c;}
 body .camp-sale-label {display:inline-flex;align-self:flex-start;padding:7px 12px;margin:0 0 18px!important;border:1px solid #d5b16c;border-radius:6px;background:#f0cb80;color:#102031!important;font-size:.76rem;font-weight:800;letter-spacing:.09em;line-height:1.4;text-transform:uppercase;}

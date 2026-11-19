@@ -65,3 +65,13 @@ body:is(.home-landing,.training-compact) .skip-link{background:#10253a;color:#e6
     gap:0;
   }
 }
+
+@media (max-width:900px) {
+  body:is(.home-landing,.training-compact) .home-header-grid {grid-template-columns:auto minmax(0,1fr) auto;padding:2px 10px;}
+  body:is(.home-landing,.training-compact) .home-utility-logo {padding:0;}
+  body:is(.home-landing,.training-compact) .home-utility-logo .brand-logo {width:clamp(84px,22vw,136px);}
+  body:is(.home-landing,.training-compact) .home-utility-slogan {grid-area:1/2;min-height:0;padding:0 4px;border:0;font-size:.76rem;}
+  body:is(.home-landing,.training-compact) header[data-nav-ready] .mobile-nav-toggle {grid-column:3;margin:0;}
+  body:is(.home-landing,.training-compact) .home-utility-email {grid-row:2;min-height:20px;padding:0;border:0;}
+  body:is(.home-landing,.training-compact) header .site-nav {grid-row:3;}
+}

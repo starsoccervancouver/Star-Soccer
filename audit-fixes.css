@@ -99,6 +99,9 @@ body .winter-hero-copy {width:min(1040px,calc(100% - 48px));margin:auto;padding:
 body .winter-hero-copy .eyebrow {color:#b2e3f6;font-weight:700;margin:0;}
 body .winter-hero-copy h1 {font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:clamp(2.2rem,4vw,3.5rem);line-height:1;margin:8px 0 0;color:#edf7ff;}
 body .winter-hero-copy h1 span {color:#b2e3f6;}
+.camp-date-links {display:flex;flex-wrap:wrap;gap:0 14px;width:fit-content;max-width:100%;margin-top:4px;padding-inline:6px;border-radius:6px;background:#102438;}
+.camp-date-links a {color:#d3ecff;font-size:.82rem;font-weight:700;line-height:26px;text-decoration:underline;text-underline-offset:3px;}
+.camp-date-links #pro-d-date-link {font-weight:500;}
 body .winter-hero-copy>p:not(.eyebrow) {max-width:40ch;font-size:1.05rem;line-height:1.6;color:#edf7ff;}
 body .winter-camp-cta,body .flow-surface .winter-camp-cta {min-height:48px;background:#f0cb80;color:#102031;border-color:#f0cb80;box-shadow:none;gap:12px;}
 body .winter-camp-cta:hover,body .flow-surface .winter-camp-cta:hover {background:#f6d99f;color:#102031;}
@@ -131,7 +134,7 @@ body .camp-receipt-details {white-space:pre-wrap;overflow-wrap:anywhere;font:inh
  body.winter-camps-page {--seasonal-art:url('winter-field-800.webp');}
  body .camp-week-grid,body .camp-practical-grid,body .camp-booking-grid {grid-template-columns:1fr;}
  body .winter-camp-hero {min-height:112px;}
- body .winter-hero-copy {width:calc(100% - 32px);padding:20px 0 24px;}
+ body .winter-hero-copy {width:calc(100% - 32px);padding:10px 0 8px;}
  body .winter-hero-copy h1 {font-size:2.2rem;}
  body .winter-hero-copy .eyebrow {font-size:.65rem;}
  body .camp-week-card .flow-actions .button {width:100%;}
@@ -285,6 +288,9 @@ body .camp-week-card .camp-card-times {margin:0;font-size:.88rem;font-weight:700
 body .camp-card-times span {font-weight:400;color:#c1d3df;}
 body .camp-week-card .camp-card-highlight {margin:6px 0 0;font-size:.84rem;color:#f3d699;}
 body .camp-week-card .camp-full-day-option {margin:12px 0 0;padding:10px 12px;border-left:2px solid #f3d699;background:#192f44;font-size:.88rem;line-height:1.5;}
+@media (max-width:350px) {
+ body .camp-week-card .camp-full-day-option {margin-top:8px;padding-block:8px;}
+}
 body .camp-full-day-option strong,body .camp-full-day-option span,body .camp-full-day-option small {display:block;}
 body .camp-full-day-option span {margin-top:3px;color:#d5e2eb;}
 body .camp-full-day-option small {margin-top:4px;font-size:.75rem;color:#b9cbd9;}

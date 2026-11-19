@@ -1,3 +1,4 @@
+import {createFamilyLedger} from './family-ledger.mjs';
 import {buildOwnerOverview} from './owner-overview.mjs';
 /* On-demand, fully paginated reads. No public counts, payments or bookings are written. */
 import {createHash} from 'node:crypto';
@@ -77,14 +78,41 @@ export const readFields={
 };
 export function createRosterReader({baseId,token,tableMap,verifiedContacts={},timeZone='America/Vancouver',fetchFn=fetch,clock=()=>new Date()}={}){
  if(!/^app[A-Za-z0-9]{14}$/.test(baseId)||!token||!tableMap||Object.keys(readFields).some(name=>!/^tbl[A-Za-z0-9]{14}$/.test(tableMap[name]||'')))throw new Error('PRIVATE_AIRTABLE_CONFIGURATION_REQUIRED');
- async function read(name){const rows=[],seen=new Set(),offsets=new Set();let offset;do{const url=new URL('https://api.airtable.com/v0/'+baseId+'/'+tableMap[name]);url.searchParams.set('pageSize','100');for(const f of readFields[name])url.searchParams.append('fields[]',f);if(offset)url.searchParams.set('offset',offset);const r=await fetchFn(url,{headers:{Authorization:'Bearer '+token},redirect:'manual',signal:AbortSignal.timeout(10000)});if(!r.ok)throw new Error('AIRTABLE_READ_FAILED');const v=await r.json();if(!Array.isArray(v.records))throw new Error('INCOMPLETE_AIRTABLE_READ');for(const row of v.records){if(seen.has(row.id)||!row.fields)throw new Error('INVALID_AIRTABLE_PAGE');seen.add(row.id);rows.push(row);}if(rows.length>10000||v.offset&&offsets.has(v.offset))throw new Error('AIRTABLE_PAGE_LIMIT');offset=v.offset;if(offset)offsets.add(offset);}while(offset);return rows;}
+ async function read(name, fields = readFields[name], ids = null) {
+  const rows = [], seen = new Set(), offsets = new Set();
+  const table = tableMap[name] || (name === 'payments' ? 'Payments' : name);
+  const url = new URL('https://api.airtable.com/v0/' + baseId + '/' + encodeURIComponent(table));
+  url.searchParams.set('pageSize', '100');
+  for (const field of fields) url.searchParams.append('fields[]', field);
+  if (ids) {
+   const matches = ids.map(id => "RECORD_ID()='" + id + "'");
+   url.searchParams.set('filterByFormula', matches.length === 1 ? matches[0] : 'OR(' + matches.join(',') + ')');
+  }
+  let offset;
+  do {
+   if (offset) url.searchParams.set('offset', offset);
+   const response = await fetchFn(url, {headers:{Authorization:'Bearer '+token}, redirect:'manual', signal:AbortSignal.timeout(10000)});
+   if (!response.ok) throw new Error('AIRTABLE_READ_FAILED');
+   const page = await response.json();
+   if (!Array.isArray(page.records)) throw new Error('INCOMPLETE_AIRTABLE_READ');
+   for (const row of page.records) {
+    if (seen.has(row.id) || !row.fields) throw new Error('INVALID_AIRTABLE_PAGE');
+    seen.add(row.id);
+    rows.push(row);
+   }
+   offset = page.offset;
+   if (rows.length > 10000 || offset && offsets.has(offset)) throw new Error('AIRTABLE_PAGE_LIMIT');
+   if (offset) offsets.add(offset);
+  } while (offset);
+  return rows;
+ }
  async function collect(){const observedAt=clock().toISOString(),tables={};for(const name of ['sessions','attendance','players','families','bookings','enrollments','registrations'])tables[name]=await read(name);
   // A second read rejects changes during collection, rather than blessing an incomplete roster.
   const second=await read('attendance'),sessions=await read('sessions');if(digest(second)!==digest(tables.attendance)||digest(sessions)!==digest(tables.sessions))throw new Error('ROSTER_CHANGED_DURING_READ');
   const allIds=new Set(tables.attendance.map(r=>r.id));for(const s of tables.sessions)if(links(s.fields.Attendance).some(id=>!allIds.has(id)))throw new Error('INCOMPLETE_AIRTABLE_READ');
   return {tables,observedAt};
  }
- return {async overview(){const {tables,observedAt}=await collect();return buildOwnerOverview(tables,observedAt,verifiedContacts);},async read(revision,sessionId){if(!/^rec[A-Za-z0-9]{14}$/.test(sessionId||''))throw new Error('EXACT_SESSION_REQUIRED');const {tables,observedAt}=await collect();
+ return {familyLedger:createFamilyLedger(read),async overview(){const {tables,observedAt}=await collect();return buildOwnerOverview(tables,observedAt,verifiedContacts);},async read(revision,sessionId){if(!/^rec[A-Za-z0-9]{14}$/.test(sessionId||''))throw new Error('EXACT_SESSION_REQUIRED');const {tables,observedAt}=await collect();
   tables.sessions=tables.sessions.filter(r=>r.id===sessionId);if(tables.sessions.length!==1)throw new Error('SESSION_NOT_FOUND');tables.attendance=tables.attendance.filter(r=>links(r.fields.Session).includes(sessionId));
   return normalizeAirtableRoster({tables,observedAt,revision,verifiedContacts,timeZone});}};
 }

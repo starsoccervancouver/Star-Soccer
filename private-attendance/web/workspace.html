@@ -227,6 +227,12 @@
 </div>
 </section>
 </div>
+<details class="card" id="family-records" hidden>
+<summary>Family registrations and payments</summary>
+<select id="family-picker" aria-label="Choose a family" hidden></select>
+<p id="family-status" role="status"></p>
+<div id="family-results" aria-live="polite"></div>
+</details>
 <section id="coaching-hub" aria-label="Session briefing"></section>
 </section>
 <section id="panel-plan" class="tab-panel" hidden>
@@ -468,7 +474,7 @@
 <section class="card">
 <p class="eyebrow">Owner controls</p>
 <h2 id="user-title">Approve a coach</h2>
-<p>Coaches see assigned sessions and their own private notes. Full-access admins can view all sessions and all coach notes. Only the owner can manage accounts.</p>
+<p>Coaches see assigned sessions and their own private notes. Admins can view all sessions and coaching notes. Super admins can also open family registrations and payments. Only the owner can manage accounts.</p>
 <form id="user-form">
 <label>Name<input id="user-name" maxlength="100" required>
 </label>
@@ -476,7 +482,8 @@
 </label>
 <label>Access<select id="user-role">
 <option value="coach">Coach — own notes &amp; assigned sessions</option>
-<option value="admin">Full-access admin — all sessions &amp; notes</option>
+<option value="admin">Admin — all sessions &amp; notes</option>
+<option value="super_admin">Super admin — coaching, registrations &amp; payments</option>
 </select>
 </label>
 <label class="inline-check">

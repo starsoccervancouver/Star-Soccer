@@ -7,7 +7,7 @@
   const button = (text, fn, cls = 'secondary') => { const n = node('button', text, cls); n.type = 'button'; n.addEventListener('click', fn); return n; };
   const label = (text, control) => { const n = node('label', text); n.htmlFor = control.id; n.append(control); return n; };
   const request = (operation, payload = {}) => new Promise((resolve, reject) => emit('coach:team-request', { operation, payload, resolve, reject }));
-  const roles = { owner: 'Owner', admin: 'Full-access admin', coach: 'Coach' };
+  const roles = { owner: 'Owner', admin: 'Admin', super_admin: 'Super admin', coach: 'Coach' };
   const allowed = value => !!value?.profile && ['owner', 'admin'].includes(value.profile.role);
   const identityOf = value => allowed(value) ? [value.profile.email, value.profile.role, value.profile.sessionVersion].join(':') : '';
   const countLabel = (n, text) => n + ' ' + text + (n === 1 ? '' : 's');

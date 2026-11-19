@@ -8,9 +8,10 @@ async function setup(t){
  for(const [name,role]of [['one','coach'],['two','coach'],['admin','admin']])coaches.saveUser(owner,{name,email:name+'@example.test',role});
  const one=coaches.actor('one@example.test'),two=coaches.actor('two@example.test'),admin=coaches.actor('admin@example.test');
  coaches.assign(owner,{email:one.email,sessionId:rid(1),assigned:true});
- const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,cookieKey:'k'.repeat(43),assets:{},overview:async()=>{throw Error('Team reads must not fetch roster');}});
+ const ledgerCalls=[],familyLedger={async directory(){ledgerCalls.push('directory');return [];},async detail(id){ledgerCalls.push(id);return {balance:50};}};
+ const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger,cookieKey:'k'.repeat(43),assets:{},overview:async()=>{throw Error('Team reads must not fetch roster');}});
  const request=(actor,path,payload)=>{const session=auth.createVerifiedSession(actor.email),origin='https://attendance.starsoccer.ca';return handler(new Request(origin+'/workspace/api/'+path,{method:payload===undefined?'GET':'POST',headers:{origin,'content-type':'application/json',cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf},...(payload===undefined?{}:{body:JSON.stringify(payload)})}));};
- return {store,coaches,owner,one,two,admin,request};
+ return {store,coaches,owner,one,two,admin,request,auth,handler,ledgerCalls};
 }
 test('owners and admins get minimal team fields while account management stays owner-only',async t=>{
  const {coaches,owner,one,admin,request}=await setup(t);
@@ -43,4 +44,45 @@ test('authored notes include inactive coaches, exclude archived and other author
  assert.equal((await request(admin,'coaching-team/notes',{})).status,400);
  assert.equal((await request(admin,'coaching-team/notes',{email:one.email,role:'owner'})).status,400);
  assert.equal((await request(admin,'coaching-team/notes',{email:'missing@example.test'})).status,404);
+});
+test('family access is owner-granted, checked before reads, and immediately revocable',async t=>{
+ const {coaches,owner,admin,one,auth,handler,request,ledgerCalls}=await setup(t);
+ const familyId=rid(20), setting={email:admin.email,name:'Admin',role:'super_admin',expectedVersion:1};
+ for(const actor of [one,admin]){
+  assert.equal((await request(actor,'families')).status,403);
+  assert.equal((await request(actor,'family',{familyId})).status,403);
+  assert.equal((await request(actor,'users/save',setting)).status,403);
+ }
+ assert.deepEqual(ledgerCalls,[]);
+ assert.equal((await request(owner,'users/save',setting)).status,200);
+ const elevated=coaches.actor(admin.email),oldSession=auth.createVerifiedSession(admin.email);
+ assert.equal(coaches.full(elevated),true);
+ assert.equal((await request(elevated,'users/save',{...setting,email:one.email})).status,403);
+ for(const actor of [owner,elevated]){
+  assert.equal((await request(actor,'families')).status,200);
+  assert.equal((await request(actor,'family',{familyId:'invalid'})).status,400);
+  const result=await request(actor,'family',{familyId});assert.equal(result.status,200);
+  assert.equal((await result.json()).family.balance,50);
+ }
+ assert.deepEqual(ledgerCalls,['directory',familyId,'directory',familyId]);
+ assert.equal((await request(owner,'users/save',{...setting,role:'admin',expectedVersion:2})).status,200);
+ assert.equal((await handler(new Request('https://attendance.starsoccer.ca/workspace/api/families',{headers:{cookie:'__Host-ss_staff='+oldSession.token}}))).status,401);
+ assert.equal((await request(admin,'families')).status,403);
+ assert.equal((await request(admin,'coaching-team')).status,200);
+ assert.throws(()=>coaches.requireFamilyAccess(elevated),/ACCESS_DENIED/);
+});
+test('family ledger keeps sibling bookings and a shared transfer separate and preserves unknown amounts',async()=>{
+ const {createFamilyLedger}=await import('../private-attendance/family-ledger.mjs');
+ const id=rid(1),row=(n,fields)=>({id:rid(n),fields});
+ const tables={families:[row(1,{Family:'Example family',Players:[rid(2),rid(3)],Bookings:[rid(4),rid(5)],Payments:[rid(6)],'Verified family receipts CAD':90,'Balance CAD':0})],
+  players:[row(2,{Player:'Child A',Family:[id]}),row(3,{Player:'Child B',Family:[id]})],
+  bookings:[row(4,{Family:[id],Player:[rid(2)],'Verified applied CAD':60}),row(5,{Family:[id],Player:[rid(3)],'Verified applied CAD':30})],
+  payments:[row(6,{Family:[id],'Amount CAD':90,Verification:'Verified'})]};
+ const ledger=createFamilyLedger(async(table,fields,ids)=>tables[table].filter(r=>!ids||ids.includes(r.id)));
+ const family=await ledger.detail(id);
+ assert.deepEqual(family.players,['Child A','Child B']);assert.equal(family.payments.length,1);
+ assert.deepEqual(family.bookings.map(b=>b.applied),[60,30]);assert.equal(family.balance,0);assert.equal(family.dueNow,null);
+ assert.equal(await ledger.detail(rid(9)),null);assert.deepEqual(await ledger.directory(),[{id,name:'Example family'}]);
+ tables.payments[0].fields.Family=[rid(9)];
+ await assert.rejects(()=>ledger.detail(id),/INCONSISTENT_FAMILY_LINK/);
 });

@@ -58,7 +58,7 @@ async function run(){
       assert.equal(await uncertain.evaluate(()=>requests.length),1);assert.equal(await uncertain.locator('button[type=submit]').isDisabled(),true);
       assert.match(await uncertain.getByRole('link',{name:'Email these details'}).getAttribute('href'),/^mailto:starsoccervancouver@gmail\.com/);await uncertain.close();
     }
-    const late=await setup();await late.evaluate(()=>Date.now=()=>Date.parse('2026-11-20T20:00:00Z'));await send(late);
+    const late=await setup();await late.evaluate(()=>Date.now=()=>Date.parse('2026-11-20T19:00:00Z'));await send(late);
     assert.equal(await late.evaluate(()=>requests.length),0);assert.equal(await late.locator('button[type=submit]').innerText(),'Registration closed');await late.close();
   }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
 }

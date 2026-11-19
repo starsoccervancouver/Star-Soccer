@@ -13,7 +13,7 @@ import {createCoachStore} from '../coach-store.mjs';
 import {createCoachAuth} from '../coach-auth.mjs';
 import {createCoachAttendance} from '../coach-attendance.mjs';
 import {createCoachHandler} from '../coach-http.mjs';
-import {requestId,logFailure} from '../coach-diagnostics.mjs';
+import {requestId,logFailure,mailConnectionError} from '../coach-diagnostics.mjs';
 import {createCoachGoogleAuth} from '../coach-google-auth.mjs';
 import {deploymentIdentity,STAR_SOCCER_ORIGIN} from '../deployment-config.mjs';
 import {html,landing,css,parentJS,logo,overview,overviewCSS,overviewJS,emailPreview,emailPreviewJS,workspace,workspaceCSS,workspaceJS,groupsJS,viewsJS,viewsCSS,resourcesJS,resourcesCSS,profilesJS,profilesCSS,goalsJS,navigationJS,foldersJS,foldersCSS,dictationJS,coachingJS,coachingCSS,sessionJS,sessionCSS,libraryJS,libraryCSS,plannerJS,tacticsJS,tacticsCSS,clubConfig,clubJS,passkeysJS,workspaceManropeFont,workspaceInstrumentSerifFont,workspaceManropeLicense,workspaceInstrumentSerifLicense} from './assets.generated.mjs';
@@ -56,8 +56,7 @@ export class AttendanceCoordinator{
    const operation=new URL(request.url).pathname.slice(1);
    try{return Response.json(await this.mail().handle(operation,await request.json()));}
    catch(error){
-    const safe=['WRONG_MAILBOX','GMAIL_API_DISABLED','GOOGLE_RECONNECT','CONSENT_EXPIRED','PAYMENT_LABELS_MISSING'];
-    return Response.json({error:safe.includes(error.message)?error.message:'MAIL_CONNECTION_FAILED'},{status:400});
+    return Response.json({error:mailConnectionError(error)},{status:400});
    }
   }
   if(!this.handler){

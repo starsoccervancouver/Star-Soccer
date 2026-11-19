@@ -27,14 +27,14 @@ function open(value,secret) {
 export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
   const ledger=airtableClient(JSON.parse(env.AIRTABLE_CONFIG),env.AIRTABLE_TOKEN,createAirtableTransport({fetchFn}));
   async function token(grant){
-    const res=await fetchFn(googleToken,{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),body:new URLSearchParams({...grant,client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET})});
-    const data=await res.json();
+    const res=await fetchFn(googleToken,{method:'POST',redirect:'manual',headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(15000),body:new URLSearchParams({...grant,client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET}).toString()});
+    const data=await res.json().catch(()=>({}));
     if(!res.ok||!data.access_token)throw Error(data.error==='invalid_grant'?'GOOGLE_RECONNECT':'GOOGLE_TOKEN_FAILED');
     return data;
   }
   async function gmail(access,path,params=[]) {
     const url=new URL(path,root); for(const [key,value] of params)url.searchParams.append(key,value);
-    const r=await fetchFn(url,{redirect:'error',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+access}});
+    const r=await fetchFn(url,{redirect:'manual',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+access}});
     if(!r.ok){
       if(r.status===403){const data=await r.json().catch(()=>({}));if((data.error?.details||[]).some(d=>d.reason==='SERVICE_DISABLED')||data.error?.errors?.some(d=>d.reason==='accessNotConfigured'))throw Error('GMAIL_API_DISABLED');}
       throw Error('GMAIL_'+r.status);

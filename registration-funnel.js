@@ -1,4 +1,4 @@
-/* Anonymous integration hooks: no network, cookies or persistent storage.
+/* Anonymous integration hooks and Google Analytics for accepted registrations.
  * Form-service acceptance must never be reported as a confirmed booking. */
 (function(root){
   'use strict';
@@ -10,7 +10,22 @@
   }
   if(typeof module!=='undefined'&&module.exports){module.exports={event};return;}
   const queue=[];
-  function track(name,detail){const value=event(name,detail);if(!value)return;queue.push(value);if(queue.length>100)queue.shift();root.dispatchEvent(new CustomEvent('starsoccer:funnel',{detail:value}));}
+  function track(name,detail){
+    const value=event(name,detail);
+    if(!value)return;
+    queue.push(value);
+    if(queue.length>100)queue.shift();
+    root.dispatchEvent(new CustomEvent('starsoccer:funnel',{detail:value}));
+    if(value.event!=='submission_accepted'||!['weekly','camp'].includes(value.program)
+      ||!['dropin','pass4','week'].includes(value.kind))return;
+
+    // Measurement errors must not affect the form's accepted state.
+    try {
+      root.gtag?.('event','registration_submission_accepted',{
+        send_to:'G-RP4ZF0M5LN',program:value.program,booking_type:value.kind
+      });
+    } catch {}
+  }
   root.StarFunnel=Object.freeze({track,events:()=>queue.slice()});
   function setup(){
     const file=location.pathname.split('/').pop();

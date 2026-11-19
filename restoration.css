@@ -53,3 +53,10 @@ body:is(.home-landing,.training-compact) .skip-link{background:#10253a;color:#e6
  body:is(.home-landing,.training-compact) header .site-nav{grid-column:1/-1;grid-row:2;padding:8px 0;gap:4px}
  body:is(.home-landing,.training-compact) .home-site-nav a{font-size:.95rem;padding:12px 16px}
 }
+
+@media (min-width:901px) {
+  body:is(.home-landing,.training-compact) .home-site-nav {
+    justify-content:space-evenly;
+    gap:0;
+  }
+}

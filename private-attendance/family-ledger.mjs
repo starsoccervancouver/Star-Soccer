@@ -10,6 +10,10 @@ const linkedFields = {
   payments: ['Payment reference', 'Payment date', 'Method', 'Direction', 'Verification', 'Amount CAD']
 };
 const money = value => Number.isFinite(value) ? value : null;
+const balanceFields = ['Balance CAD','Due now total CAD','Verified family receipts CAD'];
+const balancesOf = fields => ({
+  balance:money(fields[balanceFields[0]]),dueNow:money(fields[balanceFields[1]]),verifiedReceipts:money(fields[balanceFields[2]])
+});
 
 export function createFamilyLedger(read) {
   async function related(table, ids, familyId) {
@@ -28,6 +32,9 @@ export function createFamilyLedger(read) {
     return results;
   }
   return {
+    async balances() {
+      return (await read('families',balanceFields)).map(({id,fields}) => ({familyId:id,...balancesOf(fields)}));
+    },
     async directory() {
       const rows = await read('families', ['Family', 'Guardian name']);
       return rows.map(({id, fields}) => ({id, name: fields.Family || fields['Guardian name'] || 'Unnamed family'}))
@@ -45,8 +52,7 @@ export function createFamilyLedger(read) {
       const payments = await related('payments', f.Payments, id);
       return {
         name: f.Family || f['Guardian name'] || 'Unnamed family', guardian: f['Guardian name'], email: f.Email, phone: f.Phone,
-        players: [...names.values()], balance: money(f['Balance CAD']), dueNow: money(f['Due now total CAD']),
-        verifiedReceipts: money(f['Verified family receipts CAD']), balanceStatus: f['Balance status'], unpricedBookings: f['Unpriced bookings'],
+        players: [...names.values()], ...balancesOf(f), balanceStatus: f['Balance status'], unpricedBookings: f['Unpriced bookings'],
         registrations: registrations.map(({fields: r}) => ({reference: r.Reference, child: r.Child, program: r['Requested option'] || r['Registration kind'], weekday: r.Weekday, date: r['Next session date'], status: r.Status})),
         bookings: bookings.map(({fields: b}) => ({reference: b['Booking reference'], players: (b.Player || []).map(id => names.get(id)).filter(Boolean),
           type: b['Booking type'], status: b['Booking status'], dates: b['Covered dates'] || b['Start date'], balance: money(b['Balance CAD']), applied: money(b['Verified applied CAD'])})),

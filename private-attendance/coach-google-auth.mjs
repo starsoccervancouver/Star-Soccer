@@ -23,8 +23,8 @@ export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,
  store.run(`CREATE TABLE IF NOT EXISTS staff_google_flows(state_hash TEXT PRIMARY KEY,browser_hash TEXT NOT NULL,nonce_hash TEXT NOT NULL,verifier TEXT NOT NULL,expires_at INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS staff_google_accounts(email TEXT PRIMARY KEY REFERENCES coach_users(email),subject TEXT NOT NULL UNIQUE,linked_at TEXT NOT NULL);`);
  return {
-  start({browser}){
-   const binding=browserHash(browser),state=random(),nonce=random(),verifier=random(),expires=clock()+600000;
+  start({browser,operationsPreview=false}){
+   const binding=browserHash(browser),state=(operationsPreview?'preview.':'')+random(),nonce=random(),verifier=random(),expires=clock()+600000;
    store.run('DELETE FROM staff_google_flows WHERE expires_at<=?',clock());
    store.run('DELETE FROM staff_google_flows WHERE browser_hash=?',binding);
    store.run('INSERT INTO staff_google_flows VALUES(?,?,?,?,?)',hash(state),binding,hash(nonce),verifier,expires);
@@ -32,7 +32,7 @@ export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,
    return {url:url.href,state};
   },
   async finish({code,state,browser}){
-   if(typeof state!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(state)||typeof code!=='string'||!code||code.length>4096||/[\x00-\x20\x7f]/.test(code))deny('GOOGLE_SIGN_IN_FAILED',401);
+   if(typeof state!=='string'||!/^(?:preview\.)?[A-Za-z0-9_-]{43}$/.test(state)||typeof code!=='string'||!code||code.length>4096||/[\x00-\x20\x7f]/.test(code))deny('GOOGLE_SIGN_IN_FAILED',401);
    const binding=browserHash(browser),flow=store.transaction(()=>{const row=store.get('SELECT * FROM staff_google_flows WHERE state_hash=?',hash(state));if(!row||row.expires_at<=clock()||!same(row.browser_hash,binding))deny('GOOGLE_SIGN_IN_EXPIRED',401);store.run('DELETE FROM staff_google_flows WHERE state_hash=?',hash(state));return row;});
    let idToken;
    try{
@@ -56,6 +56,11 @@ export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,
     // permissions and record ownership; never merge two approved coach accounts.
     if(subjectOwner&&subjectOwner.email!==address&&store.get('SELECT email FROM coach_users WHERE email=?',address))deny('GOOGLE_ACCOUNT_CHANGED',403);
     const coachAddress=subjectOwner?.email||address,actor=coaches.actor(coachAddress);
+    if(state.startsWith('preview.')){
+     coaches.owner(actor);
+     if(!subjectOwner)deny('GOOGLE_ACCOUNT_NOT_LINKED',403);
+     return {previewOwner:actor};
+    }
     if(!subjectOwner)store.run('INSERT INTO staff_google_accounts VALUES(?,?,?)',coachAddress,payload.sub,new Date(clock()).toISOString());
     // Only a successful, verified sign-in can refresh the visible address.
     store.run('UPDATE coach_users SET display_email=? WHERE email=?',payload.email,coachAddress);

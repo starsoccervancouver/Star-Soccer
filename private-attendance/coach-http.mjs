@@ -4,12 +4,15 @@ import {deny} from './coach-store.mjs';
 import {requestId,logFailure,mailConnectionError} from './coach-diagnostics.mjs';
 import {validateWorkspaceOrigin} from './deployment-config.mjs';
 import {validateCoachPath,normalizeCoachPath} from './coach-path.mjs';
+import {createOperationsPreview,previewCookie} from './operations-preview.mjs';
 const random=()=>randomBytes(32).toString('base64url');
 const same=(a,b)=>{const x=Buffer.from(a||''),y=Buffer.from(b||'');return x.length===y.length&&timingSafeEqual(x,y);};
 const cookie=(request,name)=>request.headers.get('cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith(name+'='))?.slice(name.length+1);
 const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow','Strict-Transport-Security':'max-age=31536000','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'",'Permissions-Policy':'publickey-credentials-create=(self), publickey-credentials-get=(self), camera=(), microphone=(self), geolocation=()'};
 export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger,gmailSync=null,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
  origin=validateWorkspaceOrigin(origin);basePath=validateCoachPath(basePath);
+ const preview = origin==='https://starsoccer.ca' && basePath==='/coachdesk' && googleAuth
+   ? createOperationsPreview({cookieKey,origin,coaches,overview,familyLedger,clock}) : null;
  const sign=v=>createHmac('sha256',cookieKey).update(v).digest('base64url'),rates=new Map();
 
  function anon(request){const raw=cookie(request,'__Host-ss_coach_browser');if(!raw)return null;const p=raw.split('.');if(p.length!==3||!/^\d{13}$/.test(p[1])||+p[1]<=clock()||+p[1]>clock()+1800000||!/^[A-Za-z0-9_-]{43}$/.test(p[0])||!same(p[2],sign('staff-browser:'+p[0]+'.'+p[1])))return null;return {browser:p[0],csrf:sign('staff-csrf:'+raw)};}
@@ -17,6 +20,29 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
  return async request=>{const id=requestId(),json=(status,body,extra={})=>new Response(JSON.stringify(body),{status,headers:{...headers,'Content-Type':'application/json','X-Request-ID':id,...extra}});try{
   const url=new URL(request.url),path=normalizeCoachPath(url.pathname,basePath),isGoogleCallback=path==='/workspace/api/auth/google/callback';if(url.origin!==origin||!path||url.search&&!isGoogleCallback)deny('NOT_FOUND',404);
   const ip=request.headers.get('CF-Connecting-IP')||'unknown',now=clock(),old=rates.get(ip),rate=old&&now-old.at<60000?old:{at:now,count:0};rate.count++;if(path.startsWith('/workspace/api/auth/'))rate.auth=(rate.auth||0)+1;rates.set(ip,rate);for(const [key,r]of rates)if(now-r.at>=60000)rates.delete(key);if(rate.count>100||(rate.auth||0)>20||rates.size>5000)deny('RATE_LIMITED',429);
+  if(path==='/workspace/operations-preview'||path==='/workspace/operations-preview/sign-in'){
+   if(!preview)deny('NOT_FOUND',404);
+   if(request.method!=='GET')deny('METHOD_NOT_ALLOWED',405);
+   if(path.endsWith('/sign-in')){
+    if(request.headers.get('sec-fetch-site')==='cross-site')deny('ACCESS_DENIED',403);
+    if((rate.previewStarts=(rate.previewStarts||0)+1)>5)deny('RATE_LIMITED',429);
+    const browser=random(),flow=await googleAuth.start({browser,operationsPreview:true});
+    return new Response(null,{status:303,headers:{...headers,Location:flow.url,'Set-Cookie':'__Host-ss_preview_flow='+browser+'; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=600'}});
+   }
+   const owner=preview.authenticate(cookie(request,previewCookie));
+   if(owner)return json(200,await preview.read(owner));
+   const login='<!doctype html><html lang="en"><meta charset="utf-8"><title>Coach Desk operations preview</title><h1>Coach Desk operations preview</h1><p>Sign in with the linked Owner Google account to read rosters and family balances for 30 minutes.</p><a href="/coachdesk/operations-preview/sign-in">Sign in for read-only access</a></html>';
+   return new Response(login,{status:401,headers:{...headers,'Content-Type':'text/html; charset=utf-8'}});
+  }
+  if(isGoogleCallback&&url.searchParams.get('state')?.startsWith('preview.')){
+   if(!preview||request.method!=='GET')deny('NOT_FOUND',404);
+   if(url.search.length>16000||url.searchParams.getAll('state').length!==1||url.searchParams.getAll('code').length!==1||url.searchParams.has('error'))deny('GOOGLE_SIGN_IN_FAILED',401);
+   const {previewOwner}=await googleAuth.finish({state:url.searchParams.get('state'),code:url.searchParams.get('code'),browser:cookie(request,'__Host-ss_preview_flow')});
+   const h=new Headers({...headers,Location:basePath+'/operations-preview'});
+   h.append('Set-Cookie','__Host-ss_preview_flow=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0');
+   h.append('Set-Cookie',preview.issue(previewOwner));
+   return new Response(null,{status:303,headers:h});
+  }
   if(isGoogleCallback&&url.searchParams.get('state')?.startsWith('ledger.')){
    if(!gmailSync||request.method!=='GET')deny('NOT_FOUND',404);
    let outcome='cancelled';

@@ -16,6 +16,16 @@ test('public artifact includes all routes and excludes development files',()=>{
   assert(!names.some(name=>name.endsWith('.png') && !['email-star-soccer-logo.png','star-soccer-brand-master.png'].includes(name)),'Reference screenshots must not be published');
   for(const name of fs.readdirSync('.').filter(name=>name.endsWith('.html')))assert(names.includes(name),'Missing route: '+name);
   assert(fs.existsSync('_site/Star soccer/index.html'));
+  const googleTag='https://www.googletagmanager.com/gtm.js?id=GTM-K9WVBH7V';
+  for(const name of names.filter(name=>name.endsWith('.html'))){
+    const html=fs.readFileSync('_site/'+name,'utf8');
+    const excluded=['coach.html','registration-thank-you.html'].includes(name)||html.includes('data-redirect=');
+    const copies=html.split(googleTag).length-1;
+    assert.equal(copies,excluded?0:1,name+' staged tag count');
+    if(!excluded)assert.match(html,/<head>\s*<script async src="https:\/\/www\.googletagmanager\.com\/gtm\.js\?id=/,name);
+  }
+  const legacyHtml=fs.readFileSync('_site/Star soccer/index.html','utf8');
+  assert(!legacyHtml.includes(googleTag),'Legacy redirects must not load the Google tag');
   assert(fs.existsSync('_site/site.min.css'));
   assert(fs.existsSync('_site/quick-forms.css'));
   assert(fs.existsSync('_site/session-counts.js'));

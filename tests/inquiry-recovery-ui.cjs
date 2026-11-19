@@ -26,6 +26,8 @@ const recoveryStub = `window.StarFormRecovery={show(container,options){window.fi
         let mode = initialMode;
         await context.addInitScript(recoveryStub);
         await context.addInitScript(() => {
+          window.analyticsCalls = [];
+          window.gtag = (...args) => window.analyticsCalls.push(args);
           const original = window.setTimeout;
           window.setTimeout = (fn, delay, ...args) => original(fn, delay === 20000 ? 30 : delay, ...args);
         });
@@ -45,6 +47,9 @@ const recoveryStub = `window.StarFormRecovery={show(container,options){window.fi
           return route.fulfill({ status, contentType: 'application/json', body });
         });
         const page = await context.newPage(); page.setDefaultTimeout(5000); page.on('pageerror', error => errors.push(error.message));
+        const acceptedEvents = file === 'program-private-small-group.html'
+          ? [['event', 'private_inquiry_accepted', { send_to: 'G-RP4ZF0M5LN' }]]
+          : [];
         await page.goto(origin + '/' + file + '?utm_source=fictional#inquiry');
         await page.waitForFunction(() => typeof window.StarFormService?.submit === 'function');
         const form = page.locator('form[data-inquiry]'), email = form.locator('[name="email"]'), submit = form.locator('[type="submit"]');
@@ -52,7 +57,9 @@ const recoveryStub = `window.StarFormRecovery={show(container,options){window.fi
         await email.fill('fictional@example.test');
         const field = form.locator(file === 'contact.html' ? '[name="Message"]' : '[name="Youngest age"]');
         await field.fill(file === 'contact.html' ? 'Fictional inquiry details' : '8');
+        assert.deepEqual(await page.evaluate(() => window.analyticsCalls), []);
         await submit.click(); await page.waitForFunction(() => !document.querySelector('form[data-inquiry]').hasAttribute('aria-busy'));
+        assert.deepEqual(await page.evaluate(() => window.analyticsCalls), mode === 'accepted' ? acceptedEvents : []);
         assert.equal(writes.length, 1);
         assert.match(writes[0], /name="Client reference"\r\n\r\nSS-INQUIRY-[a-f0-9-]{36}/);
         assert.match(writes[0], new RegExp('name="Submission page"\\r\\n\\r\\nhttps://starsoccer\\.ca/' + file.replace('.', '\\.')));
@@ -66,6 +73,8 @@ const recoveryStub = `window.StarFormRecovery={show(container,options){window.fi
           assert.match(await form.locator('[data-feedback]').innerText(), /was submitted/);
           assert.match(await form.locator('[data-feedback]').innerText(), /reply to fictional@example\.test/);
           assert.equal(await submit.isDisabled(), true);
+          await form.evaluate(element => element.requestSubmit());
+          assert.equal(writes.length, 1);
           assert.equal(await page.evaluate(() => window.fixtureRecovery), undefined);
         } else {
           const result = await page.evaluate(() => fixtureRecovery), rejected = ['rejected', 'errors200'].includes(mode);
@@ -88,6 +97,7 @@ const recoveryStub = `window.StarFormRecovery={show(container,options){window.fi
             assert.equal(writes.length, 1, 'An uncertain outcome cannot replay from another submit event');
           }
         }
+        assert.deepEqual(await page.evaluate(() => window.analyticsCalls), mode === 'accepted' ? acceptedEvents : []);
         assert.deepEqual(errors, []); checks++; await context.close();
       }
     }

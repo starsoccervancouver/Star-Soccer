@@ -1,19 +1,20 @@
 /* One-day camp intake. A submitted request is reviewed before a place is confirmed. */
 (function () {
   'use strict';
-  const startsAt = Date.parse('2026-11-20T12:00:00-08:00');
-  const dateLink = document.getElementById('pro-d-date-link');
-  if (dateLink) {
+  const startsAt = Date.parse('2026-11-20T12:00:00-07:00');
+  function watchCutoff(update) {
     let expiryTimer;
-    function updateDateLink() {
+    function refresh() {
       clearTimeout(expiryTimer);
       const remaining = startsAt - Date.now();
-      dateLink.hidden = remaining <= 0;
-      if (remaining > 0) expiryTimer = setTimeout(updateDateLink, Math.min(remaining, 2147483647));
+      update(remaining <= 0);
+      if (remaining > 0) expiryTimer = setTimeout(refresh, Math.min(remaining, 2147483647));
     }
-    updateDateLink();
-    window.addEventListener('pageshow', updateDateLink);
+    refresh();
+    window.addEventListener('pageshow', refresh);
   }
+  const dateLink = document.getElementById('pro-d-date-link');
+  if (dateLink) watchCutoff(closed => { dateLink.hidden = closed; });
   const form = document.querySelector('[data-day-camp]');
   if (!form) return;
   const submit = form.querySelector('[type="submit"]');
@@ -36,7 +37,8 @@
     [...form.elements].forEach(control => { control.disabled = value; });
   }
   if (!window.StarFormService || !window.StarFamilyRegistration || !window.StarFormRecovery) return;
-  if (isOpen()) submit.disabled = false;
+  submit.disabled = false;
+  watchCutoff(closed => { if (closed && state === 'ready') isOpen(); });
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (state !== 'ready' || Date.now() < retryAt || !isOpen()) return;
@@ -82,7 +84,9 @@
       message('We couldn’t confirm receipt', 'Your request may have reached us. Please send the details below to our team so we can check it.');
       StarFormRecovery.show(receipt, { email: 'starsoccervancouver@gmail.com', subject: 'Please check my Pro-D camp registration', requests: [data], states: [{ name, state: 'unconfirmed', reference }], reference });
     } finally {
-      clearTimeout(timeout); receipt.focus();
+      clearTimeout(timeout);
+      if (state === 'ready' && Date.now() >= startsAt) isOpen();
+      receipt.focus();
     }
   });
   field('Player name').addEventListener('input', () => field('Player name').setCustomValidity(''));

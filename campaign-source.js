@@ -80,18 +80,25 @@
     '/boxing-camp-registration.html', '/christmas-camp-registration.html',
     '/program-private-small-group.html'
   ]);
+  const visitPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+  function withVisit(record) {
+    if(visitPattern.test(record.visitId)) return record;
+    const visitId=root.crypto?.randomUUID?.();
+    if(visitId) record.visitId=visitId;
+    storage?.setItem(landingKey,JSON.stringify(record));
+    return record;
+  }
   function readLanding(now) {
     try {
       const raw=storage?.getItem(landingKey);
       if(raw) {
         const record=JSON.parse(raw);
         if(Number.isSafeInteger(record?.time) && record.time<=now && now-record.time<maxAge)
-          return record;
+          return withVisit(record);
       }
       const pathname=root.location.pathname;
       const record={path:publicPaths.has(pathname)?pathname:null,time:now};
-      storage?.setItem(landingKey,JSON.stringify(record));
-      return storage?record:null;
+      return storage?withVisit(record):null;
     } catch { return null; }
   }
   const landing=readLanding(Date.now());
@@ -101,6 +108,10 @@
     if(landing && age>=0 && age<maxAge && publicPaths.has(landing.path))
       data.set('Landing page path',landing.path);
     else data.delete('Landing page path');
+    const registration=data.has('Client reference') || data.has('Registration reference');
+    if(registration && age>=0 && age<maxAge && landing && visitPattern.test(landing.visitId))
+      data.set('Visit ID',landing.visitId);
+    else data.delete('Visit ID');
     return data;
   }});
 })(typeof window!=='undefined'?window:globalThis);

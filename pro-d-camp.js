@@ -1,11 +1,23 @@
 /* One-day camp intake. A submitted request is reviewed before a place is confirmed. */
 (function () {
   'use strict';
+  const startsAt = Date.parse('2026-11-20T12:00:00-08:00');
+  const dateLink = document.getElementById('pro-d-date-link');
+  if (dateLink) {
+    let expiryTimer;
+    function updateDateLink() {
+      clearTimeout(expiryTimer);
+      const remaining = startsAt - Date.now();
+      dateLink.hidden = remaining <= 0;
+      if (remaining > 0) expiryTimer = setTimeout(updateDateLink, Math.min(remaining, 2147483647));
+    }
+    updateDateLink();
+    window.addEventListener('pageshow', updateDateLink);
+  }
   const form = document.querySelector('[data-day-camp]');
   if (!form) return;
   const submit = form.querySelector('[type="submit"]');
   const receipt = document.getElementById('day-camp-receipt');
-  const startsAt = Date.parse('2026-11-20T12:00:00-08:00');
   let state = 'ready', reference = '', retryAt = 0;
   const field = name => form.elements.namedItem(name);
   function message(title, text) {

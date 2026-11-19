@@ -101,3 +101,21 @@ test('browser initialization survives a denied sessionStorage getter without rea
   assert.deepEqual(Object.fromEntries(window.StarCampaignSource.append(new FormData())),{'Campaign source (URL tag)':'school'});
   assert.equal(requests,0);
 });
+
+test('the first observed path survives navigation independently of tags',()=>{
+  const items=new Map();
+  const sessionStorage={getItem:k=>items.get(k),setItem:(k,v)=>items.set(k,v),removeItem:k=>items.delete(k)};
+  function visit(pathname,search='') {
+    const window={location:{pathname,search},sessionStorage};
+    vm.runInNewContext(fs.readFileSync(require.resolve('../campaign-source.js'),'utf8'),{window,URLSearchParams});
+    return payload(window.StarCampaignSource);
+  }
+  visit('/camps.html','?email=private');
+  const result=visit('/pro-d-camp-registration.html','?utm_source=school');
+  assert.equal(result['Landing page path'],'/camps.html');
+  assert.equal(result['Campaign source (URL tag)'],'school');
+  assert.equal([...items.values()].join('').includes('private'),false);
+  items.clear();
+  visit('/unknown/private');
+  assert.equal(visit('/registration.html')['Landing page path'],undefined);
+});

@@ -1,4 +1,5 @@
 import {durableSqliteStore} from './storage.mjs';
+import {createCloudMail,gmailHost} from '../gmail-cloud.mjs';
 import {serveCoachAssets} from './coach-assets.mjs';
 import {initializeStore} from '../schema.mjs';
 import {createService} from '../service.mjs';
@@ -43,8 +44,22 @@ export default {async fetch(request,env){
 export class AttendanceCoordinator{
  constructor(ctx,env){this.ctx=ctx;this.env=env;this.tail=Promise.resolve();this.store=durableSqliteStore(ctx.storage);}
  fetch(request){const work=this.tail.catch(()=>{}).then(()=>this.handle(request)).catch(error=>{const id=requestId(),failure=logFailure(error,id,'coordinator');return new Response(JSON.stringify({error:failure.code,message:'The workspace is temporarily unavailable. Please try again.',requestId:id,retryable:failure.retryable}),{status:failure.status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex','X-Request-ID':id}});});this.tail=work.then(()=>{});return work;}
+ mail(){return this.mailSync??=createCloudMail(this.ctx.storage,this.env);}
+ alarm(){
+  if(!active(this.env)||this.env.LIVE_AIRTABLE_WRITES!=='true')return;
+  const run=this.tail.catch(()=>{}).then(()=>this.mail().cycle());this.tail=run;return run;
+ }
  async handle(request){
   if(!active(this.env))return disabled();
+  if(new URL(request.url).hostname===gmailHost){
+   if(request.method!=='POST'||this.env.LIVE_AIRTABLE_WRITES!=='true')return disabled();
+   const operation=new URL(request.url).pathname.slice(1);
+   try{return Response.json(await this.mail().handle(operation,await request.json()));}
+   catch(error){
+    const safe=['WRONG_MAILBOX','GMAIL_API_DISABLED','GOOGLE_RECONNECT','CONSENT_EXPIRED','PAYMENT_LABELS_MISSING'];
+    return Response.json({error:safe.includes(error.message)?error.message:'MAIL_CONNECTION_FAILED'},{status:400});
+   }
+  }
   if(!this.handler){
    initializeStore(this.store);this.store.run('CREATE TABLE IF NOT EXISTS runtime_state(key TEXT PRIMARY KEY,value TEXT NOT NULL)');
    const env=this.env,config=JSON.parse(env.AIRTABLE_CONFIG),identity=deploymentIdentity(env),origin=identity.origin,airtableFetch=createAirtableTransport();
@@ -65,7 +80,12 @@ export class AttendanceCoordinator{
     this.coachHandler=createCoachHandler({coaches,auth:coachAuth,origin,googleAuth:env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET?createCoachGoogleAuth({store:this.store,coaches,auth:coachAuth,origin,clientId:env.GOOGLE_CLIENT_ID,clientSecret:env.GOOGLE_CLIENT_SECRET}):null,cookieKey:env.COOKIE_KEY,overview:ownerData,familyLedger:reader.familyLedger,attendance,legacyNotes,updateAttendance:({attendanceId,status})=>{for(const s of ownerCache?.sessions||[])for(const p of s.players)if(p.attendanceId===attendanceId)p.actualAttendance=status;},assets:{...workspaceFontAssets,'/workspace/assets/views.js':{body:viewsJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/views.css':{body:viewsCSS,type:'text/css; charset=utf-8'},'/workspace/assets/groups.js':{body:groupsJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/resources.js':{body:resourcesJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/resources.css':{body:resourcesCSS,type:'text/css; charset=utf-8'},'/workspace/assets/navigation.js':{body:navigationJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/goals.js':{body:goalsJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/profiles.js':{body:profilesJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/profiles.css':{body:profilesCSS,type:'text/css; charset=utf-8'},'/workspace/assets/folders.js':{body:foldersJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/folders.css':{body:foldersCSS,type:'text/css; charset=utf-8'},'/workspace/assets/club-config.js':{body:clubJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/library.js':{body:libraryJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/library.css':{body:libraryCSS,type:'text/css; charset=utf-8'},'/workspace/assets/planner.js':{body:plannerJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/tactics.js':{body:tacticsJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/tactics.css':{body:tacticsCSS,type:'text/css; charset=utf-8'},'/workspace/assets/session.js':{body:sessionJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/session.css':{body:sessionCSS,type:'text/css; charset=utf-8'},'/workspace/assets/dictation.js':{body:dictationJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/coaching.js':{body:coachingJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/coaching.css':{body:coachingCSS,type:'text/css; charset=utf-8'},'/workspace':{body:workspace,type:'text/html; charset=utf-8'},'/workspace/':{body:workspace,type:'text/html; charset=utf-8'},'/workspace/assets/workspace.css':{body:workspaceCSS,type:'text/css; charset=utf-8'},'/workspace/assets/workspace.js':{body:workspaceJS,type:'text/javascript; charset=utf-8'},'/workspace/assets/passkeys.js':{body:passkeysJS,type:'text/javascript; charset=utf-8'}}});
     if(env.COACH_MAIN_ORIGIN==='https://starsoccer.ca'&&env.COACH_MAIN_PATH==='/coachdesk'&&env.COACH_MAIN_SIGNIN_READY==='true'){
      const mainOrigin=env.COACH_MAIN_ORIGIN,basePath=env.COACH_MAIN_PATH,mainAuth=createCoachAuth({store:this.store,coaches,origin:mainOrigin,basePath,rpName:clubConfig.name+' Coach Desk'});
-     this.mainCoachHandler=createCoachHandler({coaches,auth:mainAuth,origin:mainOrigin,basePath,googleAuth:env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET?createCoachGoogleAuth({store:this.store,coaches,auth:mainAuth,origin:mainOrigin,basePath,clientId:env.GOOGLE_CLIENT_ID,clientSecret:env.GOOGLE_CLIENT_SECRET}):null,cookieKey:env.COOKIE_KEY,overview:ownerData,familyLedger:reader.familyLedger,attendance,legacyNotes,updateAttendance:({attendanceId,status})=>{for(const s of ownerCache?.sessions||[])for(const p of s.players)if(p.attendanceId===attendanceId)p.actualAttendance=status;},assets:{}});
+     const gmailSync=!this.coachOnly&&env.LIVE_AIRTABLE_WRITES==='true'&&env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET?async(op,payload={})=>{
+      const target=env.ATTENDANCE_COORDINATOR.get(env.ATTENDANCE_COORDINATOR.idFromName('private-gmail-ledger-v1'));
+      const response=await target.fetch('https://'+gmailHost+'/'+op,{method:'POST',body:JSON.stringify(payload)});
+      const value=await response.json();if(!response.ok)throw Error(value.error);return value;
+     }:null;
+     this.mainCoachHandler=createCoachHandler({coaches,gmailSync,auth:mainAuth,origin:mainOrigin,basePath,googleAuth:env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET?createCoachGoogleAuth({store:this.store,coaches,auth:mainAuth,origin:mainOrigin,basePath,clientId:env.GOOGLE_CLIENT_ID,clientSecret:env.GOOGLE_CLIENT_SECRET}):null,cookieKey:env.COOKIE_KEY,overview:ownerData,familyLedger:reader.familyLedger,attendance,legacyNotes,updateAttendance:({attendanceId,status})=>{for(const s of ownerCache?.sessions||[])for(const p of s.players)if(p.attendanceId===attendanceId)p.actualAttendance=status;},assets:{}});
     }
    }
    const liveHTML=html.replace(/<p class="demo-note">[\s\S]*?<\/p>/,'');

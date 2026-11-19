@@ -8,7 +8,7 @@ const random=()=>randomBytes(32).toString('base64url');
 const same=(a,b)=>{const x=Buffer.from(a||''),y=Buffer.from(b||'');return x.length===y.length&&timingSafeEqual(x,y);};
 const cookie=(request,name)=>request.headers.get('cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith(name+'='))?.slice(name.length+1);
 const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow','Strict-Transport-Security':'max-age=31536000','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'",'Permissions-Policy':'publickey-credentials-create=(self), publickey-credentials-get=(self), camera=(), microphone=(self), geolocation=()'};
-export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
+export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger,gmailSync=null,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
  origin=validateWorkspaceOrigin(origin);basePath=validateCoachPath(basePath);
  const sign=v=>createHmac('sha256',cookieKey).update(v).digest('base64url'),rates=new Map();
 
@@ -17,6 +17,15 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
  return async request=>{const id=requestId(),json=(status,body,extra={})=>new Response(JSON.stringify(body),{status,headers:{...headers,'Content-Type':'application/json','X-Request-ID':id,...extra}});try{
   const url=new URL(request.url),path=normalizeCoachPath(url.pathname,basePath),isGoogleCallback=path==='/workspace/api/auth/google/callback';if(url.origin!==origin||!path||url.search&&!isGoogleCallback)deny('NOT_FOUND',404);
   const ip=request.headers.get('CF-Connecting-IP')||'unknown',now=clock(),old=rates.get(ip),rate=old&&now-old.at<60000?old:{at:now,count:0};rate.count++;if(path.startsWith('/workspace/api/auth/'))rate.auth=(rate.auth||0)+1;rates.set(ip,rate);for(const [key,r]of rates)if(now-r.at>=60000)rates.delete(key);if(rate.count>100||(rate.auth||0)>20||rates.size>5000)deny('RATE_LIMITED',429);
+  if(isGoogleCallback&&url.searchParams.get('state')?.startsWith('ledger.')){
+   if(!gmailSync||request.method!=='GET')deny('NOT_FOUND',404);
+   let outcome='cancelled';
+   if(!url.searchParams.has('error')){
+    try{await gmailSync('finish',{state:url.searchParams.get('state'),code:url.searchParams.get('code'),browser:cookie(request,'__Host-ss_mail_consent')});outcome='connected';}
+    catch(error){outcome=['WRONG_MAILBOX','GMAIL_API_DISABLED','GOOGLE_RECONNECT','CONSENT_EXPIRED','PAYMENT_LABELS_MISSING'].includes(error.message)?error.message:'connection-failed';}
+   }
+   return new Response(null,{status:303,headers:{...headers,Location:basePath+'#view=settings&gmail='+outcome,'Set-Cookie':'__Host-ss_mail_consent=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'}});
+  }
   if(isGoogleCallback){
    if(!googleAuth||request.method!=='GET')deny('NOT_FOUND',404);
    const cleared='__Host-ss_google_flow=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0';
@@ -44,6 +53,17 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    return json(200,{profile:result.profile,csrfToken:result.csrf},{'Set-Cookie':'__Host-ss_staff='+result.token+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=43200'});
   }
   if(!signed)deny('SIGN_IN_REQUIRED',401);const actor=signed.actor;
+  if(path.startsWith('/workspace/api/gmail-sync/')){
+   coaches.owner(actor);
+   if(!gmailSync)deny('NOT_FOUND',404);
+   const action=path.slice('/workspace/api/gmail-sync/'.length);
+   if(action==='status'&&request.method==='GET')return json(200,await gmailSync('status'));
+   if(request.method!=='POST'||!['connect','disconnect'].includes(action))deny('NOT_FOUND',404);
+   await body(request,[]);
+   if(action==='disconnect')return json(200,await gmailSync('disconnect'));
+   const consent=await gmailSync('start');
+   return json(200,{url:consent.url},{'Set-Cookie':'__Host-ss_mail_consent='+consent.browser+'; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600'});
+  }
   if(path==='/workspace/api/families'&&request.method==='GET'){
    coaches.requireFamilyAccess(actor);
    return json(200,{families:await familyLedger.directory()});
@@ -56,7 +76,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    if(!family)deny('FAMILY_NOT_FOUND',404);
    return json(200,{family});
   }
-  if(path==='/workspace/api/desk'&&request.method==='GET'){const data=coaches.scope(actor,await overview({}));return json(200,{...data,notes:coaches.notes(actor),tasks:coaches.tasks(actor)});}
+  if(path==='/workspace/api/desk'&&request.method==='GET'){const data=coaches.scope(actor,await overview({}));return json(200,{...data,...(gmailSync&&actor.role==='owner'?{gmailSyncAvailable:true}:{}),notes:coaches.notes(actor),tasks:coaches.tasks(actor)});}
   if(path==='/workspace/api/audit'&&request.method==='GET')return json(200,{events:coaches.audit(actor)});
   if(path==='/workspace/api/users'&&request.method==='GET')return json(200,{users:coaches.users(actor),credentials:auth.credentialSummary(actor)});
   if(path==='/workspace/api/coaching-team'&&request.method==='GET')return json(200,{coaches:coaches.coachingTeam(actor)});

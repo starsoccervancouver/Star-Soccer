@@ -1,0 +1,160 @@
+import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypto';
+import {Buffer} from 'node:buffer';
+import {classifyMessage} from './gmail-message.mjs';
+import {airtableClient,syncLedgerEvent} from './gmail-ledger.mjs';
+import {createAirtableTransport} from './airtable-transport.mjs';
+import {STAR_SOCCER_OWNER} from './deployment-config.mjs';
+
+const scope='https://www.googleapis.com/auth/gmail.readonly';
+const root='https://gmail.googleapis.com/gmail/v1/users/me/';
+const every=300000, googleToken='https://oauth2.googleapis.com/token';
+const random=()=>randomBytes(32).toString('base64url');
+const hash=s=>createHash('sha256').update(s).digest('base64url');
+const redirect='https://starsoccer.ca/coachdesk/api/auth/google/callback';
+export const gmailHost='gmail-sync.internal';
+function seal(value, secret) {
+  const iv=randomBytes(12),key=createHash('sha256').update('gmail-offline-v1:'+secret).digest();
+  const cipher=createCipheriv('aes-256-gcm',key,iv);
+  const data=Buffer.concat([cipher.update(value,'utf8'),cipher.final()]);
+  return [iv,cipher.getAuthTag(),data].map(v=>v.toString('base64url')).join('.');
+}
+function open(value,secret) {
+  const [iv,tag,data]=value.split('.').map(v=>Buffer.from(v,'base64url'));
+  const key=createHash('sha256').update('gmail-offline-v1:'+secret).digest();
+  const cipher=createDecipheriv('aes-256-gcm',key,iv);cipher.setAuthTag(tag);
+  return Buffer.concat([cipher.update(data),cipher.final()]).toString('utf8');
+}
+export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
+  const ledger=airtableClient(JSON.parse(env.AIRTABLE_CONFIG),env.AIRTABLE_TOKEN,createAirtableTransport({fetchFn}));
+  async function token(grant){
+    const res=await fetchFn(googleToken,{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),body:new URLSearchParams({...grant,client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET})});
+    const data=await res.json();
+    if(!res.ok||!data.access_token)throw Error(data.error==='invalid_grant'?'GOOGLE_RECONNECT':'GOOGLE_TOKEN_FAILED');
+    return data;
+  }
+  async function gmail(access,path,params=[]) {
+    const url=new URL(path,root); for(const [key,value] of params)url.searchParams.append(key,value);
+    const r=await fetchFn(url,{redirect:'error',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+access}});
+    if(!r.ok){
+      if(r.status===403){const data=await r.json().catch(()=>({}));if((data.error?.details||[]).some(d=>d.reason==='SERVICE_DISABLED')||data.error?.errors?.some(d=>d.reason==='accessNotConfigured'))throw Error('GMAIL_API_DISABLED');}
+      throw Error('GMAIL_'+r.status);
+    }
+    return r.json();
+  }
+  async function bootstrap(access,prior) {
+    const profile=await gmail(access,'profile');
+    if(profile.emailAddress?.toLowerCase()!==STAR_SOCCER_OWNER||!profile.historyId)throw Error('WRONG_MAILBOX');
+    return {phase:'recent',start:prior?.lastScan||prior?.start||clock()-86400000,history:profile.historyId};
+  }
+  async function ensureLabels(access){
+    const data=await gmail(access,'labels'),labels=Object.fromEntries(data.labels.map(l=>[l.name,l.id]));
+    if(!labels.Deposited)throw Error('PAYMENT_LABELS_MISSING');
+    return labels;
+  }
+  async function enqueue(ids,scan){
+    await storage.transaction(async tx=>{
+      for(const id of new Set(ids))if(/^[a-zA-Z0-9_-]{1,100}$/.test(id))await tx.put('q:'+id,true);
+      await tx.put('scan',scan);
+    });
+  }
+  async function scanPage(access,scan,labels){
+    const params=[['maxResults','50']];if(scan.page)params.push(['pageToken',scan.page]);
+    if(scan.phase!=='history'){
+      if(scan.phase==='recent')params.push(['q','after:'+Math.floor((scan.start-300000)/1000)+' -in:sent -in:drafts -in:spam -in:trash']);
+      else params.push(['labelIds',labels.Deposited]);
+      const data=await gmail(access,'messages',params);
+      const next={...scan,page:data.nextPageToken||''};
+      if(!data.nextPageToken)next.phase=scan.phase==='recent'?'deposits':'history';
+      await enqueue((data.messages||[]).map(m=>m.id),next);return;
+    }
+    let data;
+    try{data=await gmail(access,'history',[...params,['startHistoryId',scan.history],['historyTypes','messageAdded'],['historyTypes','labelAdded']]);}
+    catch(err){if(err.message!=='GMAIL_404')throw err;await storage.put('scan',await bootstrap(access,scan));return;}
+    const relevant=new Set(['Deposited','Payments - Incoming','Leads','Registrations'].map(k=>labels[k]).filter(Boolean));
+    const ids=[];
+    for(const change of data.history||[]){
+      for(const added of change.messagesAdded||[])ids.push(added.message.id);
+      for(const add of change.labelsAdded||[])if(add.labelIds.some(id=>relevant.has(id)))ids.push(add.message.id);
+    }
+    if(!data.historyId)throw Error('GMAIL_HISTORY_INCOMPLETE');
+    await enqueue(ids,data.nextPageToken?{...scan,page:data.nextPageToken}:{phase:'history',history:data.historyId,lastScan:clock()});
+  }
+  async function cycle(){
+    const encrypted=await storage.get('refresh');if(!encrypted)return;
+    // Schedule before external calls so a Worker interruption cannot stop the loop.
+    await storage.setAlarm(clock()+every);
+    try{
+      const credentials=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
+      if(credentials.refresh_token)await storage.put('refresh',seal(credentials.refresh_token,env.COOKIE_KEY));
+      const access=credentials.access_token,labels=await ensureLabels(access);
+      let pending=await storage.list({prefix:'q:',limit:1});
+      if(!pending.size){
+        const scan=await storage.get('scan')||await bootstrap(access);
+        await scanPage(access,scan,labels);
+        pending=await storage.list({prefix:'q:',limit:1});
+      }
+      for(const key of pending.keys()){
+        let message;
+        try{message=await gmail(access,'messages/'+key.slice(2),[['format','full']]);}
+        catch(err){if(err.message!=='GMAIL_404')throw err;}
+        if(message){
+          try{await syncLedgerEvent(ledger,classifyMessage(message,labels,STAR_SOCCER_OWNER));}
+          catch(err){
+            if(!/^AIRTABLE_/.test(err.message))throw err;
+            const id=key.slice(2);
+            await storage.transaction(async tx=>{
+              await tx.put('retry:'+id,{after:clock()+every,error:/^AIRTABLE_\d{3}$/.test(err.message)?err.message:'AIRTABLE_RETRY'});
+              await tx.delete(key);
+            });
+            continue;
+          }
+        }
+        await storage.delete([key,'retry:'+key.slice(2)]);
+      }
+      const state=await storage.get('scan');
+      const retries=await storage.list({prefix:'retry:'});
+      for(const [key,retry] of retries)if(retry.after<=clock())await storage.put('q:'+key.slice(6),true);
+      await storage.put('report',{lastCheck:new Date(clock()).toISOString(),error:retries.size?retries.values().next().value.error:null,pendingRetries:retries.size});
+      if(pending.size||state?.phase!=='history'||state.page)await storage.setAlarm(clock()+3000);
+    }catch(err){
+      const allowed=/^(AIRTABLE_\d{3}|GMAIL_\d{3}|GMAIL_API_DISABLED|PAYMENT_LABELS_MISSING|GOOGLE_RECONNECT|GOOGLE_TOKEN_FAILED)$/;
+      const report=await storage.get('report')||{};
+      await storage.put('report',{...report,error:allowed.test(err.message)?err.message:'SYNC_RETRY'});
+    }
+  }
+  async function handle(op,payload){
+    if(op==='status'){
+      const report=await storage.get('report')||{};
+      return {connected:!!await storage.get('refresh'),...report};
+    }
+    if(op==='start'){
+      const state='ledger.'+random(),browser=random(),verifier=random();
+      await storage.put('consent',{state:hash(state),browser:hash(browser),verifier,expires:clock()+600000});
+      const url=new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      url.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:redirect,response_type:'code',scope,state,code_challenge:hash(verifier),code_challenge_method:'S256',access_type:'offline',prompt:'consent',login_hint:STAR_SOCCER_OWNER}).toString();
+      return {url:url.href,browser};
+    }
+    if(op==='finish'){
+      const pending=await storage.get('consent');
+      if(!pending||pending.expires<clock()||!payload.code||pending.state!==hash(payload.state||'')||pending.browser!==hash(payload.browser||''))throw Error('CONSENT_EXPIRED');
+      await storage.delete('consent');
+      const grant=await token({grant_type:'authorization_code',code:payload.code,code_verifier:pending.verifier,redirect_uri:redirect});
+      if(!grant.refresh_token||!grant.scope?.split(' ').includes(scope))throw Error('GOOGLE_RECONNECT');
+      const initial=await bootstrap(grant.access_token,await storage.get('scan'));
+      await ensureLabels(grant.access_token);
+      await storage.transaction(async tx=>{
+        await tx.put('refresh',seal(grant.refresh_token,env.COOKIE_KEY));
+        if(!await tx.get('scan'))await tx.put('scan',initial);
+        await tx.put('report',{error:null});
+        await tx.setAlarm(clock()+1000);
+      });
+      return {connected:true};
+    }
+    if(op==='disconnect'){
+      await storage.delete(['refresh','consent']);await storage.deleteAlarm();
+      await storage.delete('report');return {connected:false};
+    }
+    throw Error('INVALID_ACTION');
+  }
+  return {cycle,handle};
+}

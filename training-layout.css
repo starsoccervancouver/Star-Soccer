@@ -31,6 +31,7 @@ body.training-compact article:is(.schedule-entry,.training-event-card) {
   display:flex;flex-direction:column;min-width:0;overflow:hidden;scroll-margin-top:116px;
   background:#10253a;border:1px solid #314b61;border-radius:16px;box-shadow:0 4px 14px #00000014;
 }
+body.training-compact #session-tuesday-title {margin:16px 18px 0;font-size:1.15rem;line-height:1.4}
 body.training-compact article.training-event-card {border-color:#7c654e;background:linear-gradient(135deg,#202d38,#10253a 70%)}
 body.training-compact article:is(.schedule-entry,.training-event-card) .schedule-entry-main {
   display:grid;flex:1;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:14px;padding:18px;

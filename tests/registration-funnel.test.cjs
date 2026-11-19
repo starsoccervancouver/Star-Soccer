@@ -30,3 +30,31 @@ test('only accepted weekly and camp registrations go to GA4 using category field
   window.gtag=()=>{throw new Error('Analytics unavailable');};
   assert.doesNotThrow(()=>window.StarFunnel.track('submission_accepted',{program:'camp',kind:'dropin'}));
 });
+
+test('winter camp clicks and first form interaction send only the selected week',()=>{
+  const fs=require('node:fs'),vm=require('node:vm');
+  const code=fs.readFileSync(require.resolve('../registration-funnel.js'),'utf8');
+  const calls=[];
+  function open(file,form) {
+    const handlers={};
+    vm.runInNewContext(code,{
+      window:{gtag:(...args)=>calls.push(args),dispatchEvent(){}},
+      location:{pathname:'/'+file,origin:'https://starsoccer.ca'},
+      document:{readyState:'complete',addEventListener:(key,fn)=>handlers[key]=fn,querySelector:()=>form},
+      CustomEvent:class {},URL
+    });
+    return handlers;
+  }
+  const {click}=open('camps.html',null);
+  for(const url of ['https://example.com/boxing-camp-registration.html','https://starsoccer.ca/contact.html','https://starsoccer.ca/christmas-camp-registration.html?kind=dropin','https://starsoccer.ca/boxing-camp-registration.html']) {
+    click({target:{closest:()=>({href:url})}});
+  }
+  const handlers={};
+  open('boxing-camp-registration.html',{addEventListener:(key,fn)=>handlers[key]=fn});
+  handlers.input();handlers.change();handlers.submit();
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)),[
+    ['event','winter_camp_signup_click',{send_to:'G-RP4ZF0M5LN',camp_week:'christmas'}],
+    ['event','winter_camp_signup_click',{send_to:'G-RP4ZF0M5LN',camp_week:'boxing'}],
+    ['event','winter_camp_form_start',{send_to:'G-RP4ZF0M5LN',camp_week:'boxing'}]
+  ]);
+});

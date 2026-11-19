@@ -17,3 +17,9 @@ export function logFailure(error,id,operation='coach-request'){
  console.warn(JSON.stringify({event:'coach_request_failed',requestId:id,operation,error:failure.code,status:failure.status,retryable:failure.retryable}));
  return failure;
 }
+
+export function mailConnectionError(error) {
+ const code=error?.message;
+ const known=['WRONG_MAILBOX','GMAIL_API_DISABLED','GOOGLE_RECONNECT','GOOGLE_TOKEN_FAILED','CONSENT_EXPIRED','PAYMENT_LABELS_MISSING'];
+ return known.includes(code)||/^(GMAIL|AIRTABLE)_[345]\d{2}$/.test(code)?code:'connection-failed';
+}

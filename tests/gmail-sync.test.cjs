@@ -55,7 +55,9 @@ test('no background access until consent and a separate signed-in owner flow',as
  const {createCloudMail}=await import('../private-attendance/gmail-cloud.mjs');const records=new Map();let alarm=0,calls=0;
  const storage={get:async k=>records.get(k),put:async(k,v)=>records.set(k,v),delete:async k=>(Array.isArray(k)?k:[k]).forEach(n=>records.delete(n)),transaction:async fn=>fn(storage),setAlarm:async n=>{alarm=n},deleteAlarm:async()=>{alarm=0},list:async({prefix,limit})=>new Map([...records].filter(([k])=>k.startsWith(prefix)).slice(0,limit))};
  const {STAR_SOCCER_OWNER}=await import('../private-attendance/deployment-config.mjs');
- const mock=async u=>{calls++;const url=new URL(u);
+ const mock=async (u,options)=>{calls++;const url=new URL(u);
+ assert.equal(options.redirect,'manual');
+ if(url.hostname==='oauth2.googleapis.com'){assert.equal(options.headers['Content-Type'],'application/x-www-form-urlencoded');assert.ok(new URLSearchParams(options.body).has('grant_type'));}
  if(url.hostname==='oauth2.googleapis.com')return Response.json({access_token:'access',refresh_token:'fixture-refresh',scope:'https://www.googleapis.com/auth/gmail.readonly'});
  if(url.pathname.endsWith('/profile'))return Response.json({emailAddress:STAR_SOCCER_OWNER,historyId:'290'});
  if(url.pathname.endsWith('/labels'))return Response.json({labels:Object.entries(ids).map(([name,id])=>({name,id}))});

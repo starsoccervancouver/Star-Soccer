@@ -8,7 +8,7 @@ const cents = value => Number.isFinite(value) ? Math.round(value*100) : null;
 const words = (source,term) => !!term && (' '+normalize(source)+' ').includes(' '+normalize(term)+' ');
 export function airtableClient(config, token, fetchFn=fetch) {
   async function request(url,options={}) {
-    const res=await fetchFn(url,{...options,redirect:'error',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}});
+    const res=await fetchFn(url,{...options,redirect:'manual',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}});
     if(!res.ok) throw Error('AIRTABLE_'+res.status);
     return res.json();
   }

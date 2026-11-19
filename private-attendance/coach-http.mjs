@@ -1,7 +1,7 @@
 import {randomBytes,createHmac,timingSafeEqual} from 'node:crypto';
 import {Buffer} from 'node:buffer';
 import {deny} from './coach-store.mjs';
-import {requestId,logFailure} from './coach-diagnostics.mjs';
+import {requestId,logFailure,mailConnectionError} from './coach-diagnostics.mjs';
 import {validateWorkspaceOrigin} from './deployment-config.mjs';
 import {validateCoachPath,normalizeCoachPath} from './coach-path.mjs';
 const random=()=>randomBytes(32).toString('base64url');
@@ -22,7 +22,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    let outcome='cancelled';
    if(!url.searchParams.has('error')){
     try{await gmailSync('finish',{state:url.searchParams.get('state'),code:url.searchParams.get('code'),browser:cookie(request,'__Host-ss_mail_consent')});outcome='connected';}
-    catch(error){outcome=['WRONG_MAILBOX','GMAIL_API_DISABLED','GOOGLE_RECONNECT','CONSENT_EXPIRED','PAYMENT_LABELS_MISSING'].includes(error.message)?error.message:'connection-failed';}
+    catch(error){outcome=mailConnectionError(error);}
    }
    return new Response(null,{status:303,headers:{...headers,Location:basePath+'#view=settings&gmail='+outcome,'Set-Cookie':'__Host-ss_mail_consent=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'}});
   }

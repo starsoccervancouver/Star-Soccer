@@ -61,7 +61,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    if(request.method!=='POST'||!['connect','disconnect'].includes(action))deny('NOT_FOUND',404);
    await body(request,[]);
    if(action==='disconnect')return json(200,await gmailSync('disconnect'));
-   const consent=await gmailSync('start');
+   const consent=await gmailSync('start',{ownerAddress:actor.displayEmail||actor.email});
    return json(200,{url:consent.url},{'Set-Cookie':'__Host-ss_mail_consent='+consent.browser+'; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600'});
   }
   if(path==='/workspace/api/families'&&request.method==='GET'){

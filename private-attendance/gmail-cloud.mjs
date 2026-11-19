@@ -41,9 +41,22 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }
     return r.json();
   }
-  async function bootstrap(access,prior) {
+  async function bootstrap(access,prior,allowedAddress,checkRename=false) {
     const profile=await gmail(access,'profile');
-    if(profile.emailAddress?.toLowerCase()!==STAR_SOCCER_OWNER||!profile.historyId)throw Error('WRONG_MAILBOX');
+    const address=profile.emailAddress?.toLowerCase();
+    if(!address||![STAR_SOCCER_OWNER,allowedAddress].includes(address)||!profile.historyId)throw Error('WRONG_MAILBOX');
+    if(checkRename&&address!==STAR_SOCCER_OWNER){
+      // A Workspace rename can preserve this owner's Google identity. Confirm
+      // that the account still holds an actual registration from this ledger.
+      const rows=await ledger.list('registrations',['Source Gmail ID']);
+      const ids=[...new Set(rows.map(row=>row.fields['Source Gmail ID']).filter(id=>/^[a-f0-9]{12,32}$/i.test(id)))].slice(-5);
+      let found=false;
+      for(const id of ids){
+        try{if((await gmail(access,'messages/'+id,[['format','minimal']])).id===id){found=true;break;}}
+        catch(error){if(error.message!=='GMAIL_404')throw error;}
+      }
+      if(!found)throw Error('WRONG_MAILBOX');
+    }
     return {phase:'recent',start:prior?.lastScan||prior?.start||clock()-86400000,history:profile.historyId};
   }
   async function ensureLabels(access){
@@ -69,7 +82,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }
     let data;
     try{data=await gmail(access,'history',[...params,['startHistoryId',scan.history],['historyTypes','messageAdded'],['historyTypes','labelAdded']]);}
-    catch(err){if(err.message!=='GMAIL_404')throw err;await storage.put('scan',await bootstrap(access,scan));return;}
+    catch(err){if(err.message!=='GMAIL_404')throw err;await storage.put('scan',await bootstrap(access,scan,await storage.get('ownerAddress')));return;}
     const relevant=new Set(['Deposited','Payments - Incoming','Leads','Registrations'].map(k=>labels[k]).filter(Boolean));
     const ids=[];
     for(const change of data.history||[]){
@@ -89,7 +102,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const access=credentials.access_token,labels=await ensureLabels(access);
       let pending=await storage.list({prefix:'q:',limit:1});
       if(!pending.size){
-        const scan=await storage.get('scan')||await bootstrap(access);
+        const scan=await storage.get('scan')||await bootstrap(access,null,await storage.get('ownerAddress'));
         await scanPage(access,scan,labels);
         pending=await storage.list({prefix:'q:',limit:1});
       }
@@ -129,9 +142,10 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }
     if(op==='start'){
       const state='ledger.'+random(),browser=random(),verifier=random();
-      await storage.put('consent',{state:hash(state),browser:hash(browser),verifier,expires:clock()+600000});
+      const ownerAddress=payload.ownerAddress?.toLowerCase()||STAR_SOCCER_OWNER;
+      await storage.put('consent',{state:hash(state),browser:hash(browser),verifier,ownerAddress,expires:clock()+600000});
       const url=new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      url.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:redirect,response_type:'code',scope,state,code_challenge:hash(verifier),code_challenge_method:'S256',access_type:'offline',prompt:'consent',login_hint:STAR_SOCCER_OWNER}).toString();
+      url.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:redirect,response_type:'code',scope,state,code_challenge:hash(verifier),code_challenge_method:'S256',access_type:'offline',prompt:'consent',login_hint:ownerAddress}).toString();
       return {url:url.href,browser};
     }
     if(op==='finish'){
@@ -140,10 +154,11 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       await storage.delete('consent');
       const grant=await token({grant_type:'authorization_code',code:payload.code,code_verifier:pending.verifier,redirect_uri:redirect});
       if(!grant.refresh_token||!grant.scope?.split(' ').includes(scope))throw Error('GOOGLE_RECONNECT');
-      const initial=await bootstrap(grant.access_token,await storage.get('scan'));
+      const initial=await bootstrap(grant.access_token,await storage.get('scan'),pending.ownerAddress,true);
       await ensureLabels(grant.access_token);
       await storage.transaction(async tx=>{
         await tx.put('refresh',seal(grant.refresh_token,env.COOKIE_KEY));
+        await tx.put('ownerAddress',pending.ownerAddress);
         if(!await tx.get('scan'))await tx.put('scan',initial);
         await tx.put('report',{error:null});
         await tx.setAlarm(clock()+1000);

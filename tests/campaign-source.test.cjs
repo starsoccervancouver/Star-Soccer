@@ -119,3 +119,26 @@ test('the first observed path survives navigation independently of tags',()=>{
   visit('/unknown/private');
   assert.equal(visit('/registration.html')['Landing page path'],undefined);
 });
+
+test('registrations retain a random visit ID across pages and retries until expiry',()=>{
+  const items=new Map(), storage={getItem:k=>items.get(k),setItem:(k,v)=>items.set(k,v)};
+  let time=now;
+  const open=pathname=>{
+    const window={location:{pathname,search:'?visitId=ignore-me'},sessionStorage:storage,crypto:require('node:crypto').webcrypto};
+    vm.runInNewContext(fs.readFileSync(require.resolve('../campaign-source.js'),'utf8'),{window,URLSearchParams,Date:{now:()=>time}});
+    return window.StarCampaignSource;
+  };
+  const data=new FormData();
+  open('/camps.html').append(data);
+  assert.equal(data.has('Visit ID'),false);
+  data.set('Client reference','test');
+  const page=open('/registration.html');
+  const id=page.append(data).get('Visit ID');
+  assert.match(id,/^[a-f0-9-]{36}$/);
+  data.delete('Client reference');data.set('Registration reference','test-day');
+  assert.equal(open('/pro-d-camp-registration.html').append(data).get('Visit ID'),id);
+  assert.deepEqual(page.append(data).getAll('Visit ID'),[id]);
+  time+=C.maxAge;
+  assert.equal(page.append(data).has('Visit ID'),false);
+  assert.notEqual(open('/registration.html').append(data).get('Visit ID'),id);
+});

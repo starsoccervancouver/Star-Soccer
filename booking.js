@@ -173,6 +173,12 @@
     const smallGroup=()=>formats.some(el=>el.checked && el.value==='smallgroup');
     const applyFormat=()=>{
       const group=smallGroup(),min=group?6:1,max=group?18:5;
+      const playerHelp=document.getElementById('private-player-help');
+      if(playerHelp) {
+        playerHelp.hidden=group;
+        if(group)players.removeAttribute('aria-describedby');
+        else players.setAttribute('aria-describedby',playerHelp.id);
+      }
       players.min=String(min);players.max=String(max);
       if(!Number.isSafeInteger(Number(players.value)) || Number(players.value)<min || Number(players.value)>max)players.value=String(min);
       // Let the shared number stepper refresh its boundary buttons as well.

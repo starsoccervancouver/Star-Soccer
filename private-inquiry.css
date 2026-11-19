@@ -47,6 +47,15 @@ body.private-registration .flow-surface .quick-player-row.ss-number-row {
   align-items: start;
   gap: 10px;
 }
+body.private-registration .quick-player-row:has(#private-player-help) { row-gap: 2px; }
+#private-player-help {
+  grid-column: 1 / -1;
+  justify-self: end;
+  color: #c5d6e2;
+  font-size: .76rem;
+  line-height: 1.35;
+  text-wrap: balance;
+}
 body.private-registration .flow-surface #private-estimate {
   margin: 0 0 2px;
   padding: 0;
@@ -137,6 +146,7 @@ body.private-registration .private-goals-grid p { font-size: .9rem; }
   body.private-registration .private-training-options > section + section { border-left: 0; border-top: 1px solid #45617a; padding: 24px 0 0; }
 }
 @media (max-width: 540px) {
+  body.private-registration #private-inquiry:has(#private-player-help:not([hidden])) { row-gap: 5px; }
   body.private-registration .quick-panel h1 { font-size: 1.55rem; }
   body.private-registration .quick-context { margin-bottom: 12px; font-size: .82rem; }
   body.private-registration .registration-info-content { padding: 18px; }

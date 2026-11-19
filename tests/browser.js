@@ -273,10 +273,15 @@
     check(doc.querySelector('select[name="Topic"]')?.value==="Tuesday women's soccer" && doc.querySelector('select[name="Topic"]').closest('details')?.open,'Adult Tuesday enquiry preselects the correct contact topic');
     doc=await load('registration.html?sessionId=camp-u4-u6&type=dropin');
     check(doc.querySelector('#training-registration').hidden && doc.querySelector('#registration-status').textContent.includes('no longer available'),'Retired camp registration is rejected');
+    frame.contentWindow.sessionStorage.removeItem('star-soccer-landing-v1');
     doc=await load('index.html?utm_source=local-guide&utm_medium=directory&utm_campaign=winter2026&email=private%40example.invalid');
     const campaignPreview=new frame.contentWindow.FormData();
     frame.contentWindow.StarCampaignSource.append(campaignPreview);
-    check(campaignPreview.get('Campaign source (URL tag)')==='local-guide' && campaignPreview.get('Campaign medium (URL tag)')==='directory' && campaignPreview.get('Campaign name (URL tag)')==='winter2026' && [...campaignPreview].length===3,'Landing page retains only explicit campaign labels without forwarding unrelated personal URL values');
+    check(campaignPreview.get('Campaign source (URL tag)')==='local-guide' &&
+      campaignPreview.get('Campaign medium (URL tag)')==='directory' &&
+      campaignPreview.get('Campaign name (URL tag)')==='winter2026' &&
+      campaignPreview.get('Landing page path')==='/index.html' &&
+      [...campaignPreview].length===4,'Landing page retains only explicit campaign labels and the public path without forwarding personal URL values');
     doc=await load('registration.html?sessionId=wednesday&type=pass4');
     check(doc.querySelector('#quick-dropin-summary').hidden,'Pass registration uses its existing pass summary without a second drop-in price');
     const win=frame.contentWindow,form=doc.querySelector('form');

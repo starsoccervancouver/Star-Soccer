@@ -49,6 +49,7 @@ export async function syncLedgerEvent(db,event) {
     }
     return db.save('intake',fields,{key:'Message ID'});
   }
+  if(e.type==='payment' && existingIntake?.fields.Review==='Ignore')return;
   if(e.type==='payment')return payment(db,e,intake,existingIntake);
   const families=e.contact?await db.list('families',['Email','Secondary guardian email','Guardian name'], 'OR('+exact('Email',e.contact)+','+exact('Secondary guardian email',e.contact)+')'):[];
   let family=families.length===1?families[0]:null;
@@ -75,7 +76,7 @@ async function payment(db,e,intake,existingIntake) {
   if(!e.verified)return review('Deposited label present. Verify notification source, transfer reference and CAD amount.');
   const source='INTERAC-'+e.ref, amount=cents(e.amount);
   const holds=existingIntake?.fields;
-  const receipts=await db.list('payments',['Family','Amount CAD','Payment reference','Verification','Source payment ID','Evidence reference','Allocation requested CAD','Verified signed CAD','Payment context','Payment Allocations']);
+  const receipts=await db.list('payments',['Family','Family reference','Amount CAD','Payment reference','Verification','Source payment ID','Evidence reference','Allocation requested CAD','Verified signed CAD','Payment context','Payment Allocations']);
   const identified=receipts.filter(p=>[source,e.id,'gmail:'+e.id].includes(p.fields['Source payment ID'])||[e.id,e.ref].some(k=>(p.fields['Evidence reference']||'').includes(k)));
   if(identified.length>1 || identified.some(p=>cents(p.fields['Amount CAD'])!==amount))return review('Conflicting receipt evidence. Review the existing payment records.');
   let receipt=identified[0];
@@ -107,7 +108,7 @@ async function payment(db,e,intake,existingIntake) {
     if(posted.length&&posted.every(a=>a.fields['Review status']==='Verified allocation')&&posted.reduce((total,a)=>total+(cents(a.fields['Applied CAD'])||0),0)===amount)return matched();
     return review('Verified receipt has existing allocations. Review the applied amounts before making changes.',family);
   }
-  const bookings=await db.list('bookings',['Booking reference','Family','Player','Booking status','Charge review','Balance CAD','Covered dates','Start date','Accepted date']);
+  const bookings=await db.list('bookings',['Booking reference','Family','Family reference','Payment Allocations','Player','Booking status','Charge review','Balance CAD','Covered dates','Start date','Accepted date']);
   const registrations=await db.list('registrations',['Family','Reference','Booking']);
   const linked=new Set(registrations.filter(r=>r.fields.Family?.includes(family.id)&&words(e.memo,r.fields.Reference)).flatMap(r=>r.fields.Booking||[]));
   const own=bookings.filter(b=>b.fields.Family?.length===1&&b.fields.Family[0]===family.id);
@@ -121,6 +122,17 @@ async function payment(db,e,intake,existingIntake) {
   const allocations=await db.list('allocations',['Payment','Booking','Amount CAD','Applied CAD','Allocation ID'],exact('Allocation ID',allocationId));
   if(allocations.length===1&&allocations[0].fields.Payment?.[0]===receipt.id&&allocations[0].fields.Booking?.[0]===b.id&&cents(allocations[0].fields['Applied CAD'])===amount)return matched();
   if(allocations.length||receipt.fields['Payment Allocations']?.length||b.fields['Booking status']!=='Accepted'||b.fields['Charge review']!=='Agreed'||cents(b.fields['Balance CAD'])<amount)return review('Verified receipt. Review the charge, balance and existing allocations.',family);
+  // The Applied CAD formula compares the text references as well as using the linked records.
+  const paymentFamily=receipt.fields['Family reference'];
+  const bookingFamily=b.fields['Family reference'];
+  if(receipt.fields.Family?.length!==1||receipt.fields.Family[0]!==family.id||
+     (bookingFamily&&paymentFamily&&bookingFamily!==paymentFamily)||
+     (!bookingFamily&&b.fields['Payment Allocations']?.length)){
+    return review('Review the family references on the receipt and booking before applying this payment.',family);
+  }
+  const reference=bookingFamily||paymentFamily||family.fields.Family||family.id;
+  if(!bookingFamily)await db.save('bookings',{'Family reference':reference},{id:b.id});
+  if(!paymentFamily)await db.save('payments',{'Family reference':reference},{id:receipt.id});
   const allocation=await db.save('allocations',{'Allocation ID':allocationId,Payment:[receipt.id],Booking:[b.id],'Amount CAD':e.amount,'Review status':'Verified allocation'},{key:'Allocation ID'});
   const check=await db.list('allocations',['Applied CAD'],exact('Allocation ID',allocationId));
   if(check.length!==1||check[0].id!==allocation.id||cents(check[0].fields['Applied CAD'])!==amount)return review('Allocation saved. Check the Airtable applied amount before treating the booking as settled.',family);

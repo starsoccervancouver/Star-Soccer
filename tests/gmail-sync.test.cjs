@@ -32,7 +32,10 @@ function ledger(){
  },async save(table,fields,{key,id}){let row=tables[table].find(r=>id?r.id===id:r.fields[key]===fields[key]);
   if(!row){row={id:table+tables[table].length,fields:{}};tables[table].push(row);}
   Object.assign(row.fields,fields);if(table==='allocations'){
-   row.fields['Applied CAD']=fields['Amount CAD'];tables.payments[0].fields['Payment Allocations']=[row.id];tables.bookings[0].fields['Balance CAD']-=fields['Amount CAD'];
+   const booking=tables.bookings.find(b=>b.id===fields.Booking[0]),receipt=tables.payments.find(p=>p.id===fields.Payment[0]);
+   const reference=booking.fields['Family reference'];
+   row.fields['Applied CAD']=reference&&receipt.fields['Family reference']===reference?fields['Amount CAD']:0;
+   receipt.fields['Payment Allocations']=[row.id];booking.fields['Balance CAD']-=row.fields['Applied CAD'];
   }return row;
  }};
 }
@@ -41,6 +44,23 @@ test('a matched partial payment applies once, including after a retry',async()=>
  const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');const db=ledger();
  await syncLedgerEvent(db,e);await syncLedgerEvent(db,e);
  assert.equal(db.tables.payments.length,1);assert.equal(db.tables.allocations.length,1);assert.equal(db.tables.bookings[0].fields['Balance CAD'],20);assert.equal(db.tables.intake.length,1);assert.equal(db.tables.intake[0].fields.Review,'Matched');
+});
+test('exact full payment uses the existing booking family reference; conflicting references go to review',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ for(const conflict of [false,true]){
+  const db=ledger(),booking=db.tables.bookings[0].fields;
+  Object.assign(booking,{'Family reference':'F-100','Accepted date':'2026-11-01','Balance CAD':60});
+  if(conflict)db.tables.payments.push({id:'prior',fields:{'Source payment ID':'INTERAC-'+e.ref,'Family reference':'F-200',Family:['familyA'],'Amount CAD':60,Verification:'Verified','Payment context':'Cloud Gmail intake.'}});
+  await syncLedgerEvent(db,{...e,memo:''});
+  assert.equal(booking['Balance CAD'],conflict?60:0);
+  assert.equal(db.tables.payments[0].fields['Family reference'],conflict?'F-200':'F-100');
+  assert.equal(db.tables.intake[0].fields.Review,conflict?'Needs clarification':'Matched');
+ }
+});
+test('a previously ignored deposit stays closed on replay',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs'),db=ledger();
+ db.tables.intake.push({id:'historical',fields:{'Message ID':e.id,Review:'Ignore'}});
+ await syncLedgerEvent(db,e);assert.equal(db.tables.payments.length,0);assert.equal(db.tables.intake[0].fields.Review,'Ignore');
 });
 test('ambiguous payer or an existing receipt without transfer evidence goes to review',async()=>{
  const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');

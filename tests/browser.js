@@ -71,8 +71,9 @@
         }
         if(page==='camps.html') {
           const links=[...doc.querySelectorAll('.camp-week-card .winter-camp-cta')];
-          // Visible full-day prices and lunch details add one compact block to each card.
-          const campActionLimit=width<=700?1050:755;
+          // At 320px the approved Week 1 drop-in price adds one 21.5px line before Week 2.
+          const mobileActionLimit = width === 320 ? 1050 + 21.5 : 1050;
+          const campActionLimit = width <= 700 ? mobileActionLimit : 755;
           check(links.length===2 && links[0].getBoundingClientRect().bottom<=755 && links.every(el=>el.getBoundingClientRect().bottom<=campActionLimit && el.getBoundingClientRect().height>=48),`Camps at ${width}px keeps the first registration action within 755px and both within ${campActionLimit}px (${Math.round(links.at(-1).getBoundingClientRect().bottom)}px)`);
           check(!doc.querySelector('.camp-overview') && [...doc.querySelectorAll('.camp-card-details')].every(el=>el.textContent.includes('20 players') && el.textContent.includes('noon–12:30')),`Camp cards at ${width}px include capacity and supervised lunch details`);
           check([...doc.querySelectorAll('.camp-week-card,.seasonal-feature')].every(el=>!frame.contentWindow.getComputedStyle(el,'::before').backgroundImage.includes('url(') && frame.contentWindow.getComputedStyle(el).backgroundImage==='none'),`Camp cards at ${width}px have solid surfaces without photography`);

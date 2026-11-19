@@ -1,4 +1,4 @@
-/* Anonymous integration hooks and Google Analytics for accepted registrations.
+/* Anonymous integration hooks and Google Analytics for accepted registrations and coaching inquiries.
  * Form-service acceptance must never be reported as a confirmed booking. */
 (function(root){
   'use strict';
@@ -16,11 +16,15 @@
     queue.push(value);
     if(queue.length>100)queue.shift();
     root.dispatchEvent(new CustomEvent('starsoccer:funnel',{detail:value}));
-    if(value.event!=='submission_accepted'||!['weekly','camp'].includes(value.program)
-      ||!['dropin','pass4','week'].includes(value.kind))return;
+    if(value.event!=='submission_accepted')return;
 
     // Measurement errors must not affect the form's accepted state.
     try {
+      if(value.program==='private' && value.kind==='inquiry'){
+        root.gtag?.('event','private_inquiry_accepted',{send_to:'G-RP4ZF0M5LN'});
+        return;
+      }
+      if(!['weekly','camp'].includes(value.program)||!['dropin','pass4','week'].includes(value.kind))return;
       root.gtag?.('event','registration_submission_accepted',{
         send_to:'G-RP4ZF0M5LN',program:value.program,booking_type:value.kind
       });

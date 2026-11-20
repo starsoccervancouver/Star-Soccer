@@ -32,13 +32,17 @@ test('siblings from one form retain their shared visit ID on separate registrati
  const db=ledger(),visit='12345678-abcd-4abc-8abc-123456789012';
  const register=async(id,child,visitId)=>{
   const message=msg('noreply@formspree.io','Star Soccer camp registration',
-   'Registration version: SS-CAMP-V2\nClient reference: SS-CAMP-'+id+'\nPlayer name: '+child+'\nemail: parent@example.test\nVisit ID: '+visitId,['INBOX']);
+   'Registration version: SS-CAMP-V2\nClient reference: SS-CAMP-'+id+'\nPlayer name: '+child+'\nemail: parent@example.test\nVisit ID: '+visitId+
+   '\nLanding page path: '+(visitId===visit?'/camps.html':'/camps.html?private=1')+'\nCampaign source (URL tag): newsletter\nCampaign medium (URL tag): email',['INBOX']);
   await syncLedgerEvent(db,classifyMessage({...message,id},ids,owner));
  };
  await register('SIBLING1','First Player',visit);
  await register('SIBLING2','Second Player',visit);
  await register('OTHER3','Third Player','invalid-visit');
  assert.deepEqual(db.tables.registrations.map(row=>row.fields['Visit ID']),[visit,visit,undefined]);
+ assert.deepEqual(db.tables.registrations.map(row=>row.fields['Landing page path']),['/camps.html','/camps.html',undefined]);
+ assert.equal(db.tables.registrations[0].fields.utm_source,'newsletter');
+ assert.equal(db.tables.registrations[0].fields.utm_medium,'email');
  assert.equal(new Set(db.tables.registrations.map(row=>row.fields.Reference)).size,3);
 });
 

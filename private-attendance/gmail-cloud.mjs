@@ -25,7 +25,10 @@ function open(value,secret) {
   return Buffer.concat([cipher.update(data),cipher.final()]).toString('utf8');
 }
 export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
-  const ledger=airtableClient(JSON.parse(env.AIRTABLE_CONFIG),env.AIRTABLE_TOKEN,createAirtableTransport({fetchFn}));
+  const config=JSON.parse(env.AIRTABLE_CONFIG);
+  const ledger=airtableClient(config,env.AIRTABLE_TOKEN,createAirtableTransport({fetchFn}));
+  const campPlacementSince=config.exclusiveWriter===true&&config.tables.sessions&&config.tables.attendance
+    ? env.CAMP_AUTO_PLACE_SINCE : undefined;
   async function token(grant){
     const res=await fetchFn(googleToken,{method:'POST',redirect:'manual',headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(15000),body:new URLSearchParams({...grant,client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET}).toString()});
     const data=await res.json().catch(()=>({}));
@@ -111,7 +114,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         try{message=await gmail(access,'messages/'+key.slice(2),[['format','full']]);}
         catch(err){if(err.message!=='GMAIL_404')throw err;}
         if(message){
-          try{await syncLedgerEvent(ledger,classifyMessage(message,labels,STAR_SOCCER_OWNER));}
+          try{await syncLedgerEvent(ledger,classifyMessage(message,labels,STAR_SOCCER_OWNER),{campPlacementSince,now:new Date(clock())});}
           catch(err){
             if(!/^AIRTABLE_/.test(err.message))throw err;
             const id=key.slice(2);

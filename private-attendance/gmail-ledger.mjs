@@ -1,4 +1,5 @@
 import {normalize} from './gmail-message.mjs';
+import {campVersions, placeCampRegistration} from './camp-placement.mjs';
 
 const defaults = {families:'Families',players:'Players',bookings:'Bookings',payments:'Payments',allocations:'Payment Allocations',intake:'Email Intake',registrations:'Website Registrations'};
 const quote = s => "'" + String(s).replaceAll('\\','\\\\').replaceAll("'","\\'") + "'";
@@ -13,6 +14,14 @@ export function airtableClient(config, token, fetchFn=fetch) {
     return res.json();
   }
   const urlFor = name=>new URL('https://api.airtable.com/v0/'+config.baseId+'/'+encodeURIComponent(config.tables[name]||defaults[name]));
+  async function saveMany(name, fields, {key, id} = {}) {
+    const records = fields.map(fields => ({...(id ? {id} : {}), fields:compact(fields)}));
+    const data = await request(urlFor(name), {method:'PATCH',body:JSON.stringify({
+      records,...(!id?{performUpsert:{fieldsToMergeOn:[key]}}:{})
+    })});
+    if(data.records?.length!==records.length)throw Error('AIRTABLE_WRITE_UNCERTAIN');
+    return data.records;
+  }
   return {
     async list(name,fields,filter) {
       const url=urlFor(name),rows=[],seen=new Set();
@@ -27,14 +36,14 @@ export function airtableClient(config, token, fetchFn=fetch) {
         seen.add(page.offset);url.searchParams.set('offset',page.offset);
       }while(true);
     },
+    saveMany,
     async save(name,fields,{key,id}={}) {
-      const data=await request(urlFor(name),{method:'PATCH',body:JSON.stringify({records:[{...(id?{id}:{}),fields:compact(fields)}],...(!id?{performUpsert:{fieldsToMergeOn:[key]}}:{})})});
-      if(data.records?.length!==1)throw Error('AIRTABLE_WRITE_UNCERTAIN');
-      return data.records[0];
+      const [row] = await saveMany(name,[fields],{key,id});
+      return row;
     }
   };
 }
-export async function syncLedgerEvent(db,event) {
+export async function syncLedgerEvent(db,event,{campPlacementSince,now=new Date()}={}) {
   if(!event)return;
   const e=event;
   const existingIntake=(await db.list('intake',['Review','Kind','Next action','Family'],exact('Message ID',e.id)))[0];
@@ -56,17 +65,28 @@ export async function syncLedgerEvent(db,event) {
   const summary={'Parent email':e.contact,'Parent name':e.guardian,'Player name':e.child,'Requested training':e.option,'Web client reference':e.reference,'Body excerpt':e.excerpt,...(family?{Family:[family.id]}:{})};
   if(e.type==='inquiry')return intake('Question','New','Review the parent inquiry.',summary);
   if(!e.form||!e.contact||!e.child||!/^SS-[A-Z0-9-]{4,100}$/i.test(e.reference||''))return intake('Registration candidate','Needs clarification','Review this registration message and match it to a child and program.',summary);
-  const matches=await db.list('registrations',['Reference','Source Gmail ID','Parent email','Family','Child'], 'OR('+exact('Source Gmail ID',e.id)+','+exact('Reference',e.reference)+')');
+  const matches=await db.list('registrations',['Reference','Source Gmail ID','Parent email','Family','Child','Player','Booking','Status'], 'OR('+exact('Source Gmail ID',e.id)+','+exact('Reference',e.reference)+')');
   if(matches.length>1||matches.some(r=>(r.fields.Child&&normalize(r.fields.Child)!==normalize(e.child))||(r.fields['Parent email']&&r.fields['Parent email'].toLowerCase()!==e.contact)))return intake('Registration candidate','Needs clarification','Conflicting registration reference or identity. Review the existing entries.',summary);
-  if(!matches.length){
+  let registration=matches[0], children=[];
+  const autoPlace=typeof campPlacementSince==='string' && Date.parse(e.received)>=Date.parse(campPlacementSince) && campVersions.includes(e.version);
+  if(!registration || autoPlace && registration.fields.Status==='Needs review' && !registration.fields.Booking?.length){
     if(!family&&!families.length&&e.guardian){
       family=await db.save('families',{Family:e.guardian+' family',Email:e.contact,'Guardian name':e.guardian,'Contact status':'New'},{key:'Email'});
     }
-    const players=family?await db.list('players',['Player','Family'],exact('Player',e.child)):[];
-    const children=players.filter(p=>p.fields.Family?.length===1&&p.fields.Family[0]===family.id);
-    await db.save('registrations',compact({Reference:e.reference,'Source Gmail ID':e.id,'Received at':e.received,'Parent email':e.contact,Child:e.child,
+    const players=family?await db.list('players',['Player','Family','Player status'],exact('Player',e.child)):[];
+    children=players.filter(p=>p.fields.Family?.length===1&&p.fields.Family[0]===family.id);
+  }
+  if(!registration){
+    registration=await db.save('registrations',compact({Reference:e.reference,'Source Gmail ID':e.id,'Received at':e.received,'Parent email':e.contact,Child:e.child,
       Age:/^\d{1,2}$/.test(e.age||'')?Number(e.age):undefined,Experience:e.experience,'Requested option':e.option,Weekday:e.training,'Next session date':e.dates?.match(/\d{4}-\d{2}-\d{2}/)?.[0],
       'Registration kind':e.version,'Referral source':e.referral,Status:'Needs review',...(family?{Family:[family.id]}:{}),...(children.length===1?{Player:[children[0].id]}:{})}),{key:'Reference'});
+  }
+  if(autoPlace && registration.fields.Status==='Needs review' && !registration.fields.Booking?.length){
+    const player=children.length===1&&children[0].fields['Player status']==='Active'?children[0]:null;
+    const familyOK=!registration.fields.Family?.length||registration.fields.Family.length===1&&registration.fields.Family[0]===family?.id;
+    const playerOK=!registration.fields.Player?.length||registration.fields.Player.length===1&&registration.fields.Player[0]===player?.id;
+    const placement=await placeCampRegistration(db,{event:e,registration,family:familyOK?family:null,player:playerOK?player:null,now});
+    return intake('Registration candidate',placement.placed?'Matched':'Needs clarification',placement.message,{...summary,...(family?{Family:[family.id]}:{})});
   }
   return intake('Registration candidate',family?'Matched':'Needs clarification','Registration captured. Review placement and availability.',{...summary,...(family?{Family:[family.id]}:{})});
 }

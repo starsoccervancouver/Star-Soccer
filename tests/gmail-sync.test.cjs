@@ -25,6 +25,111 @@ test('separates provider registrations, direct parent inquiries and unrelated ma
  assert.equal(classifyMessage(msg('news@example.test','Your receipt','Subscription renewal',['INBOX']),ids,owner),null);
  assert.equal(classifyMessage({...m,labelIds:['SENT']},ids,owner),null);
 });
+
+function campLedger() {
+ const db=ledger();
+ db.tables.families[0].fields.Email='parent@example.test';
+ db.tables.players.push({id:'campPlayer',fields:{Player:'Example Player',Family:['familyA'],'Player status':'Active'}});
+ db.tables.sessions=['am','pm'].map(slot=>({id:slot,fields:{
+  'Source session ID':'winter-christmas-'+slot+':2026-12-25',Session:'Christmas camp '+slot,
+  Date:'2026-12-25',Time:slot==='am'?'9 AM–noon':'12:30–3:30 PM',Venue:'Kitsilano Turf',
+  'Session status':'Planned',Capacity:20,Attendance:[]
+ }}));
+ db.tables.attendance=[];
+ db.saveMany=async(table,rows,options)=>{
+  const result=[];
+  for(const fields of rows){
+   const row=await db.save(table,fields,options);
+   const session=db.tables.sessions.find(session=>session.id===fields.Session[0]);
+   if(!session.fields.Attendance.includes(row.id))session.fields.Attendance.push(row.id);
+   result.push(row);
+  }
+  return result;
+ };
+ return db;
+}
+
+async function campEvent() {
+ const {classifyMessage}=await import('../private-attendance/gmail-message.mjs');
+ return classifyMessage(msg('noreply@formspree.io','Star Soccer camp registration','Registration version: SS-CAMP-DROPIN-V1\nClient reference: SS-CAMP-EXAMPLE\nPlayer name: Example Player\nParent name: Example Parent\nPlayer age: 8\nemail: parent@example.test\nCamp week ID: christmas\nCamp slot: both\nCovered dates: 2026-12-25\nCamp session keys: winter-christmas-am:2026-12-25; winter-christmas-pm:2026-12-25',['INBOX']),ids,owner);
+}
+
+const placementOptions={campPlacementSince:'2026-11-19T00:00:00Z',now:new Date('2026-11-19T02:00:00Z')};
+test('eligible camper is placed in both dated slots once and pricing and confirmation stay open',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ const db=campLedger(),event=await campEvent();
+ await syncLedgerEvent(db,event,placementOptions);
+ await syncLedgerEvent(db,event,placementOptions);
+ const [registration]=db.tables.registrations;
+ const campBookings=db.tables.bookings.filter(row=>row.fields['Source booking ID']);
+ assert.equal(registration.fields.Status,'Expected');
+ assert.equal(campBookings.length,1);
+ assert.equal(campBookings[0].fields['Charge review'],'Needs pricing confirmation');
+ assert.equal(campBookings[0].fields['Charge CAD'],undefined);
+ assert.deepEqual(registration.fields.Booking,[campBookings[0].id]);
+ assert.deepEqual(db.tables.attendance.map(row=>row.fields.Session),[['am'],['pm']]);
+ assert.ok(db.tables.attendance.every(row=>row.fields['Website Registrations'][0]===registration.id));
+ assert.equal(db.tables.intake[0].fields.Review,'Matched');
+});
+
+test('a full slot, mismatched keys, or unverified player keeps all seats under review',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ const event=await campEvent();
+ const cases=[
+  db=>{db.tables.sessions[1].fields['Expected headcount (owner reported)']=20;},
+  db=>{db.tables.players[0].fields['Player status']='Name to confirm';},
+  db=>{db.tables.sessions[1].fields['Source session ID']='unexpected';}
+ ];
+ for(const arrange of cases){
+  const db=campLedger();
+  arrange(db);
+  await syncLedgerEvent(db,event,placementOptions);
+  assert.equal(db.tables.registrations[0].fields.Status,'Needs review');
+  assert.equal(db.tables.intake[0].fields.Review,'Needs clarification');
+  assert.equal(db.tables.bookings.length,1);
+  assert.equal(db.tables.attendance.length,0);
+ }
+ const beforeCutover=campLedger();
+ await syncLedgerEvent(beforeCutover,event,{...placementOptions,campPlacementSince:'2026-11-20T00:00:00Z'});
+ assert.equal(beforeCutover.tables.registrations[0].fields.Status,'Needs review');
+ assert.equal(beforeCutover.tables.attendance.length,0);
+});
+
+test('Pro-D placement checks the exact noon session and its ages 6–13',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ const {classifyMessage}=await import('../private-attendance/gmail-message.mjs');
+ const event=classifyMessage(msg('noreply@formspree.io','Star Soccer Pro-D camp registration','Intake version: SS-DAY-CAMP-V1\nRegistration reference: SS-DAY-EXAMPLE\nPlayer name: Example Player\nPlayer age: 13\nemail: parent@example.test\nCamp ID: pro-d-2026-11-20\nSession date: 2026-11-20',['INBOX']),ids,owner);
+ function ledgerWithProD(){
+  const db=campLedger();
+  const [session]=db.tables.sessions;
+  Object.assign(session.fields,{'Source session ID':'SS-20261120-KITS-PROD',Date:'2026-11-20',Time:'12:00 pm – 3:00 pm'});
+  return db;
+ }
+ const db=ledgerWithProD();
+ await syncLedgerEvent(db,event,placementOptions);
+ assert.equal(db.tables.registrations[0].fields.Status,'Expected');
+ assert.equal(db.tables.attendance[0].fields['Session date'],'2026-11-20');
+ const ineligible=ledgerWithProD();
+ await syncLedgerEvent(ineligible,{...event,age:'14'},placementOptions);
+ assert.equal(ineligible.tables.registrations[0].fields.Status,'Needs review');
+ assert.equal(ineligible.tables.attendance.length,0);
+});
+
+test('retry resumes a camp placement after an uncertain attendance write',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ const db=campLedger(),event=await campEvent(),write=db.saveMany;
+ db.saveMany=async(table,rows,options)=>{
+  await write(table,rows,options);
+  throw Error('AIRTABLE_WRITE_UNCERTAIN');
+ };
+ await assert.rejects(syncLedgerEvent(db,event,placementOptions),/AIRTABLE_WRITE_UNCERTAIN/);
+ assert.equal(db.tables.registrations[0].fields.Status,'Needs review');
+ await syncLedgerEvent(db,event,placementOptions);
+ assert.equal(db.tables.registrations[0].fields.Status,'Expected');
+ assert.equal(db.tables.bookings.filter(row=>row.fields['Source booking ID']).length,1);
+ assert.equal(db.tables.attendance.length,2);
+});
+
 function ledger(){
  const tables={families:[{id:'familyA',fields:{'Guardian name':'Example Parent'}}],players:[],registrations:[],bookings:[{id:'bookA',fields:{Family:['familyA'],'Booking reference':'BOOK-100','Booking status':'Accepted','Charge review':'Agreed','Balance CAD':80}}],payments:[],allocations:[],intake:[]};
  return {tables,async list(table,fields,filter){

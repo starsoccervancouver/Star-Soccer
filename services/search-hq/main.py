@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 
 import functions_framework
 from flask import jsonify
+from winter_report import winter_report
 
 PROPERTY = 'https://starsoccer.ca/'
 SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly'
@@ -29,7 +30,9 @@ def hello_http(request):
     if request.content_length and request.content_length > 2048:
         return reply({'error': 'Request too large'}, 413)
     data = request.get_json(silent=True)
-    if not isinstance(data, dict) or set(data) != {'startDate', 'endDate'}:
+    camp = isinstance(data, dict) and data.get('report') == 'winterCamp'
+    fields = {'startDate', 'endDate', 'report'} if camp else {'startDate', 'endDate'}
+    if not isinstance(data, dict) or set(data) != fields:
         return reply({'error': 'Send startDate and endDate only.'}, 400)
     try:
         start, end = [date.fromisoformat(data[k]) for k in ('startDate', 'endDate')]
@@ -37,6 +40,8 @@ def hello_http(request):
             raise ValueError()
     except (ValueError, TypeError):
         return reply({'error': 'Invalid date range. Select at most 93 days.'}, 400)
+    if camp:
+        return reply(winter_report(start.isoformat(), end.isoformat()))
     metadata = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token?scopes=' + quote(SCOPE, safe='')
     endpoint = 'https://www.googleapis.com/webmasters/v3/sites/' + quote(PROPERTY, safe='') + '/searchAnalytics/query'
     try:

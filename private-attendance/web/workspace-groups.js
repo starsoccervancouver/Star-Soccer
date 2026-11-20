@@ -97,5 +97,24 @@
       return (left && right ? text(left.date).localeCompare(text(right.date)) || minute(left.time) - minute(right.time) : 0) || a.key.localeCompare(b.key);
     });
   }
-  return Object.freeze({ key, groups, sameGroup, members, label });
+  function familyGroups(sessions) {
+    const regular = [], proDays = new Map();
+    for (const session of sessions) {
+      if (!session.id || weekday(session) === null) continue;
+      if (!session.proD && !/\b(?:pro[\s‐–—-]*d|professional development)\b/i.test(text(session.label))) {
+        regular.push(session);
+        continue;
+      }
+      const eventKey = JSON.stringify([session.date, venueKey(session.location)]);
+      if (!proDays.has(eventKey)) {
+        const date = new Intl.DateTimeFormat('en-CA', {month:'short', day:'numeric', year:'numeric', timeZone:'UTC'}).format(new Date(session.date + 'T12:00:00Z'));
+        proDays.set(eventKey, {label:['Pro-D Camp', date, text(session.location)].filter(Boolean).join(' · '), sessions:[]});
+      }
+      proDays.get(eventKey).sessions.push(session);
+    }
+    const dayOrder = group => group.weekday === null ? 8 : group.weekday || 7;
+    const weeklyAndWinter = groups(regular).sort((a, b) => dayOrder(a) - dayOrder(b) || minute(a.time) - minute(b.time) || a.label.localeCompare(b.label));
+    return weeklyAndWinter.concat([...proDays.values()].sort((a, b) => compareSessions(a.sessions[0], b.sessions[0])));
+  }
+  return Object.freeze({ key, groups, familyGroups, sameGroup, members, label });
 });

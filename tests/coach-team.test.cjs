@@ -74,17 +74,46 @@ test('family access is owner-granted, checked before reads, and immediately revo
 test('family ledger keeps sibling bookings and a shared transfer separate and preserves unknown amounts',async()=>{
  const {createFamilyLedger}=await import('../private-attendance/family-ledger.mjs');
  const id=rid(1),row=(n,fields)=>({id:rid(n),fields});
- const tables={families:[row(1,{Family:'Example family',Players:[rid(2),rid(3)],Bookings:[rid(4),rid(5)],Payments:[rid(6)],'Verified family receipts CAD':90,'Balance CAD':0})],
-  players:[row(2,{Player:'Child A',Family:[id]}),row(3,{Player:'Child B',Family:[id]})],
+ const tables={families:[row(1,{Family:'Example family','Guardian name':'Example Guardian',Players:[rid(2),rid(3)],Bookings:[rid(4),rid(5)],Payments:[rid(6)],'Verified family receipts CAD':90,'Balance CAD':0})],
+  players:[row(3,{Player:'Child B',Family:[id]}),row(2,{Player:'Child A',Family:[id]})],
   bookings:[row(4,{Family:[id],Player:[rid(2)],'Verified applied CAD':60}),row(5,{Family:[id],Player:[rid(3)],'Verified applied CAD':30})],
   payments:[row(6,{Family:[id],'Amount CAD':90,Verification:'Verified'})]};
  const ledger=createFamilyLedger(async(table,fields,ids)=>tables[table].filter(r=>!ids||ids.includes(r.id)));
  const family=await ledger.detail(id);
  assert.deepEqual(family.players,['Child A','Child B']);assert.equal(family.payments.length,1);
  assert.deepEqual(family.bookings.map(b=>b.applied),[60,30]);assert.equal(family.balance,0);assert.equal(family.dueNow,null);
- assert.equal(await ledger.detail(rid(9)),null);assert.deepEqual(await ledger.directory(),[{id,name:'Example family',playerIds:[rid(2),rid(3)]}]);
+ assert.equal(family.name,'Example Guardian / Child A');assert.deepEqual(family.playerProfiles,[{id:rid(2),name:'Child A'},{id:rid(3),name:'Child B'}]);
+ assert.equal(await ledger.detail(rid(9)),null);assert.deepEqual(await ledger.directory(),[{id,name:family.name,playerIds:[rid(2),rid(3)]}]);
+ tables.families[0].fields.Players.unshift(rid(10));
+ tables.players.push(row(10,{Player:'Different family child',Family:[rid(8)]}));
+ assert.deepEqual(await ledger.directory(),[{id,name:family.name,playerIds:[rid(2),rid(3)]}]);
+ await assert.rejects(()=>ledger.detail(id),/INCONSISTENT_FAMILY_LINK/);
+ tables.families[0].fields.Players.shift();
  tables.payments[0].fields.Family=[rid(9)];
  await assert.rejects(()=>ledger.detail(id),/INCONSISTENT_FAMILY_LINK/);
+});
+
+test('family profile joins notes and marked attendance by player identity across sessions',async t=>{
+ const child=rid(22),sibling=rid(23),unrelated=rid(42);
+ const detail=()=>({playerProfiles:[{id:child,name:'Alex'},{id:sibling,name:'Jo'}]});
+ const entry=(playerId,actualAttendance)=>({playerId,actualAttendance});
+ const session=(date,players)=>({id:rid(1),date,label:'Friday class',time:'3:45 PM',location:'Field',players});
+ const sessions=[
+  session('2025-10-03',[entry(child,'Present'),entry(sibling,'Not marked'),entry(unrelated,'Absent')]),
+  session('2025-10-10',[entry(child,'Absent'),entry(sibling,'Present')]),
+  session('2099-10-09',[entry(child,'Present')])
+ ];
+ const {request,owner,coaches,one}=await setup(t,{ledger:{detail},overview:async()=>({sessions})});
+ const save=(playerId,body)=>coaches.saveNote(owner,{sessionId:rid(1),playerId,body});
+ save(child,'Scanning before receiving');save(sibling,'Working on first touch');save(unrelated,'Other player');save(null,'Whole class');
+ const archived=save(child,'Archived note');coaches.archiveNote(owner,{id:archived.id,expectedVersion:archived.version});
+ assert.equal((await request(one,'family',{familyId:rid(20)})).status,403);
+ const result=await request(owner,'family',{familyId:rid(20)});assert.equal(result.status,200);
+ const [a,b]=(await result.json()).family.playerProfiles;
+ assert.deepEqual(a.notes.map(n=>n.body),['Scanning before receiving']);
+ assert.deepEqual(b.notes.map(n=>n.body),['Working on first touch']);
+ assert.deepEqual(a.attendance.map(s=>[s.date,s.status]),[['2025-10-10','Absent'],['2025-10-03','Present']]);
+ assert.deepEqual(b.attendance.map(s=>[s.date,s.status]),[['2025-10-10','Present']]);
 });
 
 test('only authorized family staff can read work queues and the owner can review general mailbox subjects',async t=>{

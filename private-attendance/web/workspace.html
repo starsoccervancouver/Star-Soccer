@@ -244,12 +244,13 @@
 </section>
 <section id="panel-families" class="tab-panel" hidden>
 <section class="card">
+<div id="family-browse">
 <div class="family-modes" role="group" aria-label="Family directory view"><button type="button" data-family-mode="grid" aria-pressed="true">Grid</button><button type="button" data-family-mode="list" aria-pressed="false">List</button><button type="button" data-family-mode="session" aria-pressed="false">By session</button></div>
 <div id="family-directory"></div>
-<label for="family-picker">Choose a family</label>
-<select id="family-picker" hidden></select>
+</div>
+<a href="#view=families" id="family-back" hidden>← Back to families</a>
 <p id="family-status" role="status"></p>
-<div id="family-results" aria-live="polite"></div>
+<div id="family-results"></div>
 </section>
 </section>
 <section id="panel-attention" class="tab-panel" hidden>

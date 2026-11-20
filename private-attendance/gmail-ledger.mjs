@@ -98,7 +98,7 @@ export async function syncLedgerEvent(db,event,{campPlacementSince,now=new Date(
   if(!registration){
     registration=await db.save('registrations',compact({Reference:e.reference,'Source Gmail ID':e.id,'Received at':e.received,'Parent email':e.contact,Child:e.child,
       Age:/^\d{1,2}$/.test(e.age||'')?Number(e.age):undefined,Experience:e.experience,'Requested option':e.option,Weekday:e.training,'Next session date':e.dates?.match(/\d{4}-\d{2}-\d{2}/)?.[0],
-      'Registration kind':e.version,'Referral source':e.referral,Status:'Needs review',...(family?{Family:[family.id]}:{}),...(player?{Player:[player.id]}:{})}),{key:'Reference'});
+      'Registration kind':e.version,'Referral source':e.referral,'Visit ID':e.visitId,Status:'Needs review',...(family?{Family:[family.id]}:{}),...(player?{Player:[player.id]}:{})}),{key:'Reference'});
   }
   if(campFlow&&awaitingPlacement&&registration.fields['Source Gmail ID']===e.id){
     if(!request||!player||player.fields['Player status']!=='Active'||

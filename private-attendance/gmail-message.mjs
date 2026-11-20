@@ -67,9 +67,10 @@ export function classifyMessage(message, labels, ownerEmail, confirmationMailbox
   if (sender===ownerEmail || ((!registration&&!has('Leads')&&!isForm) && (header('list-unsubscribe') || /^(?:auto-generated|auto-replied)/i.test(header('auto-submitted')) || !/\b(soccer|private (?:coaching|lesson|training)|camp|register|registration|soccer lessons?)\b/i.test(subject+' '+flat.slice(0,300)) || /no-?reply|notifications?@/i.test(sender||'')))) return null;
   if (!sender) return null;
   const contact = isForm ? emailOf(fields['parent email'] || fields['guardian email'] || fields.email || header('reply-to')) : sender;
+  const visitId = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(fields['visit id']||'') ? fields['visit id'] : undefined;
   return {...meta,type:registration?'registration':'inquiry',form:isForm&&known,contact,guardian:fields['parent name']||fields['guardian name'],child,reference,
     version,age:fields['player age'],experience:fields.experience,option:fields['requested option']||fields['booking type']||fields.camp||fields.training,
-    campId:fields['camp id'],campWeek:fields['camp week id'],campSlot:fields['camp slot'],campKeys:fields['camp session keys'],
+    campId:fields['camp id'],campWeek:fields['camp week id'],campSlot:fields['camp slot'],campKeys:fields['camp session keys'],visitId,
     training:fields.training||fields.camp,dates:fields['covered dates']||fields['session date']||fields['expected start date'],referral:fields['referral source'],
     excerpt:limit(fields.message || fields['your message'] || (isForm?'':flat)).slice(0,360)};
 }

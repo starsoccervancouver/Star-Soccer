@@ -26,6 +26,22 @@ test('separates provider registrations, direct parent inquiries and unrelated ma
  assert.equal(classifyMessage({...m,labelIds:['SENT']},ids,owner),null);
 });
 
+test('siblings from one form retain their shared visit ID on separate registration rows',async()=>{
+ const {classifyMessage}=await import('../private-attendance/gmail-message.mjs');
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ const db=ledger(),visit='12345678-abcd-4abc-8abc-123456789012';
+ const register=async(id,child,visitId)=>{
+  const message=msg('noreply@formspree.io','Star Soccer camp registration',
+   'Registration version: SS-CAMP-V2\nClient reference: SS-CAMP-'+id+'\nPlayer name: '+child+'\nemail: parent@example.test\nVisit ID: '+visitId,['INBOX']);
+  await syncLedgerEvent(db,classifyMessage({...message,id},ids,owner));
+ };
+ await register('SIBLING1','First Player',visit);
+ await register('SIBLING2','Second Player',visit);
+ await register('OTHER3','Third Player','invalid-visit');
+ assert.deepEqual(db.tables.registrations.map(row=>row.fields['Visit ID']),[visit,visit,undefined]);
+ assert.equal(new Set(db.tables.registrations.map(row=>row.fields.Reference)).size,3);
+});
+
 function campLedger() {
  const db=ledger();
  db.tables.families[0].fields.Email='parent@example.test';

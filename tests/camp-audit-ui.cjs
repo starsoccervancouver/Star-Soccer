@@ -49,6 +49,23 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg
     const requestData=page=>page.evaluate(()=>window.fixtureRequests);
     async function failStatus(page,pattern){await page.locator('#camp-status').filter({hasText:pattern}).waitFor();}
     async function check(label,fn){await fn();checks++;console.log('PASS '+label);}
+    await check('the opening camp comparison fits a phone and matches both booking catalogs',async()=>{
+      const camps=require('../winter-camps.js');
+      const page=await context.newPage();
+      await page.setViewportSize({width:320,height:844});
+      await page.goto(origin+'/camps.html');
+      const section=page.locator('.camp-comparison');
+      assert.equal(await page.getByRole('heading',{level:1}).textContent(),'Winter Soccer Camps in Vancouver');
+      assert.match(await section.textContent(),/Kitsilano Turf in Vancouver for ages 5–14/);
+      const weeks=['christmas','boxing'].map(camps.getWeek);
+      const prices=['price','fullDayPrice'].flatMap(field=>weeks.map(week=>'$'+week[field]));
+      assert.deepEqual(await section.locator('tbody td').allTextContents(),prices);
+      assert.match(await section.locator('.camp-comparison-dropin').textContent(),/\$60 per 3-hour session in either week\. Christmas Day is free\./);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),320);
+      await section.getByRole('link',{name:/Week 2 Dec/}).click();
+      assert.equal(new URL(page.url()).hash,'#winter-week-2');
+      await page.close();
+    });
 
     await check('full-day incentives reach family totals, requests and receipts for both weeks',async()=>{
       for(const [week,price,separate,saving] of [['christmas',340,400,60],['boxing',315,370,55]]){

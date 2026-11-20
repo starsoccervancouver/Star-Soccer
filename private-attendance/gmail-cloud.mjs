@@ -7,7 +7,7 @@ import {STAR_SOCCER_OWNER} from './deployment-config.mjs';
 
 const scope='https://www.googleapis.com/auth/gmail.readonly';
 const root='https://gmail.googleapis.com/gmail/v1/users/me/';
-const every=300000, googleToken='https://oauth2.googleapis.com/token';
+const pollInterval=60000, retryDelay=300000, googleToken='https://oauth2.googleapis.com/token';
 const random=()=>randomBytes(32).toString('base64url');
 const hash=s=>createHash('sha256').update(s).digest('base64url');
 const redirect='https://starsoccer.ca/coachdesk/api/auth/google/callback';
@@ -101,7 +101,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
   async function cycle(){
     const encrypted=await storage.get('refresh');if(!encrypted)return;
     // Schedule before external calls so a Worker interruption cannot stop the loop.
-    await storage.setAlarm(clock()+every);
+    await storage.setAlarm(clock()+pollInterval);
     try{
       const credentials=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
       if(credentials.refresh_token)await storage.put('refresh',seal(credentials.refresh_token,env.COOKIE_KEY));
@@ -125,7 +125,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
             if(!/^AIRTABLE_/.test(err.message))throw err;
             const id=key.slice(2);
             await storage.transaction(async tx=>{
-              await tx.put('retry:'+id,{after:clock()+every,error:/^AIRTABLE_\d{3}$/.test(err.message)?err.message:'AIRTABLE_RETRY'});
+              await tx.put('retry:'+id,{after:clock()+retryDelay,error:/^AIRTABLE_\d{3}$/.test(err.message)?err.message:'AIRTABLE_RETRY'});
               await tx.delete(key);
             });
             continue;
@@ -141,6 +141,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }catch(err){
       const allowed=/^(AIRTABLE_\d{3}|GMAIL_\d{3}|GMAIL_API_DISABLED|PAYMENT_LABELS_MISSING|GOOGLE_RECONNECT|GOOGLE_TOKEN_FAILED)$/;
       const report=await storage.get('report')||{};
+      await storage.setAlarm(clock()+retryDelay);
       await storage.put('report',{...report,error:allowed.test(err.message)?err.message:'SYNC_RETRY'});
     }
   }

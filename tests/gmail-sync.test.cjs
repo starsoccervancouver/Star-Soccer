@@ -255,6 +255,7 @@ test('ambiguous payer or an existing receipt without transfer evidence goes to r
 });
 test('no background access until consent and a separate signed-in owner flow',async()=>{
  const {createCloudMail}=await import('../private-attendance/gmail-cloud.mjs');const records=new Map();let alarm=0,calls=0;
+ const now=Date.UTC(2026,10,19);let historyUnavailable=false;
  const storage={get:async k=>records.get(k),put:async(k,v)=>records.set(k,v),delete:async k=>(Array.isArray(k)?k:[k]).forEach(n=>records.delete(n)),transaction:async fn=>fn(storage),setAlarm:async n=>{alarm=n},deleteAlarm:async()=>{alarm=0},list:async({prefix,limit})=>new Map([...records].filter(([k])=>k.startsWith(prefix)).slice(0,limit))};
  const {STAR_SOCCER_OWNER}=await import('../private-attendance/deployment-config.mjs');
  const mock=async (u,options)=>{calls++;const url=new URL(u);
@@ -263,8 +264,9 @@ test('no background access until consent and a separate signed-in owner flow',as
  if(url.hostname==='oauth2.googleapis.com')return Response.json({access_token:'access',refresh_token:'fixture-refresh',scope:'https://www.googleapis.com/auth/gmail.readonly'});
  if(url.pathname.endsWith('/profile'))return Response.json({emailAddress:STAR_SOCCER_OWNER,historyId:'290'});
  if(url.pathname.endsWith('/labels'))return Response.json({labels:Object.entries(ids).map(([name,id])=>({name,id}))});
+ if(url.pathname.endsWith('/history'))return historyUnavailable?new Response(null,{status:429}):Response.json({historyId:'291'});
  if(url.pathname.endsWith('/messages'))return Response.json({messages:[]});throw Error('unexpected request');};
- const mail=createCloudMail(storage,{COOKIE_KEY:'example-key',GOOGLE_CLIENT_ID:'example.apps.googleusercontent.com',GOOGLE_CLIENT_SECRET:'example',AIRTABLE_CONFIG:'{"tables":{}}'},{fetchFn:mock});
+ const mail=createCloudMail(storage,{COOKIE_KEY:'example-key',GOOGLE_CLIENT_ID:'example.apps.googleusercontent.com',GOOGLE_CLIENT_SECRET:'example',AIRTABLE_CONFIG:'{"tables":{}}'},{fetchFn:mock,clock:()=>now});
  await mail.cycle();assert.equal(calls,0);assert.equal((await mail.handle('status')).connected,false);
  const start=await mail.handle('start',{}),url=new URL(start.url),state=url.searchParams.get('state');
  assert.equal(url.searchParams.get('scope'),'https://www.googleapis.com/auth/gmail.readonly');
@@ -272,5 +274,11 @@ test('no background access until consent and a separate signed-in owner flow',as
  await mail.handle('finish',{state,browser:start.browser,code:'fake'});assert.ok(alarm);assert.equal((await mail.handle('status')).connected,true);
  assert(!JSON.stringify([...records]).includes('fixture-refresh'));
  await mail.cycle();assert.equal((await mail.handle('status')).error,null);
+ await mail.cycle();
+ await mail.cycle();assert.equal(alarm,now+60000);
+ historyUnavailable=true;
+ await mail.cycle();assert.equal(alarm,now+300000);assert.equal((await mail.handle('status')).error,'GMAIL_429');
+ historyUnavailable=false;
+ await mail.cycle();assert.equal(alarm,now+60000);assert.equal((await mail.handle('status')).error,null);
  await mail.handle('disconnect',{});assert.equal(alarm,0);assert.equal((await mail.handle('status')).connected,false);
 });

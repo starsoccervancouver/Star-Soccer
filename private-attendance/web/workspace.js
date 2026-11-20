@@ -378,25 +378,22 @@
    if(!byPlayer.has(pid))byPlayer.set(pid,[]);
    byPlayer.get(pid).push(family);
   }
-  const today=new Intl.DateTimeFormat('en-CA',{timeZone:club.timeZone}).format(new Date());
-  const sessions=[...(data?.sessions||[])].filter(s=>s.date).sort((a,b)=>{
-   const upcoming=a.date>=today;
-   if(upcoming!==(b.date>=today))return upcoming?-1:1;
-   return (upcoming?1:-1)*a.date.localeCompare(b.date)||String(a.time||'').localeCompare(String(b.time||''));
-  });
   function group(label,families){
    const details=node('details','','family-session'),summary=node('summary',label);
    summary.append(node('small',families.length+' '+(families.length===1?'family':'families')));
-   details.append(summary,collection(families,'list'));container.append(details);
+   details.append(summary,families.length?collection(families,'list'):node('p','No linked families yet.','muted'));container.append(details);
   }
-  for(const session of sessions){
-   const linked=new Set((session.players||[]).flatMap(p=>byPlayer.get(p.playerId)||[]));
-   if(!linked.size)continue;
+  for(const roster of window.CoachGroups.familyGroups(data?.sessions||[])){
+   const linked=new Set();
+   for(const session of roster.sessions)for(const player of session.players||[]){
+    for(const family of byPlayer.get(player.playerId)||[])linked.add(family);
+   }
+   if(!linked.size && roster.verified===false && !roster.kind)continue;
    linked.forEach(f=>seen.add(f.id));
-   group([session.date,session.time,session.label||session.location].filter(Boolean).join(' · '),[...linked].sort((a,b)=>a.name.localeCompare(b.name)));
+   group(roster.label,[...linked].sort((a,b)=>a.name.localeCompare(b.name)));
   }
   const unplaced=familyDirectory.filter(f=>!seen.has(f.id));
-  if(unplaced.length)group('No linked dated session',unplaced);
+  if(unplaced.length)group('No linked session',unplaced);
  }
  for(const button of document.querySelectorAll('[data-family-mode]'))button.addEventListener('click',()=>{
   familyMode=button.dataset.familyMode;renderFamilyDirectory();

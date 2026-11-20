@@ -14,7 +14,8 @@ require('./coach-fixture-fonts.cjs')(assets);
 (async () => {
   const browser = await chromium.launch(); let checks = 0;
   try {
-    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail } = {}) {
+    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail,
+      roster = sessions, families = [{id:rid(50),name:'Example family',playerIds:[rid(101)]}] } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
       const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, familyAccess, sessionVersion: 1, ...(displayEmail ? { displayEmail } : {}) } }, requests = [], errors = [];
       await context.addInitScript(({ now, key, stored, deniedStorage }) => {
@@ -32,8 +33,8 @@ require('./coach-fixture-fonts.cjs')(assets);
         const payload = request.postData() ? request.postDataJSON() : undefined; requests.push({ path, method: request.method(), payload });
         let value;
         if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true };
-        else if (path.endsWith('/desk')) value = { profile: state.profile, sessions, notes: [], tasks: [], observedAt: now };
-        else if (path.endsWith('/families') && familyAccess) value = { families: [{id:rid(50),name:'Example family',playerIds:[rid(101)]}] };
+        else if (path.endsWith('/desk')) value = { profile: state.profile, sessions:roster, notes: [], tasks: [], observedAt: now };
+        else if (path.endsWith('/families') && familyAccess) value = { families };
         else if (path.includes('/needs-attention/') && familyAccess) value = {items:path.endsWith('/inquiries')?[{key:'sample',title:'Session question',date:'2026-10-29',status:'Awaiting reply',href:'https://mail.google.com/mail/u/0/#all/123456789ab'}]:[],resolved:[],next:null,inbox:'https://mail.google.com/'};
         else if (path.endsWith('/family') && familyAccess && payload.familyId === rid(50)) value = { family: {name:'Example family', players:['Player A','Player B'], balance:15, dueNow:15, verifiedReceipts:60, payments:[{amount:60,verification:'Verified'}], bookings:[], registrations:[{child:'Player B',program:'Camp'}]} };
         else if (path.endsWith('/session')) value = { plan: { session_id: payload.sessionId, version: 0, content: {} } };
@@ -42,7 +43,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         else if (path.endsWith('/legacy-notes') && role !== 'coach') value = { notes: [] };
         else if (path.endsWith('/diagrams/list')) value = { diagrams: [] };
         else if (path.endsWith('/drills/list')) value = { drills: [] };
-        else if (path.endsWith('/refresh')) value = { profile: state.profile, sessions, observedAt: now };
+        else if (path.endsWith('/refresh')) value = { profile: state.profile, sessions:roster, observedAt: now };
         else if (path.endsWith('/logout')) { state.profile = null; value = { signedOut: true }; }
         else { errors.push('Unexpected fixture action: ' + request.method() + ' ' + path); return route.fulfill({ status: 403, contentType: 'application/json', body: '{"error":"FICTIONAL_FORBIDDEN"}' }); }
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
@@ -90,6 +91,48 @@ require('./coach-fixture-fonts.cjs')(assets);
       assert.deepEqual(f.errors, []); checks++; await f.context.close();
     }
 
+    {
+      const base = sessions[0], sibling = sessions[1].players[0];
+      const slot = (n,date,extra={}) => ({...base, id:rid(n), date, time:'3:45–5:15 PM', location:'Connaught Park', programId:rid(600), ...extra});
+      const roster = [
+        slot(1,'2026-11-04',{players:[...base.players,sibling]}), slot(2,'2026-11-11'),
+        slot(3,'2026-11-06'), slot(4,'2026-11-08',{time:'9:00–10:30 AM',location:'Kitsilano Turf'}),
+        slot(5,'2026-12-21',{label:'Winter Camp',programId:null}), slot(6,'2026-12-22',{label:'Winter Camp',programId:null,players:[sibling]}),
+        slot(7,'2026-12-28',{label:'Winter Camp',programId:null,players:[]}),
+        slot(8,'2026-11-20',{proD:true,programId:null,location:'Kitsilano Turf',time:'12:00–3:00 PM'})
+      ];
+      const families = [{id:rid(50),name:'Example family',playerIds:[rid(101),rid(102)]},{id:rid(51),name:'Unplaced family',playerIds:[]}];
+      const f = await fixture({roster,families});
+      await openDestination(f.page,'families');
+      await f.page.getByRole('button',{name:'By session'}).click();
+      const sections = f.page.locator('.family-session');
+      await sections.first().waitFor();
+      const headings = await sections.locator('summary').allTextContents();
+      assert.deepEqual(headings,[
+        'Wednesday · 3:45–5:15 PM · Connaught Park1 family','Friday · 3:45–5:15 PM · Connaught Park1 family',
+        'Sunday · 9:00–10:30 AM · Kitsilano Turf1 family','Winter Camp — Week 11 family','Winter Camp — Week 20 families',
+        'Pro-D Camp · Nov 20, 2026 · Kitsilano Turf1 family','No linked session1 family'
+      ]);
+      for (const width of [390,320]) {
+        await f.page.setViewportSize({width,height:900});
+        assert(await f.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        if (width === 390) {
+          await sections.first().locator('summary').click();
+          fs.mkdirSync('outputs',{recursive:true});
+          await f.page.locator('#family-directory').screenshot({path:'outputs/families-by-session-mobile.png'});
+          await sections.first().locator('summary').click();
+        }
+      }
+      for (const idx of [0,1,2,3,5]) {
+        await sections.nth(idx).locator('summary').click();
+        assert.deepEqual(await sections.nth(idx).locator('.family-choice').allTextContents(),['Example family']);
+      }
+      await sections.nth(4).locator('summary').click();
+      assert(await sections.nth(4).getByText('No linked families yet.').isVisible());
+      await sections.first().locator('.family-choice').click();
+      await f.page.getByText('Player B · Camp').waitFor();
+      assert.deepEqual(f.errors,[]); await f.context.close(); checks++;
+    }
     for (const [role, familyAccess] of [['coach',false],['admin',false],['admin',true],['owner',true]]) {
       const f = await fixture({ role, familyAccess });
       await openDestination(f.page,'home');

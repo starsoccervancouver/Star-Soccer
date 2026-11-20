@@ -24,5 +24,6 @@ test('no verified new bookings finishes with one ledger page and one mailbox ide
  const {createFollowupJob}=await import('../private-attendance/registration-followup-job.mjs');
  const {STAR_SOCCER_OWNER}=await import('../private-attendance/deployment-config.mjs');
  const calls=[];const job=createFollowupJob({storage:memory(),config:{},ledger:{listPage:async(name,fields,formula)=>{calls.push(name);assert.match(formula,/First-time verified/);return {records:[]};}},read:async path=>{calls.push(path);return {emailAddress:STAR_SOCCER_OWNER,historyId:'123'};}});
- const r=await job.step();assert.equal(r.eligibleBookings,0);assert.equal(r.state,'ready');assert.deepEqual(calls,['registrations','profile']);
+ const preview=await job.step({force:true});assert.equal(preview.lastScheduledAt,null);calls.length=0;
+ const r=await job.step();assert.ok(r.lastScheduledAt);assert.equal(r.eligibleBookings,0);assert.equal(r.state,'ready');assert.deepEqual(calls,['registrations','profile']);
 });

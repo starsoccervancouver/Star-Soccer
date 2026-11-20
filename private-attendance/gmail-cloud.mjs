@@ -165,7 +165,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       if(!followupEnabled)return {enabled:false,state:'off'};
       const report=await storage.get('rf:report');
       if(await storage.get('rf:start'))return {enabled:true,state:'checking'};
-      if(!report)return {enabled:true,state:'checking'};
+      if(!report||(report.state==='ready'&&report.lastScheduledAt==null))return {enabled:true,state:'checking'};
       if(report.state!=='ready'||clock()-report.checkedAt>3900000)return {enabled:true,state:'unavailable'};
       return {enabled:true,...report};
     }

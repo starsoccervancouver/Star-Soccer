@@ -112,7 +112,7 @@ export function createFollowupJob({storage,ledger,read,config,clock=Date.now}){
   }
   async function step({force=false}={}){
     const now=clock(),report=await storage.get('rf:report'),started=await storage.get('rf:start');
-    if(!force&&!started&&report&&now<(report.retryAt||report.checkedAt+HOUR))return report;
+    if(!force&&!started&&report&&now<(report.retryAt||(report.lastScheduledAt??0)+HOUR))return report;
     if(!started||now-started>HOUR){
       await clear(storage,prefix);await storage.put('rf:start',now);
     }
@@ -124,7 +124,7 @@ export function createFollowupJob({storage,ledger,read,config,clock=Date.now}){
       const value=await fetchValue();await putValue(storage,key,value);return value;
     }
     try{
-      const result=await build(cached),next={...result,checkedAt:clock(),state:'ready'};
+      const result=await build(cached),next={...result,checkedAt:clock(),lastScheduledAt:force?(report?.lastScheduledAt??null):clock(),state:'ready'};
       await storage.put('rf:report',next);await storage.delete('rf:start');await clear(storage,prefix);return next;
     }catch(e){
       if(e===more)return {state:'checking'};

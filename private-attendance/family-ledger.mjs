@@ -35,6 +35,16 @@ export function createFamilyLedger(read) {
     async balances() {
       return (await read('families',balanceFields)).map(({id,fields}) => ({familyId:id,...balancesOf(fields)}));
     },
+    async parentContact(playerId, includeEmail) {
+      if (!recordId.test(playerId)) throw Error('INVALID_PLAYER');
+      const [player] = await read('players', ['Family','Player status'], [playerId]);
+      const links = player?.fields.Family;
+      if (player?.id !== playerId || player.fields['Player status']==='Inactive' || links?.length !== 1 || !recordId.test(links[0])) return null;
+      const fields = includeEmail ? ['Phone','Email'] : ['Phone'];
+      const [family] = await read('families', fields, links);
+      if (family?.id !== links[0]) return null;
+      return {phone:family.fields.Phone || null, ...(includeEmail ? {email:family.fields.Email || null} : {})};
+    },
     async directory() {
       const rows = await read('families', ['Family', 'Guardian name', 'Players']);
       return rows.map(({id, fields}) => ({id, playerIds: fields.Players || [], name: fields.Family || fields['Guardian name'] || 'Unnamed family'}))

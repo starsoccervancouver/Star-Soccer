@@ -3,13 +3,13 @@
   'use strict';
   const views = new Set(['home','plan','profiles','families','attention','library','coaches','settings','team','activity','legacy']);
   const parse = hash => {
-    const p = new URLSearchParams(hash.replace(/^#/, '')), view = p.get('view');
+    const p = new URLSearchParams(hash.replace(/^#/, '')), view = p.get('view')==='reports'?'attention':p.get('view');
     if (!views.has(view)) return null;
     const sessionId = p.get('session'), section = p.get('section') || 'plan';
     if (sessionId && (view !== 'plan' || !/^rec[a-zA-Z0-9]{14}$/.test(sessionId)) || !['plan','attendance','notes'].includes(section)) return null;
     return {view, sessionId:sessionId || null, section};
   };
-  const hashFor = route => { const p = new URLSearchParams({view:route.view}); if (route.sessionId) { p.set('session', route.sessionId); p.set('section', route.section); } return '#' + p; };
+  const hashFor = route => { const p = new URLSearchParams({view:route.view==='attention'?'reports':route.view}); if (route.sessionId) { p.set('session', route.sessionId); p.set('section', route.section); } return '#' + p; };
   let context = null, saved = '', applying = false, initialized = false, pending = parse(window.CoachInitialRoute || '');
   function current() {
     if (!context?.profile) return null;

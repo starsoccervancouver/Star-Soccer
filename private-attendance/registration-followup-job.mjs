@@ -50,7 +50,9 @@ export function createFollowupJob({storage,ledger,read,config,clock=Date.now}){
     const owner=await storage.get('ownerAddress')||STAR_SOCCER_OWNER;
     if(!profile.historyId||![owner,STAR_SOCCER_OWNER].includes(profile.emailAddress?.toLowerCase()))throw Error('Wrong mailbox');
     if(!shortlist.records.length&&!shortlist.offset)return {items:[],eligibleBookings:0};
-    const snap={baseId:config.baseId,bookingTableId:config.tables.bookings,messages:[],complete:true};
+    // Older intake configurations address Bookings by name. Airtable record links require the table ID.
+    const bookingTableId=config.baseId==='appnaG94HQpEaRios'?'tblVsKHnBZMlxYavr':config.tables.bookings;
+    const snap={baseId:config.baseId,bookingTableId,messages:[],complete:true};
     for(const [table,selected] of Object.entries(fields)){
       let offset;const seen=new Set();snap[table]=[];
       do{

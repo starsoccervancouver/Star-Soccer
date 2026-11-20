@@ -105,7 +105,16 @@
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
           // The approved private form and 44px stepper rows stack on narrow phones.
           // Passes now show all four dated availability rows beside submit.
-          const limit=page.startsWith('registration.html') && page.includes('type=pass4')?(width<=420?950:850):page.includes('kind=dropin')?850:doc.body.classList.contains('private-registration')?740:(width<=420 && numeric.length?850:740);
+          const baseLimit=page.startsWith('registration.html') && page.includes('type=pass4')?(width<=420?950:850):page.includes('kind=dropin')?850:doc.body.classList.contains('private-registration')?740:(width<=420 && numeric.length?850:740);
+          // The optional attendance-history question adds one row before submit.
+          // Account for that row and its grid gap, and cap the added height.
+          const history=form.querySelector('[name="Previously attended Star Soccer"]');
+          const historyRow=history?.closest('label');
+          const historyHeight=historyRow
+            ? historyRow.getBoundingClientRect().height+(parseFloat(frame.contentWindow.getComputedStyle(form).rowGap)||0)
+            : 0;
+          if(history)check(historyHeight>0 && historyHeight<=100,`${page} at ${width}px keeps the optional attendance-history row within 100px`);
+          const limit=baseLimit+Math.min(historyHeight,100);
           check(submit.getBoundingClientRect().bottom<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
           if(doc.body.classList.contains('private-registration')){
             doc.querySelector('[name="Training format"][value="smallgroup"]').click();

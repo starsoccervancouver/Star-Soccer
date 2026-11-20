@@ -12,10 +12,11 @@ test('hourly generation resumes in bounded batches, clears on a family reply, an
  const msgs=[message(conf,['SENT'],STAR_SOCCER_OWNER,parent,t0)];
  const read=async path=>{calls++;if(path==='profile')return {emailAddress:STAR_SOCCER_OWNER,historyId:h};if(path==='threads')return {threads:[{id:thr}]};if(path==='messages/'+conf)return {id:conf,threadId:thr};if(path==='threads/'+thr)return {id:thr,historyId:h,messages:msgs};throw Error('Unexpected read');};
  async function finish(){
-  for(let i=0;i<25;i++){const job=createFollowupJob({storage,ledger,read,config:{baseId:'fixture',tables:{bookings:'bookings'}},clock:()=>now});calls=0;const result=await job.step();assert(calls<=6);if(result.state!=='checking')return result;}
+  for(let i=0;i<25;i++){const job=createFollowupJob({storage,ledger,read,config:{baseId:'appnaG94HQpEaRios',tables:{}},clock:()=>now});calls=0;const result=await job.step();assert(calls<=6);if(result.state!=='checking')return result;}
   throw Error('Check did not finish');
  }
  const first=await finish();assert.equal(first.state,'ready');assert.equal(first.items[0].label,'Follow up with family');
+ assert.equal(first.items[0].bookingUrl,'https://airtable.com/appnaG94HQpEaRios/tblVsKHnBZMlxYavr/'+bid);
  assert.deepEqual(await finish(),first);assert.equal(calls,0);
  now+=3600000;h='101';msgs.push(message('11ab000000000003',['INBOX'],parent,STAR_SOCCER_OWNER,now-1000));assert.deepEqual((await finish()).items,[]);
  now+=3600000;fail=true;assert.equal((await finish()).state,'unavailable');

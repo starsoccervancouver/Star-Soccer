@@ -1,5 +1,7 @@
 # Winter camps 2026/27
 
+Keep `/camps.html` as the canonical soccer camps landing page year-round. Update its seasonal heading, opening comparison and booking links as each new season opens. Check dates, ages and prices against the active registration forms before publishing.
+
 Owner confirmed Kitsilano Turf, ages 5–14 and supervised noon–12:30 lunch for players attending both sessions on October 26, 2026.
 
 - December 21–25: $200 per morning or afternoon package. Monday–Thursday allocate $50 per date and slot; December 25 is free. Both daily blocks total $400.

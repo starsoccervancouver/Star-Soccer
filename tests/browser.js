@@ -53,7 +53,7 @@
           const programs=doc.querySelector('.hero-action-programs'),camps=doc.querySelector('.hero-action-camps');
           check(programs && camps && programs.getAttribute('href')==='pro-d-camp-registration.html' && programs.textContent.includes('Register for Pro-D camp') && camps.getAttribute('href')==='camps.html',`Homepage at ${width}px directs parents to the Pro-D camp and keeps the winter camp destination`);
           check(programs && camps && [programs,camps].every(el=>el.getClientRects().length && el.getBoundingClientRect().height>=48),`Homepage at ${width}px shows large program and camp actions`);
-          check(camps && camps.textContent.includes('Register for discounted winter camps') && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with the streamlined discounted winter camp action`);
+          check(camps && camps.textContent.includes('Compare Vancouver winter soccer camps') && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with a descriptive winter soccer camp action`);
           check(doc.querySelector('h1').textContent.includes('Weekly soccer coaching.') && doc.querySelector('h1').textContent.includes('Ages 6–14 in Kitsilano.'),`Homepage at ${width}px describes the weekly service, ages and location`);
           for(const [coach,days] of [['Valentinos Dinglis',['tuesday','wednesday','thursday','sunday']],['Romeo Dinglis',['wednesday','friday']]]){
             const links=[...doc.querySelectorAll(`[role="group"][aria-label="Weekly groups with ${coach}"] a`)];
@@ -70,11 +70,11 @@
           check(actions.top>=lead.bottom && (width>700?actions.right<heroPhoto.right:heroPhoto.top>=actions.bottom),`Homepage at ${width}px keeps choices below the introduction and ahead of the mobile photo`);
         }
         if(page==='camps.html') {
-          const links=[...doc.querySelectorAll('.camp-week-card .winter-camp-cta')];
-          // At 320px the approved Week 1 drop-in price adds one 21.5px line before Week 2.
-          const mobileActionLimit = width === 320 ? 1050 + 21.5 : 1050;
-          const campActionLimit = width <= 700 ? mobileActionLimit : 755;
-          check(links.length===2 && links[0].getBoundingClientRect().bottom<=755 && links.every(el=>el.getBoundingClientRect().bottom<=campActionLimit && el.getBoundingClientRect().height>=48),`Camps at ${width}px keeps the first registration action within 755px and both within ${campActionLimit}px (${Math.round(links.at(-1).getBoundingClientRect().bottom)}px)`);
+          const links=[...doc.querySelectorAll('.camp-comparison .winter-camp-cta')];
+          const cardLinks=[...doc.querySelectorAll('.camp-week-card .winter-camp-cta')];
+          const bookingPages=['christmas-camp-registration.html','boxing-camp-registration.html'];
+          check(links.length===2 && links.every((el,i)=>el.getAttribute('href')===bookingPages[i] && el.getBoundingClientRect().bottom<=755 && el.getBoundingClientRect().height>=48),`Camps at ${width}px keeps both opening registration actions within 755px`);
+          check(cardLinks.length===2 && cardLinks.every((el,i)=>el.getAttribute('href')===bookingPages[i]),`Camps at ${width}px keeps the registration links within each week card`);
           check(!doc.querySelector('.camp-overview') && [...doc.querySelectorAll('.camp-card-details')].every(el=>el.textContent.includes('20 players') && el.textContent.includes('noon–12:30')),`Camp cards at ${width}px include capacity and supervised lunch details`);
           check([...doc.querySelectorAll('.camp-week-card,.seasonal-feature')].every(el=>!frame.contentWindow.getComputedStyle(el,'::before').backgroundImage.includes('url(') && frame.contentWindow.getComputedStyle(el).backgroundImage==='none'),`Camp cards at ${width}px have solid surfaces without photography`);
         }
@@ -441,7 +441,7 @@
     check(soloData?.get('Player ages')==='7 years' && soloData.get('Players')==='1' && soloData.get('Estimate CAD')==='65 per player; 65 group total','Solo inquiry submits one age without requiring or using an oldest age');
     doc=await load('camps.html',320);
     check(!doc.querySelector('form') && !doc.body.textContent.includes('Request free Friday') && doc.querySelectorAll('a[href$="?kind=dropin"]').length===2,'Each camp offers a direct drop-in registration link');
-    check(doc.querySelector('a[href="christmas-camp-registration.html"]').textContent==='Register for Week 1' && doc.querySelector('a[href="boxing-camp-registration.html"]').textContent==='Register for Week 2','Each numbered winter camp links directly to its own registration page');
+    check(doc.querySelector('#winter-week-1 a[href="christmas-camp-registration.html"]').textContent==='Register for Week 1' && doc.querySelector('#winter-week-2 a[href="boxing-camp-registration.html"]').textContent==='Register for Week 2','Each numbered winter camp links directly to its own registration page');
     check([...doc.querySelectorAll('.camp-price-saving')].every((el,i)=>el.textContent.includes('$250') && el.textContent.includes(['Save $50','Save $65'][i])),'Both camp cards show the standard $250 and correct package savings');
     check(doc.querySelector('.camp-card-highlight').textContent==='Christmas gift: Christmas Day is free!','Week 1 clearly advertises the free Christmas Day gift');
     doc=await load('christmas-camp-registration.html',320);

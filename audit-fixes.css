@@ -106,6 +106,18 @@ body .winter-hero-copy>p:not(.eyebrow) {max-width:40ch;font-size:1.05rem;line-he
 body .winter-camp-cta,body .flow-surface .winter-camp-cta {min-height:48px;background:#f0cb80;color:#102031;border-color:#f0cb80;box-shadow:none;gap:12px;}
 body .winter-camp-cta:hover,body .flow-surface .winter-camp-cta:hover {background:#f6d99f;color:#102031;}
 body.winter-camps-page .flow-surface {width:min(1040px,calc(100% - 32px));}
+body .camp-comparison {padding:clamp(16px,2.4vw,26px);background:#102438;}
+body .camp-comparison h2 {margin:0 0 6px;}
+body .camp-comparison p {margin:0;}
+.camp-comparison-table {width:100%;table-layout:fixed;border-collapse:collapse;margin:10px 0;}
+.camp-comparison-table :is(th,td) {padding:6px 4px;font-size:clamp(.875rem,2vw,1rem);line-height:1.4;border-bottom:1px solid var(--flow-border);text-align:center;vertical-align:middle;}
+.camp-comparison-table th:first-child {width:34%;text-align:left;}
+.camp-comparison-table a {display:inline-block;padding:4px 0;}
+.camp-comparison-table a span {display:block;}
+.camp-comparison-table td {font-weight:800;}
+.camp-comparison-table tfoot td {border-bottom:0;}
+body .camp-comparison-table .button {width:100%;min-width:0;padding:6px;font-size:.875rem;line-height:1.4;text-align:center;white-space:normal;}
+body .camp-comparison-dropin {font-size:.9rem;}
 body.camp-registration-page .flow-hero {width:min(1040px,calc(100% - 32px));}
 body .camp-week-grid {width:min(1040px,calc(100% - 32px));margin:0 auto 24px;display:grid;grid-template-columns:1fr 1fr;gap:22px;scroll-margin-top:110px;}
 body.winter-camps-page .camp-week-grid .flow-surface {width:100%;margin:0;display:flex;flex-direction:column;}

@@ -112,9 +112,10 @@
 <button data-tab="home" class="nav-active"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Overview</span></button>
 <button data-tab="profiles"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>Player profiles</span></button>
 <button data-tab="plan"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h3M8 18h7"/></svg><span>Training groups</span></button>
-<button id="nav-families" data-tab="families" hidden><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v11h14V10"/><circle cx="12" cy="12" r="2"/><path d="M8 20v-1a4 4 0 0 1 8 0v1"/></svg><span>Families</span></button>
 <button data-tab="library"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6a2 2 0 0 1 2 2v15a3 3 0 0 0-3-2H3V4zm16 0h-6a2 2 0 0 0-2 2v15a3 3 0 0 1 3-2h6V4z"/></svg><span>Coach resources</span></button>
 <button data-tab="coaches" data-full hidden><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5v1"/></svg><span>Coaching team</span></button>
+<button id="nav-families" data-tab="families" hidden><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v11h14V10"/><circle cx="12" cy="12" r="2"/><path d="M8 20v-1a4 4 0 0 1 8 0v1"/></svg><span>Families</span></button>
+<button id="nav-attention" data-tab="attention" hidden><svg class="desk-nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14l3-9h12l3 9v5H3zM3 14h5l2 3h4l2-3h5"/></svg><span>Needs attention</span></button>
 
 <button data-tab="settings" class="nav-settings"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></svg><span>Settings &amp; profile</span></button>
 </nav>
@@ -231,6 +232,7 @@
 <section class="card priorities-card">
 <p class="eyebrow">Keep the week moving</p>
 <h2>Needs your attention</h2>
+<button type="button" class="secondary" id="home-mail-summary" hidden>Review inbox</button>
 <div id="home-priorities"></div>
 <div id="home-followups" hidden>
 </div>
@@ -241,11 +243,17 @@
 </section>
 <section id="panel-families" class="tab-panel" hidden>
 <section class="card">
+<div class="family-modes" role="group" aria-label="Family directory view"><button type="button" data-family-mode="grid" aria-pressed="true">Grid</button><button type="button" data-family-mode="list" aria-pressed="false">List</button><button type="button" data-family-mode="session" aria-pressed="false">By session</button></div>
+<div id="family-directory"></div>
 <label for="family-picker">Choose a family</label>
 <select id="family-picker" hidden></select>
 <p id="family-status" role="status"></p>
 <div id="family-results" aria-live="polite"></div>
 </section>
+</section>
+<section id="panel-attention" class="tab-panel" hidden>
+<div class="attention-toolbar"><p id="attention-status" role="status"></p><button id="attention-refresh" type="button" class="secondary">Refresh inbox</button></div>
+<div id="attention-groups"></div>
 </section>
 <section id="panel-plan" class="tab-panel" hidden>
 <header id="planner-focus-bar" class="planner-focus-bar" hidden>

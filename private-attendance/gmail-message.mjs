@@ -25,6 +25,18 @@ function formFields(body) {
   }
   return fields;
 }
+export function transferNotice(message) {
+  const headers=message.payload?.headers||[];
+  const get=name=>headers.find(h=>h.name.toLowerCase()===name)?.value||'';
+  const auth=headers.find(h=>h.name.toLowerCase()==='authentication-results' && /^mx\.google\.com\s*;/i.test(h.value))?.value||'';
+  if(emailOf(get('from'))!=='notify@payments.interac.ca'||!/\bdmarc=pass\b[^;]*\bheader\.from=payments\.interac\.ca\b/i.test(auth))return null;
+  const plain=[], html=[];contents(message.payload,plain,html);
+  const body=(plain.join(' ')||htmlText(html.join(' '))).replace(/\s+/g,' ');
+  const subject=limit(get('subject'));
+  return {subject,ref:body.match(/Reference Number:\s*([A-Za-z0-9]{6,24})\b/i)?.[1]?.toUpperCase(),
+    incoming:/sent you|sent money to you|waiting for you|reminder.*(?:accept|deposit|transfer)/i.test(subject),
+    closed:/automatically deposited|has been deposited|was deposited|has (?:been )?(?:cancelled|canceled|expired)|(?:transfer|payment) (?:cancelled|canceled|expired)/i.test(subject)};
+}
 export function classifyMessage(message, labels, ownerEmail, confirmationMailbox) {
   const ids = new Set(message.labelIds);
   if (['DRAFT','SPAM','TRASH','CHAT'].some(id => ids.has(id))) return null;

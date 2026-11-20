@@ -36,8 +36,8 @@ export function createFamilyLedger(read) {
       return (await read('families',balanceFields)).map(({id,fields}) => ({familyId:id,...balancesOf(fields)}));
     },
     async directory() {
-      const rows = await read('families', ['Family', 'Guardian name']);
-      return rows.map(({id, fields}) => ({id, name: fields.Family || fields['Guardian name'] || 'Unnamed family'}))
+      const rows = await read('families', ['Family', 'Guardian name', 'Players']);
+      return rows.map(({id, fields}) => ({id, playerIds: fields.Players || [], name: fields.Family || fields['Guardian name'] || 'Unnamed family'}))
         .sort((a, b) => a.name.localeCompare(b.name));
     },
     async detail(id) {

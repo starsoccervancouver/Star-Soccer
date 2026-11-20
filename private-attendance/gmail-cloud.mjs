@@ -1,5 +1,6 @@
 import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypto';
 import {Buffer} from 'node:buffer';
+import {attentionPage} from './attention-inbox.mjs';
 import {classifyMessage} from './gmail-message.mjs';
 import {airtableClient,syncLedgerEvent} from './gmail-ledger.mjs';
 import {createAirtableTransport} from './airtable-transport.mjs';
@@ -145,7 +146,25 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       await storage.put('report',{...report,error:allowed.test(err.message)?err.message:'SYNC_RETRY'});
     }
   }
+  const attentionCache=new Map();
   async function handle(op,payload){
+    if(op==='attention'){
+      const key=payload.kind+'|'+(payload.cursor||'');
+      for(const [id,entry] of attentionCache)if(entry.until<=clock())attentionCache.delete(id);
+      if(attentionCache.has(key))return attentionCache.get(key).value;
+      let access,labels={};
+      {
+        const encrypted=await storage.get('refresh');
+        if(!encrypted)throw Error('GOOGLE_RECONNECT');
+        const grant=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
+        access=grant.access_token;
+        if(payload.kind==='payments')labels=await ensureLabels(access);
+      }
+      const read=(path,params)=>gmail(access,path,params);
+      const value=await attentionPage({ledger,read,labels,mailbox:await storage.get('ownerAddress')||STAR_SOCCER_OWNER,now:clock()},payload.kind,payload.cursor);
+      if(attentionCache.size<128)attentionCache.set(key,{until:clock()+30000,value});
+      return value;
+    }
     if(op==='status'){
       const report=await storage.get('report')||{};
       return {connected:!!await storage.get('refresh'),...report};
@@ -173,9 +192,10 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         await tx.put('report',{error:null});
         await tx.setAlarm(clock()+1000);
       });
-      return {connected:true};
+      attentionCache.clear();return {connected:true};
     }
     if(op==='disconnect'){
+      attentionCache.clear();
       await storage.delete(['refresh','consent']);await storage.deleteAlarm();
       await storage.delete('report');return {connected:false};
     }

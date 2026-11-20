@@ -9,7 +9,7 @@ async function setup(t,contactFixture){
  const one=coaches.actor('one@example.test'),two=coaches.actor('two@example.test'),admin=coaches.actor('admin@example.test');
  coaches.assign(owner,{email:one.email,sessionId:rid(1),assigned:true});
  const ledgerCalls=[],familyLedger={async directory(){ledgerCalls.push('directory');return [];},async detail(id){ledgerCalls.push(id);return {balance:50};}};
- const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,attention:async({kind})=>({kind}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
+ const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,attention:async({kind})=>({kind}),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
  const request=(actor,path,payload)=>{const session=auth.createVerifiedSession(actor.email),origin='https://attendance.starsoccer.ca';return handler(new Request(origin+'/workspace/api/'+path,{method:payload===undefined?'GET':'POST',headers:{origin,'content-type':'application/json',cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf},...(payload===undefined?{}:{body:JSON.stringify(payload)})}));};
  return {store,coaches,owner,one,two,admin,request,auth,handler,ledgerCalls};
 }
@@ -121,4 +121,13 @@ test('parent contact reads are limited to the assigned roster and select email o
  links=[rid(50),rid(51)];
  assert.deepEqual(await (await request(admin,'parent-contact',payload)).json(),{contact:null});
  assert.equal(reads.at(-1).table,'players');
+});
+
+test('registration follow-up reports and manual checks require the signed-in owner',async t=>{
+ const {owner,admin,one,coaches,request}=await setup(t);
+ assert.equal((await request(admin,'family-followups')).status,403);
+ coaches.saveUser(owner,{email:admin.email,name:'Super admin',role:'super_admin',expectedVersion:1});
+ for(const actor of [admin,one])assert.equal((await request(actor,'family-followups',{})).status,403);
+ assert.deepEqual(await (await request(owner,'family-followups')).json(),{preview:false});
+ assert.deepEqual(await (await request(owner,'family-followups',{})).json(),{preview:true});
 });

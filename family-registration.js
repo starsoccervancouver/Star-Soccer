@@ -16,7 +16,7 @@
   }
   function mount(form,{minAge,maxAge,nameLabel='Child’s name',experience=false,onChange=()=>{}}={}){
     const doc=form.ownerDocument,records=[],savedDisabled=new Map();let locked=false,serial=1;
-    const primary={key:'player-1',state:'pending',reference:'',name:form.elements.namedItem('Player name'),age:form.elements.namedItem('Player age'),experience:form.elements.namedItem('Experience'),notes:form.elements.namedItem('Notes')};
+    const primary={key:'player-1',state:'pending',reference:'',name:form.elements.namedItem('Player name'),age:form.elements.namedItem('Player age'),history:form.elements.namedItem('Previously attended Star Soccer'),experience:form.elements.namedItem('Experience'),notes:form.elements.namedItem('Notes')};
     if(!primary.name||!primary.age)throw new Error('Player fields are required.');
     records.push(primary);
     form.addEventListener('input',event=>{if(records.some(p=>p.name===event.target))records.forEach(p=>p.name.setCustomValidity(''));});
@@ -42,9 +42,11 @@
       const name=input(nameLabel,'text','name',key+'-name'),age=input('Age','number','age',key+'-age');row.append(name.label,age.label);fieldset.append(row);
       let exp=null;
       if(experience){const label=doc.createElement('label');label.textContent='Soccer experience';exp=primary.experience.cloneNode(true);exp.removeAttribute('name');exp.id=key+'-experience';exp.value='';label.append(exp);fieldset.append(label);}
+      let history=null;
+      if(primary.history){const label=primary.history.closest('label').cloneNode(true);history=label.querySelector('select');history.removeAttribute('name');history.id=key+'-history';history.value='';fieldset.append(label);}
       const notes=input('Note for this player (optional)','textarea','notes',key+'-notes');fieldset.append(notes.label);
       const remove=doc.createElement('button');remove.type='button';remove.className='flow-text-link family-remove-player';remove.textContent='Remove player';fieldset.append(remove);
-      const record={key,state:'pending',reference:'',name:name.el,age:age.el,experience:exp,notes:notes.el,fieldset};records.push(record);section.append(fieldset);
+      const record={key,state:'pending',reference:'',name:name.el,age:age.el,history,experience:exp,notes:notes.el,fieldset};records.push(record);section.append(fieldset);
       remove.addEventListener('click',()=>{
         if(locked)return;
         records.splice(records.indexOf(record),1);fieldset.remove();
@@ -55,7 +57,7 @@
       fieldset.addEventListener('input',()=>{for(const p of records)p.name.setCustomValidity('');});
       onChange();name.el.focus();
     });
-    function players(){return records.map(p=>({key:p.key,name:p.name.value.trim(),age:p.age.value,experience:p.experience?.value||'',notes:p.notes?.value.trim()||'',state:p.state,reference:p.reference}));}
+    function players(){return records.map(p=>({key:p.key,name:p.name.value.trim(),age:p.age.value,history:p.history?.value||'',experience:p.experience?.value||'',notes:p.notes?.value.trim()||'',state:p.state,reference:p.reference}));}
     function validate(){
       const seen=new Set();
       for(const p of records){

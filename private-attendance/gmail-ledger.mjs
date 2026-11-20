@@ -11,7 +11,7 @@ const words = (source,term) => !!term && (' '+normalize(source)+' ').includes(' 
 const one = (links,id) => links?.length===1&&links[0]===id;
 const depositedBy = 'Star Soccer owner via Gmail Deposited label';
 const afterCutover = (received,since) => typeof since==='string'&&Date.parse(received)>=Date.parse(since);
-const registrationFields=['Reference','Source Gmail ID','Received at','Parent email','Family','Child','Player','Booking','Status','Age','Registration kind','Camp session keys','Confirmation Gmail ID'];
+const registrationFields=['Reference','Source Gmail ID','Received at','Parent email','Family','Child','Player','Booking','Status','Age','Registration kind','Camp session keys','Confirmation Gmail ID','Player history at registration'];
 export function airtableClient(config, token, fetchFn=fetch) {
   async function request(url,options={}) {
     const res=await fetchFn(url,{...options,redirect:'manual',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}});
@@ -28,6 +28,13 @@ export function airtableClient(config, token, fetchFn=fetch) {
     return data.records;
   }
   return {
+    async listPage(name,fields,filter,offset){
+      const url=urlFor(name);
+      fields.forEach(f=>url.searchParams.append('fields[]',f));
+      if(filter)url.searchParams.set('filterByFormula',filter);
+      if(offset)url.searchParams.set('offset',offset);
+      return request(url);
+    },
     async list(name,fields,filter) {
       const url=urlFor(name),rows=[],seen=new Set();
       fields.forEach(f=>url.searchParams.append('fields[]',f));
@@ -48,11 +55,18 @@ export function airtableClient(config, token, fetchFn=fetch) {
     }
   };
 }
-export async function syncLedgerEvent(db,event,{campPlacementSince,now=new Date()}={}) {
+export async function syncLedgerEvent(db,event,{campPlacementSince,trackConfirmation=false,now=new Date()}={}) {
   if(!event)return;
   const e=event;
-  if(e.type==='camp-confirmation'){
-    if(afterCutover(e.received,campPlacementSince))await recordCampConfirmation(db,e,campPlacementSince,now);
+  if(['camp-confirmation','registration-confirmation'].includes(e.type)){
+    if(e.type==='camp-confirmation'&&afterCutover(e.received,campPlacementSince))await recordCampConfirmation(db,e,campPlacementSince,now);
+    if(trackConfirmation&&!(e.type==='camp-confirmation'&&afterCutover(e.received,campPlacementSince))){
+      const matches=await db.list('registrations',['Reference','Parent email','Received at','Player history at registration','Confirmation Gmail ID','Status'],exact('Reference',e.reference));
+      const r=matches[0],f=r?.fields;
+      if(matches.length===1&&f.Reference===e.reference&&f['Player history at registration']&&!f['Confirmation Gmail ID']&&f.Status!=='Declined'&&f['Parent email']?.trim().toLowerCase()===e.contact&&Date.parse(e.received)>=Date.parse(f['Received at'])){
+        await db.save('registrations',{'Confirmation Gmail ID':e.id},{id:r.id});
+      }
+    }
     return;
   }
   const existingIntake=(await db.list('intake',['Review','Kind','Next action','Family'],exact('Message ID',e.id)))[0];
@@ -77,6 +91,7 @@ export async function syncLedgerEvent(db,event,{campPlacementSince,now=new Date(
   const matches=await db.list('registrations',registrationFields, 'OR('+exact('Source Gmail ID',e.id)+','+exact('Reference',e.reference)+')');
   if(matches.length>1||matches.some(r=>(r.fields.Child&&normalize(r.fields.Child)!==normalize(e.child))||(r.fields['Parent email']&&r.fields['Parent email'].toLowerCase()!==e.contact)))return intake('Registration candidate','Needs clarification','Conflicting registration reference or identity. Review the existing entries.',summary);
   let registration=matches[0], children=[];
+  if(registration&&registration.fields['Source Gmail ID']===e.id&&e.playerHistory&&!registration.fields['Player history at registration'])await db.save('registrations',{'Player history at registration':e.playerHistory},{id:registration.id});
   const campFlow=afterCutover(e.received,campPlacementSince)&&campVersions.includes(e.version);
   const request=campFlow?campRequest(e,new Date(e.received)):null;
   const awaitingPlacement=!registration||['Needs review','Processing'].includes(registration.fields.Status)&&!registration.fields.Booking?.length;
@@ -98,7 +113,7 @@ export async function syncLedgerEvent(db,event,{campPlacementSince,now=new Date(
   if(!registration){
     registration=await db.save('registrations',compact({Reference:e.reference,'Source Gmail ID':e.id,'Received at':e.received,'Parent email':e.contact,Child:e.child,
       Age:/^\d{1,2}$/.test(e.age||'')?Number(e.age):undefined,Experience:e.experience,'Requested option':e.option,Weekday:e.training,'Next session date':e.dates?.match(/\d{4}-\d{2}-\d{2}/)?.[0],
-      'Registration kind':e.version,'Referral source':e.referral,Status:'Needs review',...(family?{Family:[family.id]}:{}),...(player?{Player:[player.id]}:{}),...e.attribution}),{key:'Reference'});
+      'Registration kind':e.version,'Player history at registration':e.playerHistory,'Referral source':e.referral,Status:'Needs review',...(family?{Family:[family.id]}:{}),...(player?{Player:[player.id]}:{}),...e.attribution}),{key:'Reference'});
   }
   if(campFlow&&awaitingPlacement&&registration.fields['Source Gmail ID']===e.id){
     if(!request||!player||player.fields['Player status']!=='Active'||

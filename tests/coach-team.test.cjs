@@ -9,7 +9,7 @@ async function setup(t){
  const one=coaches.actor('one@example.test'),two=coaches.actor('two@example.test'),admin=coaches.actor('admin@example.test');
  coaches.assign(owner,{email:one.email,sessionId:rid(1),assigned:true});
  const ledgerCalls=[],familyLedger={async directory(){ledgerCalls.push('directory');return [];},async detail(id){ledgerCalls.push(id);return {balance:50};}};
- const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger,cookieKey:'k'.repeat(43),assets:{},overview:async()=>{throw Error('Team reads must not fetch roster');}});
+ const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger,attention:async({kind})=>({kind}),cookieKey:'k'.repeat(43),assets:{},overview:async()=>{throw Error('Team reads must not fetch roster');}});
  const request=(actor,path,payload)=>{const session=auth.createVerifiedSession(actor.email),origin='https://attendance.starsoccer.ca';return handler(new Request(origin+'/workspace/api/'+path,{method:payload===undefined?'GET':'POST',headers:{origin,'content-type':'application/json',cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf},...(payload===undefined?{}:{body:JSON.stringify(payload)})}));};
  return {store,coaches,owner,one,two,admin,request,auth,handler,ledgerCalls};
 }
@@ -82,7 +82,17 @@ test('family ledger keeps sibling bookings and a shared transfer separate and pr
  const family=await ledger.detail(id);
  assert.deepEqual(family.players,['Child A','Child B']);assert.equal(family.payments.length,1);
  assert.deepEqual(family.bookings.map(b=>b.applied),[60,30]);assert.equal(family.balance,0);assert.equal(family.dueNow,null);
- assert.equal(await ledger.detail(rid(9)),null);assert.deepEqual(await ledger.directory(),[{id,name:'Example family'}]);
+ assert.equal(await ledger.detail(rid(9)),null);assert.deepEqual(await ledger.directory(),[{id,name:'Example family',playerIds:[rid(2),rid(3)]}]);
  tables.payments[0].fields.Family=[rid(9)];
  await assert.rejects(()=>ledger.detail(id),/INCONSISTENT_FAMILY_LINK/);
+});
+
+test('only authorized family staff can read work queues and the owner can review general mailbox subjects',async t=>{
+ const {coaches,owner,admin,one,request}=await setup(t);
+ assert.equal((await request(one,'needs-attention/payments',{})).status,403);
+ assert.equal((await request(admin,'needs-attention/inquiries',{})).status,403);
+ assert.equal((await request(owner,'needs-attention/other',{})).status,200);
+ coaches.saveUser(owner,{email:admin.email,name:'Elevated',role:'super_admin',expectedVersion:1});
+ assert.equal((await request(admin,'needs-attention/registrations',{})).status,200);
+ assert.equal((await request(admin,'needs-attention/other',{})).status,403);
 });

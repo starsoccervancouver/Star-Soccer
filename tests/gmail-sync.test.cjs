@@ -275,10 +275,10 @@ test('no background access until consent and a separate signed-in owner flow',as
  assert(!JSON.stringify([...records]).includes('fixture-refresh'));
  await mail.cycle();assert.equal((await mail.handle('status')).error,null);
  await mail.cycle();
- await mail.cycle();assert.equal(alarm,now+60000);
+ await mail.cycle();assert.equal(alarm,now+120000);
  historyUnavailable=true;
  await mail.cycle();assert.equal(alarm,now+300000);assert.equal((await mail.handle('status')).error,'GMAIL_429');
  historyUnavailable=false;
- await mail.cycle();assert.equal(alarm,now+60000);assert.equal((await mail.handle('status')).error,null);
+ await mail.cycle();assert.equal(alarm,now+120000);assert.equal((await mail.handle('status')).error,null);
  await mail.handle('disconnect',{});assert.equal(alarm,0);assert.equal((await mail.handle('status')).connected,false);
 });

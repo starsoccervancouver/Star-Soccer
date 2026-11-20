@@ -7,7 +7,7 @@ import {STAR_SOCCER_OWNER} from './deployment-config.mjs';
 
 const scope='https://www.googleapis.com/auth/gmail.readonly';
 const root='https://gmail.googleapis.com/gmail/v1/users/me/';
-const pollInterval=60000, retryDelay=300000, googleToken='https://oauth2.googleapis.com/token';
+const pollInterval=120000, retryDelay=300000, googleToken='https://oauth2.googleapis.com/token';
 const random=()=>randomBytes(32).toString('base64url');
 const hash=s=>createHash('sha256').update(s).digest('base64url');
 const redirect='https://starsoccer.ca/coachdesk/api/auth/google/callback';

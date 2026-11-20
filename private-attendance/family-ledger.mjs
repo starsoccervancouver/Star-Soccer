@@ -5,7 +5,7 @@ const familyFields = ['Family', 'Guardian name', 'Email', 'Phone', 'Players', 'W
   'Balance CAD', 'Balance status', 'Due now total CAD', 'Verified family receipts CAD', 'Unpriced bookings'];
 const linkedFields = {
   players: ['Player'],
-  registrations: ['Reference', 'Child', 'Weekday', 'Requested option', 'Next session date', 'Status', 'Registration kind'],
+  registrations: ['Reference', 'Child', 'Weekday', 'Requested option', 'Next session date', 'Status', 'Registration kind', 'Processing notes'],
   bookings: ['Booking reference', 'Booking type', 'Booking status', 'Start date', 'Covered dates', 'Agreed booked CAD', 'Verified applied CAD', 'Balance CAD', 'Payment attention', 'Player'],
   payments: ['Payment reference', 'Payment date', 'Method', 'Direction', 'Verification', 'Amount CAD']
 };
@@ -53,7 +53,7 @@ export function createFamilyLedger(read) {
       return {
         name: f.Family || f['Guardian name'] || 'Unnamed family', guardian: f['Guardian name'], email: f.Email, phone: f.Phone,
         players: [...names.values()], ...balancesOf(f), balanceStatus: f['Balance status'], unpricedBookings: f['Unpriced bookings'],
-        registrations: registrations.map(({fields: r}) => ({reference: r.Reference, child: r.Child, program: r['Requested option'] || r['Registration kind'], weekday: r.Weekday, date: r['Next session date'], status: r.Status})),
+        registrations: registrations.map(({fields: r}) => ({reference: r.Reference, child: r.Child, program: r['Requested option'] || r['Registration kind'], weekday: r.Weekday, date: r['Next session date'], status: r.Status==='Processing'&&r['Processing notes']?.startsWith('Pending owner confirmation.')?'Pending confirmation':r.Status})),
         bookings: bookings.map(({fields: b}) => ({reference: b['Booking reference'], players: (b.Player || []).map(id => names.get(id)).filter(Boolean),
           type: b['Booking type'], status: b['Booking status'], dates: b['Covered dates'] || b['Start date'], balance: money(b['Balance CAD']), applied: money(b['Verified applied CAD'])})),
         payments: payments.map(({fields: p}) => ({reference: p['Payment reference'], date: p['Payment date'], method: p.Method, direction: p.Direction, verification: p.Verification, amount: money(p['Amount CAD'])}))

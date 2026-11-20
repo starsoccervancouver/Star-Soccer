@@ -1,4 +1,5 @@
 import {Buffer} from 'node:buffer';
+import campaign from '../campaign-source.js';
 
 export const normalize = text => String(text || '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 const emailOf = text => String(text || '').match(/[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0]?.toLowerCase();
@@ -24,18 +25,27 @@ function formFields(body) {
   }
   return fields;
 }
-export function classifyMessage(message, labels, ownerEmail) {
+export function classifyMessage(message, labels, ownerEmail, confirmationMailbox) {
   const ids = new Set(message.labelIds);
-  if (['SENT','DRAFT','SPAM','TRASH','CHAT'].some(id => ids.has(id))) return null;
+  if (['DRAFT','SPAM','TRASH','CHAT'].some(id => ids.has(id))) return null;
   const headers = message.payload.headers || [];
   const header = name => headers.find(h => h.name.toLowerCase() === name)?.value || '';
   const auth = headers.find(h => h.name.toLowerCase()==='authentication-results' && /^mx\.google\.com\s*;/i.test(h.value))?.value || '';
   const sender = emailOf(header('from')), subject = limit(header('subject'));
+  const meta = {id:message.id,thread:message.threadId,received:new Date(Number(message.internalDate)).toISOString(),sender,subject};
+  if(ids.has('SENT')){
+    if(!confirmationMailbox || ![confirmationMailbox,ownerEmail].includes(sender)) return null;
+    const reference=/^Star Soccer camp registration confirmed\s*\|\s*(?:[^|]+\|\s*)?(SS-(?:CAMP|DAY)-[A-Z0-9-]{4,90})$/i.exec(subject)?.[1]?.toUpperCase();
+    const to=header('to'), contact=emailOf(to);
+    if(reference && contact && to.split('@').length===2 && !header('cc') && !header('bcc')){
+      return {...meta,type:'camp-confirmation',reference,contact};
+    }
+    return null;
+  }
   const plain=[], html=[]; contents(message.payload,plain,html);
   const body = plain.join('\n') || htmlText(html.join('\n'));
   const flat = body.replace(/\s+/g, ' ');
   const fields = formFields(body);
-  const meta = {id:message.id,thread:message.threadId,received:new Date(Number(message.internalDate)).toISOString(),sender,subject};
   const has = name => !!labels[name] && ids.has(labels[name]);
   if (sender === 'notify@payments.interac.ca' || has('Payments - Incoming') || has('Deposited')) {
     if (!has('Deposited') || (!has('Payments - Incoming') && sender!=='notify@payments.interac.ca')) return null;
@@ -58,8 +68,18 @@ export function classifyMessage(message, labels, ownerEmail) {
   if (sender===ownerEmail || ((!registration&&!has('Leads')&&!isForm) && (header('list-unsubscribe') || /^(?:auto-generated|auto-replied)/i.test(header('auto-submitted')) || !/\b(soccer|private (?:coaching|lesson|training)|camp|register|registration|soccer lessons?)\b/i.test(subject+' '+flat.slice(0,300)) || /no-?reply|notifications?@/i.test(sender||'')))) return null;
   if (!sender) return null;
   const contact = isForm ? emailOf(fields['parent email'] || fields['guardian email'] || fields.email || header('reply-to')) : sender;
+  const attribution = {};
+  if(isForm&&known){
+    if(campaign.visitPattern.test(fields['visit id']||''))attribution['Visit ID']=fields['visit id'];
+    if(campaign.isLandingPath(fields['landing page path']))attribution['Landing page path']=fields['landing page path'];
+    for(const [key,label] of Object.entries(campaign.fields)){
+      const value=campaign.slug(fields[label.toLowerCase()]);
+      if(value)attribution[key]=value;
+    }
+  }
   return {...meta,type:registration?'registration':'inquiry',form:isForm&&known,contact,guardian:fields['parent name']||fields['guardian name'],child,reference,
     version,age:fields['player age'],experience:fields.experience,option:fields['requested option']||fields['booking type']||fields.camp||fields.training,
+    campId:fields['camp id'],campWeek:fields['camp week id'],campSlot:fields['camp slot'],campKeys:fields['camp session keys'],attribution,
     training:fields.training||fields.camp,dates:fields['covered dates']||fields['session date']||fields['expected start date'],referral:fields['referral source'],
     excerpt:limit(fields.message || fields['your message'] || (isForm?'':flat)).slice(0,360)};
 }

@@ -5,6 +5,15 @@
   const fields=Object.freeze({utm_source:'Campaign source (URL tag)',utm_medium:'Campaign medium (URL tag)',utm_campaign:'Campaign name (URL tag)'});
   const keys=Object.keys(fields);
   const slug=value=>typeof value==='string' && /^[A-Za-z0-9_-]{1,60}$/.test(value)?value:null;
+  const publicPaths=new Set([
+    '/', '/index.html', '/programs.html', '/camps.html', '/coach.html',
+    '/contact.html', '/locations.html', '/methodology.html', '/privacy.html',
+    '/registration.html', '/pro-d-camp-registration.html', '/selectivo.html',
+    '/boxing-camp-registration.html', '/christmas-camp-registration.html',
+    '/program-private-small-group.html'
+  ]);
+  const isLandingPath=value=>publicPaths.has(value);
+  const visitPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
   function cleanValues(value) {
     if(!value || typeof value!=='object' || Array.isArray(value))return null;
     const present=Object.keys(value);
@@ -67,20 +76,12 @@
       return append(data,current?.values);
     }});
   }
-  const api=Object.freeze({slug,parseSearch,readStored,append,create,storageKey,maxAge,fields});
+  const api=Object.freeze({slug,parseSearch,readStored,append,create,storageKey,maxAge,fields,isLandingPath,visitPattern});
   if(typeof module!=='undefined' && module.exports){module.exports=api;return;}
   let storage;
   try{storage=root.sessionStorage;}catch{/* The getter can also be denied. */}
   const campaign=create(root.location.search,storage);
   const landingKey='star-soccer-landing-v1';
-  const publicPaths=new Set([
-    '/', '/index.html', '/programs.html', '/camps.html', '/coach.html',
-    '/contact.html', '/locations.html', '/methodology.html', '/privacy.html',
-    '/registration.html', '/pro-d-camp-registration.html', '/selectivo.html',
-    '/boxing-camp-registration.html', '/christmas-camp-registration.html',
-    '/program-private-small-group.html'
-  ]);
-  const visitPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
   function withVisit(record) {
     if(visitPattern.test(record.visitId)) return record;
     const visitId=root.crypto?.randomUUID?.();
@@ -97,7 +98,7 @@
           return withVisit(record);
       }
       const pathname=root.location.pathname;
-      const record={path:publicPaths.has(pathname)?pathname:null,time:now};
+      const record={path:isLandingPath(pathname)?pathname:null,time:now};
       return storage?withVisit(record):null;
     } catch { return null; }
   }
@@ -105,7 +106,7 @@
   root.StarCampaignSource=Object.freeze({append(data) {
     campaign.append(data);
     const age=landing?Date.now()-landing.time:maxAge;
-    if(landing && age>=0 && age<maxAge && publicPaths.has(landing.path))
+    if(landing && age>=0 && age<maxAge && isLandingPath(landing.path))
       data.set('Landing page path',landing.path);
     else data.delete('Landing page path');
     const registration=data.has('Client reference') || data.has('Registration reference');

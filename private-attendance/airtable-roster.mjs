@@ -49,7 +49,7 @@ export function normalizeAirtableRoster({tables,observedAt,revision,verifiedCont
    if(!enrollment||enrollment['Enrollment status']!=='Active'||enrollment['Billing approval']!=='Approved'||one(enrollment.Player)!==playerId||one(enrollment.Family)!==familyId||one(enrollment['Weekly program'])!==one(sessions.get(sessionId)['Weekly program'])||!date(enrollment['Effective from'])||day<enrollment['Effective from']||enrollment['Effective until']&&day>enrollment['Effective until'])throw new Error('UNVERIFIED_ENROLLMENT');
    kind=enrollment['Billing schedule']==='Four-session prepaid'?'pass':'dropin';
   }
-  for(const regId of links(a['Website Registrations'])){const k=registrations.get(regId)?.['Registration kind'];if(['SS-CAMP-V2','SS-CAMP-DROPIN-V1'].includes(k))kind='camp';if(k==='SS-PASS-V1')kind='pass';}
+  for(const regId of links(a['Website Registrations'])){const k=registrations.get(regId)?.['Registration kind'];if(['SS-DAY-CAMP-V1','SS-CAMP-V2','SS-CAMP-DROPIN-V1'].includes(k))kind='camp';if(k==='SS-PASS-V1')kind='pass';}
   if(!kind)throw new Error('UNKNOWN_BOOKING_KIND');
   // Legacy sync is scoped to RSVP Reminders and exact Calendar references.
   // Never issue custom capabilities for a row still linked to that workflow.

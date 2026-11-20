@@ -14,6 +14,11 @@ const balanceFields = ['Balance CAD','Due now total CAD','Verified family receip
 const balancesOf = fields => ({
   balance:money(fields[balanceFields[0]]),dueNow:money(fields[balanceFields[1]]),verifiedReceipts:money(fields[balanceFields[2]])
 });
+function familyName(fields, players) {
+  const guardian = fields['Guardian name']?.trim();
+  const child = players.find(player => player.name)?.name;
+  return [guardian, child].filter(Boolean).join(' / ') || fields.Family || 'Unnamed family';
+}
 
 export function createFamilyLedger(read) {
   async function related(table, ids, familyId) {
@@ -46,9 +51,17 @@ export function createFamilyLedger(read) {
       return {phone:family.fields.Phone || null, ...(includeEmail ? {email:family.fields.Email || null} : {})};
     },
     async directory() {
-      const rows = await read('families', ['Family', 'Guardian name', 'Players']);
-      return rows.map(({id, fields}) => ({id, playerIds: fields.Players || [], name: fields.Family || fields['Guardian name'] || 'Unnamed family'}))
-        .sort((a, b) => a.name.localeCompare(b.name));
+      const [rows, players] = await Promise.all([
+        read('families', ['Family', 'Guardian name', 'Players']), read('players', ['Player', 'Family'])
+      ]);
+      const byId = new Map(players.map(player => [player.id, player.fields]));
+      return rows.map(({id, fields}) => {
+        const linked = [...new Set(fields.Players || [])].filter(playerId => {
+          const parents = byId.get(playerId)?.Family;
+          return parents?.length === 1 && parents[0] === id;
+        });
+        return {id, playerIds:linked, name:familyName(fields, linked.map(playerId => ({name:byId.get(playerId).Player})))};
+      }).sort((a, b) => a.name.localeCompare(b.name));
     },
     async detail(id) {
       if (!recordId.test(id)) throw Error('INVALID_FAMILY');
@@ -57,12 +70,13 @@ export function createFamilyLedger(read) {
       const f = row.fields;
       const players = await related('players', f.Players, id);
       const names = new Map(players.map(row => [row.id, row.fields.Player]));
+      const playerProfiles = [...new Set(f.Players || [])].map(id => ({id, name:names.get(id)}));
       const registrations = await related('registrations', f['Website Registrations'], id);
       const bookings = await related('bookings', f.Bookings, id);
       const payments = await related('payments', f.Payments, id);
       return {
-        name: f.Family || f['Guardian name'] || 'Unnamed family', guardian: f['Guardian name'], email: f.Email, phone: f.Phone,
-        players: [...names.values()], ...balancesOf(f), balanceStatus: f['Balance status'], unpricedBookings: f['Unpriced bookings'],
+        name: familyName(f, playerProfiles), guardian: f['Guardian name'], email: f.Email, phone: f.Phone,
+        players: playerProfiles.map(player => player.name), playerProfiles, ...balancesOf(f), balanceStatus: f['Balance status'], unpricedBookings: f['Unpriced bookings'],
         registrations: registrations.map(({fields: r}) => ({reference: r.Reference, child: r.Child, program: r['Requested option'] || r['Registration kind'], weekday: r.Weekday, date: r['Next session date'], status: r.Status==='Processing'&&r['Processing notes']?.startsWith('Pending owner confirmation.')?'Pending confirmation':r.Status})),
         bookings: bookings.map(({fields: b}) => ({reference: b['Booking reference'], players: (b.Player || []).map(id => names.get(id)).filter(Boolean),
           type: b['Booking type'], status: b['Booking status'], dates: b['Covered dates'] || b['Start date'], balance: money(b['Balance CAD']), applied: money(b['Verified applied CAD'])})),

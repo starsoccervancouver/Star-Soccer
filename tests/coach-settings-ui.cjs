@@ -6,6 +6,21 @@ const { openSession, openDestination } = require('./coach-fixture-navigation.cjs
 const origin = 'https://attendance.starsoccer.ca', now = '2026-10-29T18:00:00Z';
 const key = 'coach-desk-display-v1', rid = n => 'rec' + String(n).padStart(14, '0');
 const sessions = [1, 2].map(n => ({ id: rid(n), date: n === 1 ? '2026-10-29' : '2026-10-30', time: '4:00–5:00 PM', location: 'Fictional practice field', status: 'Scheduled', capacity: 20, capacityUsed: 1, expected: 1, counts: { yes: 0, no: 0, awaiting: 1, confirmed: 0 }, issues: [], players: [{ playerId: rid(100 + n), attendanceId: rid(200 + n), name: 'Fictional player ' + n, kind: 'dropin', status: 'Not yet asked', actualAttendance: 'Not marked', issues: [] }] }));
+const sampleFamilies = [
+  {id:rid(50), name:'Morgan Sample / Jamie', playerIds:[rid(101),rid(102)]},
+  {id:rid(51), name:'Casey Example / Rowan', playerIds:[rid(103)]},
+  {id:rid(52), name:'Jordan West / Avery', playerIds:[rid(104)]},
+];
+const sampleRecord = {
+  name:sampleFamilies[0].name, guardian:'Morgan Sample', email:'morgan@example.test', phone:'604-555-0100',
+  players:['Jamie','Alex'], playerProfiles:[
+    {id:rid(101),name:'Jamie',notes:[{body:'Practised looking up before passing.',category:'Development',updatedAt:now}],
+      attendance:[{date:'2026-10-28',time:'3:45 PM',label:'Wednesday practice',location:'Connaught Park',status:'Present'}]},
+    {id:rid(102),name:'Alex',notes:[],attendance:[]}
+  ],
+  balance:15, dueNow:15, verifiedReceipts:60, bookings:[],
+  registrations:[{child:'Alex',program:'Camp'}], payments:[{date:'2026-10-28',amount:60,verification:'Verified',reference:'EXAMPLE-001'}]
+};
 const assets = {};
 for (const [url, file, type] of [['/workspace', 'workspace.html', 'text/html'], ['/workspace/assets/workspace.js', 'workspace.js', 'text/javascript'], ['/workspace/assets/workspace.css', 'workspace.css', 'text/css'], ['/assets/app.css', 'app.css', 'text/css'], ['/assets/logo.svg', 'logo.svg', 'image/svg+xml']]) assets[url] = { body: fs.readFileSync('private-attendance/web/' + file, 'utf8'), type };
 assets['/workspace/assets/passkeys.js'] = { body: '', type: 'text/javascript' };
@@ -15,7 +30,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   const browser = await chromium.launch(); let checks = 0;
   try {
     async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail,
-      roster = sessions, families = [{id:rid(50),name:'Example family',playerIds:[rid(101)]}] } = {}) {
+      roster = sessions, families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
       const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, familyAccess, sessionVersion: 1, ...(displayEmail ? { displayEmail } : {}) } }, requests = [], errors = [];
       await context.addInitScript(({ now, key, stored, deniedStorage }) => {
@@ -36,7 +51,11 @@ require('./coach-fixture-fonts.cjs')(assets);
         else if (path.endsWith('/desk')) value = { profile: state.profile, sessions:roster, notes: [], tasks: [], observedAt: now };
         else if (path.endsWith('/families') && familyAccess) value = { families };
         else if (path.includes('/needs-attention/') && familyAccess) value = {items:path.endsWith('/inquiries')?[{key:'sample',title:'Session question',date:'2026-10-29',status:'Awaiting reply',href:'https://mail.google.com/mail/u/0/#all/123456789ab'}]:[],resolved:[],next:null,inbox:'https://mail.google.com/'};
-        else if (path.endsWith('/family') && familyAccess && payload.familyId === rid(50)) value = { family: {name:'Example family', players:['Player A','Player B'], balance:15, dueNow:15, verifiedReceipts:60, payments:[{amount:60,verification:'Verified'}], bookings:[], registrations:[{child:'Player B',program:'Camp'}]} };
+        else if (path.endsWith('/family') && familyAccess && payload.familyId === rid(50)) value = {family:sampleRecord};
+        else if (path.endsWith('/family') && familyAccess && payload.familyId === rid(51)) value = {family:{
+          name:sampleFamilies[1].name, guardian:'Casey Example', email:'casey@example.test', players:['Rowan'],
+          playerProfiles:[{id:rid(103),name:'Rowan',notes:[],attendance:[]}], registrations:[],bookings:[],payments:[]
+        }};
         else if (path.endsWith('/session')) value = { plan: { session_id: payload.sessionId, version: 0, content: {} } };
         else if (path.endsWith('/users') && role === 'owner') value = { users: [{ ...state.profile, active: 1, session_version: 1, assignments: [] }], credentials: [] };
         else if (path.endsWith('/audit') && role !== 'coach') value = { events: [{ id: 'fictional-event', action: 'plan-updated', actor_email: state.profile.email, occurred_at: now, detail: '{}' }] };
@@ -101,7 +120,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         slot(7,'2026-12-28',{label:'Winter Camp',programId:null,players:[]}),
         slot(8,'2026-11-20',{proD:true,programId:null,location:'Kitsilano Turf',time:'12:00–3:00 PM'})
       ];
-      const families = [{id:rid(50),name:'Example family',playerIds:[rid(101),rid(102)]},{id:rid(51),name:'Unplaced family',playerIds:[]}];
+      const families = [sampleFamilies[0],{id:rid(51),name:'Unplaced family',playerIds:[]}];
       const f = await fixture({roster,families});
       await openDestination(f.page,'families');
       await f.page.getByRole('button',{name:'By session'}).click();
@@ -125,12 +144,12 @@ require('./coach-fixture-fonts.cjs')(assets);
       }
       for (const idx of [0,1,2,3,5]) {
         await sections.nth(idx).locator('summary').click();
-        assert.deepEqual(await sections.nth(idx).locator('.family-choice').allTextContents(),['Example family']);
+        assert.deepEqual(await sections.nth(idx).locator('.family-choice').allTextContents(),[sampleFamilies[0].name]);
       }
       await sections.nth(4).locator('summary').click();
       assert(await sections.nth(4).getByText('No linked families yet.').isVisible());
       await sections.first().locator('.family-choice').click();
-      await f.page.getByText('Player B · Camp').waitFor();
+      await f.page.getByText('Alex · Camp').waitFor();
       assert.deepEqual(f.errors,[]); await f.context.close(); checks++;
     }
     for (const [role, familyAccess] of [['coach',false],['admin',false],['admin',true],['owner',true]]) {
@@ -149,7 +168,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         await f.page.getByRole('button',{name:'By session'}).click();
         await f.page.locator('.family-session summary').click();
         await f.page.locator('.family-session .family-choice').click();
-        await f.page.getByText('Player B · Camp').waitFor();
+        await f.page.getByText('Alex · Camp').waitFor();
         assert.match(await f.page.locator('#family-results').innerText(), /Verified receipts/);
         await openDestination(f.page,'attention');
         await f.page.getByText('Unanswered inquiries',{exact:true}).click();
@@ -162,11 +181,81 @@ require('./coach-fixture-fonts.cjs')(assets);
       }
       assert.deepEqual(f.errors,[]); await f.context.close();
       const direct=await fixture({role,familyAccess,hash:'#view=families'});
-      if(familyAccess)await direct.page.locator('#family-picker').waitFor();
+      if(familyAccess)await direct.page.locator('#family-directory .family-choice').waitFor();
       else await direct.page.waitForFunction(()=>location.hash!=='#view=families' && !document.getElementById('app').hidden);
       assert.equal(await direct.page.locator('#panel-families').isVisible(),familyAccess);
       assert.equal(count(direct,'/families'),familyAccess?1:0);
       assert.deepEqual(direct.errors,[]); await direct.context.close(); checks++;
+    }
+    {
+      const f = await fixture({families:sampleFamilies});
+      const page = f.page, directory = page.locator('#family-directory'), profile = page.locator('#family-results');
+      await openDestination(page,'families');
+      const listMode = page.getByRole('button',{name:'List',exact:true});
+      await listMode.click();
+      const choices = directory.locator('.families-list .family-choice');
+      await choices.first().waitFor();
+      assert.deepEqual(await choices.allTextContents(),sampleFamilies.map(family=>family.name));
+      for (const width of [1365,390,320]) {
+        await page.setViewportSize({width,height:950});
+        await choices.first().hover();
+        const [first,second,third] = await choices.evaluateAll(nodes=>nodes.map(node=>{
+          const {left,top,right,height}=node.getBoundingClientRect();return {left,top,right,height};
+        }));
+        assert.equal(first.top,second.top,'Two families share the row at '+width);
+        assert(second.left>=first.right && third.top>=first.top+first.height,'Rows have no overlap at '+width);
+        assert.equal(first.left,third.left);
+        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Family list fits at '+width);
+        if(width!==320) {
+          fs.mkdirSync('outputs',{recursive:true});
+          await page.locator('#panel-families').screenshot({path:'outputs/families-list-'+(width===390?'mobile':'desktop')+'.png'});
+        }
+      }
+      async function contrast(locator) {
+        return locator.evaluate(el=>{
+          const rgb=value=>value.match(/[\d.]+/g)?.map(Number);
+          const luminance=values=>values.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((total,v,i)=>total+v*[.2126,.7152,.0722][i],0);
+          const fg=rgb(getComputedStyle(el).color); let bg= [255,255,255];
+          for(let ancestor=el;ancestor;ancestor=ancestor.parentElement){
+            const parsed=rgb(getComputedStyle(ancestor).backgroundColor);
+            if(parsed && (parsed.length===3 || parsed[3]===1)){bg=parsed;break;}
+          }
+          const values=[luminance(fg),luminance(bg)].sort((a,b)=>b-a);
+          return (values[0]+.05)/(values[1]+.05);
+        });
+      }
+      assert(await contrast(choices.first())>=4.5,'Hovered family name remains readable');
+      assert(await contrast(listMode)>=4.5,'Selected list control remains readable');
+      await page.setViewportSize({width:390,height:950});
+      await choices.first().focus();await page.keyboard.press('Enter');
+      await profile.getByText('Practised looking up before passing.').waitFor();
+      const detailHash=new URL(page.url()).hash;
+      assert.equal(detailHash,'#view=families&family='+rid(50));
+      assert(await directory.isHidden());
+      assert.equal(await page.locator('#page-title').innerText(),sampleFamilies[0].name);
+      const content=await profile.innerText();
+      for(const text of ['Jamie','Alex','Coaching notes','Attendance records','Present','morgan@example.test','Verified receipts','EXAMPLE-001'])assert(content.includes(text),text+' appears on the family page');
+      const ordered=['Players','Coaching notes','Attendance records','Contact information','Family records','Payments'];
+      assert(ordered.every(title=>content.includes(title)),'Every section is labelled');
+      assert.deepEqual(ordered.slice().sort((a,b)=>content.indexOf(a)-content.indexOf(b)),ordered);
+      await page.locator('#desk-main').screenshot({path:'outputs/family-profile-mobile.png'});
+      await page.setViewportSize({width:1365,height:950});
+      await page.locator('#desk-main').screenshot({path:'outputs/family-profile-desktop.png'});
+      await page.goBack(); await choices.first().waitFor();
+      assert.equal(await listMode.getAttribute('aria-pressed'),'true');
+      await choices.nth(1).click(); await profile.getByText('casey@example.test').waitFor();
+      assert(!(await profile.innerText()).includes('Practised looking up before passing.'));
+      await page.locator('#family-back').click(); await choices.nth(1).waitFor();
+      await page.getByRole('button',{name:'Grid',exact:true}).click();
+      await directory.getByRole('link',{name:/Morgan Sample/}).click();
+      await profile.getByText('morgan@example.test').waitFor();
+      await page.reload(); await profile.getByText('morgan@example.test').waitFor();
+      assert.deepEqual(f.errors,[]); await f.context.close();
+      const denied=await fixture({role:'coach',familyAccess:false,hash:detailHash});
+      await denied.page.locator('#panel-home').waitFor();
+      assert.equal(count(denied,'/family')+count(denied,'/families'),0);
+      assert(await denied.page.locator('#panel-families').isHidden());
+      assert.deepEqual(denied.errors,[]); await denied.context.close(); checks++;
     }
     const renamed = await fixture({ displayEmail: 'Renamed@example.test' });
     await clickSettings(renamed);

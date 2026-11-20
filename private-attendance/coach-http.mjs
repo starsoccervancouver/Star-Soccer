@@ -104,6 +104,16 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    coaches.requireFamilyAccess(actor);
    return json(200,{families:await familyLedger.directory()});
   }
+  if(path==='/workspace/api/parent-contact'&&request.method==='POST'){
+   const {sessionId,playerId}=await body(request,['sessionId','playerId']);
+   coaches.requireSession(actor,sessionId);
+   if(typeof playerId!=='string'||!/^rec[A-Za-z0-9]{14}$/.test(playerId))deny('INVALID_PLAYER',400);
+   const {sessions}=await overview({});
+   const session=sessions.find(s=>s.id===sessionId);
+   if(!session?.players.some(p=>p.playerId===playerId))deny('PLAYER_NOT_IN_SESSION',403);
+   const contact=await familyLedger.parentContact(playerId,coaches.full(actor));
+   return json(200,{contact});
+  }
   if(path==='/workspace/api/family'&&request.method==='POST'){
    coaches.requireFamilyAccess(actor);
    const {familyId}=await body(request,['familyId']);

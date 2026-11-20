@@ -2,14 +2,14 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const mods=Promise.all([import('../private-attendance/coach-store.mjs'),import('../private-attendance/sqlite-store.mjs'),import('../private-attendance/coach-auth.mjs'),import('../private-attendance/coach-http.mjs')]);
 const rid=n=>'rec'+String(n).padStart(14,'0');
-async function setup(t){
+async function setup(t,contactFixture){
  const [{createCoachStore},{openStore},{createCoachAuth},{createCoachHandler}]=await mods,store=openStore();t.after(()=>store.close());
  const coaches=createCoachStore({store,ownerEmail:'owner@example.test',ownerName:'Fictional Owner'}),owner=coaches.actor('owner@example.test');
  for(const [name,role]of [['one','coach'],['two','coach'],['admin','admin']])coaches.saveUser(owner,{name,email:name+'@example.test',role});
  const one=coaches.actor('one@example.test'),two=coaches.actor('two@example.test'),admin=coaches.actor('admin@example.test');
  coaches.assign(owner,{email:one.email,sessionId:rid(1),assigned:true});
  const ledgerCalls=[],familyLedger={async directory(){ledgerCalls.push('directory');return [];},async detail(id){ledgerCalls.push(id);return {balance:50};}};
- const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger,attention:async({kind})=>({kind}),cookieKey:'k'.repeat(43),assets:{},overview:async()=>{throw Error('Team reads must not fetch roster');}});
+ const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,attention:async({kind})=>({kind}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
  const request=(actor,path,payload)=>{const session=auth.createVerifiedSession(actor.email),origin='https://attendance.starsoccer.ca';return handler(new Request(origin+'/workspace/api/'+path,{method:payload===undefined?'GET':'POST',headers:{origin,'content-type':'application/json',cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf},...(payload===undefined?{}:{body:JSON.stringify(payload)})}));};
  return {store,coaches,owner,one,two,admin,request,auth,handler,ledgerCalls};
 }
@@ -95,4 +95,30 @@ test('only authorized family staff can read work queues and the owner can review
  coaches.saveUser(owner,{email:admin.email,name:'Elevated',role:'super_admin',expectedVersion:1});
  assert.equal((await request(admin,'needs-attention/registrations',{})).status,200);
  assert.equal((await request(admin,'needs-attention/other',{})).status,403);
+});
+
+test('parent contact reads are limited to the assigned roster and select email only for administrative roles',async t=>{
+ const {createFamilyLedger}=await import('../private-attendance/family-ledger.mjs');
+ let links=[rid(50)];
+ const reads=[];
+ const ledger=createFamilyLedger(async(table,fields,ids)=>{
+  reads.push({table,fields,ids});
+  if(table==='players')return [{id:rid(4),fields:{Family:links,'Player status':'Active'}}];
+  return [{id:rid(50),fields:{Phone:'604-555-0123',Email:'parent@example.test'}}];
+ });
+ const overview=async()=>({sessions:[{id:rid(1),players:[{playerId:rid(4)}]}]});
+ const {owner,admin,one,two,request}=await setup(t,{ledger,overview});
+ const payload={sessionId:rid(1),playerId:rid(4)};
+ assert.equal((await request(two,'parent-contact',payload)).status,403);
+ assert.equal((await request(one,'parent-contact',{...payload,playerId:rid(9)})).status,403);
+ assert.equal((await request(one,'parent-contact',{...payload,includeEmail:true})).status,400);
+ assert.equal(reads.length,0);
+ assert.deepEqual(await (await request(one,'parent-contact',payload)).json(),{contact:{phone:'604-555-0123'}});
+ assert.deepEqual(reads.at(-1).fields,['Phone']);
+ for(const actor of [admin,owner]){
+  assert.deepEqual(await (await request(actor,'parent-contact',payload)).json(),{contact:{phone:'604-555-0123',email:'parent@example.test'}});
+ }
+ links=[rid(50),rid(51)];
+ assert.deepEqual(await (await request(admin,'parent-contact',payload)).json(),{contact:null});
+ assert.equal(reads.at(-1).table,'players');
 });

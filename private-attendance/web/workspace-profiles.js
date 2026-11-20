@@ -131,6 +131,36 @@
     for (const input of composer.form.querySelectorAll('input,select,textarea,button')) input.disabled = locked;
     composer.save.disabled = locked || composer.uncertain; window.CoachGoals?.sync('profile-note'); detail.append(composer.form);
   }
+  function parentContact(playerId,sessionId) {
+    const section=node('section'), status=node('div','','small');
+    status.setAttribute('aria-live','polite');
+    const show=button('Show parent contact',async()=>{
+      show.disabled=true; status.textContent='Loading parent contact…';
+      try{
+        const {contact}=await new Promise((resolve,reject)=>window.dispatchEvent(new CustomEvent('coach:parent-contact',{detail:{playerId,sessionId,resolve,reject}})));
+        if(!section.isConnected || context?.tab!=='profiles' || selected!==playerId)return;
+        status.replaceChildren();
+        if(!contact){status.textContent='No single family contact is linked to this player.';}
+        else {
+          const line=(label,value,protocol)=>{
+            const row=node('p',label+' · ');
+            if(!value)row.append('Not recorded');
+            else if(protocol==='tel:'&&!/^[+\d().\s-]+$/.test(value))row.append(value);
+            else {
+              const link=node('a',value);
+              link.href=protocol+(protocol==='tel:'?value.replace(/[^+0-9]/g,''):encodeURIComponent(value).replace('%40','@'));
+              row.append(link);
+            }
+            status.append(row);
+          };
+          line('Parent phone',contact.phone,'tel:');
+          if(Object.hasOwn(contact,'email'))line('Parent email',contact.email,'mailto:');
+        }
+        show.hidden=true;
+      }catch{status.textContent='Could not load parent contact. Try again.';show.disabled=false;}
+    });
+    section.append(show,status);return section;
+  }
   function renderDetail(entry) {
     detail.replaceChildren();
     const back = button('← All players', () => { if (!leaveDraft()) return; selected = ''; group = ''; render(); search.focus(); }); back.id = 'profile-back'; back.disabled = saving || context.busy; detail.append(back);
@@ -144,6 +174,7 @@
     for (const [value, label] of [['Present', 'Marked present'], ['Absent', 'Marked absent'], ['Not marked', 'Not marked']]) {
       const stat = node('div'); stat.append(node('strong', String(history.filter(row => (row.player.actualAttendance || 'Not marked') === value).length)), node('span', label)); stats.append(stat);
     }
+    detail.append(parentContact(entry.id,rows[0].session.id));
     detail.append(stats, node('p', 'Recorded dates through today. Parent RSVPs are separate from attendance.', 'small'));
     const status = node('p'); status.setAttribute('role', 'status');
     const open = button('Open player notes', () => openNotes(entry, rows)); open.id = 'profile-open-notes'; open.disabled = pending || saving || context.busy || !rows.some(row => row.session.status !== 'Cancelled');

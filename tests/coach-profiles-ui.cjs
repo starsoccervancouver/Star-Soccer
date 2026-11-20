@@ -34,6 +34,7 @@ assets['/workspace/assets/passkeys.js'] = { body: '', type: 'text/javascript' };
       requests.push({ path: url.pathname, payload }); let value;
       if (url.pathname.endsWith('/bootstrap')) value = { profile: signedIn ? profile : null, csrfToken: 'preview', googleEnabled: true };
       else if (url.pathname.endsWith('/desk')) value = { profile, sessions, notes, tasks: [], observedAt: now };
+      else if (url.pathname.endsWith('/parent-contact')) value={contact:{phone:'604-555-0123',...(profile.role==='owner'?{email:'parent@example.test'}:{})}};
       else if (url.pathname.endsWith('/session')) value = { plan: { version: 0, content: {} } };
       else if (url.pathname.endsWith('/logout')) { signedIn = false; value = { signedOut: true }; }
       else { errors.push('Unexpected request: ' + url.pathname); return route.fulfill({ status: 403, json: { error: 'UNEXPECTED' } }); }
@@ -48,6 +49,9 @@ assets['/workspace/assets/passkeys.js'] = { body: '', type: 'text/javascript' };
     await page.locator('#profiles-search').fill('Maya'); assert.equal(await page.locator('.player-directory-card').count(), 2);
     await page.locator('#profiles-search').fill(''); await page.screenshot({ path: 'outputs/coach-player-directory.png', fullPage: true });
     await page.locator('[data-profile-id="' + rid(101) + '"]').click();
+    await page.getByRole('button',{name:'Show parent contact'}).click();
+    await page.getByRole('link',{name:'604-555-0123'}).waitFor();
+    assert.equal(await page.locator('#player-profile-detail a[href^="mailto:"]').count(),0);
     let text = await page.locator('#player-profile-detail').innerText();
     assert.match(text, /Look up before receiving/); assert.match(text, /Improved passing angles/);
     assert.doesNotMatch(text, /Thursday finishing|Other player private|Another coach private|Group-only|Outside assigned/);
@@ -73,6 +77,8 @@ assets['/workspace/assets/passkeys.js'] = { body: '', type: 'text/javascript' };
     await page.locator('#profile-back').click(); await page.locator('#profiles-search').fill('Nobody'); assert.equal(await page.locator('.player-directory-card').count(), 0);
     await page.locator('#profiles-search').fill(''); await page.locator('#profiles-filter').selectOption(firstGroup); assert.equal(await page.locator('.player-directory-card').count(), 2);
     profile.role = 'owner'; await page.reload(); await openDestination(page, 'profiles'); await page.locator('[data-profile-id="' + rid(101) + '"]').click();
+    await page.getByRole('button',{name:'Show parent contact'}).click();
+    await page.getByRole('link',{name:'parent@example.test'}).waitFor();
     text = await page.locator('#player-profile-detail').innerText(); assert.match(text, /Another coach private/); assert.doesNotMatch(text, /Outside assigned|Other player private/);
     await page.locator('#logout').click(); await page.locator('#login').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#profiles-list').textContent(), ''); assert.equal(await page.locator('#player-profile-detail').textContent(), '');

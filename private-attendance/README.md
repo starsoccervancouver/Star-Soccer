@@ -77,3 +77,7 @@ Airtable remains authoritative for dated rosters and coach-marked physical atten
 Session plans are shared with the coaches assigned to a session and approved full-access staff. Individual coach notes remain restricted by author and role. No public-page code should contain operating roster records or parent contact information.
 
 Parent communication and invitation preparation remain manual/draft-only. This source publication does not enable scheduled email routing, send invitations, accept payments or change live attendance.
+
+### New-player registration follow-ups
+
+On the owner Overview, **Check registration follow-ups** runs a read-only preview using the connected Star Soccer Gmail and ledger. Set the live Worker variable `FOLLOWUP_24H_ENABLED` to the string `true` for the hourly check or `false` to stop it. Preserve this setting in the live Wrangler config when releasing. The existing Gmail intake has its own two-minute alarm. Only the owner can read these items. First-time status comes from the per-player history answer on registration, or owner verification in Website Registrations. Blank stays unknown. The monitor records no payments and sends no email.

@@ -1,5 +1,6 @@
 import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypto';
 import {Buffer} from 'node:buffer';
+import {createFollowupJob} from './registration-followup-job.mjs';
 import {attentionPage} from './attention-inbox.mjs';
 import {classifyMessage} from './gmail-message.mjs';
 import {airtableClient,syncLedgerEvent} from './gmail-ledger.mjs';
@@ -78,7 +79,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     const params=[['maxResults','50']];if(scan.page)params.push(['pageToken',scan.page]);
     if(scan.phase!=='history'){
       if(scan.phase==='recent'){
-        const incoming=campPlacementSince?'{-in:sent (in:sent subject:"Star Soccer camp registration confirmed")}':'-in:sent';
+        const incoming=followupEnabled?'{-in:sent (in:sent subject:confirmed)}':campPlacementSince?'{-in:sent (in:sent subject:"Star Soccer camp registration confirmed")}':'-in:sent';
         params.push(['q','after:'+Math.floor((scan.start-300000)/1000)+' '+incoming+' -in:drafts -in:spam -in:trash']);
       }
       else params.push(['labelIds',labels.Deposited]);
@@ -98,6 +99,10 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }
     if(!data.historyId)throw Error('GMAIL_HISTORY_INCOMPLETE');
     await enqueue(ids,data.nextPageToken?{...scan,page:data.nextPageToken}:{phase:'history',history:data.historyId,lastScan:clock()});
+  }
+  const followupEnabled=env.FOLLOWUP_24H_ENABLED==='true';
+  async function checkFollowups(access,force=false){
+    return createFollowupJob({storage,ledger,read:(path,params)=>gmail(access,path,params),config,clock}).step({force});
   }
   async function cycle(){
     const encrypted=await storage.get('refresh');if(!encrypted)return;
@@ -119,8 +124,8 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         catch(err){if(err.message!=='GMAIL_404')throw err;}
         if(message){
           try{
-            const mailbox=campPlacementSince?(await storage.get('ownerAddress')||STAR_SOCCER_OWNER):undefined;
-            await syncLedgerEvent(ledger,classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox),{campPlacementSince,now:new Date(clock())});
+            const mailbox=campPlacementSince||followupEnabled?(await storage.get('ownerAddress')||STAR_SOCCER_OWNER):undefined;
+            await syncLedgerEvent(ledger,classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox,followupEnabled),{campPlacementSince,trackConfirmation:followupEnabled,now:new Date(clock())});
           }
           catch(err){
             if(!/^AIRTABLE_/.test(err.message))throw err;
@@ -138,7 +143,8 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const retries=await storage.list({prefix:'retry:'});
       for(const [key,retry] of retries)if(retry.after<=clock())await storage.put('q:'+key.slice(6),true);
       await storage.put('report',{lastCheck:new Date(clock()).toISOString(),error:retries.size?retries.values().next().value.error:null,pendingRetries:retries.size});
-      if(pending.size||state?.phase!=='history'||state.page)await storage.setAlarm(clock()+3000);
+      const follow=followupEnabled?await checkFollowups(access).catch(()=>({state:'unavailable'})):null;
+      if(pending.size||state?.phase!=='history'||state.page||follow?.state==='checking')await storage.setAlarm(clock()+3000);
     }catch(err){
       const allowed=/^(AIRTABLE_\d{3}|GMAIL_\d{3}|GMAIL_API_DISABLED|PAYMENT_LABELS_MISSING|GOOGLE_RECONNECT|GOOGLE_TOKEN_FAILED)$/;
       const report=await storage.get('report')||{};
@@ -148,6 +154,21 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
   }
   const attentionCache=new Map();
   async function handle(op,payload){
+    if(op==='family-followups'||op==='preview-family-followups'){
+      const encrypted=await storage.get('refresh');
+      if(!encrypted)return {enabled:followupEnabled,state:'unavailable'};
+      if(op==='preview-family-followups'){
+        const grant=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
+        const report=await checkFollowups(grant.access_token,true);
+        return {enabled:followupEnabled,...report};
+      }
+      if(!followupEnabled)return {enabled:false,state:'off'};
+      const report=await storage.get('rf:report');
+      if(await storage.get('rf:start'))return {enabled:true,state:'checking'};
+      if(!report||(report.state==='ready'&&report.lastScheduledAt==null))return {enabled:true,state:'checking'};
+      if(report.state!=='ready'||clock()-report.checkedAt>3900000)return {enabled:true,state:'unavailable'};
+      return {enabled:true,...report};
+    }
     if(op==='attention'){
       const key=payload.kind+'|'+(payload.cursor||'');
       for(const [id,entry] of attentionCache)if(entry.until<=clock())attentionCache.delete(id);

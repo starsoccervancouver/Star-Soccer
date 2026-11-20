@@ -126,7 +126,7 @@
     const payloads=players.map(player=>{
       const snapshot=new FormData();data.forEach((value,key)=>snapshot.append(key,value));
       const playerRef=family.reference(player.key,'SS-CAMP-');
-      snapshot.set('Player name',player.name);snapshot.set('Player age',player.age);snapshot.set('Notes',player.notes);
+      snapshot.set('Player name',player.name);snapshot.set('Player age',player.age);snapshot.set('Notes',player.notes);snapshot.set('Previously attended Star Soccer',player.history);
       snapshot.set('Client reference',playerRef);snapshot.set('Family reference',reference);snapshot.set('Family players',String(players.length));
       snapshot.set('Payment status','Instructions in confirmation email; no payment collected');
       snapshot.set('_subject','Star Soccer camp registration | '+q.weekName+' | '+playerRef);

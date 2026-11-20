@@ -26,14 +26,15 @@ test('family retries preserve original requests and never resend accepted or unc
   await page.addInitScript(()=>{const RealDate=Date;window.fixtureNow=RealDate.parse('2026-11-05T20:00:00Z');window.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[window.fixtureNow]));}static now(){return window.fixtureNow;}};});
   await page.goto(origin+url);await page.locator('.family-add-player').waitFor();
   await page.evaluate(failure=>{
-   const form=document.querySelector('form');form.action='https://formspree.io/f/testform';for(const [name,value]of [['email','fixture@example.invalid'],['Player name','Alex Fixture'],['Player age','8'],['Experience','new']]){const input=form.elements.namedItem(name);if(input)input.value=value;}
-   for(const [name,age]of [['Sam Fixture','9'],['Jo Fixture','7']]){document.querySelector('.family-add-player').click();const extra=document.querySelector('.family-player:last-child');extra.querySelector('[data-player-field=name]').value=name;extra.querySelector('[data-player-field=age]').value=age;if(extra.querySelector('select'))extra.querySelector('select').value='some';}
+   const form=document.querySelector('form');form.action='https://formspree.io/f/testform';for(const [name,value]of [['email','fixture@example.invalid'],['Player name','Alex Fixture'],['Player age','8'],['Experience','new'],['Previously attended Star Soccer','No']]){const input=form.elements.namedItem(name);if(input)input.value=value;}
+   for(const [name,age]of [['Sam Fixture','9'],['Jo Fixture','7']]){document.querySelector('.family-add-player').click();const extra=document.querySelector('.family-player:last-child');extra.querySelector('[data-player-field=name]').value=name;extra.querySelector('[data-player-field=age]').value=age;const exp=extra.querySelector('[id$="-experience"]');if(exp)exp.value='some';extra.querySelector('[id$="-history"]').value='Yes';}
    if(new URLSearchParams(location.search).get('kind')==='dropin'){const days=document.querySelectorAll('[name="Camp days"]');days[0].checked=true;days[1].checked=true;days[0].dispatchEvent(new Event('change',{bubbles:true}));}
    window.fixtureRequests=[];window.StarFormRecovery={show:(_,details)=>{window.fixtureOriginal=details.requests.map(data=>[...data.entries()]);}};
    window.fetch=async(url,options)=>{if(String(url)!=='https://formspree.io/f/testform')throw new Error('Unexpected submission endpoint');fixtureRequests.push([...options.body.entries()]);if(fixtureRequests.length===2){if(failure==='network')throw new TypeError('Fixture offline');if(failure==='malformed')return new Response('not JSON',{status:200});return new Response(JSON.stringify({errors:[{message:'Fixture rejected'}]}),{status:failure,headers:{'Content-Type':'application/json',...(failure===429?{'Retry-After':'60'}:{})}});}return new Response(JSON.stringify({next:'https://formspree.io/thanks'}),{status:200,headers:{'Content-Type':'application/json'}});};
    form.requestSubmit();
   },failure);
   await page.waitForFunction(()=>fixtureRequests.length===2&&!document.querySelector('form').hasAttribute('aria-busy'));
+  assert.deepEqual(await page.evaluate(()=>fixtureRequests.map(entries=>new Map(entries).get('Previously attended Star Soccer'))),['No','Yes']);
   return page;
  }
  for(const url of ['/registration.html?sessionId=thursday&type=dropin','/registration.html?sessionId=thursday&type=pass4','/christmas-camp-registration.html','/boxing-camp-registration.html?kind=dropin'])await t.test(url+' retries only remaining original snapshots',async()=>{

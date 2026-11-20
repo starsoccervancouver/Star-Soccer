@@ -37,7 +37,7 @@ export function transferNotice(message) {
     incoming:/sent you|sent money to you|waiting for you|reminder.*(?:accept|deposit|transfer)/i.test(subject),
     closed:/automatically deposited|has been deposited|was deposited|has (?:been )?(?:cancelled|canceled|expired)|(?:transfer|payment) (?:cancelled|canceled|expired)/i.test(subject)};
 }
-export function classifyMessage(message, labels, ownerEmail, confirmationMailbox) {
+export function classifyMessage(message, labels, ownerEmail, confirmationMailbox, trackConfirmation=false) {
   const ids = new Set(message.labelIds);
   if (['DRAFT','SPAM','TRASH','CHAT'].some(id => ids.has(id))) return null;
   const headers = message.payload.headers || [];
@@ -47,10 +47,11 @@ export function classifyMessage(message, labels, ownerEmail, confirmationMailbox
   const meta = {id:message.id,thread:message.threadId,received:new Date(Number(message.internalDate)).toISOString(),sender,subject};
   if(ids.has('SENT')){
     if(!confirmationMailbox || ![confirmationMailbox,ownerEmail].includes(sender)) return null;
-    const reference=/^Star Soccer camp registration confirmed\s*\|\s*(?:[^|]+\|\s*)?(SS-(?:CAMP|DAY)-[A-Z0-9-]{4,90})$/i.exec(subject)?.[1]?.toUpperCase();
+    const campReference=/^Star Soccer camp registration confirmed\s*\|\s*(?:[^|]+\|\s*)?(SS-(?:CAMP|DAY)-[A-Z0-9-]{4,90})$/i.exec(subject)?.[1]?.toUpperCase();
+    const reference=campReference||(trackConfirmation&&/^Star Soccer (?:registration|4-week pass|Pro-D camp registration) confirmed\s*\|.*?\b(SS-[A-Z0-9-]{4,100})$/i.exec(subject)?.[1]?.toUpperCase());
     const to=header('to'), contact=emailOf(to);
     if(reference && contact && to.split('@').length===2 && !header('cc') && !header('bcc')){
-      return {...meta,type:'camp-confirmation',reference,contact};
+      return {...meta,type:campReference?'camp-confirmation':'registration-confirmation',reference,contact};
     }
     return null;
   }
@@ -90,7 +91,7 @@ export function classifyMessage(message, labels, ownerEmail, confirmationMailbox
     }
   }
   return {...meta,type:registration?'registration':'inquiry',form:isForm&&known,contact,guardian:fields['parent name']||fields['guardian name'],child,reference,
-    version,age:fields['player age'],experience:fields.experience,option:fields['requested option']||fields['booking type']||fields.camp||fields.training,
+    version,playerHistory:isForm&&known?(fields['previously attended star soccer']==='No'?'First-time verified':fields['previously attended star soccer']==='Yes'?'Returning':undefined):undefined,age:fields['player age'],experience:fields.experience,option:fields['requested option']||fields['booking type']||fields.camp||fields.training,
     campId:fields['camp id'],campWeek:fields['camp week id'],campSlot:fields['camp slot'],campKeys:fields['camp session keys'],attribution,
     training:fields.training||fields.camp,dates:fields['covered dates']||fields['session date']||fields['expected start date'],referral:fields['referral source'],
     excerpt:limit(fields.message || fields['your message'] || (isForm?'':flat)).slice(0,360)};

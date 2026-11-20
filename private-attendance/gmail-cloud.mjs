@@ -76,7 +76,10 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
   async function scanPage(access,scan,labels){
     const params=[['maxResults','50']];if(scan.page)params.push(['pageToken',scan.page]);
     if(scan.phase!=='history'){
-      if(scan.phase==='recent')params.push(['q','after:'+Math.floor((scan.start-300000)/1000)+' -in:sent -in:drafts -in:spam -in:trash']);
+      if(scan.phase==='recent'){
+        const incoming=campPlacementSince?'{-in:sent (in:sent subject:"Star Soccer camp registration confirmed")}':'-in:sent';
+        params.push(['q','after:'+Math.floor((scan.start-300000)/1000)+' '+incoming+' -in:drafts -in:spam -in:trash']);
+      }
       else params.push(['labelIds',labels.Deposited]);
       const data=await gmail(access,'messages',params);
       const next={...scan,page:data.nextPageToken||''};
@@ -114,7 +117,10 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         try{message=await gmail(access,'messages/'+key.slice(2),[['format','full']]);}
         catch(err){if(err.message!=='GMAIL_404')throw err;}
         if(message){
-          try{await syncLedgerEvent(ledger,classifyMessage(message,labels,STAR_SOCCER_OWNER),{campPlacementSince,now:new Date(clock())});}
+          try{
+            const mailbox=campPlacementSince?(await storage.get('ownerAddress')||STAR_SOCCER_OWNER):undefined;
+            await syncLedgerEvent(ledger,classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox),{campPlacementSince,now:new Date(clock())});
+          }
           catch(err){
             if(!/^AIRTABLE_/.test(err.message))throw err;
             const id=key.slice(2);

@@ -24,18 +24,27 @@ function formFields(body) {
   }
   return fields;
 }
-export function classifyMessage(message, labels, ownerEmail) {
+export function classifyMessage(message, labels, ownerEmail, confirmationMailbox) {
   const ids = new Set(message.labelIds);
-  if (['SENT','DRAFT','SPAM','TRASH','CHAT'].some(id => ids.has(id))) return null;
+  if (['DRAFT','SPAM','TRASH','CHAT'].some(id => ids.has(id))) return null;
   const headers = message.payload.headers || [];
   const header = name => headers.find(h => h.name.toLowerCase() === name)?.value || '';
   const auth = headers.find(h => h.name.toLowerCase()==='authentication-results' && /^mx\.google\.com\s*;/i.test(h.value))?.value || '';
   const sender = emailOf(header('from')), subject = limit(header('subject'));
+  const meta = {id:message.id,thread:message.threadId,received:new Date(Number(message.internalDate)).toISOString(),sender,subject};
+  if(ids.has('SENT')){
+    if(!confirmationMailbox || ![confirmationMailbox,ownerEmail].includes(sender)) return null;
+    const reference=/^Star Soccer camp registration confirmed\s*\|\s*(?:[^|]+\|\s*)?(SS-(?:CAMP|DAY)-[A-Z0-9-]{4,90})$/i.exec(subject)?.[1]?.toUpperCase();
+    const to=header('to'), contact=emailOf(to);
+    if(reference && contact && to.split('@').length===2 && !header('cc') && !header('bcc')){
+      return {...meta,type:'camp-confirmation',reference,contact};
+    }
+    return null;
+  }
   const plain=[], html=[]; contents(message.payload,plain,html);
   const body = plain.join('\n') || htmlText(html.join('\n'));
   const flat = body.replace(/\s+/g, ' ');
   const fields = formFields(body);
-  const meta = {id:message.id,thread:message.threadId,received:new Date(Number(message.internalDate)).toISOString(),sender,subject};
   const has = name => !!labels[name] && ids.has(labels[name]);
   if (sender === 'notify@payments.interac.ca' || has('Payments - Incoming') || has('Deposited')) {
     if (!has('Deposited') || (!has('Payments - Incoming') && sender!=='notify@payments.interac.ca')) return null;

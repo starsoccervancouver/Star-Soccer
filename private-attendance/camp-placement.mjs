@@ -10,13 +10,13 @@ const sameSet = (a, b) => a.length === b.length && new Set(a).size === a.length 
 const review = reason => ({placed: false, message: reason});
 const open = new Set(['Planned', 'Confirmed']);
 
-function campRequest(event, now) {
+export function campRequest(event, now) {
   if (!/^\d{1,2}$/.test(event.age || '')) return;
   if (event.version === dayCamp) {
     const date = '2026-11-20';
     if (event.campId === 'pro-d-2026-11-20' && event.dates === date &&
         Number(event.age) >= 6 && Number(event.age) <= 13) {
-      return {dates: [date], slots: [{key: 'SS-20261120-KITS-PROD', date, time: '12 pm–3 pm'}]};
+      return {price: 60, dates: [date], slots: [{key: 'SS-20261120-KITS-PROD', date, time: '12 pm–3 pm'}]};
     }
     return;
   }
@@ -25,15 +25,15 @@ function campRequest(event, now) {
   try {
     const quote = winterCamps.quote({week: event.campWeek, kind, slot: event.campSlot, age: event.age, dates}, now);
     if (sameSet(dates, quote.dates) && sameSet(split(event.campKeys, ';'), quote.sessions.map(slot => slot.key))) {
-      return {dates: quote.dates, slots: quote.sessions};
+      return {price: quote.price, dates: quote.dates, slots: quote.sessions};
     }
   } catch {
     // Late, invalid or obsolete requests stay in the placement queue.
   }
 }
 
-export async function placeCampRegistration(db, {event, registration, family, player, now}) {
-  if (registration.fields.Status !== 'Needs review' || registration.fields.Booking?.length ||
+export async function placeCampRegistration(db, {event, registration, family, player, now, confirmationId}) {
+  if (!['Needs review', 'Processing'].includes(registration.fields.Status) || registration.fields.Booking?.length ||
       !player || !family || registration.fields['Source Gmail ID'] !== event.id) {
     return review('Check the family, player and existing registration before placing.');
   }
@@ -104,7 +104,7 @@ export async function placeCampRegistration(db, {event, registration, family, pl
   // an uncertain API response without rewriting attendance already on the roster.
   const booking = existing || await db.save('bookings', {
     'Source booking ID': source, 'Booking reference': event.reference, Player: [player.id], Family: [family.id],
-    'Booking type': 'Drop-in', 'Booking status': 'Accepted', 'Charge review': 'Needs pricing confirmation',
+    'Booking type': 'Drop-in', 'Booking status': 'Accepted', 'Charge review': 'Agreed', 'Charge CAD': request.price,
     'Start date': request.dates[0], 'Covered dates': request.dates.join(', '),
     'First session': [coverage[0].session.id], 'Accepted date': now.toISOString().slice(0, 10)
   }, {key: 'Source booking ID'});
@@ -114,8 +114,10 @@ export async function placeCampRegistration(db, {event, registration, family, pl
     'Coverage state': 'Active', 'Coverage approved': true, 'Session date': date, 'Attendance status': 'Not marked'
   })), {key: 'Source coverage key'});
   await db.save('registrations', {
-    Status: 'Expected', Booking: [booking.id], Family: [family.id], Player: [player.id],
+    Status: confirmationId ? 'Confirmed' : 'Expected', Booking: [booking.id], Family: [family.id], Player: [player.id],
+    'Confirmation Gmail ID': confirmationId,
+    'Processing notes': confirmationId ? 'Owner confirmation recorded from Gmail. Payment is recorded separately.' : 'Returning player placed on the camp roster. This registration did not record a payment.',
     'Camp session keys': request.slots.map(slot => slot.key).join('; ')
   }, {id: registration.id});
-  return {placed: true, message: 'Placed on the camp roster. Review parent confirmation and pricing separately.'};
+  return {placed: true, message: confirmationId ? 'Parent confirmation recorded and player placed on the camp roster.' : 'Returning player placed on the camp roster. No payment recorded.'};
 }

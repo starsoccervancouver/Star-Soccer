@@ -3,6 +3,7 @@ import hmac
 import json
 import os
 from datetime import date, timedelta
+from organic_journey import organic_journey_response
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -28,6 +29,9 @@ def hello_http(request):
         return reply({'error': 'Unauthorized'}, 401)
     if request.content_length and request.content_length > 2048:
         return reply({'error': 'Request too large'}, 413)
+    journey = organic_journey_response(request.get_json(silent=True))
+    if journey is not None:
+        return reply(*journey)
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or set(data) != {'startDate', 'endDate'}:
         return reply({'error': 'Send startDate and endDate only.'}, 400)

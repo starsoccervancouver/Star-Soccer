@@ -71,6 +71,10 @@ export async function prepareAttendedVisit(db, {playerId, attendanceId, sessionI
   if (enrollmentRateApproved) rate = e['Agreed per-session CAD'];
   else if (rowRateApproved) rate = a['Expected per-session CAD'];
   const key = 'VISIT-' + sessionId + '-' + playerId;
+  // A cancelled or manually detached booking can still own this key. Reopening
+  // it through an upsert would overwrite the owner's correction.
+  const previous = await db.list('bookings',['Source booking ID'],"{Source booking ID}='" + key + "'");
+  if (previous.length) return review();
   await db.save('bookings',{
     'Source booking ID':key,'Booking reference':key, Player:[playerId],Family:family,
     'Player reference':player.fields['Source player ID'],'Family reference':player.fields['Family reference'],

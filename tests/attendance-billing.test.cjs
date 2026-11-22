@@ -12,7 +12,8 @@ function fixture() {
     bookings:[]
   };
   const db = {
-    list:async (table,fields,filter) => rows[table].filter(r=>filter.includes(r.id)),
+    list:async (table,fields,filter) => rows[table].filter(r=>filter.startsWith('{Source booking ID}') ?
+      filter.includes(r.fields['Source booking ID']) : filter.includes(r.id)),
     async save(table,data,options) {
       if (options.id) return Object.assign(rows[table].find(r=>r.id===options.id).fields,data);
       assert.equal(options.key,'Source booking ID');
@@ -59,4 +60,14 @@ test('an unknown or conflicting rate creates a price-review line with no invente
   await prepareAttendedVisit(db,input,session);
   assert.equal(rows.bookings[0].fields['Charge review'],'Needs pricing confirmation');
   assert.equal(rows.bookings[0].fields['Charge CAD'],undefined);
+});
+
+test('an owner-cancelled booking is never reopened by a retried attendance write',async()=>{
+  const {prepareAttendedVisit}=await import('../private-attendance/attendance-billing.mjs');
+  const {input,session,rows,db}=fixture();
+  rows.bookings.push({id:id(8),fields:{'Booking status':'Cancelled','Source booking ID':'VISIT-'+input.sessionId+'-'+input.playerId}});
+  await prepareAttendedVisit(db,input,session);
+  assert.equal(rows.bookings.length,1);
+  assert.equal(rows.bookings[0].fields['Booking status'],'Cancelled');
+  assert.equal(rows.attendance[0].fields['Billing review'],'Needs reconciliation');
 });

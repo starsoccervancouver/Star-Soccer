@@ -2,7 +2,9 @@ import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypt
 import {Buffer} from 'node:buffer';
 import {createFollowupJob} from './registration-followup-job.mjs';
 import {ownerWorkflows,fields as reportFields} from './owner-workflows.mjs';
-import {checkConfirmationDrafts} from './confirmation-drafts.mjs';
+import {ownerDraftAcceptance} from './owner-draft-acceptance.mjs';
+import {runDraftJob} from './draft-job.mjs';
+import {draftMailbox} from './draft-mailbox.mjs';
 import {outcomeFiling} from './gmail-outcome-labels.mjs';
 import {reportCompletions} from './report-completions.mjs';
 import {attentionPage,filterReportItems} from './attention-inbox.mjs';
@@ -162,16 +164,26 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       await storage.put('report',{lastCheck:new Date(clock()).toISOString(),error:retries.size?retries.values().next().value.error:null,pendingRetries:retries.size});
       const follow=followupEnabled?await checkFollowups(access).catch(()=>({state:'unavailable'})):null;
       const filingPending=filing?await filing.step():false;
-      if(filing && !filingPending && clock()-(await storage.get('confirmation:last')||0)>=3600000){
+      if(filing && clock()-(await storage.get('mail-drafts:last')||0)>=900000){
         try{
-          await checkConfirmationDrafts({db:ledger,storage,now:clock(),read:async id=>{const m=await gmail(access,'messages/'+id,[['format','full']]);const event=classifyMessage(m,labels,STAR_SOCCER_OWNER);return event?.form&&event.type==='registration'?{id:m.id,reference:event.reference,contact:event.contact,labelIds:m.labelIds}:null;},search:async q=>(await gmail(access,'messages',[['q',q],['maxResults','1']])).messages||[],create:async raw=>{
-            const response=await fetchFn(new URL('drafts',root),{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({message:{raw}})});
-            if(!response.ok)throw Error('GMAIL_'+response.status);return response.json();
-          }});
-          await storage.put('confirmation:last',clock());await storage.delete('confirmation:error');
-        }catch{await storage.put('confirmation:error','Check the Gmail draft workflow and the saved template.');}
+          const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:STAR_SOCCER_OWNER});
+          const report=await runDraftJob({db:ledger,storage,mail,now:clock()});
+          await storage.put('mail-drafts:report',report);
+          await storage.put('mail-drafts:last',clock());
+          await storage.put('confirmation:last',clock());
+          await storage.delete('confirmation:error');
+        }catch(error){
+          await storage.put('confirmation:error','Check the three email draft rules and Email Draft Log. '+(/^(GMAIL|AIRTABLE)_[A-Z0-9_]+$/.test(error.message)?error.message:''));
+        }
       }
-      if(filingPending||pending.size||state?.phase!=='history'||state.page||follow?.state==='checking')await storage.setAlarm(clock()+3000);
+      let testPending=false;
+      if(filing&&config.baseId==='appnaG94HQpEaRios'&&await storage.get('mail-drafts:report')){
+       try{
+        const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:STAR_SOCCER_OWNER});
+        testPending=await ownerDraftAcceptance({db:ledger,storage,mail,profile:()=>gmail(access,'profile')});
+       }catch(e){await storage.put('mail-drafts:test-error',e.message);}
+      }
+      if(testPending||filingPending||pending.size||state?.phase!=='history'||state.page||follow?.state==='checking')await storage.setAlarm(clock()+3000);
     }catch(err){
       const allowed=/^(AIRTABLE_\d{3}|GMAIL_\d{3}|GMAIL_API_DISABLED|PAYMENT_LABELS_MISSING|GOOGLE_RECONNECT|GOOGLE_TOKEN_FAILED)$/;
       const report=await storage.get('report')||{};
@@ -264,7 +276,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const report=await storage.get('report')||{};
       const scan=await storage.get('scan'),pending=await storage.list({prefix:'q:',limit:1});
       const filing=await storage.get('filing:progress');
-      return {placementEnabled:Number.isFinite(Date.parse(campPlacementSince)),calendarEnabled:!!await storage.get('calendar:enabled'),confirmationCheckedAt:await storage.get('confirmation:last')||null,connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
+      return {draftAutomations:await storage.get('mail-drafts:report')||null,draftAutomationError:await storage.get('confirmation:error')||null,placementEnabled:Number.isFinite(Date.parse(campPlacementSince)),calendarEnabled:!!await storage.get('calendar:enabled'),confirmationCheckedAt:await storage.get('confirmation:last')||null,connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
     }
     if(op==='stop-labels'){await storage.put('filing:enabled',false);return {labelFiling:false};}
     if(op==='start'){

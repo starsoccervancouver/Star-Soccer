@@ -68,7 +68,9 @@ body .ss-number-stepper > button.ss-number-button {
 }
 body .ss-number-stepper > button.ss-number-button > span { color: inherit; line-height: 1; }
 @media (hover: hover) {
-  body .ss-number-stepper > button.ss-number-button:hover:not(:disabled) { background: #355b77; color: #fff; }
+  body .ss-number-stepper > input.ss-number-input:enabled:hover {
+    background-image:linear-gradient(var(--ss-hover-fill),var(--ss-hover-fill));
+  }
 }
 body .ss-number-stepper > button.ss-number-button:active:not(:disabled) { background: #446d89; }
 body .ss-number-stepper > button.ss-number-button:focus-visible { outline: 2px solid #b2e3f6; outline-offset: -3px; }

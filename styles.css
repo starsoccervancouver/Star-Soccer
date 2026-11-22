@@ -203,7 +203,6 @@ a {
   transition: transform 160ms ease, opacity 160ms ease;
 }
 
-.site-nav a:hover,
 .site-nav a:focus-visible {
   color: var(--text);
 }
@@ -302,7 +301,6 @@ a {
   background: linear-gradient(90deg, transparent, #ff2f35, transparent);
 }
 
-.site-nav a:hover::after,
 .site-nav a:focus-visible::after {
   transform: scaleX(1);
   opacity: 1;
@@ -322,7 +320,6 @@ a {
   transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
 }
 
-.button:hover,
 .button:focus-visible {
   transform: translateY(-1px);
   filter: brightness(1.03);
@@ -976,7 +973,6 @@ background-image: image-set(url("site-photos/home-1600.avif") type("image/avif")
   transition: color 160ms ease;
 }
 
-.home-contact-column a:hover,
 .home-contact-column a:focus-visible {
   color: var(--text);
 }
@@ -1611,7 +1607,6 @@ background-image:
   color: #0b1526;
 }
 
-.programs-page .psg-row h3 a:hover,
 .programs-page .psg-row h3 a:focus-visible {
   color: #b21f2e;
 }
@@ -1941,11 +1936,6 @@ background-image:
   background: #0d2040;
   color: #dce4ed;
   transition: border-color 180ms ease, transform 180ms ease;
-}
-
-.contact-channel-card:hover {
-  border-color: rgba(110, 183, 255, 0.42);
-  transform: translateY(-3px);
 }
 
 .contact-channel-icon {
@@ -2617,7 +2607,6 @@ background-image:
   box-shadow: 0 14px 34px rgba(212, 175, 55, 0.28);
 }
 
-.sel-button-gold:hover,
 .sel-button-gold:focus-visible {
   filter: brightness(1.08);
   box-shadow: 0 18px 44px rgba(212, 175, 55, 0.42);
@@ -2630,7 +2619,6 @@ background-image:
   box-shadow: none;
 }
 
-.sel-button-ghost:hover,
 .sel-button-ghost:focus-visible {
   background: rgba(212, 175, 55, 0.08);
   border-color: rgba(212, 175, 55, 0.7);
@@ -2909,20 +2897,6 @@ background-image:
   border: 1px solid rgba(145, 198, 255, 0.14);
   background: linear-gradient(180deg, rgba(18, 38, 72, 0.8), rgba(7, 17, 34, 0.96));
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-}
-
-.camp-card:hover,
-.program-card:hover,
-.feature-card:hover,
-.philosophy-panel:hover,
-.schedule-item:hover,
-.location-card:hover,
-.psg-soft-card:hover,
-.psg-reason-card:hover,
-.office-hours-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 40px rgba(6, 16, 34, 0.18);
-  border-color: rgba(67, 140, 245, 0.26);
 }
 
 .camp-card::before {
@@ -3342,11 +3316,6 @@ background-image:
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
-.experience-option:hover {
-  transform: translateY(-1px);
-  border-color: rgba(137, 214, 255, 0.46);
-}
-
 .experience-option input {
   position: absolute;
   inset: 0;
@@ -3474,7 +3443,6 @@ background-image:
 }
 
 .psg-tab.is-active,
-.psg-tab:hover,
 .psg-tab:focus-visible {
   border-color: rgba(110, 183, 255, 0.55);
   background: linear-gradient(180deg, #17335f 0%, #102344 100%);
@@ -3533,12 +3501,6 @@ background-image:
   bottom: 0;
   width: 5px;
   background: linear-gradient(180deg, #89d6ff 0%, #2f7bf0 70%, #ff4d67 100%);
-}
-
-.session-option-block:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 36px rgba(16, 33, 58, 0.18);
-  border-color: rgba(45, 123, 232, 0.34);
 }
 
 .session-option-copy h3 {
@@ -4919,7 +4881,7 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   border-radius: 14px;
   border: 1px solid rgba(163, 217, 255, 0.75);
   background: linear-gradient(135deg, #4aa5ff, #2d7be8);
-  color: #e3e9ef;
+  color: #05101e;
   font-size: 0.95rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -4928,7 +4890,6 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
 }
 
-.home-camps-cta-button:hover,
 .home-camps-cta-button:focus-visible {
   transform: translateY(-1px);
   filter: saturate(1.08);
@@ -4954,7 +4915,6 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
-.home-camps-secondary-button:hover,
 .home-camps-secondary-button:focus-visible {
   transform: translateY(-1px);
   border-color: rgba(163, 217, 255, 0.72);
@@ -4979,11 +4939,6 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
     radial-gradient(circle at 24% 12%, rgba(110, 183, 255, 0.22), transparent 52%);
   box-shadow: 0 18px 34px rgba(4, 12, 24, 0.35);
   transition: border-color 200ms ease, box-shadow 200ms ease;
-}
-
-.home-cta-card:hover {
-  border-color: rgba(110, 183, 255, 0.6);
-  box-shadow: 0 14px 36px rgba(10, 60, 130, 0.3), 0 0 0 1px rgba(110, 183, 255, 0.12);
 }
 
 .home-cta-card h3 {
@@ -5322,7 +5277,6 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   transition: border-color 200ms ease;
 }
 
-.psg-faq-item:hover,
 .psg-faq-item[open] {
   border-color: rgba(110, 183, 255, 0.5);
 }
@@ -5649,7 +5603,7 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   text-decoration: none;
   transition: background .2s ease, border-color .2s ease;
 }
-.home-coach-book-link:hover, .home-coach-book-link:focus-visible {
+.home-coach-book-link:focus-visible {
   background: rgba(39,112,203,.38);
   border-color: #8ac7ff;
 }
@@ -5665,19 +5619,19 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-.home-methodology-link:hover, .home-methodology-link:focus-visible {
+.home-methodology-link:focus-visible {
   color: #e4e9ef;
 }
 
 /* 2026 UX improvements: program discovery, mobile navigation, and form feedback */
 .program-age-filter { display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:20px auto 28px; }
 .age-filter-btn { border:1px solid #4381c5;border-radius:999px;background:#0d203a;color:#e8f2ff;padding:11px 18px;font:inherit;font-weight:700;cursor:pointer; }
-.age-filter-btn.is-selected,.age-filter-btn:hover,.age-filter-btn:focus-visible { background:#287be5;color: #e4e9ef; }
+.age-filter-btn.is-selected,.age-filter-btn:focus-visible { background:#287be5;color: #e4e9ef; }
 .psg-row[hidden] { display:none !important; }
 .coach-selection-notice,.contact-success-notice { padding:12px 16px;border-radius:10px;border:1px solid #5096dc;background:#102c4c;color:#e8f2ff;margin:12px 0; }
 .coach-selection-notice[hidden],.contact-success-notice[hidden] { display:none; }
 .header-program-cta { display:inline-flex !important;align-items:center;justify-content:center;padding:9px 15px !important;border-radius:9px;background:#3389ef;color:#e4e9ef !important;font-weight:800;white-space:nowrap; }
-.header-program-cta:hover,.header-program-cta:focus-visible { background:#176aca; }
+.header-program-cta:focus-visible { background:#176aca; }
 .mobile-nav-toggle { display:none;border:1px solid #4b83bb;border-radius:8px;padding:10px 16px;background:#0c2039;color:#e4e9ef;font:inherit;font-weight:700;cursor:pointer; }
 .immersive-hero { min-height:min(78vh,700px); }
 @media (max-width: 760px) {
@@ -5800,10 +5754,6 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
   transform:none;
   box-shadow:0 5px 16px rgba(0,10,24,.16);
 }
-:where(.button,.button-ghost,.button-outline,.header-program-cta,.home-coach-book-link,.home-camps-cta-button):hover {
-  transform:none;
-  filter:brightness(1.08);
-}
 :where(.weekly-card-actions,.home-closing-actions,.registration-actions,.session-option-side,.session-price-choice,.psg-row > div) {
   min-width:0;
   overflow:visible;
@@ -5834,7 +5784,7 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 }
 .psg-light-section :is(input,textarea)::placeholder { color:#9fb0c1; }
 .psg-light-section .button:not(.button-ghost):not(.button-outline) {
-  background:#356da6 !important;
+  background:#2d5e90 !important;
   border:1px solid #6395c5 !important;
   color:#e1e8ef !important;
 }
@@ -5856,6 +5806,11 @@ html.has-motion .home-latest-band.is-active .home-latest-band-inner {
 .schedule-controls{display:flex;align-items:end;gap:12px;flex-wrap:wrap;max-width:1040px;margin:20px auto 10px}
 .schedule-controls label{display:grid;gap:6px;flex:1 1 170px;max-width:270px;font-size:.84rem;font-weight:700;color:#b5c7d9}
 .schedule-controls select{width:100%;min-height:46px;padding:10px 13px;border-radius:11px;border:1px solid #577693;background:#172f49;color:#cdd7e1;font:inherit}
+@media (hover: hover) {
+  .schedule-controls select:enabled:hover {
+    background-image:linear-gradient(var(--ss-hover-fill),var(--ss-hover-fill));
+  }
+}
 .schedule-reset{min-height:46px;padding:10px 17px;border:1px solid #577693;border-radius:11px;background:#25435f;color:#d0dce7;font:inherit;font-weight:700;cursor:pointer}
 .schedule-results{max-width:1040px;margin:12px auto;color:#a9bfd3;font-size:.88rem}
 .schedule-list{display:grid;gap:9px;max-width:1040px;margin:0 auto 20px}

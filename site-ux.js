@@ -69,7 +69,7 @@
     if (!document.querySelector('input[type="number"]:not([data-native-number])') || document.getElementById('ss-number-controls-js')) return;
     const script = document.createElement('script');
     script.id = 'ss-number-controls-js';
-    script.src = new URL('number-controls.js?v=20261027', base).href;
+    script.src = new URL('number-controls.js?v=20261121-hover', base).href;
     document.head.append(script);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadNumberControls, {once: true});

@@ -10,7 +10,7 @@ body #app #panel-notes #player-note-folders[hidden], .notes-workspace-heading[hi
 .note-folders-search input { width:100%; min-width:0; min-height:44px; border-radius:8px; }
 .note-folders-grid { display:grid; gap:2px; max-height:calc(100dvh - 220px); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; padding:3px 18px 3px 3px; }
 body #app #panel-notes #player-note-folders .note-folder-card { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:5px 10px; width:100%; min-height:52px; margin:0; padding:12px; border:0; border-left:3px solid transparent; border-radius:6px; background:transparent; color:var(--desk-ink); text-align:left; font:inherit; line-height:1.5; box-shadow:none; text-transform:none; white-space:normal; overflow-wrap:anywhere; }
-body #app #panel-notes #player-note-folders .note-folder-card:hover:not(:disabled) { background:var(--desk-field); transform:none; }
+body #app #panel-notes #player-note-folders .note-folder-card:not([aria-pressed="true"]):hover:not(:disabled) { background: var(--desk-option-hover); transform: none; border-color: var(--desk-option-hover-border); color: var(--desk-ink); }
 body #app #panel-notes #player-note-folders .note-folder-card[aria-pressed="true"] { background:var(--desk-field); border-left-color:var(--desk-ink); }
 .note-folder-card strong { font-size:13px; font-weight:650; }
 .note-folder-count { font-size:11px; color:var(--desk-muted); font-weight:400; white-space:nowrap; }

@@ -11,6 +11,10 @@ const assert=require('node:assert/strict'),{chromium}=require('playwright'),fs=r
   await page.setViewportSize({width:320,height:800});await page.goto(alex.yesUrl);await page.locator('#details').waitFor({state:'visible'});
   check(page.url()===d.origin+'/respond','Token fragment is removed immediately');check(row().response===null,'Opening a yes link and preview do not record attendance');
   check(await page.locator('#calendar-actions').isHidden(),'A Yes preview does not offer a calendar link before confirmation');
+  await page.locator('#no').hover();
+  check(await page.locator('#no').evaluate(el=>getComputedStyle(el).backgroundColor==='rgba(121, 191, 255, 0.12)'),'Unselected parent RSVP option has the sky-blue hover fill');
+  await page.locator('#yes').hover();
+  check(await page.locator('#yes').evaluate(el=>el.getAttribute('aria-pressed')==='true' && getComputedStyle(el).backgroundColor!=='rgba(121, 191, 255, 0.12)'),'Hovering the selected parent response preserves its selection');
   check(/3:45/.test(await page.locator('#when').textContent()),'Approved November Vancouver session time renders 3:45 PM');
   check((await page.locator('#confirm').isEnabled())===true,'Prefilled yes choice is ready for explicit confirmation');
   check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Parent page fits 320px');

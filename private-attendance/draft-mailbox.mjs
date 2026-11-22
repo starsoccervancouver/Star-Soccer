@@ -53,8 +53,16 @@ export function draftMailbox({read,fetchFn,access,owner}){
   },
   create:c=>write('drafts','POST',{raw:mime(c)}),
   async obsolete(id,key,reason){
-   const inert={key,subject:'Obsolete Star Soccer draft | '+marker(key),html:'<p>Owner copy. This family draft has been withdrawn.</p><p>'+reason.replace(/[<>&]/g,' ')+'</p>'};
-   return write('drafts/'+encodeURIComponent(id),'PUT',{raw:mime(inert,owner)});
+   const path='drafts/'+encodeURIComponent(id),original=await read(path,[['format','raw']]);
+   if(!original.message?.raw)throw Error('GMAIL_DRAFT_UNAVAILABLE');
+   const bytes=Buffer.from(original.message.raw,'base64url').toString('latin1');
+   const split=/\r?\n\r?\n/.exec(bytes);
+   if(!split)throw Error('GMAIL_DRAFT_UNAVAILABLE');
+   const fields=bytes.slice(0,split.index).split(/\r?\n(?![ \t])/);
+   // Preserve the owner's edited MIME body and attachments. Remove every delivery recipient.
+   const keep=fields.filter(h=>! /^(?:(?:Resent-)?(?:To|Cc|Bcc)|Subject):/i.test(h));
+   const updated=['To: '+owner,'Subject: '+encoded('Obsolete Star Soccer draft | '+marker(key)),...keep].join('\r\n')+'\r\n\r\n'+bytes.slice(split.index+split[0].length);
+   return write(path,'PUT',{raw:Buffer.from(updated,'latin1').toString('base64url')});
   }
  };
 }

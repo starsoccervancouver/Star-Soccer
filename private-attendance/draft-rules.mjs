@@ -4,7 +4,7 @@ import {renderConfirmation} from './confirmation-drafts.mjs';
 
 export const draftFields={
  bookings:['Booking reference','Source booking ID','Booking status','Owner approved confirmation','Player','Family','Charge review','Charge CAD','Verified applied CAD','Start date','Covered dates','Booking type','First session'],
- payments:['Payment reference','Family','Amount CAD','Training portion CAD','Method','Direction','Verification','Payment date'],
+ payments:['Payment reference','Booking reference','Booking','Family','Amount CAD','Training portion CAD','Method','Direction','Verification','Payment date'],
  allocations:['Payment','Booking','Applied CAD','Amount CAD','Review status'],
  families:['Email','Secondary guardian email','Contact status','Newsletter status','Marketing consent','Preferred contact method'],
  players:['Player','Family'],registrations:['Child','Parent email','Reference','Status','Player','Booking','Family','Confirmation Gmail ID','Source Gmail ID','Camp session keys'],
@@ -61,6 +61,7 @@ export function confirmation(d,row,today){
   if(!accepted(b))return {obsolete:'Booking is no longer owner-accepted.'};
   const name=player(d,pid,fid),to=guardian(d,fid,r?.['Parent email']);
   if(r?.['Confirmation Gmail ID'])return {existingSent:r['Confirmation Gmail ID'],registration:reg.id,to};
+  if(r?.Child&&r.Child.trim().toLowerCase()!==name.trim().toLowerCase())fail('Check the player name on the registration and booking.');
   if(r&&(single(r.Booking)!==bid||single(r.Player)!==pid||single(r.Family)!==fid))fail('Check the booking against the registration links.');
   const slots=d.attendance.filter(a=>a.fields.Booking?.includes(bid)&&a.fields['Coverage state']==='Active').map(({fields:a})=>{
    const s=pick(d.sessions,single(a.Session));
@@ -75,6 +76,7 @@ export function confirmation(d,row,today){
   const pieces=allocations.map(a=>allocation(d,a,single(a.fields.Payment),fid));
   if(b['Charge review']!=='Agreed'||fee===null||fee<0||applied===null||applied>fee||pieces.some(x=>!x)||pieces.reduce((n,x)=>n+x.amount,0)!==applied)fail('Verify the agreed charge and payment allocations.');
   const balance=fee-applied;
+  if(balance>0&&d.payments.some(p=>(p.fields.Booking?.includes(bid)||b['Booking reference']&&p.fields['Booking reference']===b['Booking reference'])&&!allocations.some(a=>single(a.fields.Payment)===p.id)))fail('Reconcile the payment referencing this booking before drafting the balance.');
   const pay=!fee?'There is no fee for this booking.':!balance?'Thank you. Your payment of '+money(applied)+' covers this booking in full.':
    (applied?'We have applied '+money(applied)+'. Your remaining balance is ':'The booking fee is ')+money(balance)+'. Please e-transfer to starsoccervancouver@gmail.com with the player name, or arrange cash payment with your coach.';
   const masters=d.templates.filter(t=>t.fields.Template==='Camp Email Master'&&/^REVIEW05\b/.test(t.fields.Version));
@@ -125,6 +127,6 @@ export function renewal(d,row,expiry,today){
     if(!sessions.length||sessions.some(s=>!single(s?.['Weekly program'])))fail('Verify the program on a possible replacement pass.');
     if(sessions.some(s=>single(s['Weekly program'])===prog))return {obsolete:'A replacement pass is already booked.'};}
   const guidance=e['Renewal guidance'];if(!guidance||/unknown|review|pending/i.test(guidance))fail('Confirm renewal instructions for this pass.');
-  return {...content(key,to,'Star Soccer pass renewal | '+name+' | '+expiry,'<p>'+esc(name)+'’s '+esc(p)+' pass covers sessions through '+expiry+'.</p><p>To renew, reply to this email with the dates you would like to book. '+'We’ll confirm availability and your new pass dates.</p><p>Star Soccer Vancouver</p>'),child:name,expiry};
+  return {...content(key,to,'Star Soccer pass renewal | '+name+' | '+expiry,'<p>'+esc(name)+'’s '+esc(p)+' pass covers sessions through '+expiry+'.</p><p>To renew, reply to this email with the dates you would like to book. We’ll confirm availability and your new pass dates.</p><p>Star Soccer Vancouver</p>'),child:name,expiry};
  },expiry);
 }

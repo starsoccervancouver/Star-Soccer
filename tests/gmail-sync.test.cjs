@@ -253,6 +253,36 @@ test('exact full payment uses the existing booking family reference; conflicting
   assert.equal(db.tables.intake[0].fields.Review,conflict?'Needs clarification':'Matched');
  }
 });
+test('a verified legacy Interac receipt gains its missing method without posting another payment',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ for(const review of ['Matched','New']){
+  const db=ledger();
+  db.tables.intake.push({id:'intake1',fields:{'Message ID':e.id,Kind:'Payment claim',Review:review}});
+  const receipt={Family:['familyA'],Direction:'Incoming',Verification:'Verified','Amount CAD':60,'Source payment ID':'INTERAC-'+e.ref,'Payment Allocations':['applied']};
+  db.tables.payments.push({id:'receipt1',fields:receipt});
+  db.tables.allocations.push({id:'applied',fields:{Payment:['receipt1'],Booking:['bookA'],'Applied CAD':60}});
+  const before=structuredClone(db.tables.allocations);
+  await syncLedgerEvent(db,e);await syncLedgerEvent(db,e);
+  assert.equal(receipt.Method,'E-transfer');assert.equal(db.tables.payments.length,1);
+  assert.deepEqual(db.tables.allocations,before);assert.equal(db.tables.intake[0].fields.Review,'Matched');
+ }
+});
+test('receipt repair preserves cash and ignores unauthenticated or conflicting evidence',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ for(const scenario of ['cash','unverified notice','wrong amount','conflicting reference','duplicate','no family']){
+  const db=ledger(),receipt={Direction:'Incoming',Verification:'Verified','Amount CAD':60,Family:['familyA'],'Evidence reference':'Gmail '+e.id};
+  if(scenario==='cash')receipt.Method='Cash';
+  if(scenario==='wrong amount')receipt['Amount CAD']=100;
+  if(scenario==='no family')delete receipt.Family;
+  if(scenario==='conflicting reference')receipt['Source payment ID']='INTERAC-OTHER';
+  db.tables.payments.push({id:'prior',fields:receipt});
+  if(scenario==='duplicate')db.tables.payments.push({id:'other',fields:{...receipt}});
+  await syncLedgerEvent(db,{...e,verified:scenario!=='unverified notice'});
+  assert.equal(receipt.Method,scenario==='cash'?'Cash':undefined);assert.equal(db.tables.allocations.length,0);
+  assert.equal(db.tables.intake[0].fields.Review,'Needs clarification');
+ }
+});
+
 test('a previously ignored deposit stays closed on replay',async()=>{
  const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs'),db=ledger();
  db.tables.intake.push({id:'historical',fields:{'Message ID':e.id,Review:'Ignore'}});

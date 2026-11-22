@@ -82,7 +82,7 @@ export async function syncLedgerEvent(db,event,{campPlacementSince,confirmedDraf
     }
     return db.save('intake',fields,{key:'Message ID'});
   }
-  if(e.type==='payment' && (['Ignore','Duplicate'].includes(existingIntake?.fields.Review)||existingIntake?.fields.Kind==='Payment claim'&&existingIntake.fields.Review==='Matched'))return;
+  if(e.type==='payment' && ['Ignore','Duplicate'].includes(existingIntake?.fields.Review))return;
   if(e.type==='payment'){
     // These migration holds predate live intake and require individual reconciliation.
     if(existingIntake?.fields.Review==='Needs clarification'&&/^Historical notice\. Verify settlement/im.test(existingIntake.fields['Next action']||''))return;
@@ -183,7 +183,7 @@ async function payment(db,e,intake,existingIntake) {
   if(!e.verified)return review('Deposited label present. Verify notification source, transfer reference and CAD amount.');
   const ref=e.ref.toUpperCase(),source='INTERAC-'+ref, amount=cents(e.amount);
   const holds=existingIntake?.fields;
-  const receipts=await db.list('payments',['Family','Family reference','Amount CAD','Payment reference','Direction','Verification','Source payment ID','Evidence reference','Allocation requested CAD','Verified signed CAD','Payment context','Payment Allocations']);
+  const receipts=await db.list('payments',['Family','Family reference','Amount CAD','Payment reference','Direction','Method','Verification','Source payment ID','Evidence reference','Allocation requested CAD','Verified signed CAD','Payment context','Payment Allocations']);
   const sourceKeys=new Set([source,ref,e.id.toUpperCase(),'GMAIL:'+e.id.toUpperCase()]);
   const identified=receipts.filter(({fields:f})=>{
     const evidence=String(f['Evidence reference']||'').toUpperCase().match(/[A-Z0-9]+/g)||[];
@@ -191,6 +191,23 @@ async function payment(db,e,intake,existingIntake) {
   });
   if(identified.length>1 || identified.some(p=>cents(p.fields['Amount CAD'])!==amount||p.fields.Direction&&p.fields.Direction!=='Incoming'))return review('Conflicting receipt evidence. Review the existing payment records.');
   let receipt=identified[0];
+  const closed=holds?.Kind==='Payment claim' && holds.Review==='Matched';
+  const sourceId=String(receipt?.fields['Source payment ID']||'').trim().toUpperCase();
+  if(sourceId.startsWith('INTERAC-') && sourceId!==source){
+    return review('The stored Interac reference conflicts with this notice. Check the original receipt.');
+  }
+  if(receipt?.fields.Method && receipt.fields.Method!=='E-transfer'){
+    return review('The recorded payment method conflicts with this Interac notice. Check the original receipt.');
+  }
+  if(receipt?.fields.Verification==='Verified' && !receipt.fields.Method){
+    if(receipt.fields.Direction!=='Incoming' || receipt.fields.Family?.length!==1 ||
+       (holds?.Family?.length && !one(holds.Family,receipt.fields.Family[0]))){
+      return review('Verify the receipt direction and family before assigning the Interac payment method.');
+    }
+    // The receipt is unique by provider reference or Gmail ID and matches the amount.
+    await db.save('payments',{Method:'E-transfer'},{id:receipt.id});
+  }
+  if(closed)return;
   if(receipt && receipt.fields.Verification==='Verified' && !(receipt.fields['Payment context']||'').startsWith('Cloud Gmail intake.')){
     return intake('Payment claim','Matched','Deposited label reconciled with the existing verified receipt. Existing allocations retained.');
   }
@@ -206,7 +223,7 @@ async function payment(db,e,intake,existingIntake) {
   if(!receipt && receipts.some(p=>p.fields.Family?.includes(family.id)&&cents(p.fields['Amount CAD'])===amount&&!/^INTERAC-/i.test(p.fields['Source payment ID']||'')))return review('Possible earlier receipt of the same amount. Reconcile it before adding another payment.',family);
   if(receipt && receipt.fields.Verification!=='Verified'){
     if(receipt.fields.Family?.length!==1||receipt.fields.Family[0]!==family.id||receipt.fields['Payment Allocations']?.length)return review('Existing receipt needs family and allocation review before verification.',family);
-    receipt=await db.save('payments',{Verification:'Verified','Verified by':depositedBy,
+    receipt=await db.save('payments',{Verification:'Verified',Method:'E-transfer','Verified by':depositedBy,
       'Evidence reference':[receipt.fields['Evidence reference'],'Gmail '+e.id+'; Interac '+e.ref].filter(Boolean).join('\n')},{id:receipt.id});
   }
   if(!receipt)receipt=await db.save('payments',{'Payment reference':source,'Source payment ID':source,'Amount CAD':e.amount,Direction:'Incoming',Method:'E-transfer',Verification:'Verified',

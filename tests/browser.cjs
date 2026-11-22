@@ -35,21 +35,31 @@ async function checkPublicHover(browser,desktop,base){
   assert(desktopLogo.x<=12 && desktopLogo.width===200,'Desktop logo is larger and left-aligned');
   await logo.focus();await desktop.keyboard.press('Tab');await desktop.keyboard.press('Shift+Tab');
   assert(await logo.evaluate(el=>el.matches(':focus-visible')&&getComputedStyle(el).outlineStyle!=='none'),'Header logo keeps visible keyboard focus');
-  for(const selector of ['.site-nav a[href="camps.html"]','.hero-action-camps']){
-    const link=desktop.locator(selector).first();
-    await link.hover();
-    await desktop.waitForFunction(({selector,fill})=>getComputedStyle(document.querySelector(selector)).boxShadow.includes(fill),{selector,fill});
-  }
+  const navLink=desktop.locator('.site-nav a[href="camps.html"]');
+  const underline=link=>link.evaluate(el=>{
+    const style=getComputedStyle(el,'::after');
+    return {color:style.backgroundColor,opacity:style.opacity,name:style.animationName,iterations:style.animationIterationCount};
+  });
+  const navSurface=await surface(navLink);
+  assert.equal((await underline(navLink)).opacity,'0','Inactive navigation starts without an underline');
+  await navLink.hover();
+  assert.deepEqual(await surface(navLink),navSurface,'Hovering navigation does not tint the background');
+  assert.deepEqual(await underline(navLink),{color:'rgb(141, 198, 255)',opacity:'1',name:'nav-underline-pulse',iterations:'1'},'The blue underline pulses once per hover');
   const hero=desktop.locator('.hero-action-camps');
+  await hero.hover();
+  await desktop.waitForFunction(fill=>getComputedStyle(document.querySelector('.hero-action-camps')).boxShadow.includes(fill),fill);
+  assert.equal((await underline(navLink)).opacity,'0','The hovered underline clears when the pointer leaves');
   await hero.focus();await desktop.keyboard.press('Tab');await desktop.keyboard.press('Shift+Tab');
   assert(await hero.evaluate(el=>el.matches(':focus-visible')&&getComputedStyle(el).outlineStyle!=='none'),'Keyboard focus remains visible');
   await desktop.goto(base+'/locations.html');
   const current=desktop.locator('.site-nav .active').first(),currentSurface=await surface(current);
   const otherTab=desktop.locator('.site-nav a:not([aria-current])').first();
-  assert.notEqual(currentSurface.fill,(await surface(otherTab)).fill,'Current navigation has a distinct background');
-  assert(await current.evaluate(el=>getComputedStyle(el).textDecorationLine==='none' &&
-    getComputedStyle(el,'::after').content==='none'),'Current navigation has no underline');
-  await current.hover();assert.deepEqual(await surface(current),currentSurface,'Current navigation retains its selected state');
+  assert.equal(currentSurface.fill,(await surface(otherTab)).fill,'Current navigation has no background highlight');
+  assert.equal((await underline(current)).opacity,'1','The current page has a visible blue underline');
+  await current.hover();assert.deepEqual(await surface(current),currentSurface,'Hover leaves the current tab background alone');
+  await desktop.emulateMedia({reducedMotion:'reduce'});
+  assert.equal((await underline(current)).name,'none','Reduced motion keeps the underline static');
+  await desktop.emulateMedia({reducedMotion:'no-preference'});
   await current.focus();await desktop.keyboard.press('Tab');await desktop.keyboard.press('Shift+Tab');
   assert(await current.evaluate(el=>el.matches(':focus-visible')&&getComputedStyle(el).outlineStyle==='solid'),'Current navigation keeps visible keyboard focus');
   await desktop.goto(base+'/registration.html?sessionId=wednesday&type=dropin');

@@ -21,8 +21,11 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
   return fresh;
  }
  async function readDesk(raw,initial,{refresh=false,full=true}={}){
-  const roster=await overview({refresh});
-  const {actor}=currentSession(raw,initial);
+  let roster,session;
+  // Recheck even on an upstream failure so an expired sign-in cannot retain the previous roster.
+  try{roster=await overview({refresh});}
+  finally{session=currentSession(raw,initial);}
+  const {actor}=session;
   const data=coaches.scope(actor,roster);
   if(!full)return data;
   return {...data,

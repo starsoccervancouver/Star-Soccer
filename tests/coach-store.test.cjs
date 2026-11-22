@@ -84,6 +84,9 @@ test('signed bootstrap and refresh can return the full authorized desk in one re
   const rejected=await call(route,expiring);assert.equal(rejected.status,401);
   assert(!('sessions' in await rejected.json()));
  }
- overview=async()=>{auth.logout(ticket.token);throw Error('AIRTABLE_READ_FAILED');};
- assert.equal((await call('bootstrap',ticket)).status,401);
+ for(const route of ['bootstrap','desk','refresh']){
+  const expiring=auth.createVerifiedSession(one.email);
+  overview=async()=>{auth.logout(expiring.token);throw Error('AIRTABLE_READ_FAILED');};
+  assert.equal((await call(route,expiring)).status,401);
+ }
 });

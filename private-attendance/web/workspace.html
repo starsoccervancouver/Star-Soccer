@@ -115,6 +115,7 @@
 <button data-tab="library"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6a2 2 0 0 1 2 2v15a3 3 0 0 0-3-2H3V4zm16 0h-6a2 2 0 0 0-2 2v15a3 3 0 0 1 3-2h6V4z"/></svg><span>Coach resources</span></button>
 <button data-tab="coaches" data-full hidden><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5v1"/></svg><span>Coaching team</span></button>
 <button id="nav-families" data-tab="families" hidden><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5 10v11h14V10"/><circle cx="12" cy="12" r="2"/><path d="M8 20v-1a4 4 0 0 1 8 0v1"/></svg><span>Families</span></button>
+<button id="nav-books" data-tab="books" hidden><svg class="desk-nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H6a2 2 0 0 1-2-2V6a2 2 0 0 1 1-2zM8 4v16M11 9h5M11 13h5"/></svg><span>Books</span></button>
 <button id="nav-attention" data-tab="attention" hidden><svg class="desk-nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14l3-9h12l3 9v5H3zM3 14h5l2 3h4l2-3h5"/></svg><span>Reports</span></button>
 
 <button data-tab="settings" class="nav-settings"><svg class="desk-nav-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></svg><span>Settings &amp; profile</span></button>
@@ -236,6 +237,12 @@
 <h2>Needs your attention</h2>
 <button type="button" class="secondary" id="home-mail-summary" hidden>Review inbox</button>
 <button type="button" class="secondary" id="home-registration-review" hidden>Review registration follow-ups</button>
+<details id="home-unpaid" hidden>
+<summary id="home-unpaid-label">Unpaid sessions</summary>
+<p id="home-unpaid-status" role="status"></p>
+<ul id="home-unpaid-list" class="books-list" aria-label="Sessions with a balance owing"></ul>
+<button id="home-open-books" class="secondary" type="button">Open Books</button>
+</details>
 <div id="home-priorities"></div>
 <div id="home-followups" hidden>
 </div>
@@ -253,6 +260,18 @@
 <a href="#view=families" id="family-back" hidden>← Back to families</a>
 <p id="family-status" role="status"></p>
 <div id="family-results"></div>
+</section>
+</section>
+<section id="panel-books" class="tab-panel" hidden>
+<section class="card" aria-label="Session books">
+<div class="books-tools">
+<label>Player or session <input id="books-search" type="search" placeholder="Search books"></label>
+<label>Show <select id="books-filter"><option value="all">All records</option><option value="due">Unpaid sessions</option><option value="paid">Paid</option><option value="booking">Whole bookings</option><option value="review">Needs review</option></select></label>
+<button id="books-refresh" class="secondary" type="button">Refresh books</button>
+</div>
+<p id="books-status" role="status"></p>
+<ul id="books-list" class="books-list" aria-label="Booking and session balances"></ul>
+<button type="button" id="books-more" class="secondary" hidden>Show more records</button>
 </section>
 </section>
 <section id="panel-attention" class="tab-panel" hidden>

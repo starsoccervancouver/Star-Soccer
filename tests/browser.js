@@ -50,9 +50,9 @@
           const heroPhotos=frame.contentWindow.performance.getEntriesByType('resource').filter(r=>/\/site-photos\/(?:[^/]+\/)?home-/.test(r.name));
           const heroImage=doc.querySelector('.home-training-photo img');
           check(heroPhotos.length===1 && heroPhotos[0].name===heroImage.currentSrc && heroImage.currentSrc.includes(width<=700?'home-mobile-':'home-wide-') && heroImage.currentSrc.endsWith('.avif'),`Homepage at ${width}px downloads one responsive autumn hero`);
-          const programs=doc.querySelector('.hero-action-programs'),camps=doc.querySelector('.hero-action-camps');
-          check(programs && camps && programs.getAttribute('href')==='pro-d-camp-registration.html' && programs.textContent.includes('Register for Pro-D camp') && camps.getAttribute('href')==='camps.html',`Homepage at ${width}px directs parents to the Pro-D camp and keeps the winter camp destination`);
-          check(programs && camps && [programs,camps].every(el=>el.getClientRects().length && el.getBoundingClientRect().height>=48),`Homepage at ${width}px shows large program and camp actions`);
+          const camps=doc.querySelector('.hero-action-camps');
+          check(camps && camps.getAttribute('href')==='camps.html' && /Dec 21–25 and Dec 28–Jan 1/.test(camps.textContent) && !doc.querySelector('a[href="pro-d-camp-registration.html"]'),`Homepage at ${width}px promotes both December weeks and omits the expired Pro-D signup`);
+          check(camps && camps.getClientRects().length && camps.getBoundingClientRect().height>=48,`Homepage at ${width}px shows a large camp action`);
           check(camps && camps.textContent.includes('Compare Vancouver winter soccer camps') && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with a descriptive winter soccer camp action`);
           check(doc.querySelector('h1').textContent.includes('Weekly soccer coaching.') && doc.querySelector('h1').textContent.includes('Ages 6–14 in Kitsilano.'),`Homepage at ${width}px describes the weekly service, ages and location`);
           for(const [coach,days] of [['Valentinos Dinglis',['tuesday','wednesday','thursday','sunday']],['Romeo Dinglis',['wednesday','friday']]]){
@@ -97,9 +97,7 @@
           const cards=[...doc.querySelectorAll('#sessions .schedule-list > article')].map(el=>el.getBoundingClientRect());
           check(width>700 ? Math.abs(cards[0].top-cards[1].top)<2 && cards[1].left>cards[0].right && cards[2].top>=cards[0].bottom : cards[1].top>=cards[0].bottom,`Training at ${width}px uses two cards per desktop row and readable single cards on phones`);
           check(!doc.querySelector('details.schedule-entry,.session-share'),`Training at ${width}px has no registration disclosure or copy-link step`);
-          const campLink=doc.querySelector('.training-event-card .button');
-          check(campLink.getAttribute('href')==='pro-d-camp-registration.html',`Training at ${width}px offers the single-day camp separately from recurring sessions`);
-          if(width<=430)check(campLink.getBoundingClientRect().bottom<=640,`Training at ${width}px puts camp registration within the first screen (${Math.round(campLink.getBoundingClientRect().bottom)}px)`);
+          check(!doc.querySelector('a[href="pro-d-camp-registration.html"]'),`Training at ${width}px omits the expired Pro-D signup`);
         }
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
@@ -219,7 +217,8 @@
     for(const details of doc.querySelectorAll('.camp-card-details'))details.querySelector('summary').click();
     check([...doc.querySelectorAll('.camp-card-details')].every(el=>el.open && el.querySelector('ul').getClientRects().length) && doc.documentElement.scrollWidth<=321,'Both camp detail disclosures open without overflow at 320px');
     doc=await load('programs.html',320);
-    check(!doc.querySelector('[data-filter-panel],.weekly-training-photo,#session-finder-title') && doc.querySelector('.schedule-entry-main').getBoundingClientRect().top<=250,'Training starts with registration cards and no filter, photo or finder heading');
+    const firstSessionTop=doc.querySelector('#sessions .schedule-entry').getBoundingClientRect().top;
+    check(!doc.querySelector('[data-filter-panel],.weekly-training-photo,#session-finder-title') && firstSessionTop<=330,`Training starts with weekly registration cards and no filter, photo or finder heading (card begins at ${firstSessionTop}px)`);
     check(doc.querySelector('[data-session-day="friday"] .session-capacity').textContent==='3/20 players · 17 places remaining','Schedule shows the dated ledger count');
     check(doc.querySelector('[data-session-day="thursday"] .session-capacity').textContent==='0/20 players · 20 places remaining','Recorded zero is shown as zero');
     check(!doc.querySelector('.count-refresh') && doc.documentElement.dataset.countsState==='ready','Counts load automatically without a refresh button');

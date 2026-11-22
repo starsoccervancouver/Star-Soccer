@@ -41,7 +41,7 @@ test('attributes only the exact charge and its verified partial allocation to a 
   assert.deepEqual(row, {scope: 'session', attendanceId: 'a', sessionId: 'friday', sessionLabel: 'Friday Kits',
     date: '2026-11-20', time: '3:45–4:45 pm', location: 'Kits', attendanceStatus: 'Present', playerId: 'child', playerName: 'Test player',
     bookingId: 'b', bookingType: 'Drop-in', status: 'due', amountCharged: 45, amountPaid: 20,
-    amountDue: 25, contact: {guardian: 'Test parent', email: 'parent@example.invalid', phone: '555'}});
+    amountDue: 25, familyId: 'f', familyName: 'Test parent', contact: {guardian: 'Test parent', email: 'parent@example.invalid', phone: '555'}});
   const [paid] = await project(t => Object.assign(t.bookings[0].fields, {'Verified applied CAD': 45, 'Balance CAD': 0, 'Due now CAD': 0}));
   assert.equal(paid.status, 'paid');
   const [walkIn] = await project(t => {
@@ -144,4 +144,13 @@ test('reads each paginated source once on demand, with no notes or unrelated pri
   }, new Date('2026-11-22T23:00:00Z'), 'America/Vancouver');
   assert.deepEqual(reads.sort(), ['attendance','bookings','families','players','sessions']);
   assert.equal(result.rows[0].status, 'due');
+});
+
+test('a due session links to its own booking and uses the ledger family name',async()=>{
+  const data=fixture(), id='rec00000000000001', source={baseId:'app00000000000001',bookings:'tbl00000000000001'};
+  data.bookings[0].id=id;data.players[0].fields.Bookings=[id];data.attendance[0].fields.Booking=[id];
+  data.families[0].fields.Family='Fixture household';
+  const [row]=(await books).buildSessionBooks(data,today,source).rows;
+  assert.equal(row.familyName,'Fixture household');assert.equal(row.familyId,'f');
+  assert.equal(row.bookingUrl,'https://airtable.com/'+source.baseId+'/'+source.bookings+'/'+id);
 });

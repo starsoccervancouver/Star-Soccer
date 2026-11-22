@@ -674,12 +674,15 @@
  const familyMoney = value => Number.isFinite(value) ? cadFormat.format(value) : 'Not recorded';
  const familyDate=value=>value && Number.isFinite(Date.parse(value))?dateWithYearFormat.format(Date.parse(value)):value;
  const booksPageSize=40;
+ let unpaidFamilies=[];
  let booksRequest=0,booksRows=null,booksDenied=false,booksLimit=booksPageSize,homeUnpaidState='idle';
  const canViewBooks=()=>!booksDenied&&data?.booksAvailable===true&&(profile?.role==='owner'||(profile?.role==='admin'&&profile.familyAccess===true));
  const sessionDue=row=>row.scope==='session'&&row.status==='due'&&Number.isFinite(row.amountDue)&&row.amountDue>0;
  const bookStatuses={due:'Payment due',paid:'Paid',upcoming:'Upcoming','no-charge':'No charge',package:'Package',review:'Needs review'};
 
  function resetBooks(){
+  unpaidFamilies=[];if($('unpaid-bookings').open)$('unpaid-bookings').close();
+  $('unpaid-booking-list').replaceChildren();$('unpaid-bookings-title').textContent='';
   booksRequest++;booksRows=null;booksLimit=booksPageSize;homeUnpaidState='idle';
   $('home-unpaid').hidden=true;$('home-unpaid-label').textContent='Unpaid sessions';updateHomeAttention();
   $('books-search').value='';$('books-more').hidden=true;
@@ -703,7 +706,7 @@
   }
   return box;
  }
- function bookEntry(row,unpaid){
+ function bookEntry(row){
   const li=node('li','','books-entry'),description=node('div','','books-session');
   description.append(node('strong',row.playerName||'Player not confirmed'));
   if(row.scope==='session'){
@@ -718,12 +721,10 @@
   const balance=node('div','','books-balance');
   balance.append(node('span',bookStatuses[row.status]||'Needs review'));
   if(Number.isFinite(row.amountDue))balance.append(node('strong',familyMoney(row.amountDue)+' owing','books-amount'));
-  if(!unpaid){
-   const amounts=[];
-   if(Number.isFinite(row.amountCharged))amounts.push('Charged '+familyMoney(row.amountCharged));
-   if(Number.isFinite(row.amountPaid))amounts.push('Applied '+familyMoney(row.amountPaid));
-   if(amounts.length)balance.append(node('small',amounts.join(' · ')));
-  }
+  const amounts=[];
+  if(Number.isFinite(row.amountCharged))amounts.push('Charged '+familyMoney(row.amountCharged));
+  if(Number.isFinite(row.amountPaid))amounts.push('Applied '+familyMoney(row.amountPaid));
+  if(amounts.length)balance.append(node('small',amounts.join(' · ')));
   li.append(description,balance,bookContact(row.contact));
   return li;
  }
@@ -735,14 +736,48 @@
    if((filter==='review'||filter==='paid')&&row.status!==filter)return false;
    return !query||[row.playerName,row.sessionLabel,row.date,familyDate(row.date),row.time,row.location,row.bookingType,row.coveredDates].filter(Boolean).join(' ').toLocaleLowerCase().includes(query);
   });
-  $('books-list').replaceChildren(...visible.slice(0,booksLimit).map(row=>bookEntry(row,false)));
+  $('books-list').replaceChildren(...visible.slice(0,booksLimit).map(bookEntry));
   $('books-more').hidden=visible.length<=booksLimit;
   $('books-status').textContent=visible.length>booksLimit?'Showing '+booksLimit+' of '+visible.length+' records.':visible.length?visible.length+(visible.length===1?' record':' records'):'No matching records.';
  }
+ function unpaidByFamily(rows){
+  const families=new Map(),bookings=new Set();
+  for(const row of rows.filter(sessionDue)){
+   if(row.bookingId&&bookings.has(row.bookingId))continue;
+   if(row.bookingId)bookings.add(row.bookingId);
+   const key=row.familyId||row.bookingId||row;
+   if(!families.has(key))families.set(key,{name:row.familyName||row.contact?.guardian||'Family unconfirmed',cents:0,rows:[]});
+   const family=families.get(key);
+   family.cents+=Math.round(row.amountDue*100);family.rows.push(row);
+  }
+  return [...families.values()].sort((a,b)=>a.name.localeCompare(b.name));
+ }
+ function unpaidBookingLink(row){
+  if(!/^https:\/\/airtable\.com\/app[A-Za-z0-9]{14}\/tbl[A-Za-z0-9]{14}\/rec[A-Za-z0-9]{14}$/.test(row?.bookingUrl)||!row.bookingUrl.endsWith('/'+row.bookingId))return null;
+  const link=node('a');link.href=row.bookingUrl;link.target='_blank';link.rel='noopener noreferrer';return link;
+ }
+ function openUnpaidBookings(family){
+  if(!canViewBooks()||tab!=='home')return;
+  $('unpaid-bookings-title').textContent=family.name;
+  const list=$('unpaid-booking-list');list.replaceChildren();
+  for(const row of family.rows){
+   const link=unpaidBookingLink(row);
+   if(!link){list.append(bookEntry(row));continue;}
+   link.append(node('span',[row.playerName,row.sessionLabel,familyDate(row.date)].filter(Boolean).join(' · ')||'Booking'),node('strong',familyMoney(row.amountDue)));
+   const item=node('li');item.append(link);list.append(item);
+  }
+  $('unpaid-bookings').showModal();
+ }
  function renderUnpaidRows(){
-  const list=$('home-unpaid-list');
-  list.replaceChildren();
-  if($('home-unpaid').open&&homeUnpaidState==='ready'&&booksRows)list.append(...booksRows.map(row=>bookEntry(row,true)));
+  const list=$('home-unpaid-list');list.replaceChildren();
+  if(!$('home-unpaid').open||homeUnpaidState!=='ready')return;
+  for(const family of unpaidFamilies){
+   const link=family.rows.length===1?unpaidBookingLink(family.rows[0]):null;
+   const action=link||node('button');
+   if(!link){action.type='button';action.setAttribute('aria-haspopup','dialog');action.addEventListener('click',()=>openUnpaidBookings(family));}
+   action.append(node('span',family.name),node('strong',familyMoney(family.cents/100)));
+   const item=node('li');item.append(action);list.append(item);
+  }
  }
  async function loadBooks(unpaid=false){
   if(!canViewBooks()||tab!==(unpaid?'home':'books'))return;
@@ -756,12 +791,10 @@
    if(ticket!==booksRequest||!canViewBooks())return;
    if(!Array.isArray(result.rows))throw Error('Books unavailable.');
    if(!unpaid){booksRows=result.rows;renderBooks();return;}
-   const due=result.rows.filter(sessionDue);
-   booksRows=due;homeUnpaidState='ready';
-   $('home-unpaid-label').textContent='Unpaid sessions ('+due.length+')';
-   $('home-unpaid').hidden=!due.length;
-   updateHomeAttention();renderUnpaidRows();
-   status.textContent=due.length?due.length+(due.length===1?' unpaid session':' unpaid sessions')+' · '+familyMoney(due.reduce((sum,row)=>sum+row.amountDue,0))+' owing':'No confirmed unpaid sessions.';
+   unpaidFamilies=unpaidByFamily(result.rows);homeUnpaidState='ready';
+   $('home-unpaid-label').textContent='Unpaid sessions ('+unpaidFamilies.length+(unpaidFamilies.length===1?' family)':' families)');
+   $('home-unpaid').hidden=!unpaidFamilies.length;
+   updateHomeAttention();renderUnpaidRows();status.textContent='';
   }catch(error){
    if(ticket!==booksRequest)return;
    if(error.code==='ACCESS_DENIED'){
@@ -782,7 +815,6 @@
   renderUnpaidRows();
   if($('home-unpaid').open&&homeUnpaidState==='failed')loadBooks(true);
  });
- $('home-open-books').addEventListener('click',()=>go('books'));
  $('books-refresh').addEventListener('click',()=>loadBooks());
  function filterBooks(){booksLimit=booksPageSize;renderBooks();}
  $('books-filter').addEventListener('change',filterBooks);

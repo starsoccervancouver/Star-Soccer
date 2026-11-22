@@ -3,6 +3,8 @@ const {openDestination} = require('./coach-fixture-navigation.cjs');
 
 // These rows are the browser contract for an already reconciled ledger.
 const due = {
+  familyId:'rec00000000000001',familyName:'Fictional family',bookingId:'rec00000000000002',
+  bookingUrl:'https://airtable.com/app00000000000001/tbl00000000000002/rec00000000000002',
   scope:'session', playerName:'Taylor Fictional', sessionLabel:'Friday after-school training',
   date:'2026-10-23', time:'3:45 PM', location:'Fictional west training field',
   bookingType:'Drop-in', status:'due', amountCharged:42, amountPaid:10.50, amountDue:31.50,
@@ -82,7 +84,7 @@ module.exports = async function checkBooks(fixture) {
   try {
     const {page} = f;
     const unpaid = page.locator('#home-unpaid');
-    await unpaid.locator('summary').getByText('Unpaid sessions (1)',{exact:true}).waitFor();
+    await unpaid.locator('summary').getByText('Unpaid sessions (1 family)',{exact:true}).waitFor();
     await page.waitForLoadState('networkidle');
     assert(await page.locator('#home-attention').isVisible(),'One unpaid session keeps the otherwise-empty attention card visible');
     assert(await page.locator('#home-mail-summary').isHidden());
@@ -92,20 +94,23 @@ module.exports = async function checkBooks(fixture) {
     assert.equal(await unpaid.locator('.books-entry').count(),0,'Only a count is rendered while collapsed');
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
     await unpaid.locator('summary').click();
-    const homeRow = unpaid.locator('.books-entry');
-    await homeRow.getByText(due.playerName,{exact:true}).waitFor();
-    assert.equal(await homeRow.count(),1,'Overview only shows sessions with an amount owing');
-    assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
+    const homeRow=unpaid.locator('#home-unpaid-list li');
+    const booking=homeRow.getByRole('link');
+    await booking.waitFor();
+    assert.equal(await homeRow.count(),1);
+    assert.deepEqual(await booking.locator(':scope > *').allTextContents(),[due.familyName,'$31.50']);
+    assert.equal(await booking.getAttribute('href'),due.bookingUrl);
     await unpaid.locator('summary').click();
     await unpaid.locator('summary').click();
-    await homeRow.getByText(due.playerName,{exact:true}).waitFor();
+    await booking.waitFor();
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}],'Reopening uses the same due-only result');
-    for (const value of [due.contact.guardian,due.contact.email,due.contact.phone,due.time,'31.50'])
-      assert((await homeRow.innerText()).includes(value),'Unpaid session shows '+value);
-    for(const width of [320,390,1365]) await checkLayout(page,homeRow,width);
+    for(const width of [320,390,1365]){
+      await page.setViewportSize({width,height:900});
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    }
     await page.setViewportSize({width:320,height:900});
-    assert.equal(await unpaid.locator('summary').evaluate(el=>el.clientHeight>=44),true);
-    await page.locator('#home-open-books').click();
+    await page.locator('.desk-nav-more').waitFor();
+    await openDestination(page,'books');
     const list = page.locator('#books-list');
     const row = list.locator('.books-entry').filter({hasText:due.playerName});
     await row.waitFor();
@@ -167,6 +172,27 @@ module.exports = async function checkBooks(fixture) {
     } finally { await f.context.close(); }
   }
 
+  const secondId='rec00000000000003',second={...due,playerName:'Sibling Example',amountDue:12.25,
+    bookingId:secondId,bookingUrl:due.bookingUrl.replace(due.bookingId,secondId)};
+  const otherId='rec00000000000004',other={...due,familyId:'rec00000000000005',bookingId:otherId,bookingUrl:due.bookingUrl.replace(due.bookingId,otherId)};
+  const grouped=await fixture({...emptyHome,books:[due,second,other,second]});
+  try{
+    const {page}=grouped;
+    const unpaid=page.locator('#home-unpaid');
+    await unpaid.getByText('Unpaid sessions (2 families)',{exact:true}).click();
+    const rows=unpaid.locator('#home-unpaid-list > li');
+    await rows.nth(1).waitFor();
+    assert.equal(await rows.count(),2,'Same-name households remain separate');
+    const household=rows.getByRole('button');
+    assert.deepEqual(await household.locator(':scope > *').allTextContents(),[due.familyName,'$43.75']);
+    await household.click();
+    const chooser=page.getByRole('dialog',{name:due.familyName});
+    assert.deepEqual(await chooser.getByRole('link').evaluateAll(links=>links.map(a=>a.href)),[due.bookingUrl,second.bookingUrl]);
+    await page.keyboard.press('Escape');assert(await chooser.isHidden());
+    assert.equal(await rows.getByRole('link').getAttribute('href'),other.bookingUrl);
+    assert.deepEqual(grouped.errors,[]);
+  }finally{await grouped.context.close();}
+
   const retry = await fixture({...emptyHome,hash:'#view=settings',books:[due]});
   try {
     const {page} = retry;
@@ -179,7 +205,7 @@ module.exports = async function checkBooks(fixture) {
     await unpaid.getByText('Check unpaid sessions',{exact:true}).waitFor();
     assert(await page.locator('#home-attention').isVisible(),'A failed lookup cannot mark an otherwise empty Overview as clear');
     await unpaid.locator('summary').click();
-    await unpaid.getByText(due.playerName,{exact:true}).waitFor();
+    await unpaid.getByText(due.familyName,{exact:true}).waitFor();
     assert.deepEqual(reads(retry).map(r=>r.payload),[{view:'unpaid'}],'After a failed lookup, expanding retries the due-only read');
     assert.deepEqual(retry.errors,[]);
   } finally { await retry.context.close(); }

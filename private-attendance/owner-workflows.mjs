@@ -15,7 +15,7 @@ sessions:['Session','Source session ID','Date','Time','Venue','Coach','Calendar 
 attendance:['Player','Booking','Session','Session date','Attendance status','Coverage state'],
 staff:['Name','Hourly rate CAD'],expenses:['Expense ID','Supplier','Category','Expense status','Amount CAD','Notes','Date'],
 attribution:['Registration reference','Visit ID','utm_source']};
-export function ownerWorkflows(data,{now,notices,desk,calendar,draftStates=[],draftError}){
+export function ownerWorkflows(data,{now,notices,desk,calendar,calendarReason,draftStates=[],draftError}){
  const lines=[],items=[],line=(group,text)=>lines.push({group,text}),item=(group,title,action,link)=>items.push({group,title,action,link});
  const by=n=>new Map(data[n].map(r=>[r.id,r.fields]));
  const books=by('bookings'),payments=by('payments'),sessions=by('sessions'),intake=new Map(data.intake.map(r=>[r.fields['Message ID'],r.fields]));
@@ -61,15 +61,15 @@ export function ownerWorkflows(data,{now,notices,desk,calendar,draftStates=[],dr
  let booked=0,collected=0,unpricedCamp=0;
  for(const id of winterBooks){const b=books.get(id);if(b['Charge review']==='Agreed'&&Number.isFinite(b['Agreed booked CAD']))booked+=b['Agreed booked CAD'];else unpricedCamp++;collected+=paid.get(id)||0;}
  line('Winter camp',money(booked)+' booked · '+money(collected)+' collected and allocated · '+money(7000)+' total target'+(unpricedCamp?' · '+unpricedCamp+' unpriced':''));
- sessionReport({sessions,active,books,desk,calendar,now,line,item});
+ sessionReport({sessions,active,books,desk,calendar,calendarReason,now,line,item});
  coachPay(data,now,line,item);
  attributionReport({data,books,paid,unknown,line,item});
  return {lines,items};
 }
-function sessionReport({sessions,active,books,desk,calendar,now,line,item}){
+function sessionReport({sessions,active,books,desk,calendar,calendarReason,now,line,item}){
  const ownerSessions=new Map((desk?.sessions||[]).map(s=>[s.sessionId,s]));
  if(!desk)item('Sessions','Coach Desk read unavailable','Open the owner read-only connection.','https://starsoccer.ca/coachdesk/operations-preview');
- if(!calendar)item('Sessions','Club Calendar comparison unavailable','Enable read-only Calendar access in Coach Desk Settings.','https://starsoccer.ca/coachdesk#view=settings');
+ if(!calendar)item('Sessions','Club Calendar comparison unavailable',calendarReason||'Enable read-only Calendar access in Coach Desk Settings.','https://starsoccer.ca/coachdesk#view=settings');
  for(const [id,s] of sessions){
   if(!s.Date||s.Date<day(now-13*86400000)||s.Date>day(now+6*86400000)||s['Session status']==='Cancelled')continue;
   const link=record('Dated Attendance (internal)',id),rows=active.filter(r=>single(r.fields.Session)===id),o=ownerSessions.get(id);

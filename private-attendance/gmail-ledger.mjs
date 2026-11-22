@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {normalize} from './gmail-message.mjs';
-import {campRequest, campVersions, placeCampRegistration} from './camp-placement.mjs';
+import {campRequest, campVersions, placeCampRegistration,weeklyRequest} from './camp-placement.mjs';
 
 const defaults = {families:'Families',players:'Players',bookings:'Bookings',payments:'Payments',allocations:'Payment Allocations',intake:'Email Intake',registrations:'Website Registrations',templates:'Email Templates',staff:'Staff',expenses:'Business Expenses',attribution:'Registration Attribution'};
 const quote = s => "'" + String(s).replaceAll('\\','\\\\').replaceAll("'","\\'") + "'";
@@ -55,7 +55,7 @@ export function airtableClient(config, token, fetchFn=fetch) {
     }
   };
 }
-export async function syncLedgerEvent(db,event,{campPlacementSince,trackConfirmation=false,now=new Date()}={}) {
+export async function syncLedgerEvent(db,event,{campPlacementSince,confirmedDraftFlow=false,trackConfirmation=false,now=new Date()}={}) {
   if(!event)return;
   const e=event;
   if(['camp-confirmation','registration-confirmation'].includes(e.type)){
@@ -96,8 +96,9 @@ export async function syncLedgerEvent(db,event,{campPlacementSince,trackConfirma
   if(matches.length>1||matches.some(r=>(r.fields.Child&&normalize(r.fields.Child)!==normalize(e.child))||(r.fields['Parent email']&&r.fields['Parent email'].toLowerCase()!==e.contact)))return intake('Registration candidate','Needs clarification','Conflicting registration reference or identity. Review the existing entries.',summary);
   let registration=matches[0], children=[];
   if(registration&&registration.fields['Source Gmail ID']===e.id&&e.playerHistory&&!registration.fields['Player history at registration'])await db.save('registrations',{'Player history at registration':e.playerHistory},{id:registration.id});
-  const campFlow=afterCutover(e.received,campPlacementSince)&&campVersions.includes(e.version);
-  const request=campFlow?campRequest(e,new Date(e.received)):null;
+  const weekly=confirmedDraftFlow?weeklyRequest(e):null;
+  const campFlow=afterCutover(e.received,campPlacementSince)&&(campVersions.includes(e.version)||!!weekly);
+  const request=weekly||(campFlow?campRequest(e,new Date(e.received)):null);
   const awaitingPlacement=!registration||['Needs review','Processing'].includes(registration.fields.Status)&&!registration.fields.Booking?.length;
   if(!registration || campFlow&&awaitingPlacement){
     if(!family&&!families.length&&e.guardian){
@@ -125,13 +126,13 @@ export async function syncLedgerEvent(db,event,{campPlacementSince,trackConfirma
        registration.fields.Player?.length&&!one(registration.fields.Player,player.id)){
       return intake('Registration candidate','Needs clarification','Review the player, family and camp request before confirming.',summary);
     }
-    if(!await hasVerifiedDeposit(db,player.id,family.id)){
+    if(!confirmedDraftFlow&&!await hasVerifiedDeposit(db,player.id,family.id)){
       await db.save('registrations',{Status:'Processing',Family:[family.id],Player:[player.id],
         'Camp session keys':request.slots.map(slot=>slot.key).join('; '),
         'Processing notes':'Pending owner confirmation. Check availability, then send to the registration email with the subject Star Soccer camp registration confirmed | '+e.reference},{id:registration.id});
       return intake('Registration candidate','Matched','Player linked. Check capacity and send the first camp confirmation.',{...summary,Family:[family.id]});
     }
-    const placement=await placeCampRegistration(db,{event:e,registration,family,player,now});
+    const placement=await placeCampRegistration(db,{event:e,registration,family,player,now,weekly});
     return intake('Registration candidate',placement.placed?'Matched':'Needs clarification',placement.message,{...summary,...(family?{Family:[family.id]}:{})});
   }
   return intake('Registration candidate',family?'Matched':'Needs clarification','Registration captured. Review placement and availability.',{...summary,...(family?{Family:[family.id]}:{})});

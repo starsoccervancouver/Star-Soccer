@@ -27,6 +27,14 @@ async function checkPublicHover(browser,desktop,base){
     return {shadow:style.boxShadow,fill:style.backgroundColor,image:style.backgroundImage,color:style.color};
   });
   await desktop.goto(base+'/index.html');
+  const logo=desktop.getByRole('link',{name:'Star Soccer home'});
+  const logoSurface=await surface(logo);
+  await logo.hover();
+  assert.deepEqual(await surface(logo),logoSurface,'Header logo has no pointer highlight');
+  const desktopLogo=await logo.locator('img').boundingBox();
+  assert(desktopLogo.x<=12 && desktopLogo.width===200,'Desktop logo is larger and left-aligned');
+  await logo.focus();await desktop.keyboard.press('Tab');await desktop.keyboard.press('Shift+Tab');
+  assert(await logo.evaluate(el=>el.matches(':focus-visible')&&getComputedStyle(el).outlineStyle!=='none'),'Header logo keeps visible keyboard focus');
   for(const selector of ['.site-nav a[href="camps.html"]','.hero-action-camps']){
     const link=desktop.locator(selector).first();
     await link.hover();
@@ -57,6 +65,8 @@ async function checkPublicHover(browser,desktop,base){
   try{
     await touch.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
     const page=await touch.newPage();await page.goto(base+'/index.html');
+    const mobileLogo=await page.getByRole('link',{name:'Star Soccer home'}).locator('img').boundingBox();
+    assert(mobileLogo.x<=6 && mobileLogo.width>=108,'Mobile logo is larger and left-aligned');
     const link=page.locator('.hero-action-camps'),rest=await surface(link);
     await link.hover();assert.deepEqual(await surface(link),rest,'Touch-only devices do not get sticky pointer highlighting');
   }finally{await touch.close();}

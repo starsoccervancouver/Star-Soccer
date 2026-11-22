@@ -216,3 +216,12 @@ test('uses verified family identities and the existing recurring, Pro-D and wint
   const [unlinked]=await project(t=>{delete t.bookings[0].fields.Family;delete t.players[0].fields.Family;});
   assert.deepEqual([unlinked.playerId,unlinked.familyId,unlinked.amountOutstanding],['child',null,25]);
 });
+
+test('a due session links to its own booking and uses the ledger family name',async()=>{
+  const data=fixture(), id='rec00000000000001', source={baseId:'app00000000000001',bookings:'tbl00000000000001'};
+  data.bookings[0].id=id;data.players[0].fields.Bookings=[id];data.attendance[0].fields.Booking=[id];
+  data.families[0].fields.Bookings=[id];data.families[0].fields.Family='Fixture household';
+  const [row]=(await books).buildSessionBooks(data,today,source).rows;
+  assert.equal(row.familyName,'Fixture household');assert.equal(row.familyId,'f');
+  assert.equal(row.bookingUrl,'https://airtable.com/'+source.baseId+'/'+source.bookings+'/'+id);
+});

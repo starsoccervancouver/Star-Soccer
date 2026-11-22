@@ -32,7 +32,7 @@ function coveredDates(booking) {
 }
 
 function household(familyId, family) {
-  return {familyId: family ? familyId : null, familyName: family?.['Guardian name']?.trim() || family?.Family?.trim() || null, contact: contactOf(family)};
+  return {familyId: family ? familyId : null, familyName: family?.Family?.trim() || family?.['Guardian name']?.trim() || null, contact: contactOf(family)};
 }
 
 function contactOf(family) {
@@ -153,7 +153,7 @@ function sessionGroups(sessions) {
   return result;
 }
 
-export function buildSessionBooks(tables, today) {
+export function buildSessionBooks(tables, today, source = {}) {
   if (!validDate(today)) throw Error('SESSION_BOOKS_DATE_REQUIRED');
   const sessions = fieldIndex(tables.sessions), players = fieldIndex(tables.players), bookings = fieldIndex(tables.bookings);
   const families = fieldIndex(tables.families), attendance = fieldIndex(tables.attendance);
@@ -251,6 +251,11 @@ export function buildSessionBooks(tables, today) {
         }
       }
       if (row.status === 'review') review(row, booking, issue || 'Confirm the player’s attendance before collecting this charge.');
+      if (row.status === 'due') {
+        if (/^app[A-Za-z0-9]{14}$/.test(source.baseId) && /^tbl[A-Za-z0-9]{14}$/.test(source.bookings) && /^rec[A-Za-z0-9]{14}$/.test(bookingId)) {
+          row.bookingUrl = 'https://airtable.com/' + source.baseId + '/' + source.bookings + '/' + bookingId;
+        }
+      }
       rows.push(row);
     }
   }
@@ -291,10 +296,10 @@ export function buildSessionBooks(tables, today) {
     String(a.sessionLabel || '').localeCompare(String(b.sessionLabel || '')) || String(a.playerName || '').localeCompare(String(b.playerName || '')))};
 }
 
-export async function readSessionBooks(read, now, timeZone) {
+export async function readSessionBooks(read, now, timeZone, source) {
   const tables = await Promise.all(Object.entries(fields).map(async ([key, wanted]) => [key, await read(key, wanted)]));
   // Matches sessionInstant's BC rule on hosts still using pre-2026 timezone data.
   const zone = timeZone === 'America/Vancouver' && now >= new Date('2026-03-09') ? 'Etc/GMT+7' : timeZone;
   const today = new Intl.DateTimeFormat('en-CA', {timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit'}).format(now);
-  return buildSessionBooks(Object.fromEntries(tables), today);
+  return buildSessionBooks(Object.fromEntries(tables), today, source);
 }

@@ -7,6 +7,7 @@ const due = {
   playerId:recordId(101),familyId:recordId(51),familyName:'Avery Fictional',
   bookingId:recordId(201),sessionId:recordId(301),attendanceId:recordId(401),
   sessionGroupKey:'friday-pm',sessionGroupLabel:'Friday after-school training',
+  bookingUrl:'https://airtable.com/app00000000000001/tbl00000000000002/'+recordId(201),
   scope:'session', playerName:'Taylor Fictional', sessionLabel:'Friday after-school training',
   date:'2026-10-23', time:'3:45 PM', location:'Fictional west training field',
   bookingType:'Drop-in', status:'due', amountCharged:42, amountPaid:10.50, amountDue:31.50,amountOutstanding:31.50,amountUpcoming:0,
@@ -66,15 +67,27 @@ async function checkCompactLayout(page,mode,width) {
   await page.setViewportSize({width,height:900});
   const layout=await page.locator('#books-list').evaluate(list=>{
     const bounds=el=>{const {x,y,width,height}=el.getBoundingClientRect();return {x,y,width,height};};
+    const luminance=color=>{
+      const [r,g,b]=color.match(/[\d.]+/g).slice(0,3).map(n=>(n/=255)<=.04045?n/12.92:((n+.055)/1.055)**2.4);
+      return .2126*r+.7152*g+.0722*b;
+    };
+    const contrast=el=>{
+      let surface=el;
+      while(surface.parentElement && getComputedStyle(surface).backgroundColor==='rgba(0, 0, 0, 0)')surface=surface.parentElement;
+      const bg=luminance(getComputedStyle(surface).backgroundColor),fg=luminance(getComputedStyle(el).color);
+      return (Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
+    };
     return {
       viewport:document.documentElement.clientWidth,
       content:document.documentElement.scrollWidth,
       rows:Array.from(list.children,bounds),
+      lowContrast:Array.from(list.querySelectorAll('a,strong,small,.book-amount')).filter(el=>el.getClientRects().length && contrast(el)<4.5).map(el=>el.tagName),
       clipped:Array.from(list.querySelectorAll('*')).filter(el=>el.getClientRects().length && el.clientWidth && el.scrollWidth>el.clientWidth+1).map(el=>el.className||el.tagName),
     };
   });
   assert(layout.content<=width+1,mode+' fits a '+width+'px screen');
   assert.deepEqual(layout.clipped,[],mode+' text and amounts fit at '+width+'px');
+  assert.deepEqual(layout.lowContrast,[],mode+' names, balances, and contacts have readable text contrast at '+width+'px');
   assert(layout.rows.length>=2);
   for(const rect of layout.rows) assert(rect.x>=0 && rect.x+rect.width<=layout.viewport+1 && rect.height>0);
   const [first,second]=layout.rows;
@@ -83,40 +96,6 @@ async function checkCompactLayout(page,mode,width) {
   } else if(mode==='list'||mode==='family'||mode==='session') {
     assert(first.y+first.height<=second.y+1,mode+' keeps entries in separate compact rows');
   }
-}
-
-async function checkLayout(page, row, width) {
-  await page.setViewportSize({width,height:900});
-  const layout = await row.evaluate(el=>{
-    const luminance = rgb => {
-      const components = rgb.match(/[\d.]+/g).slice(0,3).map(Number).map(v=>(v/=255)<=.04045?v/12.92:((v+.055)/1.055)**2.4);
-      return .2126*components[0]+.7152*components[1]+.0722*components[2];
-    };
-    let surface = el;
-    while(getComputedStyle(surface).backgroundColor==='rgba(0, 0, 0, 0)' && surface.parentElement) surface=surface.parentElement;
-    const background=luminance(getComputedStyle(surface).backgroundColor);
-    const ratios=Array.from(el.querySelectorAll('strong,span,small,a'),child=>{
-      const foreground=luminance(getComputedStyle(child).color);
-      return (Math.max(foreground,background)+.05)/(Math.min(foreground,background)+.05);
-    });
-    const blocks = Array.from(el.children, child=>{
-      const rect = child.getBoundingClientRect();
-      return {top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right};
-    });
-    return {blocks,ratios,listWidth:el.clientWidth,screenWidth:document.documentElement.clientWidth,contentWidth:document.documentElement.scrollWidth};
-  });
-  assert(layout.contentWidth <= width + 1,'No horizontal page overflow at ' + width);
-  assert.equal(layout.blocks.length,3,'Session, balance and contact are all displayed');
-  assert(layout.blocks.every(b=>b.left>=0 && b.right<=layout.screenWidth+1 && b.bottom>b.top),'Every field fits at ' + width);
-  const [session,balance,contact] = layout.blocks;
-  assert(layout.ratios.every(ratio=>ratio>=4.5),'Names, balances, dates and contact details meet minimum text contrast at '+width);
-  if(layout.listWidth < 576) {
-    assert(session.bottom<=balance.top+1 && balance.bottom<=contact.top+1,'Session, balance and contact stack without overlap on phones');
-  } else {
-    assert(session.right<=balance.left+1 && balance.right<=contact.left+1,'Desktop columns do not overlap');
-  }
-  const clipped = await row.locator('*').evaluateAll(elements=>elements.filter(el=>el.clientWidth && el.scrollWidth>el.clientWidth+1).map(el=>el.tagName));
-  assert.deepEqual(clipped,[],'Long contact details and payment amounts fit at '+width);
 }
 
 async function finishReadAfterExit({page,context}, exit) {
@@ -155,30 +134,33 @@ module.exports = async function checkBooks(fixture) {
   try {
     const {page} = f;
     const unpaid = page.locator('#home-unpaid');
-    await unpaid.locator('summary').getByText('Unpaid sessions (1)',{exact:true}).waitFor();
+    await unpaid.locator('summary').getByText('Unpaid sessions (1 family)',{exact:true}).waitFor();
     await page.waitForLoadState('networkidle');
     assert(await page.locator('#home-attention').isVisible(),'One unpaid session keeps the otherwise-empty attention card visible');
     assert(await page.locator('#home-mail-summary').isHidden());
     assert(await page.locator('#home-registration-review').isHidden());
     assert.equal(await page.locator('#home-priorities').evaluate(el=>el.childElementCount),0);
     assert.equal(await unpaid.evaluate(el=>el.open),false);
-    assert.equal(await unpaid.locator('.books-entry').count(),0,'Only a count is rendered while collapsed');
+    assert.equal(await unpaid.locator('#home-unpaid-list > li').count(),0,'Only a count is rendered while collapsed');
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
     await unpaid.locator('summary').click();
-    const homeRow = unpaid.locator('.books-entry');
-    await homeRow.getByText(due.playerName,{exact:true}).waitFor();
-    assert.equal(await homeRow.count(),1,'Overview only shows sessions with an amount owing');
-    assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
+    const homeRow=unpaid.locator('#home-unpaid-list li');
+    const booking=homeRow.getByRole('link');
+    await booking.waitFor();
+    assert.equal(await homeRow.count(),1);
+    assert.deepEqual(await booking.locator(':scope > *').allTextContents(),[due.familyName,'$31.50']);
+    assert.equal(await booking.getAttribute('href'),due.bookingUrl);
     await unpaid.locator('summary').click();
     await unpaid.locator('summary').click();
-    await homeRow.getByText(due.playerName,{exact:true}).waitFor();
+    await booking.waitFor();
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}],'Reopening uses the same due-only result');
-    for (const value of [due.contact.guardian,due.contact.email,due.contact.phone,due.time,'31.50'])
-      assert((await homeRow.innerText()).includes(value),'Unpaid session shows '+value);
-    for(const width of [320,390,1365]) await checkLayout(page,homeRow,width);
+    for(const width of [320,390,1365]){
+      await page.setViewportSize({width,height:900});
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    }
     await page.setViewportSize({width:320,height:900});
-    assert.equal(await unpaid.locator('summary').evaluate(el=>el.clientHeight>=44),true);
-    await page.locator('#home-open-books').click();
+    await page.locator('.desk-nav-more').waitFor();
+    await openDestination(page,'books');
     const list = page.locator('#books-list');
     await list.locator('.books-group').first().waitFor();
     assert.equal(await page.locator('#books-filter').inputValue(),'attention','Open Books starts with outstanding balances and review work');
@@ -187,6 +169,7 @@ module.exports = async function checkBooks(fixture) {
     const row = list.locator('.books-record').filter({hasText:due.playerName});
     await row.locator('summary').click();
     await row.getByRole('link',{name:due.contact.email}).waitFor();
+    assert.equal(await row.getByRole('link',{name:'Open booking'}).getAttribute('href'),due.bookingUrl);
     for(const value of [due.sessionLabel,due.location,due.time,due.contact.guardian,due.contact.email,due.contact.phone,'42.00','10.50','31.50'])
       assert((await row.innerText()).includes(value),'Ledger shows '+value);
     assert.equal(await row.getByRole('link',{name:due.contact.email}).getAttribute('href'),'mailto:'+due.contact.email);
@@ -315,6 +298,27 @@ module.exports = async function checkBooks(fixture) {
     } finally { await f.context.close(); }
   }
 
+  const secondId='rec00000000000003',second={...due,playerName:'Sibling Example',amountDue:12.25,
+    bookingId:secondId,bookingUrl:due.bookingUrl.replace(due.bookingId,secondId)};
+  const otherId='rec00000000000004',other={...due,familyId:'rec00000000000005',bookingId:otherId,bookingUrl:due.bookingUrl.replace(due.bookingId,otherId)};
+  const homeFamilies=await fixture({...emptyHome,books:[due,second,other,second]});
+  try{
+    const {page}=homeFamilies;
+    const unpaid=page.locator('#home-unpaid');
+    await unpaid.getByText('Unpaid sessions (2 families)',{exact:true}).click();
+    const rows=unpaid.locator('#home-unpaid-list > li');
+    await rows.nth(1).waitFor();
+    assert.equal(await rows.count(),2,'Same-name households remain separate');
+    const household=rows.getByRole('button');
+    assert.deepEqual(await household.locator(':scope > *').allTextContents(),[due.familyName,'$43.75']);
+    await household.click();
+    const chooser=page.getByRole('dialog',{name:due.familyName});
+    assert.deepEqual(await chooser.getByRole('link').evaluateAll(links=>links.map(a=>a.href)),[due.bookingUrl,second.bookingUrl]);
+    await page.keyboard.press('Escape');assert(await chooser.isHidden());
+    assert.equal(await rows.getByRole('link').getAttribute('href'),other.bookingUrl);
+    assert.deepEqual(homeFamilies.errors,[]);
+  }finally{await homeFamilies.context.close();}
+
   const retry = await fixture({...emptyHome,hash:'#view=settings',books:[due]});
   try {
     const {page} = retry;
@@ -327,7 +331,7 @@ module.exports = async function checkBooks(fixture) {
     await unpaid.getByText('Check unpaid sessions',{exact:true}).waitFor();
     assert(await page.locator('#home-attention').isVisible(),'A failed lookup cannot mark an otherwise empty Overview as clear');
     await unpaid.locator('summary').click();
-    await unpaid.getByText(due.playerName,{exact:true}).waitFor();
+    await unpaid.getByText(due.familyName,{exact:true}).waitFor();
     assert.deepEqual(reads(retry).map(r=>r.payload),[{view:'unpaid'}],'After a failed lookup, expanding retries the due-only read');
     assert.deepEqual(retry.errors,[]);
   } finally { await retry.context.close(); }

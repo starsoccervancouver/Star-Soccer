@@ -2422,3 +2422,7 @@ body select:disabled { opacity:.6; }
 .family-session summary small,.attention-group summary strong{float:right;color:var(--desk-green);margin-left:.5rem}
 .attention-items{padding:0 1rem}.attention-item{border-top:1px solid var(--desk-line);padding:.8rem 0}.attention-item a{color:var(--desk-green);overflow-wrap:anywhere}
 #home-mail-summary{margin-bottom:.75rem}#family-results{scroll-margin:2rem}
+
+.attention-item{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.75rem;align-items:center}
+.attention-item .attention-complete{min-width:44px;min-height:44px;padding:.4rem;font-size:1.1rem}
+.attention-feedback:not(:empty){display:flex;align-items:center;gap:.75rem;margin:0 1rem .75rem}

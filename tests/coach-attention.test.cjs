@@ -47,3 +47,23 @@ test('other mail skips tracked and answered threads and opens the exact flagged 
  const {items}=await query('other',{tables:{intake:[{Kind:'Question','Gmail thread ID':id(1)}]},threads});
  assert.deepEqual(items.map(i=>i.title),['Review me']);
 });
+
+test('report completions persist across reads, reopen for new mail, and keep transfer reminders grouped',async()=>{
+ const {reportCompletions}=await import('../private-attendance/report-completions.mjs');
+ const marks=new Map(),storage={
+  get:async keys=>new Map(keys.filter(key=>marks.has(key)).map(key=>[key,marks.get(key)])),
+  put:async(key,value)=>marks.set(key,value),delete:async key=>marks.delete(key)
+ };
+ const reports=()=>reportCompletions(storage,'fixture-secret');
+ const row=async(kind,messageId)=>(await reports().include(kind,{items:[{key:'same-thread',messageId}]})).items[0];
+ for(const kind of ['other','inquiries','payments','registrations']){
+  const first=await row(kind,'message1');assert.equal(first.completed,false);
+  await reports().set(kind,first.completionToken,true);
+  await reports().set(kind,first.completionToken,true);
+  assert.equal((await row(kind,'message1')).completed,true);
+  assert.equal((await row(kind,'message2')).completed,['payments','registrations'].includes(kind));
+  await assert.rejects(reports().set('different-category',first.completionToken,false),/INVALID_REQUEST/);
+  await reports().set(kind,first.completionToken,false);
+  assert.equal((await row(kind,'message1')).completed,false);
+ }
+});

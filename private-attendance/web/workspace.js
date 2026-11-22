@@ -423,18 +423,21 @@
  }
  $('family-followup-check').addEventListener('click',()=>loadOwnerFollowups(true));
  const categories={inquiries:'Unanswered inquiries',registrations:'Unconfirmed registrations',payments:'Payments awaiting deposit verification',other:'Other important email'};
- let attentionRequest=0, attentionRunning=false, attentionTime=0;
+ let attentionRequest=0, attentionRunning=false, attentionTime=0, attentionSaves=0;
  function clearAttention(){
   followupRequest++;$('owner-family-followups').hidden=true;$('family-followup-state').textContent='';$('family-followup-items').replaceChildren();
-  attentionRequest++;attentionRunning=false;attentionTime=0;
+  attentionRequest++;attentionRunning=false;attentionTime=0;attentionSaves=0;
   $('home-mail-summary').hidden=true;$('home-mail-summary').textContent='Review inbox';
   $('attention-status').textContent='';$('attention-groups').replaceChildren();
  }
  async function loadAttention(force=false){
-  if(!profile?.familyAccess||attentionRunning||!force&&Date.now()-attentionTime<90000)return;
+  if(!profile?.familyAccess||attentionRunning||attentionSaves||!force&&Date.now()-attentionTime<90000)return;
   const request=++attentionRequest, summary=$('home-mail-summary'), counts=new Map();
   attentionRunning=true;summary.hidden=false;summary.textContent='Checking inbox…';
   $('attention-refresh').disabled=true;$('attention-status').textContent='Checking Gmail and the ledger…';$('attention-groups').replaceChildren();
+  const visible=Object.keys(categories).filter(kind=>kind!=='other'||profile.role==='owner');
+  const short={inquiries:'inquiries',registrations:'registrations',payments:'payments',other:'other'};
+  function updateSummary(){summary.textContent=visible.map(k=>(counts.has(k)?counts.get(k):'—')+' '+short[k]).join(' · ');}
   async function check(kind){
    const group=node('details','','attention-group'),heading=node('summary'),count=node('strong','Checking…'),body=node('div','','attention-items');
    heading.append(node('span',categories[kind]),count);group.append(heading,body);$('attention-groups').append(group);
@@ -446,30 +449,62 @@
      const page=await api('needs-attention/'+kind,{cursor});
      if(request!==attentionRequest)return;
      inbox=page.inbox;
-     for(const item of page.items)if(!items.has(item.key)||String(item.date)>String(items.get(item.key).date))items.set(item.key,item);
+     for(const item of page.items){
+      const previous=items.get(item.key);
+      if(!previous||String(item.date||'')>String(previous.date||'')||item.date===previous.date&&String(item.messageId)>String(previous.messageId))items.set(item.key,item);
+     }
      for(const key of page.resolved)resolved.add(key);
      cursor=page.next;
     }while(cursor);
     for(const key of resolved)items.delete(key);
-    count.textContent=String(items.size);counts.set(kind,items.size);
-    if(!items.size)body.append(node('p','Nothing to review.'));
-    for(const item of [...items.values()].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))){
-     const row=node('div','','attention-item'),link=node('a',item.title);
-     link.href=item.href;link.rel='noopener noreferrer';link.target='_blank';
-     row.append(link,node('small',[item.date,item.status,item.href===inbox?'Open inbox':'Open email'].filter(Boolean).join(' · ')));body.append(row);
+    const feedback=node('div','','attention-feedback');
+    feedback.setAttribute('role','status');group.append(feedback);
+    let lastCompleted=null;
+    async function save(item,completed,button){
+     const controls=group.querySelectorAll('button');
+     controls.forEach(control=>{control.disabled=true;});attentionSaves++;$('attention-refresh').disabled=true;
+     try{
+      await api('needs-attention/'+kind,{completionToken:item.completionToken,completed});
+      if(request!==attentionRequest)return;
+      item.completed=completed;lastCompleted=completed?item:null;
+      renderItems();
+      (feedback.querySelector('button')||body.querySelector('button')||heading).focus();
+     }catch(e){
+      if(request===attentionRequest){controls.forEach(control=>{control.disabled=false;});button.focus();notice('Could not save that report change. Please try again.',true);}
+     }finally{
+      if(request===attentionRequest){attentionSaves--;$('attention-refresh').disabled=attentionRunning||attentionSaves>0;}
+     }
     }
+    function renderItems(){
+     body.replaceChildren();feedback.replaceChildren();
+     const open=[...items.values()].filter(item=>!item.completed).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+     count.textContent=String(open.length);counts.set(kind,open.length);updateSummary();
+     if(!open.length)body.append(node('p','Nothing to review.'));
+     for(const item of open){
+      const row=node('div','','attention-item'),details=node('div'),link=node('a',item.title);
+      link.href=item.href;link.rel='noopener noreferrer';link.target='_blank';
+      details.append(link,node('small',[item.date,item.status,item.href===inbox?'Open inbox':'Open email'].filter(Boolean).join(' · ')));
+      const done=node('button','✓','attention-complete secondary');
+      done.type='button';done.title='Mark complete';done.setAttribute('aria-label','Mark complete: '+item.title);
+      done.addEventListener('click',()=>save(item,true,done));row.append(done,details);body.append(row);
+     }
+     if(lastCompleted){
+      const item=lastCompleted,undo=node('button','Undo','secondary');
+      undo.type='button';undo.setAttribute('aria-label','Undo completion: '+item.title);
+      undo.addEventListener('click',()=>save(item,false,undo));feedback.append(node('span','Marked complete.'),undo);
+     }
+    }
+    renderItems();
    }catch(e){
     if(request!==attentionRequest)return;
     count.textContent='Unavailable';body.append(node('p','Could not check this category. Refresh to try again.'));
    }
   }
-  const visible=Object.keys(categories).filter(kind=>kind!=='other'||profile.role==='owner');
   await Promise.all(visible.map(check));
   if(request!==attentionRequest)return;
-  attentionRunning=false;attentionTime=Date.now();$('attention-refresh').disabled=false;
+  attentionRunning=false;attentionTime=Date.now();$('attention-refresh').disabled=attentionSaves>0;
   $('attention-status').textContent=(counts.size===visible.length?'Checked ':'Some categories unavailable · Checked ')+new Intl.DateTimeFormat('en-CA',{timeZone:club.timeZone,hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date())+'. Transfer notices and flagged Gmail messages cover the last 30 days.';
-  const short={inquiries:'inquiries',registrations:'registrations',payments:'payments',other:'other'};
-  summary.textContent=visible.map(k=>(counts.has(k)?counts.get(k):'—')+' '+short[k]).join(' · ');
+  updateSummary();
  }
  $('home-mail-summary').addEventListener('click',()=>go('attention'));
  $('attention-refresh').addEventListener('click',()=>loadAttention(true));

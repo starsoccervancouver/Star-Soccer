@@ -102,7 +102,12 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    const kind=path.split('/').pop();
    if(kind==='other')coaches.owner(actor);
    if(!['registrations','inquiries','payments','other'].includes(kind))deny('NOT_FOUND',404);
-   const {cursor=''}=await body(request,['cursor']);
+   const input=await body(request,['cursor','completionToken','completed']);
+   if('completionToken' in input||'completed' in input){
+    if('cursor' in input||typeof input.completed!=='boolean'||typeof input.completionToken!=='string'||!/^([\w-]{43})\.([\w-]{43})$/.test(input.completionToken))deny('INVALID_REQUEST',400);
+    return json(200,await attention({kind,completionToken:input.completionToken,completed:input.completed}));
+   }
+   const {cursor=''}=input;
    if(typeof cursor!=='string'||cursor.length>512||!/^[a-zA-Z0-9_=-]*$/.test(cursor))deny('INVALID_REQUEST',400);
    return json(200,await attention({kind,cursor}));
   }

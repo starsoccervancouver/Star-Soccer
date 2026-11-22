@@ -253,8 +253,19 @@
 </section>
 </section>
 <section id="panel-attention" class="tab-panel" hidden>
-<div class="attention-toolbar"><p id="attention-status" role="status"></p><button id="attention-refresh" type="button" class="secondary">Refresh inbox</button></div>
-<div id="attention-groups"></div>
+<section class="report-inbox" aria-label="Reports inbox">
+<div class="report-tools">
+<label class="report-search"><span class="report-lens" aria-hidden="true"></span><input id="report-search" type="search" aria-label="Search reports" placeholder="Search reports"></label>
+<button id="attention-refresh" type="button" class="secondary">Refresh</button>
+</div>
+<div class="report-views" role="group" aria-label="Report status">
+<button id="report-open" aria-pressed="true" type="button">Inbox</button>
+<button id="report-completed" aria-pressed="false" type="button">Show completed</button>
+</div>
+<div id="report-filters" role="group" aria-label="Filter by category"></div>
+<div id="attention-groups" class="report-list"></div>
+<p id="attention-status" role="status"></p>
+</section>
 </section>
 <section id="panel-plan" class="tab-panel" hidden>
 <header id="planner-focus-bar" class="planner-focus-bar" hidden>

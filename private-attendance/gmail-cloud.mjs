@@ -172,7 +172,8 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       return {enabled:true,...report};
     }
     if(op==='attention'){
-      if(payload.completionToken!==undefined)return completions.set(payload.kind,payload.completionToken,payload.completed);
+      if(payload.history)return completions.history(payload.kind,payload.cursor);
+      if(payload.completionToken!==undefined)return completions.set(payload.kind,payload.completionToken,payload.completed,payload.receipt);
       const key=payload.kind+'|'+(payload.cursor||'');
       for(const [id,entry] of attentionCache)if(entry.until<=clock())attentionCache.delete(id);
       if(attentionCache.has(key))return completions.include(payload.kind,attentionCache.get(key).value);

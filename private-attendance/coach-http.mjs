@@ -102,14 +102,15 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    const kind=path.split('/').pop();
    if(kind==='other')coaches.owner(actor);
    if(!['registrations','inquiries','payments','other'].includes(kind))deny('NOT_FOUND',404);
-   const input=await body(request,['cursor','completionToken','completed']);
-   if('completionToken' in input||'completed' in input){
-    if('cursor' in input||typeof input.completed!=='boolean'||typeof input.completionToken!=='string'||!/^([\w-]{43})\.([\w-]{43})$/.test(input.completionToken))deny('INVALID_REQUEST',400);
-    return json(200,await attention({kind,completionToken:input.completionToken,completed:input.completed}));
+   const input=await body(request,['cursor','completionToken','completed','receipt','history']);
+   if('completionToken' in input||'completed' in input||'receipt' in input){
+    if('cursor' in input||'history' in input||('receipt' in input&&(typeof input.receipt!=='string'||input.receipt.length>54000))||typeof input.completed!=='boolean'||typeof input.completionToken!=='string'||!/^([\w-]{43})\.([\w-]{43})$/.test(input.completionToken))deny('INVALID_REQUEST',400);
+    return json(200,await attention({kind,completionToken:input.completionToken,completed:input.completed,receipt:input.receipt}));
    }
    const {cursor=''}=input;
    if(typeof cursor!=='string'||cursor.length>512||!/^[a-zA-Z0-9_=-]*$/.test(cursor))deny('INVALID_REQUEST',400);
-   return json(200,await attention({kind,cursor}));
+   if('history' in input&&(input.history!==true||cursor&&!/^[\w-]{43}$/.test(cursor)))deny('INVALID_REQUEST',400);
+   return json(200,await attention({kind,cursor,history:input.history}));
   }
   if(path==='/workspace/api/families'&&request.method==='GET'){
    coaches.requireFamilyAccess(actor);

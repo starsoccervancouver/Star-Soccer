@@ -44,13 +44,17 @@ export function ownerWorkflows(data,{now,notices,desk,calendar,calendarReason,dr
   const left=amount===null?null:amount-(applied.get(id)||0);
   if(left!==0){if(left>0)unallocated+=left;item('Payments',left===null?'Unknown receipt amount':money(left)+' remaining on receipt','Review the allocation across bookings. Keep confirmed historical receipts intact.',record('Payments',id));}
  }
- let due=0,future=0,unpriced=0;
+ let due=0,future=0,futureOwed=0,unknownFuture=0,unpriced=0;
  for(const [id,b] of books){if(!eligible(b))continue;
   if(b['Charge review']!=='Agreed'||!Number.isFinite(b['Due now CAD'])||!Number.isFinite(b['Upcoming booked CAD'])){unpriced++;item('Payments','Booking price or due date unresolved','Verify the agreed fee and dates.',record('Bookings',id));continue;}
   due+=b['Due now CAD'];future+=b['Upcoming booked CAD'];
+  if(b['Upcoming booked CAD']>0){
+   if(Number.isFinite(b['Balance CAD']))futureOwed+=Math.max(0,Math.min(b['Upcoming booked CAD'],b['Balance CAD']-b['Due now CAD']));
+   else {unknownFuture++;item('Payments','Upcoming balance unknown','Check the balance on this upcoming booking.',record('Bookings',id));}
+  }
   if(b['Due now CAD']>0)item('Payments',money(b['Due now CAD'])+' due now','Review booking and receipt allocations.',record('Bookings',id));
  }
- line('Payments',money(due)+' due now · '+money(future)+' upcoming · '+money(unallocated)+' unallocated · '+unpriced+' incomplete bookings');
+ line('Payments',money(due)+' due now · '+money(futureOwed)+' outstanding on upcoming bookings'+(unknownFuture?' ('+unknownFuture+' balances unknown)':'')+' · '+money(future)+' upcoming booked · '+money(unallocated)+' unallocated · '+unpriced+' incomplete bookings');
  const winter=new Map(['christmas','boxing'].map(w=>[w,{am:new Set(),pm:new Set(),players:new Set()}])),winterBooks=new Set();
  for(const {fields:a} of active){const s=sessions.get(single(a.Session)),bid=single(a.Booking),b=books.get(bid),pid=single(a.Player);
   const m=/^winter-(christmas|boxing)-(am|pm):/.exec(s?.['Source session ID']||'');

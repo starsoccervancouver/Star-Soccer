@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {fixture,today,date}=require('./email-draft-fixtures.cjs');
-const template='<p>Thanks for registering! {{PLAYER_NAMES}}</p><p>The fee is {{PRICE_PER_PLAYER}}</p>';
+const template='<img src="logo"><p>VANCOUVER · PRO-D CAMPS</p><p>Registration confirmed</p><h1>{{CAMP_TITLE}}</h1><img src="field"><p>Thanks for registering! {{PLAYER_NAMES}}</p><p>The fee is {{PRICE_PER_PLAYER}}</p><p>Thanks,<br>Romeo</p><img src="signature">';
 async function setup(){
  const {runDraftJob}=await import('../private-attendance/draft-job.mjs');
  const d=fixture(template),map=new Map(),drafts=new Map(),delivered=new Map();
@@ -24,6 +24,7 @@ test('all three rules run twice without duplicates, and never send',async()=>{
  assert.match(byKey.get('Confirmation:Paid').html,/covers this booking in full/);
  assert.match(byKey.get('Confirmation:Unpaid').html,/CAD \$60.00.*e-transfer/);
  assert.match(byKey.get('Confirmation:Partial').html,/applied CAD \$20.00.*remaining balance is CAD \$40.00/);
+ for(const c of byKey.values())assert.deepEqual(c.html.match(/<img[^>]*>/g),['<img src="logo">','<img src="field">','<img src="signature">']);
  assert.match(byKey.get('Receipt:siblings').html,/Example Paid.*60.00.*Example Partial.*20.00/);
  assert.match(byKey.get('Receipt:cash').html,/CAD \$25.00 by cash/);
  assert.ok(!byKey.get('Receipt:cash').html.includes('<li>'));
@@ -62,4 +63,22 @@ test('withdrawing an edited reminder preserves its contents and removes all fami
  await mb.obsolete('draft','Renewal:example:2027-01-12','Renewed');
  assert.match(updated,/^To: owner@example.test/);assert.ok(updated.endsWith('Owner-edited renewal body.'));
  assert.doesNotMatch(updated,/parent@|second@|third@|fourth@/);
+});
+
+test('Gmail history reconciles a consumed owner test draft once, including a renamed thread',async()=>{
+ const {observeDraftSend}=await import('../private-attendance/draft-job.mjs');
+ const {marker}=await import('../private-attendance/draft-rules.mjs');
+ const owner='owner@example.test',key='Test:20261122:Confirmation:Unpaid';
+ const fields={'Email key':key,'Email kind':'Confirmation','Source record':'test-log',Status:'Draft',Recipient:owner,'Gmail draft ID':'draft-a','Gmail thread ID':'old-thread'};
+ const log={fields};let writes=0;const db={list:async()=>[log],save:async(t,f)=>{writes++;Object.assign(fields,f);}};
+ const storage={get:async()=>({draftId:'draft-a',to:owner})};
+ const subject='[OWNER TEST unpaid] Example | '+marker('Confirmation:Unpaid');
+ const message={id:'sent-42',threadId:'new-thread',labelIds:['SENT','INBOX'],payload:{headers:[{name:'Subject',value:'=?UTF-8?B?'+Buffer.from(subject).toString('base64')+'?='}]}};
+ const mail={sent:async(id,to)=>id==='sent-42'&&to===owner?id:null,getDraft:async()=>null};
+ const opt={db,storage,mail,message,owner};
+ assert.equal(await observeDraftSend({...opt,message:{...message,labelIds:['DRAFT']}}),false);
+ assert.equal(await observeDraftSend({...opt,mail:{...mail,getDraft:async()=>({id:'draft-a'})}}),false);
+ assert.equal(await observeDraftSend({...opt,owner:'other@example.test'}),false);assert.equal(writes,0);
+ assert.equal(await observeDraftSend(opt),true);assert.equal(fields['Sent Gmail ID'],'sent-42');
+ assert.equal(await observeDraftSend(opt),false);assert.equal(writes,1);
 });

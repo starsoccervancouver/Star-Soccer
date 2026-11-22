@@ -2,7 +2,7 @@ import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypt
 import {Buffer} from 'node:buffer';
 import {createFollowupJob} from './registration-followup-job.mjs';
 import {ownerWorkflows,fields as reportFields} from './owner-workflows.mjs';
-import {runDraftJob} from './draft-job.mjs';
+import {runDraftJob,observeDraftSend} from './draft-job.mjs';
 import {draftMailbox} from './draft-mailbox.mjs';
 import {outcomeFiling} from './gmail-outcome-labels.mjs';
 import {reportCompletions} from './report-completions.mjs';
@@ -127,6 +127,9 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
        const r=await fetchFn(new URL('messages/'+id+'/modify',root),{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({addLabelIds})});
        if(!r.ok)throw Error('GMAIL_'+r.status);
       }}):null;
+      const owner=await storage.get('ownerAddress')||STAR_SOCCER_OWNER;
+      const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner});
+      const previousSend=await storage.get('mail-drafts:recent-send');
       let pending=await storage.list({prefix:'q:',limit:1});
       if(!pending.size){
         const scan=await storage.get('scan')||await bootstrap(access,null,await storage.get('ownerAddress'));
@@ -140,6 +143,9 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         if(message){
           if(filing?.isReceipt(message))await storage.put('filing:receipt:'+message.id,message.id);
           try{
+            if(filing&&await observeDraftSend({message,db:ledger,storage,mail,owner})){
+              await storage.put('mail-drafts:recent-send',message.id);
+            }
             const mailbox=campPlacementSince||followupEnabled?(await storage.get('ownerAddress')||STAR_SOCCER_OWNER):undefined;
             const event=classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox,followupEnabled||!!campPlacementSince);
             const confirmedDraftFlow=!!filing&&Date.parse(event?.received)>=Date.parse('2026-11-22T07:30:00Z');
@@ -165,11 +171,11 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const filingPending=filing?await filing.step():false;
       const previousDraftCheck=await storage.get('mail-drafts:report');
       const draftInterval=previousDraftCheck?.waitingRenewal?pollInterval:900000;
-      if(filing && (!previousDraftCheck?.sourcesChecked||clock()-(await storage.get('mail-drafts:last')||0)>=draftInterval)){
+      if(filing && (previousSend||!previousDraftCheck?.sourcesChecked||clock()-(await storage.get('mail-drafts:last')||0)>=draftInterval)){
         try{
-          const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:await storage.get('ownerAddress')||STAR_SOCCER_OWNER});
           const report=await runDraftJob({db:ledger,storage,mail,now:clock()});
           await storage.put('mail-drafts:report',report);
+          if(previousSend&&await storage.get('mail-drafts:recent-send')===previousSend)await storage.delete('mail-drafts:recent-send');
           await storage.put('mail-drafts:last',clock());
           await storage.put('confirmation:last',clock());
           await storage.delete('confirmation:error');

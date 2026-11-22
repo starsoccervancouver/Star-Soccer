@@ -36,7 +36,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
   const config=JSON.parse(env.AIRTABLE_CONFIG);
   const ledger=airtableClient(config,env.AIRTABLE_TOKEN,createAirtableTransport({fetchFn}));
   const campPlacementSince=config.exclusiveWriter===true&&config.tables.sessions&&config.tables.attendance
-    ? env.CAMP_AUTO_PLACE_SINCE : undefined;
+    ? env.CAMP_AUTO_PLACE_SINCE?.trim() : undefined;
   async function token(grant){
     const res=await fetchFn(googleToken,{method:'POST',redirect:'manual',headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(15000),body:new URLSearchParams({...grant,client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET}).toString()});
     const data=await res.json().catch(()=>({}));
@@ -89,7 +89,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     const params=[['maxResults','50']];if(scan.page)params.push(['pageToken',scan.page]);
     if(scan.phase!=='history'){
       if(scan.phase==='recent'){
-        const incoming=followupEnabled?'{-in:sent (in:sent subject:confirmed)}':campPlacementSince?'{-in:sent (in:sent subject:"Star Soccer camp registration confirmed")}':'-in:sent';
+        const incoming=followupEnabled||campPlacementSince?'{-in:sent (in:sent subject:confirmed)}':'-in:sent';
         params.push(['q','after:'+Math.floor((scan.start-300000)/1000)+' '+incoming+' -in:drafts -in:spam -in:trash']);
       }
       else params.push(['labelIds',labels[depositLabel]]);
@@ -140,9 +140,9 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
           if(filing?.isReceipt(message))await storage.put('filing:receipt:'+message.id,message.id);
           try{
             const mailbox=campPlacementSince||followupEnabled?(await storage.get('ownerAddress')||STAR_SOCCER_OWNER):undefined;
-            const event=classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox,followupEnabled);
+            const event=classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox,followupEnabled||!!campPlacementSince);
             const confirmedDraftFlow=!!filing&&Date.parse(event?.received)>=Date.parse('2026-11-22T07:30:00Z');
-            await syncLedgerEvent(ledger,event,{campPlacementSince,confirmedDraftFlow,trackConfirmation:followupEnabled,now:new Date(clock())});
+            await syncLedgerEvent(ledger,event,{campPlacementSince,confirmedDraftFlow,trackConfirmation:followupEnabled||confirmedDraftFlow,now:new Date(clock())});
           }
           catch(err){
             if(!/^AIRTABLE_/.test(err.message))throw err;
@@ -264,7 +264,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const report=await storage.get('report')||{};
       const scan=await storage.get('scan'),pending=await storage.list({prefix:'q:',limit:1});
       const filing=await storage.get('filing:progress');
-      return {calendarEnabled:!!await storage.get('calendar:enabled'),confirmationCheckedAt:await storage.get('confirmation:last')||null,connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
+      return {placementEnabled:Number.isFinite(Date.parse(campPlacementSince)),calendarEnabled:!!await storage.get('calendar:enabled'),confirmationCheckedAt:await storage.get('confirmation:last')||null,connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
     }
     if(op==='stop-labels'){await storage.put('filing:enabled',false);return {labelFiling:false};}
     if(op==='start'){

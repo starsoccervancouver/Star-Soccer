@@ -81,7 +81,7 @@ export function createRosterReader({baseId,token,tableMap,verifiedContacts={},ti
  if(!/^app[A-Za-z0-9]{14}$/.test(baseId)||!token||!tableMap||Object.keys(readFields).some(name=>!/^tbl[A-Za-z0-9]{14}$/.test(tableMap[name]||'')))throw new Error('PRIVATE_AIRTABLE_CONFIGURATION_REQUIRED');
  async function read(name, fields = readFields[name], ids = null) {
   const rows = [], seen = new Set(), offsets = new Set();
-  const table = tableMap[name] || (name === 'payments' ? 'Payments' : name);
+  const table = tableMap[name] || ({payments:'Payments', allocations:'Payment Allocations'}[name]) || name;
   const url = new URL('https://api.airtable.com/v0/' + baseId + '/' + encodeURIComponent(table));
   url.searchParams.set('pageSize', '100');
   for (const field of fields) url.searchParams.append('fields[]', field);

@@ -823,7 +823,12 @@
   const preview=mode==='family'&&players.length?players.slice(0,2).join(', ')+(players.length>2?' +'+(players.length-2):'')+' · ':'';
   label.append(node('strong',group.label),node('small',preview+count));
   const figures=[];
-  if(totals.outstanding>0)figures.push(familyMoney(totals.outstanding)+' outstanding');
+  if(totals.outstanding>0){
+   figures.push(familyMoney(totals.outstanding)+' outstanding');
+   if(totals.due===totals.outstanding)figures.push('due now');
+   else if(totals.upcoming===totals.outstanding)figures.push('due later');
+   else if(totals.due>0)figures.push(familyMoney(totals.due)+' due now');
+  }
   if(totals.review)figures.push(totals.review+' to review');
   summary.append(label,node('span',figures.join(' · '),'book-amount'));details.append(summary);li.append(details);
   details.addEventListener('toggle',()=>{

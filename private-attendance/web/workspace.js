@@ -675,7 +675,7 @@
  const familyDate=value=>value && Number.isFinite(Date.parse(value))?dateWithYearFormat.format(Date.parse(value)):value;
  const booksPageSize=40;
  let unpaidFamilies=[];
- let booksRequest=0,booksRows=null,booksDenied=false,booksLimit=booksPageSize,homeUnpaidState='idle';
+ let booksRequest=0,booksRows=null,booksDenied=false,booksLimit=booksPageSize,booksMode='family',homeUnpaidState='idle';
  const canViewBooks=()=>!booksDenied&&data?.booksAvailable===true&&(profile?.role==='owner'||(profile?.role==='admin'&&profile.familyAccess===true));
  const sessionDue=row=>row.scope==='session'&&row.status==='due'&&Number.isFinite(row.amountDue)&&row.amountDue>0;
  const bookStatuses={due:'Payment due',paid:'Paid',upcoming:'Upcoming','no-charge':'No charge',package:'Package',review:'Needs review'};
@@ -686,7 +686,8 @@
   booksRequest++;booksRows=null;booksLimit=booksPageSize;homeUnpaidState='idle';
   $('home-unpaid').hidden=true;$('home-unpaid-label').textContent='Unpaid sessions';updateHomeAttention();
   $('books-search').value='';$('books-more').hidden=true;
-  $('home-unpaid').open=false;$('books-filter').value='all';$('books-refresh').disabled=false;
+  $('home-unpaid').open=false;$('books-filter').value='attention';$('books-refresh').disabled=false;
+  setBooksMode('family');clearBookTotals();
   for(const id of ['books-list','home-unpaid-list','books-status','home-unpaid-status'])$(id).replaceChildren();
  }
  function bookContact(contact){
@@ -728,17 +729,152 @@
   li.append(description,balance,bookContact(row.contact));
   return li;
  }
+ function setBooksMode(mode){
+  booksMode=mode;$('books-list').dataset.mode=mode;
+  for(const button of $('books-modes').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.booksMode===mode));
+ }
+ function clearBookTotals(){
+  $('books-summary').hidden=true;
+  for(const id of ['books-outstanding','books-due','books-upcoming','books-review-count'])$(id).textContent='';
+ }
+ function bookTotals(rows){
+  let outstanding=0,due=0,upcoming=0,review=0;
+  for(const row of rows){
+   if(row.status==='review')review++;
+   if(Number.isFinite(row.amountOutstanding))outstanding+=Math.round(row.amountOutstanding*100);
+   if(Number.isFinite(row.amountDue))due+=Math.round(row.amountDue*100);
+   if(Number.isFinite(row.amountUpcoming))upcoming+=Math.round(row.amountUpcoming*100);
+  }
+  return {outstanding:outstanding/100,due:due/100,upcoming:upcoming/100,review};
+ }
+ function showBookTotals(rows){
+  const totals=bookTotals(rows);
+  $('books-outstanding').textContent=familyMoney(totals.outstanding);
+  $('books-due').textContent=familyMoney(totals.due);
+  $('books-upcoming').textContent=familyMoney(totals.upcoming);
+  $('books-review-count').textContent=String(totals.review);
+  $('books-summary').hidden=false;
+ }
+ function bookFamilyLabel(row){
+  return row.familyId?(row.contact?.guardian||row.familyName||'Linked family'):'Parent not linked';
+ }
+ function bookSessionLabel(row){
+  if(row.scope==='family')return 'Family payment';
+  const group=row.sessionGroupKey&&row.sessionGroupKey!=='whole-bookings'?row.sessionGroupLabel:null;
+  const type=row.scope==='booking'?[group,row.bookingType,row.sessionLabel]:[row.sessionLabel||group];
+  const covered=Array.isArray(row.coveredDates)?row.coveredDates:[];
+  const dates=covered.length>2?familyDate(covered[0])+' – '+familyDate(covered[covered.length-1])+' ('+covered.length+' dates)':
+   covered.length?covered.map(familyDate).join(', '):familyDate(row.date);
+  return [...new Set([...type,dates,row.time].filter(Boolean))].join(' · ')||'Session to confirm';
+ }
+ function bookPaymentLabel(row){
+  const amounts=[];
+  if(row.amountDue>0)amounts.push(familyMoney(row.amountDue)+' due now');
+  if(row.amountUpcoming>0)amounts.push(familyMoney(row.amountUpcoming)+' due later');
+  if(!amounts.length&&row.amountOutstanding>0)amounts.push(familyMoney(row.amountOutstanding)+' outstanding');
+  if(row.status==='review'){
+   if(row.reviewBalance>0)amounts.push(familyMoney(row.reviewBalance)+' to verify');
+   if(row.amountUnapplied>0)amounts.push(familyMoney(row.amountUnapplied)+' unapplied');
+   amounts.push('Needs review');
+  }
+  if(!amounts.length&&row.amountOutstanding===0&&row.amountPaid>0)return 'Paid';
+  return amounts.join(' · ')||bookStatuses[row.status]||'Needs review';
+ }
+ function bookRecord(row,groupMode){
+  const li=node('li','','books-record'),details=node('details'),summary=node('summary');
+  const title=node('span','','book-label'),player=row.playerName||'Player to confirm';
+  if(row.scope==='family'){
+   title.append(node('strong',groupMode==='family'?'Family payment':bookFamilyLabel(row)),node('small',row.reviewReason||'Payment to review'));
+  }else{
+   const name=groupMode==='family'?player:bookFamilyLabel(row)+' / '+player;
+   title.append(node('strong',name),node('small',bookSessionLabel(row)));
+  }
+  summary.append(title,node('span',bookPaymentLabel(row),'book-amount'));details.append(summary);li.append(details);
+  details.addEventListener('toggle',()=>{
+   if(!details.open||details.children.length>1)return;
+   const body=node('div','','book-detail'),amounts=[];
+   if(Number.isFinite(row.amountCharged))amounts.push('Charged '+familyMoney(row.amountCharged));
+   if(Number.isFinite(row.amountPaid))amounts.push('Applied '+familyMoney(row.amountPaid));
+   if(amounts.length)body.append(node('span',amounts.join(' · ')));
+   if(row.coveredDates?.length>2&&Array.isArray(row.coveredDates))body.append(node('span',row.coveredDates.map(familyDate).join(', ')));
+   if(row.location)body.append(node('span',row.location));
+   if(row.reviewReason&&row.scope!=='family')body.append(node('span',row.reviewReason));
+   if(groupMode!=='family')body.append(bookContact(row.contact));
+   if(!body.childElementCount)body.append(node('span',bookStatuses[row.status]||'Needs review'));
+   details.append(body);
+  });
+  return li;
+ }
+ function groupBookRows(rows,mode){
+  const groups=new Map();
+  for(const row of rows){
+   let key,label;
+   if(mode==='family'){
+    key=row.familyId?'family:'+row.familyId:row.playerId?'player:'+row.playerId:row;
+    label=bookFamilyLabel(row);
+   }else{
+    key=row.sessionGroupKey||row.sessionId||(row.scope==='family'?'family-payments':'unplaced');
+    label=row.sessionGroupLabel||row.sessionLabel||(row.scope==='family'?'Family payments':'No linked session');
+    if(key==='unplaced')label='No linked session';
+   }
+   if(!groups.has(key))groups.set(key,{label,rows:[]});
+   groups.get(key).rows.push(row);
+  }
+  return [...groups.values()].map(group=>({...group,totals:bookTotals(group.rows)})).sort((a,b)=>
+   b.totals.due-a.totals.due||b.totals.outstanding-a.totals.outstanding||a.label.localeCompare(b.label));
+ }
+ function bookGroup(group,mode){
+  const li=node('li','','books-group'),details=node('details'),summary=node('summary'),label=node('span','','book-label');
+  const {rows,totals}=group,count=rows.length+(rows.length===1?' record':' records');
+  const players=[...new Set(rows.map(r=>r.playerName).filter(Boolean))];
+  const preview=mode==='family'&&players.length?players.slice(0,2).join(', ')+(players.length>2?' +'+(players.length-2):'')+' · ':'';
+  label.append(node('strong',group.label),node('small',preview+count));
+  const figures=[];
+  if(totals.outstanding>0){
+   figures.push(familyMoney(totals.outstanding)+' outstanding');
+   if(totals.due===totals.outstanding)figures.push('due now');
+   else if(totals.upcoming===totals.outstanding)figures.push('due later');
+   else if(totals.due>0)figures.push(familyMoney(totals.due)+' due now');
+  }
+  if(totals.review)figures.push(totals.review+' to review');
+  summary.append(label,node('span',figures.join(' · '),'book-amount'));details.append(summary);li.append(details);
+  details.addEventListener('toggle',()=>{
+   if(!details.open||details.children.length>1)return;
+   if(mode==='family'){
+    const familyContact=rows.find(row=>row.familyId&&row.contact)?.contact;
+    details.append(bookContact(familyContact));
+   }
+   const list=node('ul','','book-members');
+   list.append(...rows.map(row=>bookRecord(row,mode)));details.append(list);
+  });
+  return li;
+ }
+ function matchesBookFilter(row,filter){
+  switch(filter){
+   case 'attention':return row.amountOutstanding>0||row.status==='review';
+   case 'outstanding':return row.amountOutstanding>0;
+   case 'due':return row.amountDue>0;
+   case 'upcoming':return row.amountUpcoming>0;
+   case 'review':return row.status==='review';
+   case 'paid':return row.status==='paid'||row.amountOutstanding===0&&row.amountPaid>0;
+   case 'booking':return row.scope==='booking';
+   default:return true;
+  }
+ }
  function renderBooks(){
   if(!canViewBooks()||tab!=='books'||!booksRows)return;
   const filter=$('books-filter').value,query=$('books-search').value.trim().toLocaleLowerCase();
-  const visible=booksRows.filter(row=>{
-   if(filter==='due'&&!sessionDue(row)||filter==='booking'&&row.scope!=='booking')return false;
-   if((filter==='review'||filter==='paid')&&row.status!==filter)return false;
-   return !query||[row.playerName,row.sessionLabel,row.date,familyDate(row.date),row.time,row.location,row.bookingType,row.coveredDates].filter(Boolean).join(' ').toLocaleLowerCase().includes(query);
-  });
-  $('books-list').replaceChildren(...visible.slice(0,booksLimit).map(bookEntry));
-  $('books-more').hidden=visible.length<=booksLimit;
-  $('books-status').textContent=visible.length>booksLimit?'Showing '+booksLimit+' of '+visible.length+' records.':visible.length?visible.length+(visible.length===1?' record':' records'):'No matching records.';
+  const visible=booksRows.filter(row=>matchesBookFilter(row,filter)&&(!query||
+   [row.familyName,row.contact?.guardian,row.playerName,row.sessionGroupLabel,bookSessionLabel(row),row.coveredDates,row.date,row.location].filter(Boolean).join(' ').toLocaleLowerCase().includes(query)));
+  const grouped=booksMode==='family'||booksMode==='session';
+  const groups=groupBookRows(visible,booksMode==='session'?'session':'family');
+  if(filter==='attention')for(const group of groups)group.rows.sort((a,b)=>Number(b.amountDue>0)-Number(a.amountDue>0)||Number(b.amountUpcoming>0)-Number(a.amountUpcoming>0));
+  const items=grouped?groups:groups.flatMap(group=>group.rows);
+  const shown=items.slice(0,booksLimit);
+  $('books-list').replaceChildren(...shown.map(item=>grouped?bookGroup(item,booksMode):bookRecord(item,booksMode)));
+  $('books-more').hidden=items.length<=booksLimit;
+  const displayed=grouped?shown.reduce((n,g)=>n+g.rows.length,0):shown.length;
+  $('books-status').textContent=displayed<visible.length?'Showing '+displayed+' of '+visible.length+' records.':visible.length?visible.length+(visible.length===1?' record':' records'):'No matching records.';
  }
  function unpaidByFamily(rows){
   const families=new Map(),bookings=new Set();
@@ -780,12 +916,12 @@
   const ticket=++booksRequest,list=$(unpaid?'home-unpaid-list':'books-list'),status=$(unpaid?'home-unpaid-status':'books-status');
   list.replaceChildren();booksRows=null;
   status.textContent=unpaid?'Loading unpaid sessions…':'Loading books…';
-  if(!unpaid){$('books-refresh').disabled=true;$('books-more').hidden=true;booksLimit=booksPageSize;}
+  if(!unpaid){clearBookTotals();$('books-refresh').disabled=true;$('books-more').hidden=true;booksLimit=booksPageSize;}
   try{
    const result=await api('session-books',unpaid?{view:'unpaid'}:{});
    if(ticket!==booksRequest||!canViewBooks())return;
    if(!Array.isArray(result.rows))throw Error('Books unavailable.');
-   if(!unpaid){booksRows=result.rows;renderBooks();return;}
+   if(!unpaid){booksRows=result.rows;showBookTotals(booksRows);renderBooks();return;}
    unpaidFamilies=unpaidByFamily(result.rows);homeUnpaidState='ready';
    $('home-unpaid-label').textContent='Unpaid sessions ('+unpaidFamilies.length+(unpaidFamilies.length===1?' family)':' families)');
    $('home-unpaid').hidden=!unpaidFamilies.length;
@@ -812,6 +948,7 @@
  });
  $('books-refresh').addEventListener('click',()=>loadBooks());
  function filterBooks(){booksLimit=booksPageSize;renderBooks();}
+ for(const button of $('books-modes').querySelectorAll('button'))button.addEventListener('click',()=>{setBooksMode(button.dataset.booksMode);filterBooks();});
  $('books-filter').addEventListener('change',filterBooks);
  $('books-search').addEventListener('input',filterBooks);
  $('books-more').addEventListener('click',()=>{booksLimit+=booksPageSize;renderBooks();});

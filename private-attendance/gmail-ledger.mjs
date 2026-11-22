@@ -61,10 +61,11 @@ export async function syncLedgerEvent(db,event,{campPlacementSince,confirmedDraf
   if(['camp-confirmation','registration-confirmation'].includes(e.type)){
     if(e.type==='camp-confirmation'&&afterCutover(e.received,campPlacementSince))await recordCampConfirmation(db,e,campPlacementSince,now);
     if(trackConfirmation&&!(e.type==='camp-confirmation'&&afterCutover(e.received,campPlacementSince))){
-      const matches=await db.list('registrations',['Reference','Parent email','Received at','Player history at registration','Confirmation Gmail ID','Status'],exact('Reference',e.reference));
+      const matches=await db.list('registrations',['Reference','Parent email','Received at','Player history at registration','Confirmation Gmail ID','Status','Booking','Player','Family'],exact('Reference',e.reference));
       const r=matches[0],f=r?.fields;
-      if(matches.length===1&&f.Reference===e.reference&&f['Player history at registration']&&!f['Confirmation Gmail ID']&&f.Status!=='Declined'&&f['Parent email']?.trim().toLowerCase()===e.contact&&Date.parse(e.received)>=Date.parse(f['Received at'])){
-        await db.save('registrations',{'Confirmation Gmail ID':e.id},{id:r.id});
+      const drafted=confirmedDraftFlow&&f?.Status==='Expected'&&f.Booking?.length===1&&f.Player?.length===1&&f.Family?.length===1;
+      if(matches.length===1&&f.Reference===e.reference&&(f['Player history at registration']||drafted)&&!f['Confirmation Gmail ID']&&f.Status!=='Declined'&&f['Parent email']?.trim().toLowerCase()===e.contact&&Date.parse(e.received)>=Date.parse(f['Received at'])){
+        await db.save('registrations',{'Confirmation Gmail ID':e.id,...(drafted?{Status:'Confirmed'}:{})},{id:r.id});
       }
     }
     return;

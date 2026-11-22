@@ -11,6 +11,8 @@ import {createAirtableTransport} from '../airtable-transport.mjs';
 import {createOwnerAuth} from '../owner-auth.mjs';
 import {createCoachStore} from '../coach-store.mjs';
 import {createCoachAuth} from '../coach-auth.mjs';
+import {prepareAttendedVisit} from '../attendance-billing.mjs';
+import {airtableClient} from '../gmail-ledger.mjs';
 import {createCoachAttendance} from '../coach-attendance.mjs';
 import {createCoachHandler} from '../coach-http.mjs';
 import {requestId,logFailure,mailConnectionError} from '../coach-diagnostics.mjs';
@@ -74,7 +76,10 @@ export class AttendanceCoordinator{
    const ownerAuth=createOwnerAuth({store:this.store});let ownerCache=null;
    const ownerData=async({refresh=false}={})=>{if(refresh||!ownerCache||Date.now()-Date.parse(ownerCache.observedAt)>300000)ownerCache=await reader.overview();const pendingAttendanceSync=env.COACH_DASHBOARD_ENABLED==='true'?Number(this.store.get("SELECT COUNT(*) AS total FROM coach_attendance_commands WHERE state='pending'")?.total||0):0;return {...ownerCache,attendanceWritesEnabled:env.LIVE_AIRTABLE_WRITES==='true',pendingAttendanceSync,pendingSync:this.service.listOutbox().length+this.service.listPreferences().length+pendingAttendanceSync};};
    const coachEnabled=env.COACH_DASHBOARD_ENABLED==='true';let coachAuth=null;
-   if(coachEnabled){const coaches=createCoachStore({store:this.store,ownerEmail:identity.ownerEmail,ownerName:identity.ownerName});coachAuth=createCoachAuth({store:this.store,coaches,origin,rpName:clubConfig.name+' Coach Desk'});const attendance=createCoachAttendance({store:this.store,coaches,writesEnabled:env.LIVE_AIRTABLE_WRITES==='true',timeZone:clubConfig.timeZone,baseId:config.baseId,tableId:config.tables.attendance,token:env.AIRTABLE_TOKEN,...(config.coachAttendanceFields?{fieldMap:config.coachAttendanceFields}:{}),fetchFn:airtableFetch});
+   if(coachEnabled){const coaches=createCoachStore({store:this.store,ownerEmail:identity.ownerEmail,ownerName:identity.ownerName});coachAuth=createCoachAuth({store:this.store,coaches,origin,rpName:clubConfig.name+' Coach Desk'});
+    const billingDb=airtableClient(config,env.AIRTABLE_TOKEN,airtableFetch);
+    const prepareVisit=this.coachOnly?undefined:(input,session)=>prepareAttendedVisit(billingDb,input,session);
+    const attendance=createCoachAttendance({store:this.store,coaches,prepareVisit,writesEnabled:env.LIVE_AIRTABLE_WRITES==='true',timeZone:clubConfig.timeZone,baseId:config.baseId,tableId:config.tables.attendance,token:env.AIRTABLE_TOKEN,...(config.coachAttendanceFields?{fieldMap:config.coachAttendanceFields}:{}),fetchFn:airtableFetch});
     const legacyNotes=async()=>{const table=config.tables.coachingNotes||'Player Coaching Notes';if(typeof table!=='string'||!table.trim()||table.length>100)throw Error('INVALID_COACH_NOTES_TARGET');const url=new URL('https://api.airtable.com/v0/'+config.baseId+'/'+encodeURIComponent(table));const names=['Player profile','Technical notes','Game intelligence notes','Physical & coordination notes','Confidence & teamwork notes','Next coaching priority','Session-specific observation'];for(const name of names)url.searchParams.append('fields[]',name);let offset,rows=[],seen=new Set();do{if(seen.has(offset))throw Error('AIRTABLE_OFFSET_REPEAT');seen.add(offset);if(offset)url.searchParams.set('offset',offset);const r=await airtableFetch(url,{headers:{Authorization:'Bearer '+env.AIRTABLE_TOKEN},redirect:'manual',signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error('AIRTABLE_READ_FAILED');const body=await r.json();rows.push(...body.records);offset=body.offset;if(rows.length>10000)throw Error('AIRTABLE_PAGE_LIMIT');}while(offset);return rows.filter(r=>names.slice(1).some(k=>r.fields[k])).map(r=>({id:r.id,title:r.fields['Player profile'],fields:Object.fromEntries(names.slice(1).map(k=>[k,r.fields[k]||'']))}));};
       const gmailSync=!this.coachOnly&&env.LIVE_AIRTABLE_WRITES==='true'&&env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET?async(op,payload={})=>{
       const target=env.ATTENDANCE_COORDINATOR.get(env.ATTENDANCE_COORDINATOR.idFromName('private-gmail-ledger-v1'));

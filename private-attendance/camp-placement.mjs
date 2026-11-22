@@ -105,6 +105,8 @@ export async function placeCampRegistration(db, {event, registration, family, pl
   const booking = existing || await db.save('bookings', {
     'Source booking ID': source, 'Booking reference': event.reference, Player: [player.id], Family: [family.id],
     'Booking type': 'Drop-in', 'Booking status': 'Accepted', 'Charge review': 'Agreed', 'Charge CAD': request.price,
+    ...(event.version === 'SS-CAMP-V2' ? {'Fixed-price package': true} : {}),
+    ...(event.version === 'SS-CAMP-DROPIN-V1' ? {'Agreed per-visit CAD': request.price / (request.slots.filter(slot => slot.date !== winterCamps.getWeek(event.campWeek).freeDate).length || 1)} : {}),
     'Start date': request.dates[0], 'Covered dates': request.dates.join(', '),
     'First session': [coverage[0].session.id], 'Accepted date': now.toISOString().slice(0, 10)
   }, {key: 'Source booking ID'});

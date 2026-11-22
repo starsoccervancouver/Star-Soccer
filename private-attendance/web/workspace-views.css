@@ -75,7 +75,7 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
   }
   #home-attention .priority-action > span:first-child { display:flex; align-items:baseline; flex-wrap:wrap; gap:2px 12px; }
   #home-attention button + button, #home-attention > button:not([hidden]) ~ #home-priorities:not(:empty) { border-top:1px solid var(--desk-line); }
-  #home-attention > button::after { content:'→'; }
+  #home-attention > button::after { content:'→' / ''; }
   #home-attention .priority-arrow, #home-attention > button::after { color:var(--desk-accent); font-size:18px; }
   #app #home-attention button:hover:not(:disabled) { background:var(--desk-option-hover); }
 

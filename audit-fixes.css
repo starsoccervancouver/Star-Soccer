@@ -13,7 +13,7 @@ body .programs-hero-accent::before,body .programs-hero-accent::after {clip-path:
 body .home-page .home-site-nav,body .home-site-nav {gap:clamp(12px,2vw,24px);}
 body .home-site-nav a {letter-spacing:.035em;}
 body .home-site-nav a[aria-current="page"] {text-decoration:underline;text-underline-offset:6px;}
-body .header-program-cta {background:#356da6!important;color:#e1e8ef!important;min-height:44px;padding:10px 14px!important;}
+body .header-program-cta {background:#2d5e90!important;color:#e1e8ef!important;min-height:44px;padding:10px 14px!important;}
 body :is(.button,button,select,option,.hero-placeholder-card a,.home-coach-book-link,.home-camps-cta-button) {font-family:'Manrope',system-ui,sans-serif;font-size:1rem;font-weight:700;line-height:1.5;letter-spacing:0;text-transform:none;}
 body .flow-hero {padding:40px 0 24px;max-width:1040px;margin:auto;}
 body .flow-hero h1 {font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,5vw,4.2rem);font-weight:400;line-height:1.08;margin:8px 0;color:var(--flow-text);}
@@ -32,9 +32,8 @@ body .registration-recovery {padding:16px 0;margin-bottom:20px;line-height:1.65;
 body .registration-recovery .button {white-space:normal;max-width:100%;box-sizing:border-box;}
 body .flow-text-link {color:#bad4ed;text-decoration:underline;text-underline-offset:4px;overflow-wrap:anywhere;}
 body .flow-surface :is(a:not(.button)) {color:#bad4ed;text-decoration:underline;text-underline-offset:4px;}
-body .flow-surface .button {background:#356da6;color:#e1e8ef;border:1px solid #7196b8;border-radius:12px;line-height:1.4;padding:12px 18px;white-space:normal;max-width:100%;box-shadow:none;}
+body .flow-surface .button {background:#2d5e90;color:#e1e8ef;border:1px solid #7196b8;border-radius:12px;line-height:1.4;padding:12px 18px;white-space:normal;max-width:100%;box-shadow:none;}
 body .flow-surface .button-ghost {background:#203b56;color:#d3dce5;}
-body .flow-surface .button:hover {background:#2c5984;transform:none;}
 body .flow-surface button:disabled {opacity:.65;cursor:wait;}
 body .flow-layout {max-width:1120px;margin:auto;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);gap:24px;align-items:start;}
 body .flow-layout .flow-surface {width:100%;min-width:0;margin:0;}
@@ -104,7 +103,6 @@ body .winter-hero-copy h1 span {color:#b2e3f6;}
 .camp-date-links #pro-d-date-link {font-weight:500;}
 body .winter-hero-copy>p:not(.eyebrow) {max-width:40ch;font-size:1.05rem;line-height:1.6;color:#edf7ff;}
 body .winter-camp-cta,body .flow-surface .winter-camp-cta {min-height:48px;background:#f0cb80;color:#102031;border-color:#f0cb80;box-shadow:none;gap:12px;}
-body .winter-camp-cta:hover,body .flow-surface .winter-camp-cta:hover {background:#f6d99f;color:#102031;}
 body.winter-camps-page .flow-surface {width:min(1040px,calc(100% - 32px));}
 body .camp-comparison {padding:clamp(16px,2.4vw,26px);background:#102438;}
 body .camp-comparison h2 {margin:0 0 6px;}

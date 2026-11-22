@@ -102,7 +102,7 @@
     stylesheet = document.createElement('link');
     stylesheet.id = 'ss-number-controls-css';
     stylesheet.rel = 'stylesheet';
-    stylesheet.href = new URL('number-controls.css?v=20261027', assetBase).href;
+    stylesheet.href = new URL('number-controls.css?v=20261121-hover', assetBase).href;
     stylesheet.addEventListener('load', apply, {once: true});
     document.head.append(stylesheet);
   }

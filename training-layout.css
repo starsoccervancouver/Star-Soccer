@@ -52,13 +52,11 @@ body.training-compact .schedule-direct-actions a:only-child {grid-column:1/-1}
 body.training-compact .flow-surface .button {
   display:inline-flex;align-items:center;justify-content:center;min-height:48px;
   padding:10px 14px;border:1px solid #7196b8;border-radius:10px;
-  background:#356da6;color:#f4f8fc;font:700 .88rem/1.4 'Manrope',system-ui,sans-serif;
+  background:#2d5e90;color:#f4f8fc;font:700 .88rem/1.4 'Manrope',system-ui,sans-serif;
   text-decoration:none;box-shadow:none;
 }
 body.training-compact .schedule-direct-actions .button {width:100%;margin:0;padding-inline:10px}
 body.training-compact .flow-surface .button-ghost {background:#18364f;color:#bad4ed;border-color:#526f88}
-body.training-compact .flow-surface .button:hover {background:#2c5984;border-color:#7196b8;color:#e6eef5;filter:none}
-body.training-compact .flow-surface .button-ghost:hover {background:#23455f;color:#e6eef5;border-color:#7196b8}
 body.training-compact .subpage-main :is(a,summary):focus-visible {outline:3px solid #90caff;outline-offset:4px}
 body.training-compact article.schedule-entry-target {border-color:#90caff;box-shadow:0 0 0 2px #90caff}
 body.training-compact .pass-note {margin:24px 0 18px;padding:22px;border:1px solid #314b61;border-radius:16px;background:#10253a}

@@ -124,7 +124,6 @@ body.contact-themed-page .registration-info a {
   color: #a8dfff;
   text-underline-offset: 3px;
 }
-body.contact-themed-page .registration-info a:hover { color: #e7c59a; }
 body.contact-themed-page .registration-info-note {
   margin-top: 22px;
   padding-top: 18px;
@@ -197,7 +196,6 @@ body.approach-themed-page .method-restored-nav a {
   text-decoration-thickness: 1px;
   text-underline-offset: 6px;
 }
-body.approach-themed-page .method-restored-nav a:hover,
 body.approach-themed-page .method-restored-nav a:focus-visible {
   color: #f5d29d;
 }

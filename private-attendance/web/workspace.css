@@ -32,8 +32,6 @@
   --desk-green: #21664e;
   --desk-red: #923f35;
   --desk-accent-soft: #eaf1ff;
-  --desk-option-hover: rgb(121 191 255 / 12%);
-  --desk-option-hover-border: rgb(67 147 224 / 30%);
   --desk-control-line: #b9c8d0;
   --desk-header-height: 88px;
   --navy: var(--desk-navy);
@@ -84,20 +82,16 @@ button, .button {
   transition: background-color 140ms ease, border-color 140ms ease;
 }
 
-button:hover:not(:disabled), .button:hover:not(:disabled) {
-  border-color: var(--desk-accent-hover);
-  background: var(--desk-accent-hover);
+:is(button, .button):hover:not(:disabled):where(:not([aria-pressed="true"], [aria-selected="true"], [aria-current], .current, .active, .is-active, .nav-active)) {
+  border-color: var(--desk-option-hover-border);
+  background: var(--desk-option-hover);
+  color: var(--desk-ink);
 }
 
 button.secondary, .button.secondary {
   border-color: #858b94;
   color: var(--desk-ink);
   background: #fff;
-}
-
-button.secondary:hover:not(:disabled), .button.secondary:hover:not(:disabled) {
-  border-color: var(--desk-accent);
-  background: var(--desk-accent-soft);
 }
 
 .confirm {
@@ -233,8 +227,9 @@ h2, h3 {
 }
 
 .desk-header #logout:hover:not(:disabled) {
-  border-color: var(--desk-gold);
-  background: #ffffff0c;
+  border-color: var(--desk-option-hover-border);
+  background: var(--desk-option-hover);
+  color: #fff;
 }
 
 .desk-layout {
@@ -727,9 +722,10 @@ input:disabled, select:disabled, textarea:disabled {
   text-align: left;
 }
 
-.attendance-day:hover:not(:disabled) {
-  border-color: #6e9db7;
-  background: #f1f8fc;
+.attendance-day:not([aria-pressed="true"]):hover:not(:disabled) {
+  border-color: var(--desk-option-hover-border);
+  background: var(--desk-option-hover);
+  color: var(--desk-ink);
 }
 
 .attendance-day strong {
@@ -889,8 +885,9 @@ input:disabled, select:disabled, textarea:disabled {
 }
 
 .attendance-controls button:hover:not(:disabled) {
-  border-color: #7b9eb4;
-  background: #edf6fb;
+  border-color: var(--desk-option-hover-border);
+  background: var(--desk-option-hover);
+  color: var(--desk-ink);
 }
 
 .attendance-controls button.current,
@@ -1794,9 +1791,9 @@ button.dictation-button[aria-pressed="true"] { border-color: #a47434; color: #61
 .session-spotlight #next-details { color: #d3e0e7; }
 .session-spotlight .callout { border: 0; border-left: 2px solid var(--desk-gold); background: #ffffff09; color: #fff; }
 .session-spotlight .button { background: var(--desk-gold); border-color: var(--desk-gold); color: var(--desk-navy); }
-.session-spotlight .button:hover:not(:disabled) { background: #f2d7b4; border-color: #f2d7b4; }
+.session-spotlight .button:hover:not(:disabled) { background: var(--desk-option-hover); border-color: var(--desk-option-hover-border); color: #fff; }
 .session-spotlight .secondary { background: transparent; color: #e6edf1; border-color: #668196; }
-.session-spotlight .secondary:hover:not(:disabled) { background: #23445e; color: #fff; }
+.session-spotlight .secondary:hover:not(:disabled) { background: var(--desk-option-hover); color: #fff; border-color: var(--desk-option-hover-border); }
 .priorities-card { min-width: 0; }
 .priorities-card h2 { margin-bottom: 18px; }
 button.priority-action {
@@ -1807,7 +1804,7 @@ button.priority-action {
 button.priority-action > span:first-child { display: grid; min-width: 0; gap: 3px; }
 button.priority-action strong { font-size: 14px; overflow-wrap: anywhere; }
 button.priority-action .small { font-size: 12px; font-weight: 500; }
-button.priority-action:hover:not(:disabled) { color: #174c6f; background: #f4f8fa; border-color: var(--desk-line); }
+button.priority-action:hover:not(:disabled) { color: var(--desk-ink); background: var(--desk-option-hover); border-color: var(--desk-option-hover-border); }
 .priority-arrow { font-size: 21px; font-weight: 400; flex-shrink: 0; }
 button.priority-amber .small { color: #895414; }
 .priority-info { border-left: 2px solid #ba8d49; padding-left: 12px; color: #6b4d26; font-size: 12px; }
@@ -1850,7 +1847,7 @@ button.profile-entry {
   text-align: left;
 }
 button.profile-entry::after { content: '⌄'; position: absolute; right: 5px; top: 11px; color: var(--desk-gold); font-size: 17px; }
-button.profile-entry:hover:not(:disabled) { border-color: transparent; background: #ffffff09; }
+button.profile-entry:hover:not(:disabled) { border-color: var(--desk-option-hover-border); background: var(--desk-option-hover); color: #fff; }
 button.profile-entry > span { display: block; max-width: 100%; }
 .desk-nav #navigation .nav-settings { margin-top: 20px; border-top-color: #ffffff19; border-radius: 0 0 9px 9px; }
 .settings-navigation {
@@ -1892,7 +1889,7 @@ button.profile-entry > span { display: block; max-width: 100%; }
 .profile-details dd { margin: 0; color: #f2f5f7; font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
 #panel-settings .profile-card > p.profile-help { margin: 6px 0 22px; color: #b7cbd9; font-size: 12px; line-height: 1.75; }
 .profile-card #copy-workspace-link { border-color: #7790a2; color: #edf4f8; background: transparent; }
-.profile-card #copy-workspace-link:hover:not(:disabled) { border-color: var(--desk-gold); color: #fff; background: #ffffff0b; }
+.profile-card #copy-workspace-link:hover:not(:disabled) { border-color: var(--desk-option-hover-border); color: #fff; background: var(--desk-option-hover); }
 .preferences-card > .small { margin-bottom: 22px; font-size: 13px; }
 .preference-help { display:block; margin-top:7px; color:var(--desk-muted); font-size:12px; font-weight:400; line-height:1.6; }
 .preference-preview { margin:0 0 24px; padding:16px; border:1px solid var(--desk-line); border-radius:10px; background:var(--desk-field); }
@@ -1957,7 +1954,7 @@ body[data-desk-text-size="large"] #app .desk-main :is(input,select,textarea,.not
 #app .planner-days button { display: flex; min-width: 0; min-height: 96px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; padding: 14px 17px; border: 1px solid #d5dee3; border-radius: 16px; color: var(--desk-ink); background: #f8f9f8; text-align: left; }
 .planner-days button strong { font-size: 15px; line-height: 1.35; }
 .planner-days button span { display: block; color: var(--desk-muted); font-size: 12px; font-weight: 500; line-height: 1.45; }
-#app .planner-days button:hover:not(:disabled) { border-color: #7595ab; background: #edf5f8; }
+#app .planner-days button:not([aria-pressed="true"]):hover:not(:disabled) { border-color: var(--desk-option-hover-border); background: var(--desk-option-hover); color: var(--desk-ink); }
 #app .planner-days button[aria-pressed="true"] { border-color: var(--desk-accent); color: #fff; background: var(--desk-accent); box-shadow: 0 3px 9px #10263d16; }
 .planner-days button[aria-pressed="true"] span { color: #fff; }
 #app .planner-days button:disabled { background: #f4f5f4; opacity: .62; }
@@ -2287,7 +2284,9 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
     background:var(--desk-accent); border-color:var(--desk-accent); color:#fff;
   }
   body #app :is(#library-new,#plan-save,#planner-add-drill):hover:not(:disabled), body .session-spotlight .button:hover:not(:disabled) {
-    background:var(--desk-accent-hover); border-color:var(--desk-accent-hover);
+    background: var(--desk-option-hover);
+    border-color: var(--desk-option-hover-border);
+    color: var(--desk-ink);
   }
   body .session-spotlight { background:var(--desk-surface); border-color:var(--desk-line); color:var(--desk-ink); }
   body .session-spotlight::after { display:none; }
@@ -2295,7 +2294,13 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
   body .session-spotlight .eyebrow, body .session-spotlight #next-details { color:var(--desk-muted); }
   body .session-spotlight .callout { background:var(--desk-inset); border-color:var(--desk-accent); color:var(--desk-ink); }
   body .session-spotlight .secondary { background:#fff; border-color:var(--desk-control-line); color:var(--desk-ink); }
-  body .session-spotlight .secondary:hover:not(:disabled) { background:var(--desk-accent-soft); border-color:var(--desk-accent); color:var(--desk-ink); }
+  body .session-spotlight .secondary:hover:not(:disabled) { background: var(--desk-option-hover); border-color: var(--desk-option-hover-border); color: var(--desk-ink); }
+  #app .desk-main :is(.coach-next-group,.coach-calendar-day,.coaching-coach,.notes-group-button,.player-directory-card,summary,a[href]):hover:not(:disabled):where(:not([aria-pressed="true"],[aria-selected="true"],[aria-current],.current,.active,[aria-disabled="true"])) {
+    background-color:var(--desk-option-hover); border-color:var(--desk-option-hover-border); color:var(--desk-ink);
+  }
+  .desk-header a[href]:hover,.desk-nav a[href]:hover,.return-site:hover {
+    background-color:var(--desk-option-hover); color:#fff;
+  }
   #app .desk-nav #navigation button { display:flex; align-items:center; gap:10px; border-radius:10px; }
   #app .desk-nav #navigation button.nav-active { background:var(--desk-accent-hover); border-color:var(--desk-accent); box-shadow:inset 3px 0 0 var(--desk-gold); color:#fff; }
   .desk-nav-icon { width:19px; height:19px; flex-shrink:0; stroke-width:1.7; }
@@ -2347,7 +2352,7 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
 #planner-dates-pane h3 { margin:26px 0 8px; color:var(--desk-muted); font-size:13px; font-weight:700; }
 .planner-date-list { border-top:1px solid var(--desk-line); }
 #planner-dates-pane .planner-date-row { display:flex; flex-direction:column; align-items:flex-start; width:100%; min-height:76px; margin:0; padding:15px 12px; gap:5px; border:0; border-bottom:1px solid var(--desk-line); border-left:3px solid transparent; border-radius:0; text-align:left; color:var(--desk-ink); background:var(--desk-surface); box-shadow:none; white-space:normal; }
-#planner-dates-pane .planner-date-row:hover:not(:disabled) { background:var(--desk-field); }
+#planner-dates-pane .planner-date-row:not([aria-current]):hover:not(:disabled) { background: var(--desk-option-hover); border-color: var(--desk-option-hover-border); color: var(--desk-ink); }
 #planner-dates-pane .planner-date-row[aria-current="date"] { background:var(--desk-accent-soft); border-left-color:var(--desk-accent); }
 .planner-date-row strong { font-size:14px; line-height:1.5; }
 .planner-date-meta { color:var(--desk-muted); font-size:12px; line-height:1.6; font-weight:400; }
@@ -2373,7 +2378,13 @@ body select:disabled { opacity:.6; }
   box-shadow:inset 0 1px 0 #ffffff80, 0 1px 2px #24342a0a;
   transition:border-color 140ms ease, box-shadow 140ms ease;
 }
-:is(body, #tactics-board-tools.tactics-studio) select:not(:disabled):hover { border-color:var(--desk-accent); }
+@media (hover: hover) {
+  :is(body, #tactics-board-tools.tactics-studio) select:enabled:hover:not(:focus-visible),
+  #preferences-form .preference-check:has(input:enabled):hover,
+  .inline-check:has(input:enabled):hover {
+    box-shadow:inset 0 0 0 100vmax var(--desk-option-hover);
+  }
+}
 :is(body, #tactics-board-tools.tactics-studio) select:disabled { cursor:default; }
 @supports (appearance:base-select) {
   :is(body, #tactics-board-tools.tactics-studio) select:not([multiple]):not([size]),

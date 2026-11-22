@@ -47,7 +47,6 @@ body.quick-flow .pass-start-label{display:grid;grid-template-columns:1fr auto;al
 body.quick-flow .pass-start-label small{font-size:.72rem}
 body.quick-flow .pass-start-label input{grid-column:1/-1;margin:0;min-height:44px;color-scheme:dark}
 body.quick-flow .pass-calendar-trigger{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:10px 12px;margin:0;border:1px solid #9a7c65;border-radius:9px;background:#0d2137;color:#e0e8ef;font:700 .9rem/1.4 'Manrope',sans-serif;text-align:left;cursor:pointer}
-body.quick-flow .pass-calendar-trigger:hover{border-color:#efbc98;background:#173249}
 body.quick-flow .pass-calendar-icon{display:flex;flex:none;color:#efbc98}
 body.quick-flow .pass-calendar{width:min(420px,calc(100% - 24px));max-width:none;max-height:calc(100dvh - 24px);margin:auto;padding:22px;border:1px solid #9a7c65;border-radius:18px;background:#10263d;color:#dce6ee;box-shadow:0 24px 90px #020913b3;overflow:auto;color-scheme:dark}
 body.quick-flow .pass-calendar::backdrop{background:#020b1bbd;backdrop-filter:blur(5px)}
@@ -65,7 +64,6 @@ body.quick-flow .pass-calendar-week [role=columnheader]{padding:6px 0;text-align
 body.quick-flow .pass-calendar-cell{display:block;min-width:0}
 body.quick-flow .pass-calendar-day{display:block;width:100%;min-width:0;height:42px;padding:0;border:1px solid #927763;border-radius:9px;background:#243b4c;color:#f0c8a9;font-size:.9rem;font-weight:800;line-height:1}
 body.quick-flow .pass-calendar-day:disabled{border-color:transparent;background:transparent;color:#71899e;cursor:default;font-weight:400}
-body.quick-flow .pass-calendar-day:not(:disabled):hover{border-color:#efbc98;background:#355267}
 body.quick-flow .pass-calendar-day.is-selected{border-color:#efbc98;background:#efbc98;color:#112638}
 body.quick-flow .pass-calendar-day[aria-current=date]:not(.is-selected){box-shadow:inset 0 0 0 1px #85acc9}
 body.quick-flow .pass-calendar-arrow:disabled{opacity:.35;cursor:default}
@@ -136,6 +134,38 @@ body.quick-flow .camp-day small{font-size:.72rem;line-height:1.4;color:#c5d7e5}
 body.quick-flow .camp-day:has(:checked){border-color:#b2e3f6;background:#1b4058}
 body.quick-flow .camp-day:has(:disabled){opacity:.5;cursor:default}
 body.quick-flow :is(.camp-day,.camp-booking-options label):focus-within{outline:2px solid #b2e3f6;outline-offset:2px}
+@media (hover: hover) {
+  body.quick-flow .flow-surface :is(select,textarea,input:not([type=radio],[type=checkbox],[type=hidden],[type=number])):enabled:not([readonly]):hover,
+  body.quick-flow :is(.camp-day,.camp-booking-options label):has(input:enabled):hover {
+    background-image:linear-gradient(var(--ss-hover-fill),var(--ss-hover-fill));
+  }
+}
+/* Native compact pickers preserve single-line controls on narrow forms. */
+@supports (appearance:base-select) and selector(select::picker(select)) {
+  @media (min-width:541px) and (hover:hover) and (pointer:fine) and (forced-colors:none) {
+    body.quick-flow .flow-surface select,
+    body.quick-flow .flow-surface select::picker(select) { appearance:base-select; }
+    body.quick-flow .flow-surface select::picker(select) {
+      background:#0d2137;
+      color:#d1d9e2;
+      border:1px solid #7894ad;
+      border-radius:9px;
+    }
+    body.quick-flow .flow-surface select option {
+      padding:.45em .65em;
+      background-color:transparent;
+      color:inherit;
+    }
+    body.quick-flow .flow-surface select option:checked { font-weight:700; }
+    body.quick-flow .flow-surface select option:enabled:hover {
+      background-image:linear-gradient(var(--ss-hover-fill),var(--ss-hover-fill));
+    }
+    body.quick-flow .flow-surface select option:focus-visible {
+      outline:2px solid #82c8ff;
+      outline-offset:-2px;
+    }
+  }
+}
 @media(max-width:540px){body.quick-flow .camp-day-grid{gap:4px}body.quick-flow .camp-booking-options label{padding:10px 6px;font-size:.76rem}}
 
 /* Give families a clear, optional switch when a package costs less. */

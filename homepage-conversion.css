@@ -224,7 +224,7 @@ body.home-landing a.hero-action-camps {
   border-color: rgba(235, 250, 255, .75);
   color: #071728;
 }
-body.home-landing a.hero-action:hover,
+
 body.home-landing a.hero-action:focus-visible {
   transform: translateY(-3px);
   border-color: #f9dc9d;
@@ -320,19 +320,18 @@ body.home-landing .home-local-guide .eyebrow{color:#efbc98;font-size:.72rem;font
 body.home-landing .home-local-guide aside{padding:28px;border:1px solid #526f87;border-radius:16px;background:#10263d}
 body.home-landing .home-local-guide h3{font:700 1.25rem/1.4 Manrope,system-ui,sans-serif;color:#e8eff5;margin:10px 0}
 body.home-landing .home-local-guide a:not(.button),body.home-landing .home-parent-faq a{color:#bbddf3;text-decoration:underline;text-underline-offset:4px}
-body.home-landing .home-local-guide .button{min-height:48px;margin-top:6px;padding:12px 18px;border:1px solid #7196b8;border-radius:10px;background:#356da6;color:#eef5fa;font:700 .9rem/1.5 Manrope,system-ui,sans-serif}
+body.home-landing .home-local-guide .button{min-height:48px;margin-top:6px;padding:12px 18px;border:1px solid #7196b8;border-radius:10px;background:#2d5e90;color:#eef5fa;font:700 .9rem/1.5 Manrope,system-ui,sans-serif}
 body.home-landing .home-parent-faq{width:min(1040px,calc(100% - 32px));margin:40px auto;background:#10263d;border-color:#526f87}
 body.home-landing .home-parent-faq details{border-top:1px solid #49657c}
 body.home-landing .home-parent-faq summary{min-height:52px;padding:16px 4px;font-size:.95rem;font-weight:700;line-height:1.5;cursor:pointer;color:#dbe7f0}
 body.home-landing .home-parent-faq details p{padding:0 4px 12px;line-height:1.75;font-size:.9rem;color:#bccddd}
 @media(max-width:700px){body.home-landing .home-local-guide{padding:36px 20px}body.home-landing .home-local-guide-inner{grid-template-columns:1fr;gap:24px}body.home-landing .home-local-guide aside{padding:22px}body.home-landing .home-parent-faq{margin:24px auto}}
 @media(max-width:600px){body.home-landing .immersive-hero-overlay{padding:30px 20px 36px}body.home-landing .immersive-hero-stage{gap:20px}body.home-landing .hero-action-label{display:none}body.home-landing a.hero-action{min-height:108px;padding:18px 20px}body.home-landing a.hero-action-camps{min-height:128px}body.home-landing .hero-action-title{font-size:1.35rem}body.home-landing .immersive-hero h1{font-size:clamp(2.4rem,9vw,3.25rem);max-width:19ch;margin:10px 0 14px}body.home-landing .immersive-hero-lead{font-size:.9rem;line-height:1.6}}
-@media(prefers-reduced-motion:reduce){body.home-landing a.hero-action{transition:none}body.home-landing a.hero-action:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){body.home-landing a.hero-action{transition:none}}
 @media(max-width:900px){body.home-landing a.hero-action{-webkit-backdrop-filter:none;backdrop-filter:none}}
 
 /* Adult players have a direct route without competing with the main booking cards. */
 body.home-landing .hero-women-link{display:flex;align-items:center;min-height:44px;padding:8px 4px;color:#e5f1fc;font-size:.92rem;font-weight:700;text-underline-offset:4px}
-body.home-landing .hero-women-link:hover{color:#f9d593}
 body.home-landing .hero-women-link:focus-visible{outline:3px solid #f9d593;outline-offset:4px;border-radius:4px}
 
 /* Each coach keeps identity and experience together, with one aligned booking area. */
@@ -362,7 +361,7 @@ body.home-landing a.hero-action{min-height:0;padding:17px 20px;border-radius:12p
 body.home-landing .hero-action-title{font-size:1.15rem;line-height:1.4;font-weight:800}
 body.home-landing .hero-action-eyebrow{font-size:.68rem;line-height:1.5;letter-spacing:.08em}
 body.home-landing .hero-action-detail{font-size:.85rem;line-height:1.5}
-body.home-landing a.hero-action:hover,body.home-landing a.hero-action:focus-visible{transform:none;box-shadow:0 4px 16px #020b1433;border-color:#eac89f}
+body.home-landing a.hero-action:focus-visible{transform:none;box-shadow:0 4px 16px #020b1433;border-color:#eac89f}
 body.home-landing .home-proof-strip{background:#0b1c2c;border-color:#314b61}
 body.home-landing .home-local-guide{background:#081523}
 body.home-landing .home-local-guide aside{background:#10253a;border-color:#314b61;box-shadow:none}

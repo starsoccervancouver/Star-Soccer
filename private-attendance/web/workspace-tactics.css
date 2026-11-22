@@ -20,7 +20,7 @@
   color: var(--studio-ink); font-size: 12px; font-weight: 650; line-height: 1.35;
   white-space: normal; overflow-wrap: anywhere; cursor: pointer; box-shadow: none;
 }
-#tactics-board-tools.tactics-studio button:hover:not(:disabled) { background: var(--desk-accent-soft); border-color: var(--desk-accent); }
+#tactics-board-tools.tactics-studio button:not([aria-pressed="true"]):hover:not(:disabled) { background: var(--desk-option-hover); border-color: var(--desk-option-hover-border); color: var(--desk-ink); }
 #tactics-board-tools.tactics-studio button:disabled { opacity: .43; cursor: default; }
 #tactics-board-tools.tactics-studio button[aria-pressed=true],
 #tactics-board-tools.tactics-studio .tactics-view-guides button[aria-pressed=true]:hover:not(:disabled) { background: var(--studio-dark); border-color: var(--studio-dark); color: #f4f3e9; }

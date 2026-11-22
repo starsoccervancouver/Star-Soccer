@@ -220,9 +220,9 @@ body.home-landing a.hero-action-programs {
 }
 body.home-landing a.hero-action-camps {
   min-height: 190px;
-  background: #0055ff;
-  border-color: #79aaff;
-  color: #fff;
+  background: linear-gradient(135deg, #82d5fa, #3d88e5);
+  border-color: rgba(235, 250, 255, .75);
+  color: #071728;
 }
 body.home-landing a.hero-action:hover,
 body.home-landing a.hero-action:focus-visible {
@@ -263,8 +263,8 @@ body.home-landing .hero-action-detail {
   font-weight: 500;
   line-height: 1.5;
 }
-body.home-landing .hero-action-camps .hero-action-eyebrow { color: #fff; }
-body.home-landing .hero-action-camps .hero-action-detail { color: #fff; }
+body.home-landing .hero-action-camps .hero-action-eyebrow { color: #071728; }
+body.home-landing .hero-action-camps .hero-action-detail { color: #071728; }
 body.home-landing .hero-action-camps .hero-action-detail strong {
   color: #ffffff;
   font-size: 1.02rem;

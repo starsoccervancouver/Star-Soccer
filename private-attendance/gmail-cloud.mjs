@@ -140,7 +140,9 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
           if(filing?.isReceipt(message))await storage.put('filing:receipt:'+message.id,message.id);
           try{
             const mailbox=campPlacementSince||followupEnabled?(await storage.get('ownerAddress')||STAR_SOCCER_OWNER):undefined;
-            await syncLedgerEvent(ledger,classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox,followupEnabled),{campPlacementSince,trackConfirmation:followupEnabled,now:new Date(clock())});
+            const event=classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox,followupEnabled);
+            const confirmedDraftFlow=!!filing&&Date.parse(event?.received)>=Date.parse('2026-11-22T07:30:00Z');
+            await syncLedgerEvent(ledger,event,{campPlacementSince,confirmedDraftFlow,trackConfirmation:followupEnabled,now:new Date(clock())});
           }
           catch(err){
             if(!/^AIRTABLE_/.test(err.message))throw err;
@@ -162,7 +164,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const filingPending=filing?await filing.step():false;
       if(filing && !filingPending && clock()-(await storage.get('confirmation:last')||0)>=3600000){
         try{
-          await checkConfirmationDrafts({db:ledger,storage,now:clock(),read:id=>gmail(access,'messages/'+id,[['format','minimal']]),search:async q=>(await gmail(access,'messages',[['q',q],['maxResults','1']])).messages||[],create:async raw=>{
+          await checkConfirmationDrafts({db:ledger,storage,now:clock(),read:async id=>{const m=await gmail(access,'messages/'+id,[['format','full']]);const event=classifyMessage(m,labels,STAR_SOCCER_OWNER);return event?.form&&event.type==='registration'?{id:m.id,reference:event.reference,contact:event.contact,labelIds:m.labelIds}:null;},search:async q=>(await gmail(access,'messages',[['q',q],['maxResults','1']])).messages||[],create:async raw=>{
             const response=await fetchFn(new URL('drafts',root),{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({message:{raw}})});
             if(!response.ok)throw Error('GMAIL_'+response.status);return response.json();
           }});
@@ -202,7 +204,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     if(op==='owner-workflows'){
       if(config.baseId!=='appnaG94HQpEaRios')throw Error('WRONG_LEDGER');
       const data={};for(const [name,columns] of Object.entries(reportFields))data[name]=await ledger.list(name,columns);
-      let notices=null,calendar=null;
+      let notices=null,calendar=null,calendarReason='Calendar permission is missing. Reconnect in Settings.';
       const encrypted=await storage.get('refresh');
       if(encrypted){
        try{
@@ -211,12 +213,12 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         let page,ids=[];do{const q=[['labelIds',label],['q','from:notify@payments.interac.ca'],['maxResults','500']];if(page)q.push(['pageToken',page]);const batch=await gmail(access,'messages',q);ids.push(...(batch.messages||[]).map(m=>m.id));page=batch.nextPageToken;}while(page);notices=ids;
         if(await storage.get('calendar:enabled')){
           const events=[];let cursor;do{const url=new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');url.search=new URLSearchParams({timeMin:new Date(clock()-86400000).toISOString(),timeMax:new Date(clock()+8*86400000).toISOString(),singleEvents:'true',maxResults:'250',fields:'nextPageToken,items(id,recurringEventId,iCalUID,status,start,end,location,summary)',...(cursor?{pageToken:cursor}:{})});
-          const res=await fetchFn(url,{headers:{Authorization:'Bearer '+access},signal:AbortSignal.timeout(12000)});if(!res.ok)throw Error('CALENDAR_UNAVAILABLE');const batch=await res.json();events.push(...(batch.items||[]));cursor=batch.nextPageToken;}while(cursor);calendar=events;
+          const res=await fetchFn(url,{headers:{Authorization:'Bearer '+access},signal:AbortSignal.timeout(12000)});if(!res.ok){const info=await res.json().catch(()=>({}));calendarReason=info.error?.details?.some(x=>x.reason==='SERVICE_DISABLED')||info.error?.errors?.some(x=>x.reason==='accessNotConfigured')?'Enable the Google Calendar API in the Coach Desk cloud project.':'Check Calendar permissions (Google HTTP '+res.status+').';throw Error('CALENDAR_UNAVAILABLE');}const batch=await res.json();events.push(...(batch.items||[]));cursor=batch.nextPageToken;}while(cursor);calendar=events;
         }
        }catch{/* Surface unavailable reads in the report. */}
       }
       const drafts=await storage.list({prefix:'confirmation:booking:'});
-      return ownerWorkflows(data,{now:clock(),notices,desk:payload.desk,calendar,draftStates:[...drafts.values()],draftError:await storage.get('confirmation:error')});
+      return ownerWorkflows(data,{now:clock(),notices,desk:payload.desk,calendar,calendarReason,draftStates:[...drafts.values()],draftError:await storage.get('confirmation:error')});
     }
     if(op==='family-followups'||op==='preview-family-followups'){
       const encrypted=await storage.get('refresh');
@@ -262,7 +264,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const report=await storage.get('report')||{};
       const scan=await storage.get('scan'),pending=await storage.list({prefix:'q:',limit:1});
       const filing=await storage.get('filing:progress');
-      return {connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
+      return {calendarEnabled:!!await storage.get('calendar:enabled'),confirmationCheckedAt:await storage.get('confirmation:last')||null,connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
     }
     if(op==='stop-labels'){await storage.put('filing:enabled',false);return {labelFiling:false};}
     if(op==='start'){

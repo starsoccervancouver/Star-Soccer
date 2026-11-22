@@ -39,6 +39,7 @@ export async function checkConfirmationDrafts({db,storage,search,read,create,now
   const bookings=await db.list('bookings',['Player','Family','Booking status','Start date','First session','Attendance','Covered dates','Booking reference']);
   const active=pending.filter(({fields:r})=>confirmationCandidate(r,bookings.find(b=>b.id===single(r.Booking))?.fields,today));
   if(!active.length)return;
+  const intake=await db.list('intake',['Message ID','Gmail draft ID','Reply workflow','Review']);
   const sessions=await db.list('sessions',['Session','Source session ID','Date','Time','Venue','Session status']);
   const roster=await db.list('attendance',['Session','Session date','Player','Booking','Coverage state']);
   const templates=await db.list('templates',['Template','HTML','Version']);
@@ -49,7 +50,9 @@ export async function checkConfirmationDrafts({db,storage,search,read,create,now
     if(prior?.status==='creating')continue;
     if(all.filter(row=>row.fields.Status!=='Declined'&&row.fields.Booking?.includes(bid)).length!==1){await review('Resolve competing registrations for this booking.');continue;}
     const source=await read(r['Source Gmail ID']);
-    if(!source||source.labelIds?.some(l=>['SPAM','TRASH','DRAFT','SENT'].includes(l))){await review('Check the original registration in Gmail.');continue;}
+    const linked=intake.filter(x=>x.fields['Message ID']===r['Source Gmail ID']);
+    if(linked.some(x=>x.fields['Gmail draft ID']||['Ignore','Duplicate'].includes(x.fields.Review)||['Sent - confirmed','No reply needed'].includes(x.fields['Reply workflow']))){await review('Review the existing intake decision or linked draft before preparing mail.');continue;}
+    if(source?.id!==r['Source Gmail ID']||source.reference!==r.Reference||source.contact?.toLowerCase()!==r['Parent email'].toLowerCase()||source.labelIds?.some(l=>['SPAM','TRASH','DRAFT','SENT'].includes(l))){await review('Check the original registration in Gmail.');continue;}
     const book=bookings.find(b=>b.id===bid).fields, rows=roster.filter(a=>a.fields.Booking?.includes(bid)&&a.fields['Coverage state']!=='Void');
     const slots=rows.map(a=>sessions.find(s=>s.id===single(a.fields.Session))?.fields);
     const dates=new Set((book['Covered dates']||book['Start date']).match(/\d{4}-\d{2}-\d{2}/g)||[]);
@@ -68,7 +71,7 @@ export async function checkConfirmationDrafts({db,storage,search,read,create,now
     if(master.length!==1){await review('Select the approved Review 05 master.');continue;}
     let raw;try{raw=renderConfirmation(master[0].fields.HTML,r,slots.sort((a,b)=>a.Date.localeCompare(b.Date)||a.Time.localeCompare(b.Time)));}catch(e){await review(e.message);continue;}
     // Gmail cannot upsert drafts. Persist intent before POST, including on timeouts.
-    let acquired=false;await storage.transaction(async tx=>{const seen=await tx.get(key);if(!seen||seen.status==='review'){await tx.put(key,{status:'creating',id,reason:'Check Drafts before retrying this confirmation.'});acquired=true;}});
+    const acquired=await storage.transaction(async tx=>{const seen=await tx.get(key);if(seen&&seen.status!=='review')return false;await tx.put(key,{status:'creating',id,reason:'Check Drafts before retrying this confirmation.'});return true;});
     if(!acquired)continue;
     const draft=await create(raw);
     if(!draft?.id)throw Error('Draft creation needs review.');

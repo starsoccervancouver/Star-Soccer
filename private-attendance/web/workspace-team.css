@@ -5,7 +5,7 @@
 #coaching-team :is(button,input,section,aside,article,header,label,details,summary) { min-width: 0; max-width: 100%; }
 #coaching-team :is(button,input) { min-height: 44px; border-radius: 8px; }
 #coaching-team button { white-space: normal; overflow-wrap: anywhere; }
-#coaching-team :is(button,input,summary):focus-visible { outline: 3px solid var(--desk-navy-soft, #3c4046); outline-offset: 3px; }
+#coaching-team :is(button,input,summary):focus-visible { outline: 3px solid var(--desk-accent); outline-offset: 3px; }
 #coaching-team button:disabled { opacity: .55; cursor: not-allowed; }
 #coaching-team .coaching-team-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 18px; }
 #coaching-team .coaching-team-toolbar > label { flex: 1 1 240px; }
@@ -15,7 +15,7 @@
 #coaching-team :is(.coaching-team-sidebar,.coaching-team-detail) { padding: 16px; border: 1px solid var(--desk-line, #b6afa2); border-radius: 12px; background: var(--desk-surface, #dbd5ca); }
 #coaching-team .coaching-coach-list { display: grid; gap: 8px; }
 #coaching-team button.coaching-coach { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; text-align: left; color: var(--desk-ink, #292d33); background: var(--desk-field, #e3ddd3); border: 1px solid var(--desk-line, #b6afa2); }
-#coaching-team button.coaching-coach[aria-pressed="true"] { color: #fff; background: var(--desk-navy-soft, #3c4046); border-color: var(--desk-navy-soft, #3c4046); }
+#coaching-team button.coaching-coach[aria-pressed="true"] { color: #fff; background: var(--desk-accent); border-color: var(--desk-accent); }
 #coaching-team .coaching-coach > span:not(.coaching-avatar) { min-width: 0; }
 #coaching-team .coaching-coach :is(strong,small) { display: block; overflow-wrap: anywhere; }
 #coaching-team .coaching-coach small { margin-top: 4px; font-size: 12px; line-height: 1.4; }
@@ -27,7 +27,7 @@
 #coaching-team .coaching-stats { display: flex; flex-wrap: wrap; gap: 8px 16px; width: 100%; margin-top: 4px; font-size: 13px; }
 #coaching-team .coaching-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 16px; padding-bottom: 12px; border-bottom: 1px solid var(--desk-line, #b6afa2); }
 #coaching-team .coaching-tabs button { flex: 1 1 150px; padding: 10px 12px; }
-#coaching-team .coaching-tabs :is([aria-selected="true"],[aria-pressed="true"]) { background: var(--desk-navy-soft, #3c4046); border-color: var(--desk-navy-soft, #3c4046); color: #fff; }
+#coaching-team .coaching-tabs :is([aria-selected="true"],[aria-pressed="true"]) { background: var(--desk-accent); border-color: var(--desk-accent); color: #fff; }
 #coaching-team :is(.coaching-group-list,.coaching-note-list) { display: grid; gap: 12px; }
 #coaching-team :is(.coaching-group,.coaching-note) { padding: 0 14px 14px; border: 1px solid var(--desk-line, #b6afa2); border-radius: 10px; background: var(--desk-field, #e3ddd3); overflow-wrap: anywhere; }
 #coaching-team .coaching-group:not([open]) { padding-bottom: 0; }

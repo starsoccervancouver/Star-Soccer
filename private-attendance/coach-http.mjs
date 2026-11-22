@@ -30,6 +30,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
   if(!full)return data;
   return {...data,
    ...(familyFollowups&&data.profile.role==='owner'?{familyFollowupsAvailable:true}:{}),
+   ...(sessionBooks&&(data.profile.role==='owner'||data.profile.role==='admin'&&data.profile.familyAccess===true)?{booksAvailable:true}:{}),
    ...(attention&&data.profile.familyAccess?{attentionAvailable:true}:{}),
    ...(gmailSync&&data.profile.role==='owner'?{gmailSyncAvailable:true}:{}),
    notes:coaches.notes(data.profile),tasks:coaches.tasks(data.profile)};

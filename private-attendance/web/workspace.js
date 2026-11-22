@@ -189,7 +189,7 @@
  }
  function openReview(filter){go('attention',false,null,{reportView:'roster',reviewFilter:filter});if(tab==='attention')$('roster-review-type').focus();}
  function updateHomeAttention(){
-  $('home-attention').hidden=!$('home-priorities').childElementCount&&$('home-mail-summary').hidden&&$('home-registration-review').hidden;
+  $('home-attention').hidden=!$('home-priorities').childElementCount&&$('home-mail-summary').hidden&&$('home-registration-review').hidden&&$('home-unpaid').hidden;
  }
  function renderHome(){
   if(!data)return;const s=session(),date=today(),end=addDate(date,6),week=attendanceSessions('upcoming').filter(s=>s.status!=='Cancelled'),{past,due,groups}=rosterReviews();
@@ -674,13 +674,14 @@
  const familyMoney = value => Number.isFinite(value) ? cadFormat.format(value) : 'Not recorded';
  const familyDate=value=>value && Number.isFinite(Date.parse(value))?dateWithYearFormat.format(Date.parse(value)):value;
  const booksPageSize=40;
- let booksRequest=0,booksRows=null,booksDenied=false,booksLimit=booksPageSize;
- const canViewBooks=()=>!booksDenied&&(profile?.role==='owner'||(profile?.role==='admin'&&profile.familyAccess===true));
+ let booksRequest=0,booksRows=null,booksDenied=false,booksLimit=booksPageSize,homeUnpaidState='idle';
+ const canViewBooks=()=>!booksDenied&&data?.booksAvailable===true&&(profile?.role==='owner'||(profile?.role==='admin'&&profile.familyAccess===true));
  const sessionDue=row=>row.scope==='session'&&row.status==='due'&&Number.isFinite(row.amountDue)&&row.amountDue>0;
  const bookStatuses={due:'Payment due',paid:'Paid',upcoming:'Upcoming','no-charge':'No charge',package:'Package',review:'Needs review'};
 
  function resetBooks(){
-  booksRequest++;booksRows=null;booksLimit=booksPageSize;
+  booksRequest++;booksRows=null;booksLimit=booksPageSize;homeUnpaidState='idle';
+  $('home-unpaid').hidden=true;$('home-unpaid-label').textContent='Unpaid sessions';updateHomeAttention();
   $('books-search').value='';$('books-more').hidden=true;
   $('home-unpaid').open=false;$('books-filter').value='all';$('books-refresh').disabled=false;
   for(const id of ['books-list','home-unpaid-list','books-status','home-unpaid-status'])$(id).replaceChildren();
@@ -738,8 +739,14 @@
   $('books-more').hidden=visible.length<=booksLimit;
   $('books-status').textContent=visible.length>booksLimit?'Showing '+booksLimit+' of '+visible.length+' records.':visible.length?visible.length+(visible.length===1?' record':' records'):'No matching records.';
  }
+ function renderUnpaidRows(){
+  const list=$('home-unpaid-list');
+  list.replaceChildren();
+  if($('home-unpaid').open&&homeUnpaidState==='ready'&&booksRows)list.append(...booksRows.map(row=>bookEntry(row,true)));
+ }
  async function loadBooks(unpaid=false){
-  if(!canViewBooks()||tab!==(unpaid?'home':'books')||(unpaid&&!$('home-unpaid').open))return;
+  if(!canViewBooks()||tab!==(unpaid?'home':'books'))return;
+  if(unpaid){if(homeUnpaidState==='loading'||homeUnpaidState==='ready')return;homeUnpaidState='loading';}
   const ticket=++booksRequest,list=$(unpaid?'home-unpaid-list':'books-list'),status=$(unpaid?'home-unpaid-status':'books-status');
   list.replaceChildren();booksRows=null;
   status.textContent=unpaid?'Loading unpaid sessions…':'Loading books…';
@@ -750,7 +757,10 @@
    if(!Array.isArray(result.rows))throw Error('Books unavailable.');
    if(!unpaid){booksRows=result.rows;renderBooks();return;}
    const due=result.rows.filter(sessionDue);
-   list.replaceChildren(...due.map(row=>bookEntry(row,true)));
+   booksRows=due;homeUnpaidState='ready';
+   $('home-unpaid-label').textContent='Unpaid sessions ('+due.length+')';
+   $('home-unpaid').hidden=!due.length;
+   updateHomeAttention();renderUnpaidRows();
    status.textContent=due.length?due.length+(due.length===1?' unpaid session':' unpaid sessions')+' · '+familyMoney(due.reduce((sum,row)=>sum+row.amountDue,0))+' owing':'No confirmed unpaid sessions.';
   }catch(error){
    if(ticket!==booksRequest)return;
@@ -759,6 +769,9 @@
     if(tab==='books')go('home');
     return;
    }
+   if(unpaid){
+    homeUnpaidState='failed';$('home-unpaid-label').textContent='Check unpaid sessions';$('home-unpaid').hidden=false;updateHomeAttention();
+   }
    status.textContent=unpaid?'Unpaid sessions could not load. Close and reopen to retry.':'Books could not load. Refresh to retry.';
   }finally{
    if(ticket===booksRequest&&!unpaid)$('books-refresh').disabled=false;
@@ -766,8 +779,8 @@
  }
  $('home-unpaid').addEventListener('toggle',()=>{
   if(tab!=='home')return;
-  if($('home-unpaid').open)loadBooks(true);
-  else{booksRequest++;$('home-unpaid-list').replaceChildren();$('home-unpaid-status').textContent='';}
+  renderUnpaidRows();
+  if($('home-unpaid').open&&homeUnpaidState==='failed')loadBooks(true);
  });
  $('home-open-books').addEventListener('click',()=>go('books'));
  $('books-refresh').addEventListener('click',()=>loadBooks());
@@ -909,7 +922,7 @@
     reviewFilter=route?.reviewFilter||reviewFilter;
     if(!reviewTypes().some(([key])=>key===reviewFilter))reviewFilter='all';
    }
-   workspaceView=requestedView;tab=next;renderSelector();$('session-toolbar').hidden=true;$('settings-navigation').hidden=!settingsTabs.includes(tab);$('refresh').hidden=settingsTabs.includes(tab)||['families','books','attention'].includes(tab);if(tab==='attendance')renderAttendance();document.querySelectorAll('.tab-panel').forEach(p=>{p.hidden=p.id!=='panel-'+tab;});document.querySelectorAll('#navigation button[data-tab]').forEach(b=>{const active=b.dataset.tab===(tab==='plan'?'plan':tab)||b.dataset.tab==='settings'&&settingsTabs.includes(tab);b.classList.toggle('nav-active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});document.querySelectorAll('[data-settings-tab]').forEach(b=>{if(b.dataset.settingsTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});const t=tab==='plan'&&workspaceView!=='plan'?[titles[workspaceView][0],titles[workspaceView][1],'Choose a training group to open '+(workspaceView==='attendance'?'its attendance.':'its group and player notes.')]:titles[tab];$('page-eyebrow').textContent=t[0];$('page-title').textContent=t[1];$('page-copy').textContent=t[2];if(tab==='home'){renderHome();if(data.familyFollowupsAvailable)loadOwnerFollowups();}if(tab==='attention'){renderReportPane();if(reportView==='roster'&&profile.role==='owner'&&data.familyFollowupsAvailable&&['all','registrations'].includes(reviewFilter))loadOwnerFollowups();}if(profile.familyAccess && (tab==='attention'&&reportView!=='roster'||tab==='home'&&data.attentionAvailable))loadAttention();if(tab==='books')loadBooks();if(tab==='families')showFamilyView(familyId);if(tab==='notes')renderNotes();if(tab==='plan'){if(!preserveSession&&!reopenGroup)window.CoachPlanner?.exitFocus();if(preserveSession||reopenGroup||window.CoachPlanner?.isFocused())loadPlan();renderWorkspaceView();}if(tab==='tasks')renderTasks();if(tab==='settings')renderSettings();if(tab==='team')loadTeam();if(tab==='activity')loadActivity();publishCoachContext();if(reopenGroup){renderAttendance();renderNotes();window.CoachPlanner?.focusSession(selected);}renderWorkspaceView();}
+   workspaceView=requestedView;tab=next;renderSelector();$('session-toolbar').hidden=true;$('settings-navigation').hidden=!settingsTabs.includes(tab);$('refresh').hidden=settingsTabs.includes(tab)||['families','books','attention'].includes(tab);if(tab==='attendance')renderAttendance();document.querySelectorAll('.tab-panel').forEach(p=>{p.hidden=p.id!=='panel-'+tab;});document.querySelectorAll('#navigation button[data-tab]').forEach(b=>{const active=b.dataset.tab===(tab==='plan'?'plan':tab)||b.dataset.tab==='settings'&&settingsTabs.includes(tab);b.classList.toggle('nav-active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});document.querySelectorAll('[data-settings-tab]').forEach(b=>{if(b.dataset.settingsTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});const t=tab==='plan'&&workspaceView!=='plan'?[titles[workspaceView][0],titles[workspaceView][1],'Choose a training group to open '+(workspaceView==='attendance'?'its attendance.':'its group and player notes.')]:titles[tab];$('page-eyebrow').textContent=t[0];$('page-title').textContent=t[1];$('page-copy').textContent=t[2];if(tab==='home'){renderHome();if(canViewBooks())loadBooks(true);if(data.familyFollowupsAvailable)loadOwnerFollowups();}if(tab==='attention'){renderReportPane();if(reportView==='roster'&&profile.role==='owner'&&data.familyFollowupsAvailable&&['all','registrations'].includes(reviewFilter))loadOwnerFollowups();}if(profile.familyAccess && (tab==='attention'&&reportView!=='roster'||tab==='home'&&data.attentionAvailable))loadAttention();if(tab==='books')loadBooks();if(tab==='families')showFamilyView(familyId);if(tab==='notes')renderNotes();if(tab==='plan'){if(!preserveSession&&!reopenGroup)window.CoachPlanner?.exitFocus();if(preserveSession||reopenGroup||window.CoachPlanner?.isFocused())loadPlan();renderWorkspaceView();}if(tab==='tasks')renderTasks();if(tab==='settings')renderSettings();if(tab==='team')loadTeam();if(tab==='activity')loadActivity();publishCoachContext();if(reopenGroup){renderAttendance();renderNotes();window.CoachPlanner?.focusSession(selected);}renderWorkspaceView();}
  function render(){if(!data)return;renderSelector();renderHome();renderAttendance();renderNotes();if(tab==='plan'&&!planDirty())loadPlan();if(tab==='team')loadTeam();if(tab==='settings')renderSettings();publishCoachContext();}
  async function loadDesk(refresh=false,initialDesk=null){
   if(saveBusy||loadingDesk||tacticsBusy()||plannerBusy())return;
@@ -940,7 +953,7 @@
    }
    profile=data.profile;
    clearAttention(refresh);resetFamilyRecords();resetBooks();booksDenied=false;
-   $('nav-books').hidden=!canViewBooks();$('home-unpaid').hidden=!canViewBooks();
+   $('nav-books').hidden=!canViewBooks();
    if(tab==='books'&&!canViewBooks())tab='home';
    $('nav-attention').hidden=false;
    $('nav-families').hidden=!profile.familyAccess;

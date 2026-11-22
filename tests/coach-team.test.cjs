@@ -83,6 +83,7 @@ test('Books and Home unpaid require the stored finance grant and select exact-se
  const origin='https://attendance.starsoccer.ca',route=origin+'/workspace/api/session-books';
  assert.equal((await handler(new Request(route))).status,401);
  for(const actor of [one,admin]){
+  assert.equal((await (await request(actor,'desk')).json()).booksAvailable,undefined);
   for(const input of [{},{view:'unpaid'},{role:'owner'}])assert.equal((await request(actor,'session-books',input)).status,403);
  }
  for(const input of [{view:'all'},{view:null},{view:['unpaid']},{sessionId:rid(1)},{view:'unpaid',familyAccess:true}])
@@ -92,6 +93,7 @@ test('Books and Home unpaid require the stored finance grant and select exact-se
  assert.equal((await handler(new Request(route,{method:'POST',headers:{cookie:'__Host-ss_staff='+ownerSession.token},body:'{}'}))).status,403);
  coaches.saveUser(owner,{email:admin.email,name:'Finance admin',role:'super_admin',expectedVersion:1});
  for(const actor of [one,owner,admin]){
+  assert.equal((await (await request(actor,'desk')).json()).booksAvailable,actor===one?undefined:true);
   const session=auth.createVerifiedSession(actor.email);
   const bootstrap=await handler(new Request(origin+'/workspace/api/bootstrap',{headers:{cookie:'__Host-ss_staff='+session.token,'X-Coach-Desk':'full'}}));
   for(const response of [bootstrap,await request(actor,'desk'),await request(actor,'refresh',{}),await request(actor,'session',{sessionId:rid(1)})]){

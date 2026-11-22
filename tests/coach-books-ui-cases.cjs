@@ -51,7 +51,7 @@ async function checkLayout(page, row, width) {
 async function finishReadAfterExit({page,context}, exit) {
   const endpoint = '**/workspace/api/session-books';
   let finishRead;
-  const delayed = route=>new Promise(resolve=>{
+  const delayed = route=>route.request().postDataJSON().view==='unpaid'?route.fallback():new Promise(resolve=>{
     finishRead=async()=>{await route.fulfill({json:{rows:books}});resolve();};
   });
   await context.route(endpoint,delayed);
@@ -69,16 +69,37 @@ async function finishReadAfterExit({page,context}, exit) {
 }
 
 module.exports = async function checkBooks(fixture) {
-  const f = await fixture({books});
+  const emptyHome = {homeQueues:true,roster:[],openInquiry:false};
+  const empty = await fixture({...emptyHome,books:[]});
+  try {
+    await empty.page.waitForLoadState('networkidle');
+    assert.deepEqual(reads(empty).map(r=>r.payload),[{view:'unpaid'}]);
+    for(const selector of ['#home-unpaid','#home-attention','.home-command-row']) assert(await empty.page.locator(selector).isHidden(),selector+' stays hidden on an empty Overview');
+    assert.deepEqual(empty.errors,[]);
+  } finally { await empty.context.close(); }
+
+  const f = await fixture({...emptyHome,books});
   try {
     const {page} = f;
     const unpaid = page.locator('#home-unpaid');
-    assert.equal(reads(f).length,0,'Opening Overview alone does not read the books');
+    await unpaid.locator('summary').getByText('Unpaid sessions (1)',{exact:true}).waitFor();
+    await page.waitForLoadState('networkidle');
+    assert(await page.locator('#home-attention').isVisible(),'One unpaid session keeps the otherwise-empty attention card visible');
+    assert(await page.locator('#home-mail-summary').isHidden());
+    assert(await page.locator('#home-registration-review').isHidden());
+    assert.equal(await page.locator('#home-priorities').evaluate(el=>el.childElementCount),0);
+    assert.equal(await unpaid.evaluate(el=>el.open),false);
+    assert.equal(await unpaid.locator('.books-entry').count(),0,'Only a count is rendered while collapsed');
+    assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
     await unpaid.locator('summary').click();
     const homeRow = unpaid.locator('.books-entry');
     await homeRow.getByText(due.playerName,{exact:true}).waitFor();
     assert.equal(await homeRow.count(),1,'Overview only shows sessions with an amount owing');
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
+    await unpaid.locator('summary').click();
+    await unpaid.locator('summary').click();
+    await homeRow.getByText(due.playerName,{exact:true}).waitFor();
+    assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}],'Reopening uses the same due-only result');
     for (const value of [due.contact.guardian,due.contact.email,due.contact.phone,due.time,'31.50'])
       assert((await homeRow.innerText()).includes(value),'Unpaid session shows '+value);
     for(const width of [320,390,1365]) await checkLayout(page,homeRow,width);
@@ -119,8 +140,8 @@ module.exports = async function checkBooks(fixture) {
     assert.deepEqual(f.errors,[]);
   } finally { await f.context.close(); }
 
-  for(const [role,familyAccess] of [['admin',true],['admin',false],['coach',false],['coach',true]]) {
-    const f = await fixture({role,familyAccess,hash:'#view=books',books:[]});
+  for(const [role,familyAccess,booksAvailable] of [['admin',true,true],['admin',false,false],['coach',false,false],['coach',true,true],['owner',true,false]]) {
+    const f = await fixture({role,familyAccess,booksAvailable,hash:'#view=books',books:[]});
     try {
       if(role==='admin' && familyAccess) {
         await f.page.locator('#panel-books').waitFor();
@@ -130,6 +151,8 @@ module.exports = async function checkBooks(fixture) {
         assert((await f.page.locator('#panel-books').innerText()).match(/no .*(sessions|entries|records|bookings|results)/i),'Empty books gives a readable status');
         await f.page.setViewportSize({width:390,height:900});
         await openDestination(f.page,'home');
+        await f.page.waitForLoadState('networkidle');
+        assert.deepEqual(reads(f).map(r=>r.payload),[{}, {view:'unpaid'}],'A super admin gets the same due-only Overview check');
         await openDestination(f.page,'books');
         assert(await f.page.locator('#panel-books').isVisible(),'Books opens from the mobile More menu');
       } else {
@@ -143,6 +166,23 @@ module.exports = async function checkBooks(fixture) {
       assert.deepEqual(f.errors,[]);
     } finally { await f.context.close(); }
   }
+
+  const retry = await fixture({...emptyHome,hash:'#view=settings',books:[due]});
+  try {
+    const {page} = retry;
+    await page.waitForLoadState('networkidle');
+    assert.equal(reads(retry).length,0,'Opening Settings does not look up unpaid sessions');
+    const endpoint='**/workspace/api/session-books';
+    await retry.context.route(endpoint,route=>route.fulfill({status:503,json:{error:'SESSION_BOOKS_UNAVAILABLE'}}),{times:1});
+    await openDestination(page,'home');
+    const unpaid=page.locator('#home-unpaid');
+    await unpaid.getByText('Check unpaid sessions',{exact:true}).waitFor();
+    assert(await page.locator('#home-attention').isVisible(),'A failed lookup cannot mark an otherwise empty Overview as clear');
+    await unpaid.locator('summary').click();
+    await unpaid.getByText(due.playerName,{exact:true}).waitFor();
+    assert.deepEqual(reads(retry).map(r=>r.payload),[{view:'unpaid'}],'After a failed lookup, expanding retries the due-only read');
+    assert.deepEqual(retry.errors,[]);
+  } finally { await retry.context.close(); }
 
   const more = await fixture({hash:'#view=books',books:Array.from({length:43},(_,i)=>({...due,playerName:'Example Player '+(i+1)}))});
   try {

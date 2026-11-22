@@ -30,7 +30,8 @@ require('./coach-fixture-fonts.cjs')(assets);
   const browser = await chromium.launch(); let checks = 0;
   try {
     async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail, homeQueues = false, bundleDesk = homeQueues,
-      followups = false, roster = sessions, refreshRoster, books = [], families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
+      followups = false, roster = sessions, refreshRoster, books = [], openInquiry = true, booksAvailable = role==='owner'||(role==='admin'&&familyAccess),
+      families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
       let reportCompleted=null;
       const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, familyAccess, sessionVersion: 1, ...(displayEmail ? { displayEmail } : {}) } }, requests = [], errors = [];
@@ -49,7 +50,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         const payload = request.postData() ? request.postDataJSON() : undefined; requests.push({ path, method: request.method(), payload });
         let value;
         if (path.endsWith('/refresh') && refreshRoster !== undefined) roster = refreshRoster;
-        const desk = { profile: state.profile, sessions:roster, notes: [], tasks: [], observedAt: now,
+        const desk = { profile: state.profile, sessions:roster, notes: [], tasks: [], observedAt: now, ...(booksAvailable?{booksAvailable:true}:{}),
           attentionAvailable: homeQueues && familyAccess, familyFollowupsAvailable: (followups || homeQueues) && role==='owner' };
         const includeDesk = bundleDesk && state.profile && request.headers()['x-coach-desk'] === 'full';
         if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true, ...(includeDesk ? {desk} : {}) };
@@ -65,7 +66,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         else if (path.endsWith('/needs-attention/inquiries') && familyAccess && payload.completionToken==='fixture-row') {reportCompleted=payload.completed;value={completed:reportCompleted};}
         else if (path.includes('/needs-attention/') && familyAccess) {
           const item={key:'sample',completed:reportCompleted===true,reopened:reportCompleted===false,completionToken:'fixture-row',receipt:'fixture-receipt',title:'Session question',date:'2026-10-29',status:'Awaiting reply',href:'https://mail.google.com/mail/u/0/#all/123456789ab'};
-          const show=path.endsWith('/inquiries')&&(payload.history?reportCompleted!==null:reportCompleted===null);
+          const show=openInquiry&&path.endsWith('/inquiries')&&(payload.history?reportCompleted!==null:reportCompleted===null);
           value={items:show?[item]:[],resolved:[],next:null,inbox:'https://mail.google.com/'};
         }
         else if (path.endsWith('/family') && familyAccess && payload.familyId === rid(50)) value = {family:sampleRecord};
@@ -340,6 +341,8 @@ require('./coach-fixture-fonts.cjs')(assets);
     const p = await fixture();
     assert.equal(await p.page.locator('#home-notes,#go-notes').count(), 0, 'Overview no longer includes the recent-notes widget');
     await p.page.locator('#open-profile').click();
+    await p.page.waitForLoadState('networkidle');
+    const requestsBeforePreferences = p.requests.length;
     assert.equal(await p.page.locator('#preference-density,#preference-motion').count(), 0);
     const normalSize = await p.page.locator('.preference-preview p').evaluate(el => parseFloat(getComputedStyle(el).fontSize));
     await p.page.locator('#preference-text-size').selectOption('large');
@@ -349,7 +352,7 @@ require('./coach-fixture-fonts.cjs')(assets);
     await p.page.locator('#preference-start').selectOption('plan');
     const stored = await p.page.evaluate(key => JSON.parse(localStorage.getItem(key)), key);
     assert.deepEqual(stored, { start: 'plan', textSize: 'large', sessionView: 'calendar' });
-    assert.equal(p.requests.filter(r => r.method === 'POST').length, 0, 'Preferences do not make remote writes');
+    assert.equal(p.requests.length,requestsBeforePreferences,'Changing display preferences makes no network requests');
     await p.page.locator('#navigation [data-tab="home"]').click();
     assert.equal(await p.page.locator('#coaching-hub').getAttribute('data-coach-view'), 'calendar');
     assert.equal(await p.page.locator('#coaching-hub .coach-calendar').isVisible(), true);

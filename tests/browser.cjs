@@ -45,7 +45,13 @@ async function checkPublicHover(browser,desktop,base){
   assert(await hero.evaluate(el=>el.matches(':focus-visible')&&getComputedStyle(el).outlineStyle!=='none'),'Keyboard focus remains visible');
   await desktop.goto(base+'/locations.html');
   const current=desktop.locator('.site-nav .active').first(),currentSurface=await surface(current);
+  const otherTab=desktop.locator('.site-nav a:not([aria-current])').first();
+  assert.notEqual(currentSurface.fill,(await surface(otherTab)).fill,'Current navigation has a distinct background');
+  assert(await current.evaluate(el=>getComputedStyle(el).textDecorationLine==='none' &&
+    getComputedStyle(el,'::after').content==='none'),'Current navigation has no underline');
   await current.hover();assert.deepEqual(await surface(current),currentSurface,'Current navigation retains its selected state');
+  await current.focus();await desktop.keyboard.press('Tab');await desktop.keyboard.press('Shift+Tab');
+  assert(await current.evaluate(el=>el.matches(':focus-visible')&&getComputedStyle(el).outlineStyle==='solid'),'Current navigation keeps visible keyboard focus');
   await desktop.goto(base+'/registration.html?sessionId=wednesday&type=dropin');
   const submit=desktop.locator('button[type=submit]').first();
   await submit.evaluate(el=>{el.disabled=true;});const disabledSurface=await surface(submit);

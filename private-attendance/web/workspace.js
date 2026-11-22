@@ -14,7 +14,7 @@
  const fragment=new URLSearchParams(location.hash.slice(1));let googleFailure=location.hash==='#google-error',enrollment=fragment.get('enroll'),googleEnabled=false;window.CoachInitialRoute=fragment.has('view')?location.hash:'';history.replaceState(null,'',location.pathname);
  let hasOpenedGroup=false,workspaceView='plan',noteFolder='',groupSource=null,groupCache=[];
  let generation=0,csrf='',profile=null,data=null,selected='',tab=preferences.start,notes=[],tasks=[],users=[],editingNote=null,editingUser=null,plan={version:0,content:{}},saveBusy=false,loadingDesk=false,planSession=null,planLoad=0,attendanceView='upcoming',attendancePastDay='all',taskView='open';const attendanceCommands=new Map(),attendancePending=new Map(),attendanceErrors=new Map();
- const titles={attention:['Coach Desk','Reports','Review incoming messages and reopen completed reports.'],families:['Coach Desk','Families','View family registrations, bookings, payments and balances.'],coaches:['Your coaching team','Coaching team','View coach notes, assigned groups and their players.'],profiles:['Player development','Player profiles','Get to know each player. Review their goals, notes and attendance by training group.'],library:['Your coaching toolkit','Coach resources','Your drills, inspiration and practical coaching guides in one place.'],home:['Coach Desk','Your coaching week','A clear view of who’s coming and what comes next.'],attendance:['On the field','Attendance','Parent replies and actual attendance stay separate.'],notes:['Player development','Player notes & goals','Private observations, useful goals and coaching progress.'],plan:['Your training groups','Choose your group','Open a recurring group to see attendance, session plans and each player’s notes.'],tasks:['Follow through','Tasks & follow-ups','Your preparation, equipment and player follow-ups.'],settings:['Your workspace','Settings & profile','Your account, preferences and administrative tools.'],team:['Owner controls','Team & access','Approve accounts, assign sessions and control full access.'],activity:['Accountability','Activity log','Recent attendance, notes, planning and permission updates.'],legacy:['Admin-only history','Existing coaching records','Unattributed Airtable notes stay restricted to full-access accounts.']};
+ const titles={attention:['Coach Desk','Reports','Review incoming messages and reopen completed reports.'],families:['Coach Desk','Families','Choose a family to see their players, attendance and payments.'],coaches:['Your coaching team','Coaching team','View coach notes, assigned groups and their players.'],profiles:['Player development','Player profiles','Get to know each player. Review their goals, notes and attendance by training group.'],library:['Your coaching toolkit','Coach resources','Your drills, inspiration and practical coaching guides in one place.'],home:['Coach Desk','Your coaching week','A clear view of who’s coming and what comes next.'],attendance:['On the field','Attendance','Parent replies and actual attendance stay separate.'],notes:['Player development','Player notes & goals','Private observations, useful goals and coaching progress.'],plan:['Your training groups','Choose your group','Open a recurring group to see attendance, session plans and each player’s notes.'],tasks:['Follow through','Tasks & follow-ups','Your preparation, equipment and player follow-ups.'],settings:['Your workspace','Settings & profile','Your account, preferences and administrative tools.'],team:['Owner controls','Team & access','Approve accounts, assign sessions and control full access.'],activity:['Accountability','Activity log','Recent attendance, notes, planning and permission updates.'],legacy:['Admin-only history','Existing coaching records','Unattributed Airtable notes stay restricted to full-access accounts.']};
  const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:club.timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),day=v=>new Intl.DateTimeFormat('en-CA',{timeZone:'UTC',weekday:'short',month:'short',day:'numeric'}).format(new Date(v+'T12:00:00Z')),when=v=>v?new Intl.DateTimeFormat('en-CA',{timeZone:club.timeZone,month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(v)):'—';
  const full=()=>['owner','admin'].includes(profile?.role),session=()=>data?.sessions.find(s=>s.id===selected),empty=text=>node('p',text,'empty-state');
  function allGroups(){if(groupSource!==data?.sessions){groupSource=data?.sessions;groupCache=window.CoachGroups?.groups(groupSource||[])||[];}return groupCache;}
@@ -80,11 +80,11 @@
  let lastCoachContext;
  // Typing changes the unsaved indicator, not the roster or saved plan. Avoid
  // rebuilding all the supporting panels for each subsequent keystroke.
- function publishCoachContext(force=false){const next=data&&profile?{session:session(),sessions:data.sessions,groupSessions:groupRows(),selectedGroup:selectedGroup(),workspaceView,noteFolder,notes,tasks,profile,selected,tab,plan,notePlayer:$('note-player').value,planDirty:planDirty(),planReady:planSession===selected&&!$('plan-focus').disabled&&session()?.status!=='Cancelled',busy:saveBusy||loadingDesk}:null;if(!force&&(next===lastCoachContext||next&&lastCoachContext&&Object.keys(next).every(key=>next[key]===lastCoachContext[key])))return;lastCoachContext=next;window.dispatchEvent(new CustomEvent('coach:context',{detail:next}));publishStatus();}
+ function publishCoachContext(force=false){const next=data&&profile?{session:session(),sessions:data.sessions,groupSessions:groupRows(),selectedGroup:selectedGroup(),workspaceView,noteFolder,notes,tasks,profile,selected,tab,familyId:activeFamilyId,plan,notePlayer:$('note-player').value,planDirty:planDirty(),planReady:planSession===selected&&!$('plan-focus').disabled&&session()?.status!=='Cancelled',busy:saveBusy||loadingDesk}:null;if(!force&&(next===lastCoachContext||next&&lastCoachContext&&Object.keys(next).every(key=>next[key]===lastCoachContext[key])))return;lastCoachContext=next;window.dispatchEvent(new CustomEvent('coach:context',{detail:next}));publishStatus();}
  function openCoachingSession(sessionId,next,view){if(saveBusy||loadingDesk||plannerBusy()||tacticsBusy()||!profile||!data||!['home','attendance','notes','plan'].includes(next))return false;const target=data.sessions.find(item=>item.id===sessionId);if(!target||!allowSessionChange(sessionId))return false;const targetView=view||(['attendance','notes'].includes(next)?next:workspaceView);if(selected!==sessionId){const same=window.CoachGroups?.sameGroup(session(),target);if(!same)noteFolder='';resetNote();resetRosterFilters();}selected=sessionId;workspaceView=targetView;$('show-all').checked=true;go('plan',true);renderAttendance();renderNotes();publishCoachContext();const opened=tab==='plan'&&selected===sessionId;if(opened){hasOpenedGroup=true;window.CoachPlanner?.focusSession(sessionId);renderWorkspaceView();}return opened;}
  window.addEventListener('coach:profile-open',event=>{const v=event.detail||{};if(typeof v.resolve!=='function')return;const target=data?.sessions.find(row=>row.id===v.sessionId);if((tab!=='profiles'&&(tab!=='coaches'||!full()))||!target?.players.some(player=>player.playerId===v.playerId)||!openCoachingSession(v.sessionId,'notes'))return v.resolve(false);noteFolder=v.playerId;resetNote();$('note-search').value='';$('note-category-filter').value='all';$('note-review-filter').checked=false;renderSelector();renderNotes();if(v.goal){$('note-category').value='Goal';window.CoachGoals?.reset('note');$('note-body').focus();}publishCoachContext();v.resolve(true);});
  window.addEventListener('coach:focus-changed',()=>{renderWorkspaceView();document.dispatchEvent(new Event('coach:dictation-state'));});
- window.addEventListener('coach:navigate-route',event=>{const v=event.detail||{};if(typeof v.resolve!=='function')return;if(!profile||!data||saveBusy||loadingDesk||plannerBusy()||tacticsBusy()||!['home','plan','profiles','families','attention','library','coaches','settings','team','activity','legacy'].includes(v.view)||['families','attention'].includes(v.view)&&!profile.familyAccess||v.view==='team'&&profile.role!=='owner'||['activity','legacy','coaches'].includes(v.view)&&!full())return v.resolve(false);if(v.sessionId){if(v.view!=='plan'||!data.sessions.some(s=>s.id===v.sessionId))return v.resolve(false);return v.resolve(openCoachingSession(v.sessionId,'plan',v.section));}if(v.view==='plan'&&window.CoachPlanner?.isFocused()){if((noteDirty()||planDirty()||tacticsDirty()||plannerDirty())&&!confirm('Return to groups and discard unsaved changes?'))return v.resolve(false);resetNote();restorePlanDraft();discardTactics();discardPlanner();window.CoachPlanner?.exitFocus();}go(v.view);renderWorkspaceView();v.resolve(tab===v.view);});
+ window.addEventListener('coach:navigate-route',event=>{const v=event.detail||{};if(typeof v.resolve!=='function')return;if(!profile||!data||saveBusy||loadingDesk||plannerBusy()||tacticsBusy()||!['home','plan','profiles','families','attention','library','coaches','settings','team','activity','legacy'].includes(v.view)||['families','attention'].includes(v.view)&&!profile.familyAccess||v.view==='team'&&profile.role!=='owner'||['activity','legacy','coaches'].includes(v.view)&&!full())return v.resolve(false);if(v.sessionId){if(v.view!=='plan'||!data.sessions.some(s=>s.id===v.sessionId))return v.resolve(false);return v.resolve(openCoachingSession(v.sessionId,'plan',v.section));}if(v.view==='plan'&&window.CoachPlanner?.isFocused()){if((noteDirty()||planDirty()||tacticsDirty()||plannerDirty())&&!confirm('Return to groups and discard unsaved changes?'))return v.resolve(false);resetNote();restorePlanDraft();discardTactics();discardPlanner();window.CoachPlanner?.exitFocus();}go(v.view,false,v.familyId);renderWorkspaceView();v.resolve(tab===v.view);});
  window.addEventListener('coach:request-context',()=>{const next=tab==='plan'&&!selected&&data&&!saveBusy&&!loadingDesk&&window.CoachPlanner?.nextSession(data.sessions);if(next){selected=next.id;$('show-all').checked=true;render();}else publishCoachContext(true);});
  async function saveQuickNote(event){
   const v=event.detail||{},payload=v.payload,fromProfile=event.type==='coach:profile-note-save',targetRow=fromProfile?data?.sessions.find(row=>row.id===payload?.sessionId):session();
@@ -356,7 +356,7 @@
   if(!confirm('Stop syncing and remove this Gmail connection from Coach Desk?'))return;
   try{await api('gmail-sync/disconnect',{});await mailStatus();}catch(e){notice(e.message,true);}
  });
- let familyDirectory=[], familyMode='grid';
+ let familyDirectory=[], familyMode='grid', activeFamilyId=null, familyDirectoryLoaded=false, lastFamilyLink=null;
  function renderFamilyDirectory(){
   const container=$('family-directory');
   container.replaceChildren();
@@ -364,11 +364,14 @@
   function collection(families,layout){
    const list=node('ul','','families-'+layout);
    for(const family of families){
-    const li=node('li'),button=node('button',family.name,'family-choice');
-    button.type='button';
-    if(layout==='grid'&&Array.isArray(family.playerIds))button.append(node('small',family.playerIds.length+' linked '+(family.playerIds.length===1?'player':'players')));
-    button.addEventListener('click',()=>{$('family-picker').value=family.id;loadFamilyRecords(family.id);});
-    li.append(button);list.append(li);
+    const li=node('li'),link=node('a',family.name,'family-choice');
+    link.href='#view=families&family='+encodeURIComponent(family.id);
+    if(layout==='grid'&&Array.isArray(family.playerIds))link.append(node('small',family.playerIds.length+' linked '+(family.playerIds.length===1?'player':'players')));
+    link.addEventListener('click',event=>{
+     if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+     event.preventDefault();lastFamilyLink=link;go('families',false,family.id);
+    });
+    li.append(link);list.append(li);
    }
    return list;
   }
@@ -378,25 +381,22 @@
    if(!byPlayer.has(pid))byPlayer.set(pid,[]);
    byPlayer.get(pid).push(family);
   }
-  const today=new Intl.DateTimeFormat('en-CA',{timeZone:club.timeZone}).format(new Date());
-  const sessions=[...(data?.sessions||[])].filter(s=>s.date).sort((a,b)=>{
-   const upcoming=a.date>=today;
-   if(upcoming!==(b.date>=today))return upcoming?-1:1;
-   return (upcoming?1:-1)*a.date.localeCompare(b.date)||String(a.time||'').localeCompare(String(b.time||''));
-  });
   function group(label,families){
    const details=node('details','','family-session'),summary=node('summary',label);
    summary.append(node('small',families.length+' '+(families.length===1?'family':'families')));
-   details.append(summary,collection(families,'list'));container.append(details);
+   details.append(summary,families.length?collection(families,'list'):node('p','No linked families yet.','muted'));container.append(details);
   }
-  for(const session of sessions){
-   const linked=new Set((session.players||[]).flatMap(p=>byPlayer.get(p.playerId)||[]));
-   if(!linked.size)continue;
+  for(const roster of window.CoachGroups.familyGroups(data?.sessions||[])){
+   const linked=new Set();
+   for(const session of roster.sessions)for(const player of session.players||[]){
+    for(const family of byPlayer.get(player.playerId)||[])linked.add(family);
+   }
+   if(!linked.size && roster.verified===false && !roster.kind)continue;
    linked.forEach(f=>seen.add(f.id));
-   group([session.date,session.time,session.label||session.location].filter(Boolean).join(' · '),[...linked].sort((a,b)=>a.name.localeCompare(b.name)));
+   group(roster.label,[...linked].sort((a,b)=>a.name.localeCompare(b.name)));
   }
   const unplaced=familyDirectory.filter(f=>!seen.has(f.id));
-  if(unplaced.length)group('No linked dated session',unplaced);
+  if(unplaced.length)group('No linked session',unplaced);
  }
  for(const button of document.querySelectorAll('[data-family-mode]'))button.addEventListener('click',()=>{
   familyMode=button.dataset.familyMode;renderFamilyDirectory();
@@ -538,62 +538,98 @@
  $('attention-refresh').addEventListener('click',()=>loadAttention(true));
  let familyRequest = 0;
  const familyMoney = value => Number.isFinite(value) ? new Intl.NumberFormat('en-CA', {style:'currency', currency:'CAD'}).format(value) : 'Not recorded';
+ const familyDateFormat=new Intl.DateTimeFormat('en-CA',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
+ const familyDate=value=>value && Number.isFinite(Date.parse(value))?familyDateFormat.format(Date.parse(value)):value;
  function resetFamilyRecords() {
-  familyRequest++; familyDirectory=[]; $('family-directory').replaceChildren();
-  $('family-picker').replaceChildren();
-  $('family-picker').hidden = true;
-  $('family-results').replaceChildren();
-  $('family-status').textContent = '';
+  familyRequest++;familyDirectory=[];familyDirectoryLoaded=false;activeFamilyId=null;lastFamilyLink=null;
+  $('family-directory').replaceChildren();$('family-results').replaceChildren();
+  $('family-status').textContent='';$('family-back').hidden=true;$('family-browse').hidden=false;
+  if(tab==='families')$('page-title').textContent=titles.families[1];
+ }
+ function familySection(title) {
+  const section=node('section','','family-record-section');
+  section.append(node('h2',title));$('family-results').append(section);return section;
+ }
+ function familyList(parent,title,rows,format,emptyMessage,level='h3') {
+  parent.append(node(level,title));
+  if(!rows?.length){parent.append(node('p',emptyMessage,'muted'));return;}
+  const list=node('ul','','family-record-list');
+  for(const row of rows)list.append(node('li',format(row).filter(Boolean).join(' · ')));
+  parent.append(list);
+ }
+ function familyFields(parent,entries) {
+  const fields=node('dl','','profile-details');
+  for(const [label,value] of entries){
+   const row=node('div');row.append(node('dt',label),node('dd',value||'Not recorded'));fields.append(row);
+  }
+  parent.append(fields);
  }
  function renderFamilyRecord(family) {
-  const result = $('family-results');
-  result.replaceChildren(node('h3', family.name));
-  const description = [family.guardian, family.email, family.phone].filter(Boolean).join(' · ');
-  if (description) result.append(node('p', description));
-  if (family.players.length) result.append(node('p', 'Players: '+family.players.join(', ')));
-  const totals = node('dl', '', 'profile-details');
-  for (const [label, value] of [['Verified receipts', family.verifiedReceipts], ['Balance', family.balance], ['Due now', family.dueNow]]) {
-   const row = node('div'); row.append(node('dt', label), node('dd', familyMoney(value))); totals.append(row);
+  $('page-title').textContent=family.name;
+  const players=familySection('Players');
+  const profiles=family.playerProfiles??(family.players||[]).map(name=>({name}));
+  if(!profiles.length)players.append(node('p','No linked players.','muted'));
+  for(const player of profiles){
+   const card=node('article','','family-player');card.append(node('h3',player.name));players.append(card);
+   card.append(node('h4','Coaching notes'));
+   if(player.notes?.length){
+    for(const note of player.notes){
+     card.append(node('p',[note.category,familyDate(note.updatedAt)].filter(Boolean).join(' · '),'family-note-date'),node('p',note.body,'family-note-body'));
+    }
+   }else card.append(node('p',player.notes?'No coaching notes recorded.':'Coaching notes unavailable.','muted'));
+   familyList(card,'Attendance records',player.attendance,a=>[familyDate(a.date),a.status,a.label,a.time,a.location],
+    player.attendance?'No attendance marked yet.':'Attendance records unavailable.','h4');
   }
-  result.append(totals);
-  if (family.balanceStatus) result.append(node('p', family.balanceStatus));
-  if (family.unpricedBookings) result.append(node('p', 'Bookings awaiting a price: '+family.unpricedBookings));
-  function list(title, rows, format) {
-   result.append(node('h4', title));
-   if (!rows.length) { result.append(node('p', 'No linked records.')); return; }
-   const items=node('ul');
-   for (const row of rows) items.append(node('li', format(row).filter(Boolean).join(' · ')));
-   result.append(items);
-  }
-  list('Registrations', family.registrations, r => [r.child,r.program,r.weekday,r.date,r.status,r.reference]);
-  list('Bookings', family.bookings, b => [b.players.join(', '),b.type,b.dates,b.status,'Applied: '+familyMoney(b.applied),'Balance: '+familyMoney(b.balance),b.reference]);
-  list('Payments', family.payments, p => [p.date,p.direction,familyMoney(p.amount),p.method,p.verification||'Verification not recorded',p.reference]);
+  familyFields(familySection('Contact information'),[['Guardian',family.guardian],['Email',family.email],['Phone',family.phone]]);
+  const records=familySection('Family records');
+  familyList(records,'Registrations',family.registrations,r=>[r.child,r.program,r.weekday,r.date,r.status,r.reference],'No linked registrations.');
+  familyList(records,'Bookings',family.bookings,b=>[(b.players||[]).join(', '),b.type,b.dates,b.status,'Applied: '+familyMoney(b.applied),'Balance: '+familyMoney(b.balance),b.reference],'No linked bookings.');
+  const payments=familySection('Payments');
+  familyFields(payments,[['Verified receipts',familyMoney(family.verifiedReceipts)],['Balance',familyMoney(family.balance)],['Due now',familyMoney(family.dueNow)]]);
+  if(family.balanceStatus)payments.append(node('p',family.balanceStatus));
+  if(family.unpricedBookings)payments.append(node('p','Bookings awaiting a price: '+family.unpricedBookings));
+  familyList(payments,'Payment history',family.payments,p=>[p.date,p.direction,familyMoney(p.amount),p.method,p.verification||'Verification not recorded',p.reference],'No linked payments.');
  }
- async function loadFamilyRecords(id) {
-  if (!profile?.familyAccess || tab !== 'families') return;
-  const request = ++familyRequest;
-  const picker = $('family-picker');
-  $('family-results').replaceChildren();
-  $('family-status').textContent = id ? 'Loading family record…' : 'Loading families…';
-  try {
-   const data = id ? await api('family', {familyId:id}) : await api('families');
-   if (request !== familyRequest || !profile?.familyAccess || tab !== 'families') return;
-   if (id) {renderFamilyRecord(data.family); $('family-results').scrollIntoView({block:'nearest'});}
-   else {
-    const placeholder = node('option', 'Choose a family'); placeholder.value='';
-    picker.replaceChildren(placeholder, ...data.families.map(family => {
-     const option = node('option', family.name); option.value=family.id; return option;
-    }));
-    picker.hidden = !data.families.length; familyDirectory=data.families; renderFamilyDirectory();
+ function showFamilyView(id) {
+  if(!profile?.familyAccess||tab!=='families')return;
+  const previous=activeFamilyId;activeFamilyId=id||null;
+  $('family-browse').hidden=!!id;$('family-back').hidden=!id;
+  $('family-results').replaceChildren();$('family-status').textContent='';
+  const request=++familyRequest;
+  if(id){
+   $('page-eyebrow').textContent='Families';
+   $('page-title').textContent=familyDirectory.find(f=>f.id===id)?.name||'Family profile';
+   $('page-copy').textContent='';
+   $('page-title').focus();
+  }else if(familyDirectoryLoaded){
+   if(previous && lastFamilyLink?.isConnected)lastFamilyLink.focus();
+   if(!familyDirectory.length)$('family-status').textContent='No families in the ledger.';
+   return;
+  }
+  loadFamilyRecords(id,request);
+ }
+ async function loadFamilyRecords(id,request) {
+  $('family-status').textContent=id?'Loading family record…':'Loading families…';
+  try{
+   const records=id?await api('family',{familyId:id}):await api('families');
+   if(request!==familyRequest||!profile?.familyAccess||tab!=='families')return;
+   $('family-status').textContent='';
+   if(id)renderFamilyRecord(records.family);
+   else{
+    familyDirectory=records.families;familyDirectoryLoaded=true;renderFamilyDirectory();
+    if(!familyDirectory.length)$('family-status').textContent='No families in the ledger.';
    }
-   $('family-status').textContent = !id && !data.families.length ? 'No families in the ledger.' : '';
-  } catch (error) {
-   if (request === familyRequest) $('family-status').textContent = error.message+' Reopen Families to retry.';
+  }catch(error){
+   if(request!==familyRequest)return;
+   $('family-status').textContent=error.message+' ';
+   const retry=node('button','Retry','secondary');retry.type='button';
+   retry.addEventListener('click',()=>showFamilyView(id));$('family-status').append(retry);
   }
  }
- $('family-picker').addEventListener('change', event => {
-  if (event.target.value) loadFamilyRecords(event.target.value);
-  else { familyRequest++; $('family-status').textContent=''; $('family-results').replaceChildren(); }
+ $('family-back').addEventListener('click',event=>{
+  if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();
+  if(history.state?.fromFamilyDirectory)history.back();else go('families');
  });
  function renderSettings(){if(!profile)return;if(data?.gmailSyncAvailable&&!mailChecked){mailChecked=true;mailStatus();}const roleNames={owner:'Owner · full access',admin:'Admin',super_admin:'Super admin',coach:'Coach'};
   $('profile-name').textContent=profile.name;$('profile-email').textContent=profile.displayEmail||profile.email;$('profile-role').textContent=roleNames[profile.role==='admin'&&profile.familyAccess?'super_admin':profile.role]||'Approved account';
@@ -631,7 +667,7 @@
  async function saveUser(e){e.preventDefault();if($('user-role').value==='super_admin'&&$('user-active').checked&&(editingUser?.role!=='super_admin'||!editingUser.active)&&!confirm('Give this account access to family registrations, contact details, payments and all coaching records?'))return;if($('user-role').value==='admin'&&$('user-active').checked&&(!editingUser||editingUser.role!=='admin'||!editingUser.active)&&!confirm('Give this account access to every session and every coach’s notes?'))return;if(editingUser?.active&&!$('user-active').checked&&!confirm('Disable this account and sign out its active sessions?'))return;try{await api('users/save',{email:$('user-email').value.trim(),name:$('user-name').value.trim(),role:$('user-role').value,active:$('user-active').checked,expectedVersion:editingUser?.session_version||null});resetUser();await loadTeam();notice('Account permissions saved. No email was sent.');}catch(e){notice(e.message,true);}}
  async function loadActivity(){try{const r=await api('audit');$('activity-list').replaceChildren(...r.events.map(e=>{const row=node('div','','audit-row');row.append(node('strong',e.action.replaceAll('-',' ')),node('p',e.actor_email+' · '+when(e.occurred_at)));return row;}));if(!r.events.length)$('activity-list').append(empty('Changes will appear here as the team uses Coach Desk.'));}catch(e){notice(e.message,true);}}
  async function loadLegacy(){try{const r=await api('legacy-notes',{});$('legacy-list').replaceChildren(...r.notes.map(n=>{const card=node('article','','note-card');card.append(node('h3',n.title||'Existing coaching record'),node('p','Legacy record · original authorship not verified','note-meta'));for(const [label,value]of Object.entries(n.fields||{}))if(value)card.append(node('strong',label),node('p',value,'note-body'));return card;}));if(!r.notes.length)$('legacy-list').append(empty('No written legacy coaching notes were returned.'));}catch(e){notice(e.message,true);}}
- function go(next,preserveSession=false){if(next==='tasks')return;const shortcut=['attendance','notes'].includes(next),reopenGroup=shortcut&&hasOpenedGroup&&!!session();const requestedView=['attendance','notes'].includes(next)?next:next==='plan'&&!preserveSession?'plan':workspaceView;if(['attendance','notes'].includes(next))next='plan';if(saveBusy||loadingDesk||tacticsBusy()||plannerBusy()||!profile||!titles[next]||['families','attention'].includes(next)&&!profile.familyAccess||next==='team'&&profile.role!=='owner'||['activity','legacy','coaches'].includes(next)&&!full())return;if(next!==tab&&tab==='tasks'&&taskDirty()){if(!confirm('Leave follow-ups and discard your unsaved task changes?'))return;resetTaskDraft();}if(next!==tab&&tab==='library'&&(window.CoachLibrary?.isDirty()||window.CoachResources?.isDirty())){if(!confirm('Leave resources and discard your unsaved draft?'))return;window.CoachLibrary?.discard();window.CoachResources?.discard();}if(next!==tab&&tab==='profiles'&&window.CoachProfiles?.isDirty()){if(!confirm('Leave this profile and discard your unsaved note?'))return;window.CoachProfiles.discard();}if(next!==tab)stopDictation();if(next===tab&&next==='plan'&&planDirty())return;if(tab==='plan'&&next!=='plan'&&(noteDirty()||planDirty()||tacticsDirty()||plannerDirty())){if(!confirm('Leave the planner and discard unsaved changes?'))return;resetNote();restorePlanDraft();discardTactics();discardPlanner();}if(next==='plan'&&tab!=='plan'&&!preserveSession){const target=selected&&session()?selected:window.CoachPlanner?.nextSession(data?.sessions)?.id||'';if(!allowSessionChange(target))return;if(target!==selected){resetNote();resetRosterFilters();}selected=target;$('show-all').checked=true;}if(next==='attendance'){const target=attendanceDefault(attendanceSessions());if(!allowSessionChange(target))return;if(target!==selected){resetNote();resetRosterFilters();}selected=target;}else if(session()&&session().status!=='Cancelled'&&!chosenSessions().some(s=>s.id===selected))$('show-all').checked=true;if(tab==='families'&&next!==tab)resetFamilyRecords();workspaceView=requestedView;tab=next;renderSelector();$('session-toolbar').hidden=true;$('settings-navigation').hidden=!settingsTabs.includes(tab);$('refresh').hidden=settingsTabs.includes(tab)||['families','attention'].includes(tab);if(tab==='attendance')renderAttendance();document.querySelectorAll('.tab-panel').forEach(p=>{p.hidden=p.id!=='panel-'+tab;});document.querySelectorAll('#navigation button[data-tab]').forEach(b=>{const active=b.dataset.tab===(tab==='plan'?'plan':tab)||b.dataset.tab==='settings'&&settingsTabs.includes(tab);b.classList.toggle('nav-active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});document.querySelectorAll('[data-settings-tab]').forEach(b=>{if(b.dataset.settingsTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});const t=tab==='plan'&&workspaceView!=='plan'?[titles[workspaceView][0],titles[workspaceView][1],'Choose a training group to open '+(workspaceView==='attendance'?'its attendance.':'its group and player notes.')]:titles[tab];$('page-eyebrow').textContent=t[0];$('page-title').textContent=t[1];$('page-copy').textContent=t[2];if(tab==='home'){renderHome();if(data.familyFollowupsAvailable)loadOwnerFollowups();}if(profile.familyAccess && (tab==='attention'||tab==='home'&&data.attentionAvailable))loadAttention();if(tab==='families'&&$('family-picker').hidden)loadFamilyRecords();if(tab==='notes')renderNotes();if(tab==='plan'){if(!preserveSession&&!reopenGroup)window.CoachPlanner?.exitFocus();loadPlan();renderWorkspaceView();}if(tab==='tasks')renderTasks();if(tab==='settings')renderSettings();if(tab==='team')loadTeam();if(tab==='activity')loadActivity();publishCoachContext();if(reopenGroup){renderAttendance();renderNotes();window.CoachPlanner?.focusSession(selected);}renderWorkspaceView();}
+ function go(next,preserveSession=false,familyId=null){if(next==='tasks')return;const shortcut=['attendance','notes'].includes(next),reopenGroup=shortcut&&hasOpenedGroup&&!!session();const requestedView=['attendance','notes'].includes(next)?next:next==='plan'&&!preserveSession?'plan':workspaceView;if(['attendance','notes'].includes(next))next='plan';if(saveBusy||loadingDesk||tacticsBusy()||plannerBusy()||!profile||!titles[next]||['families','attention'].includes(next)&&!profile.familyAccess||next==='team'&&profile.role!=='owner'||['activity','legacy','coaches'].includes(next)&&!full())return;if(next!==tab&&tab==='tasks'&&taskDirty()){if(!confirm('Leave follow-ups and discard your unsaved task changes?'))return;resetTaskDraft();}if(next!==tab&&tab==='library'&&(window.CoachLibrary?.isDirty()||window.CoachResources?.isDirty())){if(!confirm('Leave resources and discard your unsaved draft?'))return;window.CoachLibrary?.discard();window.CoachResources?.discard();}if(next!==tab&&tab==='profiles'&&window.CoachProfiles?.isDirty()){if(!confirm('Leave this profile and discard your unsaved note?'))return;window.CoachProfiles.discard();}if(next!==tab)stopDictation();if(next===tab&&next==='plan'&&planDirty())return;if(tab==='plan'&&next!=='plan'&&(noteDirty()||planDirty()||tacticsDirty()||plannerDirty())){if(!confirm('Leave the planner and discard unsaved changes?'))return;resetNote();restorePlanDraft();discardTactics();discardPlanner();}if(next==='plan'&&tab!=='plan'&&!preserveSession){const target=selected&&session()?selected:window.CoachPlanner?.nextSession(data?.sessions)?.id||'';if(!allowSessionChange(target))return;if(target!==selected){resetNote();resetRosterFilters();}selected=target;$('show-all').checked=true;}if(next==='attendance'){const target=attendanceDefault(attendanceSessions());if(!allowSessionChange(target))return;if(target!==selected){resetNote();resetRosterFilters();}selected=target;}else if(session()&&session().status!=='Cancelled'&&!chosenSessions().some(s=>s.id===selected))$('show-all').checked=true;if(tab==='families'&&next!==tab)resetFamilyRecords();workspaceView=requestedView;tab=next;renderSelector();$('session-toolbar').hidden=true;$('settings-navigation').hidden=!settingsTabs.includes(tab);$('refresh').hidden=settingsTabs.includes(tab)||['families','attention'].includes(tab);if(tab==='attendance')renderAttendance();document.querySelectorAll('.tab-panel').forEach(p=>{p.hidden=p.id!=='panel-'+tab;});document.querySelectorAll('#navigation button[data-tab]').forEach(b=>{const active=b.dataset.tab===(tab==='plan'?'plan':tab)||b.dataset.tab==='settings'&&settingsTabs.includes(tab);b.classList.toggle('nav-active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});document.querySelectorAll('[data-settings-tab]').forEach(b=>{if(b.dataset.settingsTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});const t=tab==='plan'&&workspaceView!=='plan'?[titles[workspaceView][0],titles[workspaceView][1],'Choose a training group to open '+(workspaceView==='attendance'?'its attendance.':'its group and player notes.')]:titles[tab];$('page-eyebrow').textContent=t[0];$('page-title').textContent=t[1];$('page-copy').textContent=t[2];if(tab==='home'){renderHome();if(data.familyFollowupsAvailable)loadOwnerFollowups();}if(profile.familyAccess && (tab==='attention'||tab==='home'&&data.attentionAvailable))loadAttention();if(tab==='families')showFamilyView(familyId);if(tab==='notes')renderNotes();if(tab==='plan'){if(!preserveSession&&!reopenGroup)window.CoachPlanner?.exitFocus();loadPlan();renderWorkspaceView();}if(tab==='tasks')renderTasks();if(tab==='settings')renderSettings();if(tab==='team')loadTeam();if(tab==='activity')loadActivity();publishCoachContext();if(reopenGroup){renderAttendance();renderNotes();window.CoachPlanner?.focusSession(selected);}renderWorkspaceView();}
  function render(){if(!data)return;renderSelector();renderHome();renderAttendance();renderNotes();if(tab==='plan'&&!planDirty())loadPlan();if(tab==='team')loadTeam();if(tab==='settings')renderSettings();publishCoachContext();}
  async function loadDesk(refresh=false){if(saveBusy||loadingDesk||tacticsBusy()||plannerBusy())return;stopDictation();if(refresh&&(noteDirty()||planDirty()||tacticsDirty()||plannerDirty()||taskDirty())){if(!confirm('Refresh the roster and discard unsaved notes, plans, tactics or follow-ups?'))return;resetNote();restorePlanDraft();discardTactics();discardPlanner();resetTaskDraft();}loadingDesk=true;rosterLoadFailed=false;publishStatus();$('desk-main').setAttribute('aria-busy','true');$('desk-loading').hidden=!refresh;$('refresh').textContent=refresh?'Refreshing…':'Refresh roster';$('refresh').disabled=true;$('global-error').hidden=true;if(data)renderAttendance();try{if(refresh){await api('refresh',{});planSession=null;}data=await api('desk');if(refresh)attendanceErrors.clear();if(selected&&!data.sessions.some(s=>s.id===selected)){selected='';noteFolder='';planSession=null;planPendingSession=null;planLoad++;resetNote();}profile=data.profile;clearAttention();$('nav-attention').hidden=!profile.familyAccess;$('gmail-sync-settings').hidden=!data.gmailSyncAvailable;resetFamilyRecords();$('nav-families').hidden=!profile.familyAccess;notes=data.notes;tasks=data.tasks;$('identity').textContent=profile.name+' · '+(profile.displayEmail||profile.email);$('role').textContent=({owner:'Owner · full access',admin:'Admin',super_admin:'Super admin',coach:'Coach · assigned sessions'})[profile.role==='admin'&&profile.familyAccess?'super_admin':profile.role];document.querySelectorAll('[data-owner]').forEach(e=>e.hidden=profile.role!=='owner');document.querySelectorAll('[data-full]').forEach(e=>e.hidden=!full());if(profile.role!=='owner'){users=[];resetUser();$('user-list').replaceChildren();$('assignments').replaceChildren();}if(!full()){$('activity-list').replaceChildren();$('legacy-list').replaceChildren();}$('login').hidden=true;$('app').hidden=false;$('boot').hidden=true;loadingDesk=false;if(['families','attention'].includes(tab)&&!profile.familyAccess)tab='home';if(tab==='team'&&profile.role!=='owner'||['activity','legacy','coaches'].includes(tab)&&!full())tab='settings';if(tab==='plan'&&!selected){selected=window.CoachPlanner?.nextSession(data.sessions)?.id||'';$('show-all').checked=true;}render();go(tab);}catch(e){rosterLoadFailed=true;if(profile&&!data)showSignedInRecovery();notice(data?'The roster could not refresh. Showing the last loaded records. '+e.message:e.message,true);}finally{loadingDesk=false;$('desk-main').setAttribute('aria-busy','false');$('desk-loading').hidden=true;$('refresh').textContent='Refresh roster';$('refresh').disabled=false;if(data)renderAttendance();publishStatus();}}
  function exportNotes(){const esc=v=>'"'+String(v??'').replace(/^[=+@-]/,"'$&").replaceAll('"','""')+'"',rows=[['Player','Category','Note','Author','Updated','Review date'],...folderNotes().map(n=>[playerName(n.player_id),n.category,n.body,n.author_email,n.updated_at,n.review_date])],url=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(esc).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=club.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-private-coach-notes.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}

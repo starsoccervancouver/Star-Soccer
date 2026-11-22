@@ -7,18 +7,21 @@
     if (!views.has(view)) return null;
     const sessionId = p.get('session'), section = p.get('section') || 'plan';
     if (sessionId && (view !== 'plan' || !/^rec[a-zA-Z0-9]{14}$/.test(sessionId)) || !['plan','attendance','notes'].includes(section)) return null;
-    return {view, sessionId:sessionId || null, section};
+    const familyId = p.get('family');
+    if (p.has('family') && (view !== 'families' || !/^rec[a-zA-Z0-9]{14}$/.test(familyId))) return null;
+    return {view, sessionId:sessionId || null, familyId, section};
   };
-  const hashFor = route => { const p = new URLSearchParams({view:route.view==='attention'?'reports':route.view}); if (route.sessionId) { p.set('session', route.sessionId); p.set('section', route.section); } return '#' + p; };
+  const hashFor = route => { const p = new URLSearchParams({view:route.view==='attention'?'reports':route.view}); if (route.sessionId) { p.set('session', route.sessionId); p.set('section', route.section); } if (route.familyId) p.set('family', route.familyId); return '#' + p; };
   let context = null, saved = '', applying = false, initialized = false, pending = parse(window.CoachInitialRoute || '');
   function current() {
     if (!context?.profile) return null;
-    return {view:context.tab,sessionId:context.tab === 'plan' && window.CoachPlanner?.isFocused() ? context.session?.id : null,section:context.workspaceView || 'plan'};
+    return {view:context.tab,familyId:context.tab === 'families' ? context.familyId : null,sessionId:context.tab === 'plan' && window.CoachPlanner?.isFocused() ? context.session?.id : null,section:context.workspaceView || 'plan'};
   }
   function remember(replace = false) {
     const route = current(); if (!route || !views.has(route.view) || applying) return;
     const hash = hashFor(route); if (hash === saved) return;
-    history[replace || !saved ? 'replaceState' : 'pushState'](null, '', location.pathname + location.search + hash); saved = hash;
+    const state = replace ? history.state : {fromFamilyDirectory:!!route.familyId && saved === '#view=families'};
+    history[replace || !saved ? 'replaceState' : 'pushState'](state, '', location.pathname + location.search + hash); saved = hash;
   }
   function apply(route) {
     if (!route || applying || !context?.profile) return;

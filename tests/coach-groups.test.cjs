@@ -72,3 +72,19 @@ test('overview exposes exactly one well-formed existing Weekly program link',asy
  const before=JSON.stringify(tables),overview=buildOwnerOverview(tables,'2026-10-29T18:00:00Z');
  assert.deepEqual(overview.sessions.map(session=>session.programId),[rid(100),rid(101),null,null,null,null,null]);assert.equal(JSON.stringify(tables),before);assert.equal(overview.manualOnly,true);assert.equal(overview.draftOnly,true);
 });
+
+test('family directory separates Pro-D events from regular Fridays and winter weeks',async()=>{
+ const {buildOwnerOverview}=await import('../private-attendance/owner-overview.mjs');
+ const tables={players:[],families:[],bookings:[],enrollments:[],registrations:[],attendance:[],sessions:[
+  {id:rid(1),fields:{Session:'School holiday',Date:'2026-11-20',Time:'3:45 PM',Venue:'West Field','Source session ID':'SS-20261120-KITS-PROD'}},
+ ]};
+ const [event]=buildOwnerOverview(tables,'2026-11-20T18:00:00Z').sessions;
+ const weekly={...event,id:rid(2),proD:false,label:'Friday class',programId:rid(100)};
+ const secondShift={...event,id:rid(3),proD:false,label:'Pro‑D Camp',time:'9:00 AM'};
+ const december={...secondShift,id:rid(4),date:'2026-12-23',players:[{kind:'camp'}]};
+ const rosters=groups.familyGroups([event,weekly,secondShift,december]);
+ assert.deepEqual(rosters.map(g=>g.sessions.map(s=>s.id)),[[rid(2)],[rid(1),rid(3)],[rid(4)]]);
+ assert.match(rosters[0].label,/Friday/);
+ assert.match(rosters[1].label,/Pro-D Camp.*Nov 20/);
+ assert.match(rosters[2].label,/Pro-D Camp.*Dec 23/);
+});

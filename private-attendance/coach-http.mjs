@@ -9,7 +9,7 @@ const random=()=>randomBytes(32).toString('base64url');
 const same=(a,b)=>{const x=Buffer.from(a||''),y=Buffer.from(b||'');return x.length===y.length&&timingSafeEqual(x,y);};
 const cookie=(request,name)=>request.headers.get('cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith(name+'='))?.slice(name.length+1);
 const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow','Strict-Transport-Security':'max-age=31536000','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'",'Permissions-Policy':'publickey-credentials-create=(self), publickey-credentials-get=(self), camera=(), microphone=(self), geolocation=()'};
-export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger,gmailSync=null,attention=null,familyFollowups=null,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
+export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger,gmailSync=null,attention=null,familyFollowups=null,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',timeZone='America/Vancouver',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
  origin=validateWorkspaceOrigin(origin);basePath=validateCoachPath(basePath);
  const preview = origin==='https://starsoccer.ca' && basePath==='/coachdesk' && googleAuth
    ? createOperationsPreview({cookieKey,origin,coaches,overview,familyLedger,clock}) : null;
@@ -132,6 +132,25 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    if(typeof familyId!=='string'||!/^rec[A-Za-z0-9]{14}$/.test(familyId))deny('INVALID_FAMILY',400);
    const family=await familyLedger.detail(familyId);
    if(!family)deny('FAMILY_NOT_FOUND',404);
+   if(family.playerProfiles?.length){
+    const today=new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).format(clock());
+    const {sessions}=coaches.scope(actor,await overview({}));
+    const profiles=new Map(family.playerProfiles.map(player=>[player.id,player]));
+    for(const player of profiles.values()){
+     player.notes=coaches.notes(actor,{playerId:player.id}).map(note=>({category:note.category,body:note.body,updatedAt:note.updated_at}));
+     player.attendance=[];
+    }
+    for(const session of sessions){
+     if(!session.date||session.date>today)continue;
+     for(const entry of session.players){
+      const player=profiles.get(entry.playerId);
+      if(player && ['Present','Absent'].includes(entry.actualAttendance)){
+       player.attendance.push({date:session.date,time:session.time,location:session.location,label:session.label,status:entry.actualAttendance});
+      }
+     }
+    }
+    for(const player of profiles.values())player.attendance.sort((a,b)=>b.date.localeCompare(a.date));
+   }
    return json(200,{family});
   }
   if(path==='/workspace/api/desk'&&request.method==='GET'){const data=coaches.scope(actor,await overview({}));return json(200,{...data,...(familyFollowups&&actor.role==='owner'?{familyFollowupsAvailable:true}:{}),...(attention&&data.profile.familyAccess?{attentionAvailable:true}:{}),...(gmailSync&&actor.role==='owner'?{gmailSyncAvailable:true}:{}),notes:coaches.notes(actor),tasks:coaches.tasks(actor)});}

@@ -69,7 +69,7 @@ export function normalizeAirtableRoster({tables,observedAt,revision,verifiedCont
  return {snapshot:{schemaVersion:1,source:'airtable-verified',snapshotId:'read_'+digest(tables).slice(0,20),revision,observedAt,complete:true,approved:true,sessions:result},history,preferences};
 }
 export const readFields={
- sessions:['Session','Date','Time','Venue','Session status','Capacity','Expected headcount (owner reported)','Weekly program','Attendance'],
+ sessions:['Session','Source session ID','Date','Time','Venue','Session status','Capacity','Expected headcount (owner reported)','Weekly program','Attendance'],
  attendance:['Player','Session','Booking','Enrollment','Coverage state','Session date','Website Registrations','RSVP response notes','RSVP status','RSVP updated at','Attendance status','RSVP Reminders','RSVP reminder','Session preparation status','Billing schedule at date'],
  players:['Player','Player status','Family','Age'],families:['Guardian name','Email'],
  bookings:['Booking type','Booking status','Player','Family','Covered dates','Start date'],

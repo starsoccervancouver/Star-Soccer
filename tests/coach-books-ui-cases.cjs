@@ -10,7 +10,7 @@ const due = {
   bookingUrl:'https://airtable.com/app00000000000001/tbl00000000000002/'+recordId(201),
   scope:'session', playerName:'Taylor Fictional', sessionLabel:'Friday after-school training',
   date:'2026-10-23', time:'3:45 PM', location:'Fictional west training field',
-  bookingType:'Drop-in', status:'due', amountCharged:42, amountPaid:10.50, amountDue:31.50,amountOutstanding:31.50,amountUpcoming:0,
+  bookingType:'Drop-in', attendanceStatus:'Present', status:'due', amountCharged:42, amountPaid:10.50, amountDue:31.50,amountOutstanding:31.50,amountUpcoming:0,
   contact:{guardian:'Avery Fictional',email:'sample.household.with.a.long.address@example.test',phone:'604-555-0132'}
 };
 const paid = {...due, playerId:recordId(102),bookingId:recordId(202),attendanceId:recordId(402),playerName:'Robin Fictional', status:'paid', amountPaid:42, amountDue:0,amountOutstanding:0,contact:null};
@@ -166,11 +166,20 @@ module.exports = async function checkBooks(fixture) {
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
     await unpaid.locator('summary').click();
     const homeRow=unpaid.locator('#home-unpaid-list li');
-    const booking=homeRow.getByRole('link');
+    const booking=homeRow.getByRole('button');
     await booking.waitFor();
     assert.equal(await homeRow.count(),1);
     assert.deepEqual(await booking.locator(':scope > *').allTextContents(),[due.familyName,'$31.50']);
-    assert.equal(await booking.getAttribute('href'),due.bookingUrl);
+    const details=page.getByRole('dialog',{name:due.familyName});
+    await booking.click();
+    const entry=details.locator('.books-entry');
+    for(const value of [due.playerName,due.sessionLabel,due.time,due.location,due.bookingType,due.attendanceStatus,due.contact.guardian,'42.00','10.50','31.50']){
+      assert((await entry.innerText()).includes(value),'In-app details show '+value);
+    }
+    assert.equal(await details.locator('a[href^="http"]').count(),0);
+    for(const width of [320,390,1365])await checkLayout(page,entry,width);
+    await details.getByRole('button',{name:'Close'}).click();
+    assert(await booking.evaluate(el=>el===document.activeElement),'Closing returns focus to the family');
     await unpaid.locator('summary').click();
     await unpaid.locator('summary').click();
     await booking.waitFor();
@@ -190,7 +199,7 @@ module.exports = async function checkBooks(fixture) {
     const row = list.locator('.books-record').filter({hasText:due.playerName});
     await row.locator('summary').click();
     await row.getByRole('link',{name:due.contact.email}).waitFor();
-    assert.equal(await row.getByRole('link',{name:'Open booking'}).getAttribute('href'),due.bookingUrl);
+    assert.equal(await row.locator('a[href^="http"]').count(),0,'Expanded Books details stay inside Coach Desk');
     for(const value of [due.sessionLabel,due.location,due.time,due.contact.guardian,due.contact.email,due.contact.phone,'42.00','10.50','31.50'])
       assert((await row.innerText()).includes(value),'Ledger shows '+value);
     assert.equal(await row.getByRole('link',{name:due.contact.email}).getAttribute('href'),'mailto:'+due.contact.email);
@@ -330,13 +339,17 @@ module.exports = async function checkBooks(fixture) {
     const rows=unpaid.locator('#home-unpaid-list > li');
     await rows.nth(1).waitFor();
     assert.equal(await rows.count(),2,'Same-name households remain separate');
-    const household=rows.getByRole('button');
+    const household=rows.getByRole('button',{name:/43\.75/});
     assert.deepEqual(await household.locator(':scope > *').allTextContents(),[due.familyName,'$43.75']);
     await household.click();
     const chooser=page.getByRole('dialog',{name:due.familyName});
-    assert.deepEqual(await chooser.getByRole('link').evaluateAll(links=>links.map(a=>a.href)),[due.bookingUrl,second.bookingUrl]);
+    assert.deepEqual(await chooser.locator('.books-session strong').allTextContents(),[due.playerName,second.playerName]);
+    assert.deepEqual(await chooser.locator('.books-amount').allTextContents(),['$31.50 owing','$12.25 owing']);
+    assert.equal(await chooser.locator('a[href^="http"]').count(),0);
     await page.keyboard.press('Escape');assert(await chooser.isHidden());
-    assert.equal(await rows.getByRole('link').getAttribute('href'),other.bookingUrl);
+    await rows.getByRole('button',{name:/31\.50/}).click();
+    assert.equal(await chooser.locator('.books-entry').count(),1);
+    assert.equal(await page.context().pages().length,1);
     assert.deepEqual(homeFamilies.errors,[]);
   }finally{await homeFamilies.context.close();}
 

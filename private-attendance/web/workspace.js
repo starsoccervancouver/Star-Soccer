@@ -800,8 +800,6 @@
    if(row.location)body.append(node('span',row.location));
    if(row.reviewReason&&row.scope!=='family')body.append(node('span',row.reviewReason));
    if(groupMode!=='family')body.append(bookContact(row.contact));
-   const bookingLink=unpaidBookingLink(row);
-   if(bookingLink){bookingLink.textContent='Open booking';body.append(bookingLink);}
    if(!body.childElementCount)body.append(node('span',bookStatuses[row.status]||'Needs review'));
    details.append(body);
   });
@@ -890,29 +888,24 @@
   }
   return [...families.values()].sort((a,b)=>a.name.localeCompare(b.name));
  }
- function unpaidBookingLink(row){
-  if(!/^https:\/\/airtable\.com\/app[A-Za-z0-9]{14}\/tbl[A-Za-z0-9]{14}\/rec[A-Za-z0-9]{14}$/.test(row?.bookingUrl)||!row.bookingUrl.endsWith('/'+row.bookingId))return null;
-  const link=node('a');link.href=row.bookingUrl;link.target='_blank';link.rel='noopener noreferrer';return link;
- }
  function openUnpaidBookings(family){
   if(!canViewBooks()||tab!=='home')return;
   $('unpaid-bookings-title').textContent=family.name;
-  const list=$('unpaid-booking-list');list.replaceChildren();
-  for(const row of family.rows){
-   const link=unpaidBookingLink(row);
-   if(!link){list.append(bookEntry(row));continue;}
-   link.append(node('span',[row.playerName,row.sessionLabel,familyDate(row.date)].filter(Boolean).join(' · ')||'Booking'),node('strong',familyMoney(row.amountDue)));
-   const item=node('li');item.append(link);list.append(item);
-  }
+  const entries=family.rows.map(row=>{
+   const entry=bookEntry(row);
+   const details=[row.bookingType,row.attendanceStatus].filter(Boolean);
+   if(details.length)entry.querySelector('.books-session').append(node('small',details.join(' · ')));
+   return entry;
+  });
+  $('unpaid-booking-list').replaceChildren(...entries);
   $('unpaid-bookings').showModal();
  }
  function renderUnpaidRows(){
   const list=$('home-unpaid-list');list.replaceChildren();
   if(!$('home-unpaid').open||homeUnpaidState!=='ready')return;
   for(const family of unpaidFamilies){
-   const link=family.rows.length===1?unpaidBookingLink(family.rows[0]):null;
-   const action=link||node('button');
-   if(!link){action.type='button';action.setAttribute('aria-haspopup','dialog');action.addEventListener('click',()=>openUnpaidBookings(family));}
+   const action=node('button');action.type='button';action.setAttribute('aria-haspopup','dialog');
+   action.addEventListener('click',()=>openUnpaidBookings(family));
    action.append(node('span',family.name),node('strong',familyMoney(family.cents/100)));
    const item=node('li');item.append(action);list.append(item);
   }

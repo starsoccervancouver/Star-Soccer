@@ -20,7 +20,7 @@
   const hashFor = route => { const p = new URLSearchParams({view:route.view==='attention'?'reports':route.view}); if (route.sessionId) { p.set('session', route.sessionId); p.set('section', route.section); } if (route.view==='attention' && route.reportView!=='open') {
     p.set('section',route.reportView); if(route.reportView==='roster' && route.reviewFilter!=='all') p.set('filter',route.reviewFilter);
   } if (route.familyId) p.set('family', route.familyId); return '#' + p; };
-  let context = null, saved = '', applying = false, initialized = false, pending = parse(window.CoachInitialRoute || '');
+  let context = null, saved = '', applying = false, pending = parse(window.CoachInitialRoute || '');
   function current() {
     if (!context?.profile) return null;
     return {view:context.tab,reportView:context.reportView,reviewFilter:context.reviewFilter,familyId:context.tab === 'families' ? context.familyId : null,sessionId:context.tab === 'plan' && window.CoachPlanner?.isFocused() ? context.session?.id : null,section:context.workspaceView || 'plan'};
@@ -31,19 +31,28 @@
     const state = replace ? history.state : {fromFamilyDirectory:!!route.familyId && saved === '#view=families'};
     history[replace || !saved ? 'replaceState' : 'pushState'](state, '', location.pathname + location.search + hash); saved = hash;
   }
-  function apply(route) {
-    if (!route || applying || !context?.profile) return;
+  function apply(route, initial = false) {
+    if (!route || applying || (!initial && !context?.profile)) return false;
+    let opened = false;
     applying = true;
     window.dispatchEvent(new CustomEvent('coach:navigate-route', {detail:{...route, resolve:accepted => {
       applying = false;
+      opened = accepted;
       if (!accepted && saved) history.replaceState(null, '', location.pathname + location.search + saved);
       else { saved = ''; remember(true); }
     }}}));
+    return opened;
   }
+  window.CoachNavigation = {
+    openInitial() {
+      const route = pending;
+      pending = null;
+      return apply(route, true);
+    }
+  };
   window.addEventListener('coach:context', event => {
     context = event.detail;
-    if (!context?.profile) { initialized = false; saved = ''; return; }
-    if (!initialized) { initialized = true; if (pending) { const next = pending; pending = null; queueMicrotask(() => apply(next)); return; } }
+    if (!context?.profile) { saved = ''; return; }
     remember();
   });
   window.addEventListener('coach:focus-changed', () => remember());

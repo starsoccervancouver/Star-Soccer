@@ -1,6 +1,8 @@
 import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypto';
 import {Buffer} from 'node:buffer';
 import {createFollowupJob} from './registration-followup-job.mjs';
+import {ownerWorkflows,fields as reportFields} from './owner-workflows.mjs';
+import {checkConfirmationDrafts} from './confirmation-drafts.mjs';
 import {outcomeFiling} from './gmail-outcome-labels.mjs';
 import {reportCompletions} from './report-completions.mjs';
 import {attentionPage,filterReportItems} from './attention-inbox.mjs';
@@ -10,6 +12,7 @@ import {createAirtableTransport} from './airtable-transport.mjs';
 import {STAR_SOCCER_OWNER} from './deployment-config.mjs';
 
 const scope='https://www.googleapis.com/auth/gmail.readonly';
+const calendarScope='https://www.googleapis.com/auth/calendar.events.readonly';
 const labelScope='https://www.googleapis.com/auth/gmail.modify';
 const root='https://gmail.googleapis.com/gmail/v1/users/me/';
 const pollInterval=120000, retryDelay=300000, googleToken='https://oauth2.googleapis.com/token';
@@ -157,6 +160,15 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       await storage.put('report',{lastCheck:new Date(clock()).toISOString(),error:retries.size?retries.values().next().value.error:null,pendingRetries:retries.size});
       const follow=followupEnabled?await checkFollowups(access).catch(()=>({state:'unavailable'})):null;
       const filingPending=filing?await filing.step():false;
+      if(filing && !filingPending && clock()-(await storage.get('confirmation:last')||0)>=3600000){
+        try{
+          await checkConfirmationDrafts({db:ledger,storage,now:clock(),read:id=>gmail(access,'messages/'+id,[['format','minimal']]),search:async q=>(await gmail(access,'messages',[['q',q],['maxResults','1']])).messages||[],create:async raw=>{
+            const response=await fetchFn(new URL('drafts',root),{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({message:{raw}})});
+            if(!response.ok)throw Error('GMAIL_'+response.status);return response.json();
+          }});
+          await storage.put('confirmation:last',clock());await storage.delete('confirmation:error');
+        }catch{await storage.put('confirmation:error','Check the Gmail draft workflow and the saved template.');}
+      }
       if(filingPending||pending.size||state?.phase!=='history'||state.page||follow?.state==='checking')await storage.setAlarm(clock()+3000);
     }catch(err){
       const allowed=/^(AIRTABLE_\d{3}|GMAIL_\d{3}|GMAIL_API_DISABLED|PAYMENT_LABELS_MISSING|GOOGLE_RECONNECT|GOOGLE_TOKEN_FAILED)$/;
@@ -165,9 +177,47 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       await storage.put('report',{...report,error:allowed.test(err.message)?err.message:'SYNC_RETRY'});
     }
   }
-  const attentionCache=new Map();
+  // Fetches on this mailbox coordinator are serialized. Reuse successful reads across
+  // categories/pages within the same 30-second lifetime as the report itself.
+  let reportWindow;
+  async function reportContext() {
+    const encrypted=await storage.get('refresh');
+    if(!encrypted){reportWindow=null;throw Error('GOOGLE_RECONNECT');}
+    if(reportWindow?.encrypted===encrypted && reportWindow.until>clock())return reportWindow;
+    const grant=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
+    const ttl=Math.min(30000,(grant.expires_in??3600)*1000);
+    const tables=new Map();
+    const reportLedger={async list(name,fields){
+      // Reconcile each new payments page against the current receipt ledger.
+      if(name!=='intake'&&name!=='registrations')return ledger.list(name,fields);
+      const key=JSON.stringify([name,fields]);
+      if(!tables.has(key))tables.set(key,await ledger.list(name,fields));
+      return tables.get(key);
+    }};
+    reportWindow={encrypted,access:grant.access_token,until:clock()+ttl,ledger:reportLedger,pages:new Map()};
+    return reportWindow;
+  }
   const completions=reportCompletions(storage,env.COOKIE_KEY);
   async function handle(op,payload){
+    if(op==='owner-workflows'){
+      if(config.baseId!=='appnaG94HQpEaRios')throw Error('WRONG_LEDGER');
+      const data={};for(const [name,columns] of Object.entries(reportFields))data[name]=await ledger.list(name,columns);
+      let notices=null,calendar=null;
+      const encrypted=await storage.get('refresh');
+      if(encrypted){
+       try{
+        const {access_token:access}=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
+        const labels=await readLabels(access),label=labels[depositLabel];if(!label)throw Error('PAYMENT_LABELS_MISSING');
+        let page,ids=[];do{const q=[['labelIds',label],['q','from:notify@payments.interac.ca'],['maxResults','500']];if(page)q.push(['pageToken',page]);const batch=await gmail(access,'messages',q);ids.push(...(batch.messages||[]).map(m=>m.id));page=batch.nextPageToken;}while(page);notices=ids;
+        if(await storage.get('calendar:enabled')){
+          const events=[];let cursor;do{const url=new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');url.search=new URLSearchParams({timeMin:new Date(clock()-86400000).toISOString(),timeMax:new Date(clock()+8*86400000).toISOString(),singleEvents:'true',maxResults:'250',fields:'nextPageToken,items(id,recurringEventId,iCalUID,status,start,end,location,summary)',...(cursor?{pageToken:cursor}:{})});
+          const res=await fetchFn(url,{headers:{Authorization:'Bearer '+access},signal:AbortSignal.timeout(12000)});if(!res.ok)throw Error('CALENDAR_UNAVAILABLE');const batch=await res.json();events.push(...(batch.items||[]));cursor=batch.nextPageToken;}while(cursor);calendar=events;
+        }
+       }catch{/* Surface unavailable reads in the report. */}
+      }
+      const drafts=await storage.list({prefix:'confirmation:booking:'});
+      return ownerWorkflows(data,{now:clock(),notices,desk:payload.desk,calendar,draftStates:[...drafts.values()],draftError:await storage.get('confirmation:error')});
+    }
     if(op==='family-followups'||op==='preview-family-followups'){
       const encrypted=await storage.get('refresh');
       if(!encrypted)return {enabled:followupEnabled,state:'unavailable'};
@@ -189,17 +239,24 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const history=payload.history?await completions.history(payload.kind,payload.cursor,12):null;
       if(history&&!history.items.length)return history;
       const key=payload.kind+'|'+(payload.cursor||'');
-      for(const [id,entry] of attentionCache)if(entry.until<=clock())attentionCache.delete(id);
-      if(!history&&attentionCache.has(key))return completions.include(payload.kind,attentionCache.get(key).value);
-      const encrypted=await storage.get('refresh');
-      if(!encrypted)throw Error('GOOGLE_RECONNECT');
-      const {access_token:access}=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
-      const labels=await readLabels(access);
-      const read=(path,params)=>gmail(access,path,params);
-      if(history)return filterReportItems(history,payload.kind,{read,labels});
-      const value=await attentionPage({ledger,read,labels,mailbox:await storage.get('ownerAddress')||STAR_SOCCER_OWNER,now:clock()},payload.kind,payload.cursor);
-      if(attentionCache.size<128)attentionCache.set(key,{until:clock()+30000,value});
-      return completions.include(payload.kind,value);
+      const context=await reportContext();
+      if(!history&&context.pages.has(key))return completions.include(payload.kind,context.pages.get(key));
+      const read=(path,params)=>gmail(context.access,path,params);
+      try{
+        // A mailbox label can be added, removed or renamed between categories.
+        // Always classify uncached live pages and saved history against current filing.
+        const labels=await readLabels(context.access);
+        const labelRevision=JSON.stringify(Object.entries(labels).sort(([a],[b])=>a.localeCompare(b)));
+        if(context.labelRevision!==labelRevision)context.pages.clear();
+        context.labelRevision=labelRevision;
+        if(history)return await filterReportItems(history,payload.kind,{read,labels});
+        const value=await attentionPage({ledger:context.ledger,read,labels,mailbox:await storage.get('ownerAddress')||STAR_SOCCER_OWNER,now:clock()},payload.kind,payload.cursor);
+        if(context.pages.size<128)context.pages.set(key,value);
+        return completions.include(payload.kind,value);
+      }catch(error){
+        if(error.message==='GMAIL_401')reportWindow=null;
+        throw error;
+      }
     }
     if(op==='status'){
       const report=await storage.get('report')||{};
@@ -211,7 +268,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     if(op==='start'){
       const state='ledger.'+random(),browser=random(),verifier=random();
       const ownerAddress=payload.ownerAddress?.toLowerCase()||STAR_SOCCER_OWNER;
-      const requested=payload.labelFiling===true?labelScope:scope;
+      const requested=payload.calendar===true?labelScope+' '+calendarScope:payload.labelFiling===true?labelScope:scope;
       await storage.put('consent',{state:hash(state),browser:hash(browser),verifier,ownerAddress,requested,expires:clock()+600000});
       const url=new URL('https://accounts.google.com/o/oauth2/v2/auth');
       url.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:redirect,response_type:'code',scope:requested,state,code_challenge:hash(verifier),code_challenge_method:'S256',access_type:'offline',prompt:'consent',login_hint:ownerAddress}).toString();
@@ -222,21 +279,22 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       if(!pending||pending.expires<clock()||!payload.code||pending.state!==hash(payload.state||'')||pending.browser!==hash(payload.browser||''))throw Error('CONSENT_EXPIRED');
       await storage.delete('consent');
       const grant=await token({grant_type:'authorization_code',code:payload.code,code_verifier:pending.verifier,redirect_uri:redirect});
-      if(!grant.refresh_token||!grant.scope?.split(' ').includes(pending.requested||scope))throw Error('GOOGLE_RECONNECT');
+      if(!grant.refresh_token||!(pending.requested||scope).split(' ').every(s=>grant.scope?.split(' ').includes(s)))throw Error('GOOGLE_RECONNECT');
       const initial=await bootstrap(grant.access_token,await storage.get('scan'),pending.ownerAddress,true);
       await ensureLabels(grant.access_token);
       await storage.transaction(async tx=>{
         await tx.put('refresh',seal(grant.refresh_token,env.COOKIE_KEY));
         await tx.put('ownerAddress',pending.ownerAddress);
-        await tx.put('filing:enabled',pending.requested===labelScope);
+        await tx.put('filing:enabled',(pending.requested||scope).split(' ').includes(labelScope));
+        await tx.put('calendar:enabled',(pending.requested||scope).split(' ').includes(calendarScope));
         if(!await tx.get('scan'))await tx.put('scan',initial);
         await tx.put('report',{error:null});
         await tx.setAlarm(clock()+1000);
       });
-      attentionCache.clear();return {connected:true};
+      reportWindow=null;return {connected:true};
     }
     if(op==='disconnect'){
-      attentionCache.clear();
+      reportWindow=null;
       await storage.delete(['refresh','consent','filing:enabled']);await storage.deleteAlarm();
       await storage.delete('report');return {connected:false};
     }

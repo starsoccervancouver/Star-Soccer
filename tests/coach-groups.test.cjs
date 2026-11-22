@@ -6,6 +6,15 @@ const groups=require('../private-attendance/web/workspace-groups.js');
 const rid=n=>'rec'+String(n).padStart(14,'0');
 const row=(n,date,extra={})=>({id:rid(n),date,time:'4:00–5:00 PM',location:'Fictional West Field',programId:rid(100),status:'Scheduled',...extra});
 
+test('upcoming group order follows the requested timezone on successive renders',()=>{
+ const sessions=[row(1,'2026-11-20',{time:'8:00 AM'}),row(2,'2026-11-20',{time:'1:00 PM'})];
+ const first=timeZone=>groups.groups(sessions,{timeZone,now:new Date('2026-11-20T09:30:00Z')})[0].sessionIds[0];
+ assert.equal(first('America/Vancouver'),rid(1));
+ assert.equal(first('Europe/Athens'),rid(2));
+ assert.throws(()=>first('Invalid/Zone'),RangeError);
+ assert.equal(first('America/Vancouver'),rid(1));
+});
+
 test('winter camps have two browsing groups across days and slots, without merging records',()=>{
  const sessions=[row(1,'2026-12-21',{label:'Christmas AM'}),row(2,'2026-12-22',{label:'Christmas PM',time:'12:30–3:30 PM'}),row(3,'2026-12-28',{label:'Boxing Week AM'}),row(4,'2027-01-01',{label:'Winter Camp Week 2'})];
  const result=groups.groups(sessions);assert.equal(result.length,2);assert.deepEqual(result.map(g=>g.label),['Winter Camp — Week 1','Winter Camp — Week 2']);

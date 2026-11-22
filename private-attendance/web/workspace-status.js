@@ -1,11 +1,12 @@
 (() => {
   'use strict';
+  const timeFormat = new Intl.DateTimeFormat('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: window.CoachClub?.timeZone || 'America/Vancouver' });
   const node = (tag, text, className) => { const el = document.createElement(tag); el.textContent = text; if (className) el.className = className; return el; };
   const roster = node('p', '', 'workspace-sync-state'); roster.id = 'workspace-sync-state'; roster.setAttribute('role', 'status'); roster.hidden = true;
   const plan = node('p', '', 'workspace-save-state'); plan.id = 'workspace-save-state'; plan.setAttribute('role', 'status'); plan.hidden = true;
   document.querySelector('.planner-focus-heading')?.append(plan);
   const heading = document.getElementById('page-title'); heading?.parentElement.append(roster);
-  const date = value => { const at = new Date(value); return Number.isFinite(at.getTime()) ? new Intl.DateTimeFormat('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: window.CoachClub?.timeZone || 'America/Vancouver' }).format(at) : ''; };
+  const date = value => { const at = new Date(value); return Number.isFinite(at.getTime()) ? timeFormat.format(at) : ''; };
   window.addEventListener('coach:status', event => {
     const state = event.detail;
     if (!state) { roster.hidden = plan.hidden = true; roster.textContent = plan.textContent = ''; return; }

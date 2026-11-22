@@ -7,6 +7,12 @@ const header = (message, name) => message?.payload?.headers?.find(h => h.name.to
 const live = m => !m.labelIds?.some(s => ['DRAFT','TRASH','SPAM','CHAT'].includes(s));
 const sent = m => m.labelIds?.includes('SENT');
 const metadata = [['format','metadata'],['metadataHeaders','Subject'],['metadataHeaders','From']];
+// Keep Gmail reads bounded within one Worker request and preserve report order.
+async function readInBatches(rows,read) {
+  const results=[];
+  for(let i=0;i<rows.length;i+=3)results.push(...await Promise.all(rows.slice(i,i+3).map(read)));
+  return results;
+}
 // A mailbox flag is a reason to inspect a message. Only coaching-related mail belongs in Reports.
 function inboxPolicy(labels) {
   const labelIds = pattern => new Set(Object.entries(labels).filter(([name])=>pattern.test(name)).map(([,id])=>id));
@@ -34,14 +40,14 @@ function inboxPolicy(labels) {
 // Reapply the current filing to ledger-backed entries and previously saved report snapshots.
 export async function filterReportItems(page,kind,{read,labels},known=new Map()) {
   const policy=inboxPolicy(labels), items=[];
-  for(const item of page.items) {
-    if(policy.administrative(null,item.title))continue;
-    const id=item.messageId;
-    if(mailId(id)&&!known.has(id)){
-      try{known.set(id,await read('messages/'+id,metadata));}
-      catch(error){if(error.message!=='GMAIL_404')throw error;known.set(id,null);}
-    }
-    const message=known.get(id);
+  const candidates=page.items.filter(item=>!policy.administrative(null,item.title));
+  const missing=new Set(candidates.map(item=>item.messageId).filter(id=>mailId(id)&&!known.has(id)));
+  await readInBatches([...missing],async id=>{
+    try{known.set(id,await read('messages/'+id,metadata));}
+    catch(error){if(error.message!=='GMAIL_404')throw error;known.set(id,null);}
+  });
+  for(const item of candidates) {
+    const message=known.get(item.messageId);
     if(policy.administrative(message,item.title))continue;
     if(kind==='other' && item.status==='Review in Gmail' && !policy.coaching(message,item.title))continue;
     items.push(item);
@@ -93,24 +99,24 @@ export async function attentionPage({ledger,read,labels,mailbox,now}, kind, curs
     const manual=mail.filter(f=>f.Kind==='Registration candidate'&&!origins.has(sourceId(f))&&!ignored(f)&&!noReply(f)&&f.Review!=='Matched');
     const page=slicePage([...open.sort((a,b)=>a.id.localeCompare(b.id)),...manual],cursor);
     result.next=page.next;
-    for(const r of page.items){
-      if(r.Kind==='Registration candidate'){
-        add(sourceId(r)||r.intakeId,r.Subject||'Registration request','Registration needs review',sourceId(r),r['Received date']);
-        continue;
-      }
+    const confirmed=await readInBatches(page.items,async r=>{
+      if(r.Kind==='Registration candidate')return false;
       const contact=r['Parent email']?.trim().toLowerCase();
       if(/^SS-[A-Z0-9-]{4,100}$/i.test(r.Reference||'')&&/^[a-z0-9._%+-]+@[a-z0-9.-]+$/i.test(contact||'')){
         const q='in:sent -in:drafts to:'+contact+' subject:confirmed subject:"'+r.Reference+'"';
         const found=await read('messages',[['q',q],['maxResults','5']]);
-        let confirmed=false;
         for(const {id} of found.messages||[]){
           const m=await read('messages/'+id,[['format','metadata'],['metadataHeaders','Subject'],['metadataHeaders','To']]);
           const subject=header(m,'subject').trim(),to=header(m,'to').toLowerCase().trim();
-          if(live(m)&&sent(m)&&/registration confirmed\s*\|/i.test(subject)&&subject.toUpperCase().endsWith('| '+r.Reference.toUpperCase())&&(to===contact||to.endsWith('<'+contact+'>'))){confirmed=true;break;}
+          if(live(m)&&sent(m)&&/registration confirmed\s*\|/i.test(subject)&&subject.toUpperCase().endsWith('| '+r.Reference.toUpperCase())&&(to===contact||to.endsWith('<'+contact+'>')))return true;
         }
-        if(confirmed)continue;
       }
-      add(r.id,r.Reference||'Website registration','No confirmation recorded',sourceId(r),r['Received at']?.slice(0,10));
+      return false;
+    });
+    for(const [index,r] of page.items.entries()){
+      if(confirmed[index])continue;
+      if(r.Kind==='Registration candidate')add(sourceId(r)||r.intakeId,r.Subject||'Registration request','Registration needs review',sourceId(r),r['Received date']);
+      else add(r.id,r.Reference||'Website registration','No confirmation recorded',sourceId(r),r['Received at']?.slice(0,10));
     }
   }else if(kind==='inquiries'){
     const candidates=new Map();
@@ -123,8 +129,9 @@ export async function attentionPage({ledger,read,labels,mailbox,now}, kind, curs
     }
     const page=slicePage([...candidates].sort(([a],[b])=>a.localeCompare(b)),cursor);
     result.next=page.next;
-    for(const [key,f] of page.items){
-      const value=await thread(key);
+    const conversations=await readInBatches(page.items,([key])=>thread(key));
+    for(const [index,[key,f]] of page.items.entries()){
+      const value=conversations[index];
       const msgs=(value?.messages||[]).filter(m=>live(m)&&!policy.administrative(m)).sort((a,b)=>Number(b.internalDate)-Number(a.internalDate));
       if(value&&!msgs.length||msgs[0]&&sent(msgs[0]))continue;
       const latest=msgs[0], id=latest?.id||sourceId(f);
@@ -136,8 +143,10 @@ export async function attentionPage({ledger,read,labels,mailbox,now}, kind, curs
     if(!depositLabels.length)throw Error('PAYMENT_LABELS_MISSING');
     const receipts=await ledger.list('payments',['Source payment ID','Direction','Verification','Evidence reference']);
     const verified=new Set(receipts.filter(r=>r.fields.Verification==='Verified'&&r.fields.Direction==='Incoming').flatMap(({fields:f})=>[f['Source payment ID'],...String(f['Evidence reference']||'').split(/[^a-zA-Z0-9_-]+/)]).filter(Boolean));
-    for(const {id} of await search('messages','newer_than:30d from:notify@payments.interac.ca')){
-      const msg=await read('messages/'+id,[['format','full']]);
+    const matches=await search('messages','newer_than:30d from:notify@payments.interac.ca');
+    const messages=await readInBatches(matches,({id})=>read('messages/'+id,[['format','full']]));
+    for(const [index,{id}] of matches.entries()){
+      const msg=messages[index];
       known.set(id,msg);
       const note=transferNotice(msg);
       if(!note)continue;
@@ -165,9 +174,11 @@ export async function attentionPage({ledger,read,labels,mailbox,now}, kind, curs
     }
     const tracked=new Set([...mail.filter(f=>f.Kind!=='Other'||ignored(f)||noReply(f)||f.Review==='Matched').flatMap(f=>[f['Gmail thread ID'],sourceId(f)]),...regs.map(sourceId)].filter(Boolean));
     for(const {f} of manualItems)for(const id of [f['Gmail thread ID'],sourceId(f)])if(id)tracked.add(id);
-    for(const {id} of await search('threads','in:inbox newer_than:30d {is:starred is:important} -category:promotions -category:social -category:forums -from:notify@payments.interac.ca')){
-      if(tracked.has(id))continue;
-      const t=await thread(id);
+    const inboxThreads=await search('threads','in:inbox newer_than:30d {is:starred is:important} -category:promotions -category:social -category:forums -from:notify@payments.interac.ca');
+    const matches=inboxThreads.filter(({id})=>!tracked.has(id));
+    const conversations=await readInBatches(matches,({id})=>thread(id));
+    for(const [index,{id}] of matches.entries()){
+      const t=conversations[index];
       const msgs=(t?.messages||[]).filter(live).sort((a,b)=>Number(b.internalDate)-Number(a.internalDate));
       const m=msgs[0];
       if(!m||sent(m)||msgs.some(m=>tracked.has(m.id))||!m.labelIds?.includes('INBOX')||!m.labelIds.some(l=>['STARRED','IMPORTANT'].includes(l)))continue;

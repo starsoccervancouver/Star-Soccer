@@ -15,8 +15,10 @@
     const parsed = new Date(date + 'T12:00:00Z');
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
   };
-  const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-  const dateLabel = date => validDate(date) ? new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(date + 'T12:00:00Z')) : 'Date not recorded';
+  const clubDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const sessionDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' });
+  const today = () => clubDateFormat.format(new Date());
+  const dateLabel = date => validDate(date) ? sessionDateFormat.format(new Date(date + 'T12:00:00Z')) : 'Date not recorded';
   const empty = text => element('p', text, 'empty-state');
   let context = null;
   let playerId = '';
@@ -163,7 +165,7 @@
       if (note.updated_at) {
         const stamp = new Date(note.updated_at);
         if (!Number.isNaN(stamp.getTime())) {
-          const date = new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(stamp);
+          const date = clubDateFormat.format(stamp);
           meta.push('Saved ' + dateLabel(date));
         }
       }
@@ -290,11 +292,15 @@
     target.append(reuse);
   }
 
-  function render() {
-    renderHub();
-    renderDevelopment();
-    renderToolbox();
+  function renderDisclosure(id, target, render) {
+    const disclosure=$(id),host=$(target);
+    if (context && host && (!disclosure || context.tab==='plan' && disclosure.open && !host.closest('[hidden]'))) render();
+    else if (host?.firstChild) host.replaceChildren();
   }
+  const development=()=>renderDisclosure('player-history-panel','player-development',renderDevelopment);
+  const toolbox=()=>renderDisclosure('practice-ideas','practice-toolbox',renderToolbox);
+  $('player-history-panel')?.addEventListener('toggle',development);
+  $('practice-ideas')?.addEventListener('toggle',toolbox);
 
   window.addEventListener('coach:context', event => {
     const next = event.detail && event.detail.profile ? event.detail : null;
@@ -305,7 +311,13 @@
       playerId = copySource = copyGroup = '';
       ageFilter = skillFilter = 'all';
     }
-    render();
+    if(context && (context.tab==='home'||!$('coaching-hub')?.closest('.tab-panel')))renderHub();
+    else if($('coaching-hub')?.firstChild){
+      window.CoachViews?.unmount?.('overview');
+      $('coaching-hub').replaceChildren();
+    }
+    development();
+    toolbox();
   });
   emit('coach:request-context', {});
 })();

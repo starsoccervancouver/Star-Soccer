@@ -8,3 +8,33 @@ test('expired owner tickets cannot open the private overview',async t=>{const c=
 test('owner overview never returns guardian email addresses or treats RSVP as physical attendance',async()=>{const {buildOwnerOverview}=await import('../private-attendance/owner-overview.mjs');const row=(id,fields)=>({id,fields}),t={sessions:[row('s',{Session:'Wednesday',Date:'2026-11-04',Time:'3:45 pm – 5:15 pm',Venue:'Connaught Park',Capacity:20,'Session status':'Planned'})],players:[row('p',{Player:'Alex','Player status':'Active',Family:['f']})],families:[row('f',{'Guardian name':'Jordan',Email:'private@example.com'})],bookings:[row('b',{'Booking type':'Drop-in','Booking status':'Accepted'})],enrollments:[],registrations:[],attendance:[row('a',{Session:['s'],Player:['p'],Booking:['b'],'Coverage state':'Active','RSVP status':'Yes','Attendance status':'Not marked'})]};const result=buildOwnerOverview(t,new Date().toISOString());assert(!JSON.stringify(result).includes('private@example.com'));assert.equal(result.sessions[0].players[0].actualAttendance,'Not marked');assert.equal(result.sessions[0].counts.yes,1);assert(result.sessions[0].issues.some(i=>i.reason.includes('verification')));});
 test('weekly confirmation requires verified individual attendance links, while passes and camps do not',()=>{const E=require('../ops/attendance-emails.cjs'),token=c=>c.repeat(43),player=(name,c)=>({playerId:'rec'+c.repeat(14),name,yesUrl:origin+'/respond#token='+token(c)+'&answer=yes',noUrl:origin+'/respond#token='+token(c)+'&answer=no',optOutUrl:origin+'/respond#token='+token(c.toUpperCase())+'&action=optout'}),packet={appOrigin:origin,players:[player('Alex','a')],session:{id:'rec00000000000001',date:'2026-11-04',label:'Wednesday training',time:'3:45–5:15 PM',location:'Connaught Park',startAt:'2026-11-04T22:45:00Z',endAt:'2026-11-05T00:15:00Z'}};
 const held=E.registrationConfirmation('wednesday','2026-11-04','SS-REVIEWLINKS01','Alex','Jordan');assert.equal(held.deliveryHold,'attendance-links-required');const ready=E.registrationConfirmation('wednesday','2026-11-04','SS-REVIEWLINKS01','Alex','Jordan',packet);assert.equal(ready.attendanceIncluded,true);assert(ready.html.includes('Yes, attending'));assert(ready.html.includes('Can’t make it'));assert(!ready.html.includes('calendar.google.com'));assert.throws(()=>E.registrationConfirmation('wednesday','2026-11-04','SS-REVIEWLINKS01','Someone else','Jordan',packet));packet.players.push(player('Sam','b'));const multi=E.multipleRegistrationConfirmation({sessionId:'wednesday',date:'2026-11-04',reference:'SS-REVIEWLINKS02',players:['Alex','Sam'],parentName:'Jordan',attendance:packet});assert.equal(multi.attendanceIncluded,true);assert(multi.body.includes('Total: $60 CAD'));assert.equal((multi.html.match(/Yes, attending/g)||[]).length,2);});
+test('coalesced roster reads retain confirmed marks across refresh, expire, and recover after failed reads',async()=>{
+ const {createOverviewCache}=await import('../private-attendance/owner-overview.mjs');
+ let now=Date.parse('2026-11-19T12:00:00Z');
+ const reads=[];
+ const cache=createOverviewCache(()=>new Promise((resolve,reject)=>reads.push({resolve,reject})),()=>now);
+ const snapshot=()=>({observedAt:new Date(now).toISOString(),sessions:[{players:[
+  {attendanceId:'a',actualAttendance:'Not marked'},{attendanceId:'b',actualAttendance:'Not marked'}
+ ]}]});
+ const marks=s=>s.sessions[0].players.map(p=>p.actualAttendance);
+ const first=cache.read(),alsoFirst=cache.read(),refresh=cache.read({refresh:true});
+ assert.equal(reads.length,1);
+ cache.updateAttendance({attendanceId:'a',status:'Present'});
+ reads[0].resolve(snapshot());
+ for(const result of await Promise.all([first,alsoFirst,refresh]))assert.deepEqual(marks(result),['Present','Not marked']);
+ const second=cache.read({refresh:true});
+ cache.updateAttendance({attendanceId:'a',status:'Absent'});
+ cache.updateAttendance({attendanceId:'b',status:'Present'});
+ assert.deepEqual(marks(await cache.read()),['Absent','Present']);
+ reads[1].resolve(snapshot());
+ assert.deepEqual(marks(await second),['Absent','Present']);
+ now+=300001;
+ const expired=cache.read(),sharedError=cache.read();
+ assert.equal(reads.length,3);
+ reads[2].reject(Error('AIRTABLE_READ_FAILED'));
+ const failures=await Promise.allSettled([expired,sharedError]);
+ assert(failures.every(r=>r.status==='rejected'&&r.reason.message==='AIRTABLE_READ_FAILED'));
+ const retry=cache.read();assert.equal(reads.length,4);
+ reads[3].resolve(snapshot());
+ assert.deepEqual(marks(await retry),['Not marked','Not marked']);
+});

@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import {normalize} from './gmail-message.mjs';
 import {campRequest, campVersions, placeCampRegistration} from './camp-placement.mjs';
 
-const defaults = {families:'Families',players:'Players',bookings:'Bookings',payments:'Payments',allocations:'Payment Allocations',intake:'Email Intake',registrations:'Website Registrations'};
+const defaults = {families:'Families',players:'Players',bookings:'Bookings',payments:'Payments',allocations:'Payment Allocations',intake:'Email Intake',registrations:'Website Registrations',templates:'Email Templates',staff:'Staff',expenses:'Business Expenses',attribution:'Registration Attribution'};
 const quote = s => "'" + String(s).replaceAll('\\','\\\\').replaceAll("'","\\'") + "'";
 const exact = (field,value) => '{'+field+'}='+quote(value);
 const compact = fields => Object.fromEntries(Object.entries(fields).filter(([,v])=>v!==undefined && v!==null && v!==''));

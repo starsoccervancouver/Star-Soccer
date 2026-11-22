@@ -71,6 +71,38 @@ test('family access is owner-granted, checked before reads, and immediately revo
  assert.equal((await request(admin,'coaching-team')).status,200);
  assert.throws(()=>coaches.requireFamilyAccess(elevated),/ACCESS_DENIED/);
 });
+test('directory shares recent verified links, expires and refreshes without caching failed reads',async()=>{
+ const {createFamilyLedger}=await import('../private-attendance/family-ledger.mjs');
+ const family=rid(1),player=rid(2),recent={reuseRecent:true};
+ let reads=0,now=0,linked=true,fail=false;
+ const ledger=createFamilyLedger(async table=>{
+  reads++;
+  if(fail && table==='players')throw new Error('read failed');
+  return table==='families'?[{id:family,fields:{'Guardian name':'Guardian',Players:[player]}}]:
+   [{id:player,fields:{Player:'Child',Family:linked?[family]:[]}}];
+ },{clock:()=>now});
+ const [first,second]=await Promise.all([ledger.directory(recent),ledger.directory(recent)]);
+ assert.deepEqual(first,second);assert.equal(first[0].name,'Guardian / Child');assert.equal(reads,2);
+ linked=false;now=29999;await ledger.directory(recent);assert.equal(reads,2);
+ now=30000;assert.deepEqual((await ledger.directory(recent))[0].playerIds,[]);assert.equal(reads,4);
+ ledger.invalidateDirectory();fail=true;await assert.rejects(()=>ledger.directory(recent),/read failed/);
+ fail=false;linked=true;assert.deepEqual((await ledger.directory(recent))[0].playerIds,[player]);assert.equal(reads,8);
+});
+test('family detail batches linked history at the Airtable page limit and rechecks payments on each visit',async()=>{
+ const {createFamilyLedger}=await import('../private-attendance/family-ledger.mjs');
+ const id=rid(1),paymentIds=Array.from({length:101},(_,i)=>rid(100+i));
+ let amount=50,duplicate=false;const calls=[];
+ const ledger=createFamilyLedger(async(table,fields,ids)=>{
+  calls.push([table,ids.length]);
+  if(table==='families')return [{id,fields:{Payments:paymentIds}}];
+  return ids.map((key,i)=>({id:duplicate&&i===1?ids[0]:key,fields:{Family:[id],'Amount CAD':amount}}));
+ });
+ const first=await ledger.detail(id);
+ assert.equal(first.payments.length,101);assert.equal(first.payments[0].amount,50);
+ assert.deepEqual(calls,[['families',1],['payments',100],['payments',1]]);
+ amount=65;assert.equal((await ledger.detail(id)).payments[0].amount,65);assert.equal(calls.length,6);
+ duplicate=true;await assert.rejects(()=>ledger.detail(id),/INCONSISTENT_FAMILY_LINK/);
+});
 test('family ledger keeps sibling bookings and a shared transfer separate and preserves unknown amounts',async()=>{
  const {createFamilyLedger}=await import('../private-attendance/family-ledger.mjs');
  const id=rid(1),row=(n,fields)=>({id:rid(n),fields});

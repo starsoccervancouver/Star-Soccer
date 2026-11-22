@@ -241,10 +241,7 @@
 <summary id="home-unpaid-label">Unpaid sessions</summary>
 <p id="home-unpaid-status" role="status"></p>
 <ul id="home-unpaid-list" class="family-balance-list" aria-label="Family balances owing"></ul>
-<dialog id="unpaid-bookings" aria-labelledby="unpaid-bookings-title">
-<header><h2 id="unpaid-bookings-title"></h2><form method="dialog"><button type="submit" class="secondary">Close</button></form></header>
-<ul id="unpaid-booking-list" class="books-list" aria-label="Booking details"></ul>
-</dialog>
+<div id="pending-booking-payments"></div>
 </details>
 <div id="home-priorities"></div>
 <div id="home-followups" hidden>
@@ -607,6 +604,23 @@
 </div>
 </section>
 </section>
+<dialog id="unpaid-bookings" aria-labelledby="unpaid-bookings-title">
+<header><h2 id="unpaid-bookings-title"></h2><form method="dialog"><button type="submit" class="secondary">Close</button></form></header>
+<ul id="unpaid-booking-list" class="books-list" aria-label="Booking details"></ul>
+<details id="payment-entry" hidden><summary>Record a payment</summary>
+<form id="booking-payment-form">
+<label id="payment-target-label">Apply to<select id="payment-target"></select></label>
+<div class="payment-fields">
+<label>Amount received (CAD)<input id="payment-amount" type="number" step="0.01" min="0.01" inputmode="decimal" required></label>
+<label>Date received<input id="payment-date" type="date" required></label>
+<label>Payment method<select id="payment-method" required><option value="">Select method</option><option>Cash</option><option>E-transfer</option></select></label>
+<label id="payment-ref-label" hidden>Interac reference<input id="payment-reference" maxlength="24" pattern="[A-Za-z0-9]{6,24}" autocomplete="off"></label>
+</div>
+<p id="payment-split" class="small"></p>
+<button type="submit" id="payment-submit" class="button">Record payment</button>
+<p id="payment-result" role="status"></p>
+</form></details>
+</dialog>
 <p id="notice" class="desk-notice" role="status" hidden>
 </p>
 </main>

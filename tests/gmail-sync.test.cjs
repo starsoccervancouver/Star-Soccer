@@ -1,7 +1,7 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {Buffer}=require('node:buffer');
-const owner='owner@example.test', ids={'Payments - Incoming':'incoming',Deposited:'deposited',Registrations:'registrations',Leads:'leads'};
+const owner='owner@example.test', ids={'Payments - Incoming':'incoming','Payments - Incoming/Deposited':'deposited',Registrations:'registrations',Leads:'leads'};
 const from='notify@payments.interac.ca';
 function msg(sender,subject,text,labels,authDomain=sender.split('@')[1]){
  return {id:'abc123',threadId:'thread123',internalDate:String(Date.UTC(2026,10,19)),labelIds:labels,payload:{headers:[{name:'From',value:sender},{name:'Subject',value:subject},{name:'Authentication-Results',value:'mx.google.com; dmarc=pass header.from='+authDomain}],mimeType:'text/plain',body:{data:Buffer.from(text).toString('base64url')}}};
@@ -11,6 +11,7 @@ test('only owner-marked authenticated incoming notices with the same CAD amount 
  const m=msg(from,'Interac e-Transfer: EXAMPLE PARENT sent you $60.00. Claim your deposit!','Message: for BOOK-100 Transfer Details Reference Number: CA123456 Sent From: EXAMPLE PARENT Amount: $60.00 (CAD)',['INBOX','incoming','deposited']);
  assert.equal(classifyMessage(m,ids,owner).verified,true);
  assert.equal(classifyMessage({...m,labelIds:['deposited']},ids,owner).verified,true);
+ assert.equal(classifyMessage({...m,labelIds:['old']},{...ids,Deposited:'old'},owner),null);
  for(const labels of [['INBOX'],['INBOX','incoming']]){
   const event=classifyMessage({...m,labelIds:labels},ids,owner);assert.equal(event,null);
  }
@@ -281,4 +282,11 @@ test('no background access until consent and a separate signed-in owner flow',as
  historyUnavailable=false;
  await mail.cycle();assert.equal(alarm,now+120000);assert.equal((await mail.handle('status')).error,null);
  await mail.handle('disconnect',{});assert.equal(alarm,0);assert.equal((await mail.handle('status')).connected,false);
+});
+test('two Gmail messages for the same transfer keep one receipt and one allocation, even with a stale backlink',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ const db=ledger();await syncLedgerEvent(db,e);
+ db.tables.payments[0].fields['Payment Allocations']=[];
+ await syncLedgerEvent(db,{...e,id:'another-gmail-id',ref:e.ref.toLowerCase()});
+ assert.equal(db.tables.payments.length,1);assert.equal(db.tables.allocations.length,1);assert.equal(db.tables.bookings[0].fields['Balance CAD'],20);
 });

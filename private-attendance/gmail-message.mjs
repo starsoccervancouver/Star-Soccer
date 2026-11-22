@@ -37,6 +37,7 @@ export function transferNotice(message) {
     incoming:/sent you|sent money to you|waiting for you|reminder.*(?:accept|deposit|transfer)/i.test(subject),
     closed:/automatically deposited|has been deposited|was deposited|has (?:been )?(?:cancelled|canceled|expired)|(?:transfer|payment) (?:cancelled|canceled|expired)/i.test(subject)};
 }
+export const depositLabel='Payments - Incoming/Deposited';
 export function classifyMessage(message, labels, ownerEmail, confirmationMailbox, trackConfirmation=false) {
   const ids = new Set(message.labelIds);
   if (['DRAFT','SPAM','TRASH','CHAT'].some(id => ids.has(id))) return null;
@@ -60,8 +61,8 @@ export function classifyMessage(message, labels, ownerEmail, confirmationMailbox
   const flat = body.replace(/\s+/g, ' ');
   const fields = formFields(body);
   const has = name => !!labels[name] && ids.has(labels[name]);
-  if (sender === 'notify@payments.interac.ca' || has('Payments - Incoming') || has('Deposited')) {
-    if (!has('Deposited') || (!has('Payments - Incoming') && sender!=='notify@payments.interac.ca')) return null;
+  if (sender === 'notify@payments.interac.ca' || has('Payments - Incoming') || has(depositLabel)) {
+    if (!has(depositLabel) || (!has('Payments - Incoming') && sender!=='notify@payments.interac.ca')) return null;
     const verified = sender==='notify@payments.interac.ca' && /\bdmarc=pass\b[^;]*\bheader\.from=payments\.interac\.ca\b/i.test(auth);
     const ref = flat.match(/Reference Number:\s*([A-Za-z0-9]{6,24})\b/i)?.[1];
     const match = subject.match(/^(?:Interac e-Transfer:\s*)(.+?) sent you \$([\d,]+\.\d{2})[. !]/i);

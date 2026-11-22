@@ -15,16 +15,16 @@ export function confirmationCandidate(r,b,today) {
     /^SS-[A-Z0-9-]{4,100}$/.test(r.Reference||'') && mailId(r['Source Gmail ID']);
 }
 
-export function renderConfirmation(template,r,slots) {
+export function renderConfirmation(template,r,slots,paymentText='') {
   if (!slots.length || slots.some(s=>!s.Date||!s.Time||!s.Venue||!s.Session)) throw Error('Check the dated sessions, venue and times.');
   const title=r['Registration kind']?.includes('CAMP')?'Star Soccer camp':'Star Soccer training';
-  const schedule=slots.map(s=>[s.Date,s.Time,s.Venue].map(escape).join(' · ')).join('<br>');
-  // Preserve the owner's Review 05 design. Keep charges out of the confirmation.
+  const schedule=slots.map(s=>[s.Session,s.Date,s.Time,s.Venue].map(escape).join(' · ')).join('<br>');
+  // Keep the approved layout and replace only the variable paragraphs.
   const start=template.indexOf('Thanks for registering!'),end=template.indexOf('</p>',start);
   const price=template.indexOf('The fee is {{PRICE_PER_PLAYER}}'),priceEnd=template.indexOf('</p>',price);
   if(start<0||end<0||price<end||priceEnd<price)throw Error('Review the saved Review 05 template.');
   let html=template.slice(0,start)+'Thanks for registering! '+escape(r.Child)+' is confirmed for '+escape(title)+'.<br>'+schedule+
-    template.slice(end,price)+'Booking reference: '+escape(r.Reference)+'.'+template.slice(priceEnd);
+    template.slice(end,price)+'Booking reference: '+escape(r.Reference)+'.'+(paymentText?'<br>'+escape(paymentText):'')+template.slice(priceEnd);
   html=html.replace('PRO-D CAMPS',title.includes('camp')?'CAMPS':'TRAINING').replaceAll('{{CAMP_TITLE}}',title)
     .replaceAll('{{PLAYER_NAMES}}',escape(r.Child)).replaceAll(' {{SESSION_DAY_REFERENCE}}','');
   if (/{{|}}/.test(html)) throw Error('Review the unfilled template fields.');

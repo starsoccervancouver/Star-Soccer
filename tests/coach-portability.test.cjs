@@ -55,6 +55,9 @@ test('source-only export excludes private state and old identity, refuses overwr
   const manifest=JSON.parse(await fs.readFile(path.join(destination,'source-manifest.json'),'utf8'));assert.equal(manifest.containsPrivateData,false);assert.equal(manifest.automaticDeployment,false);
   for(const entry of manifest.files){assert(!/(\.wrangler|\.dpapi|\.pending|wrangler\.live|PRODUCTION\.md|(^|\/)data\/|(^|\/)outputs\/|assets\.generated|node_modules)/i.test(entry.path));if(!entry.path.endsWith('.woff2')){const contents=await fs.readFile(path.join(destination,entry.path),'utf8');assert(!contents.includes('starsoccervancouver@gmail.com'),entry.path);assert(!contents.includes('https://attendance.starsoccer.ca'),entry.path);}}
   assert(!SOURCE_FILES.includes('private-attendance/prepare-draft.mjs'));
+  const mark='private-attendance/web/coach-desk-mark.svg';
+  assert(manifest.files.some(file=>file.path===mark));
+  assert.equal(await fs.readFile(path.join(destination,mark),'utf8'),await fs.readFile(path.join(__dirname,'..',mark),'utf8'));
   const wrangler=await fs.readFile(path.join(destination,'private-attendance/cloudflare/wrangler.club.toml'),'utf8');assert.match(wrangler,/ATTENDANCE_MODE = "disabled"/);assert.match(wrangler,/LIVE_AIRTABLE_WRITES = "false"/);assert(!wrangler.includes('script_name'));assert(!wrangler.includes('account_id'));assert(!wrangler.includes('star-soccer-private-attendance'));
   const deploy=await import(require('node:url').pathToFileURL(path.join(destination,'private-attendance/deployment-config.mjs')).href);assert.throws(()=>deploy.deploymentIdentity(),/EXPLICIT_CLUB_IDENTITY_REQUIRED/);
   const worker=await fs.readFile(path.join(destination,'private-attendance/cloudflare/production-worker.mjs'),'utf8');assert(worker.includes('this.coachOnly=true;'));

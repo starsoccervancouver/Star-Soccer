@@ -210,6 +210,32 @@ h2, h3 {
   letter-spacing: -.02em;
 }
 
+.desk-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: .35em;
+  font-family: "Manrope", Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: -.045em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.desk-wordmark img {
+  display: block;
+  flex: none;
+  width: 1.45em;
+  height: 1.45em;
+}
+
+.desk-header .desk-wordmark img { filter: brightness(0) invert(1); }
+
+.signin-card .desk-wordmark {
+  margin: 0 0 .55rem;
+  color: var(--desk-navy);
+  font-size: 1.25rem;
+}
+
 .desk-header > div span {
   overflow: hidden;
   color: #c2c6cc;

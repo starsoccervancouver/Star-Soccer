@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import {normalize} from './gmail-message.mjs';
 import {campRequest, campVersions, placeCampRegistration,weeklyRequest} from './camp-placement.mjs';
 
-const defaults = {families:'Families',players:'Players',bookings:'Bookings',payments:'Payments',allocations:'Payment Allocations',intake:'Email Intake',registrations:'Website Registrations',templates:'Email Templates',staff:'Staff',expenses:'Business Expenses',attribution:'Registration Attribution'};
+const defaults = {draftLog:'Email Draft Log',enrollments:'Recurring Enrollments',programs:'Session Dates',suppression:'Newsletter Suppression',sessions:'Dated Attendance (internal)',attendance:'Attendance',families:'Families',players:'Players',bookings:'Bookings',payments:'Payments',allocations:'Payment Allocations',intake:'Email Intake',registrations:'Website Registrations',templates:'Email Templates',staff:'Staff',expenses:'Business Expenses',attribution:'Registration Attribution'};
 const quote = s => "'" + String(s).replaceAll('\\','\\\\').replaceAll("'","\\'") + "'";
 const exact = (field,value) => '{'+field+'}='+quote(value);
 const compact = fields => Object.fromEntries(Object.entries(fields).filter(([,v])=>v!==undefined && v!==null && v!==''));

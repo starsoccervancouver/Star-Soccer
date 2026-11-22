@@ -54,7 +54,8 @@ body.home-page .home-site-nav a::after {
   height: 2px;
   max-width: 7.5rem;
   border-radius: 2px;
-  background: #8dc6ff;
+  background: #009dff;
+  transform-origin: center;
   opacity: 0;
 }
 body.home-page .home-site-nav a[aria-current="page"]::after { opacity: 1; }
@@ -62,10 +63,12 @@ body.home-page .home-site-nav a[aria-current="page"]::after { opacity: 1; }
   body.home-page .home-site-nav a:hover::after { opacity: 1; }
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  body.home-page .home-site-nav a:hover::after { animation: nav-underline-pulse 460ms ease-in-out; }
+  body.home-page .home-site-nav a:hover::after { animation: nav-underline-pulse 460ms ease-out; }
 }
 @keyframes nav-underline-pulse {
-  50% { transform: scaleY(1.8); box-shadow: 0 0 6px #8dc6ff; }
+  from { transform: scaleX(0); }
+  70% { transform: scaleX(1); box-shadow: 0 0 8px #009dff; }
+  to { transform: scaleX(1); box-shadow: none; }
 }
 body.home-page .home-site-nav a:focus-visible{outline:2px solid #8dc6ff;outline-offset:-2px}
 body:is(.home-landing,.training-compact) .skip-link{background:#10253a;color:#e6eef5}

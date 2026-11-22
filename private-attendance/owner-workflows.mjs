@@ -6,6 +6,7 @@ const day=ms=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Vancouver',year
 const money=n=>new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD'}).format(n);
 const eligible=b=>b&&['Accepted','Completed'].includes(b['Booking status']);
 export const fields={
+draftLog:['Email key','Email kind','Status','Review detail','Source record'],
 registrations:['Reference','Received at','Source Gmail ID','Status','Family','Player','Booking','Next session date','Visit ID','utm_source','Player history at registration','Confirmation Gmail ID'],
 bookings:['Booking status','Booking type','Family','Player','Start date','Agreed booked CAD','Due now CAD','Upcoming booked CAD','Charge review','Charge CAD','Attendance-adjusted charge CAD','Balance CAD'],
 payments:['Method','Family','Verification','Direction','Source payment ID','Evidence reference','Payment reference','Amount CAD','Training portion CAD','Thank-you gift CAD'],
@@ -31,6 +32,10 @@ export function ownerWorkflows(data,{now,notices,desk,calendar,calendarReason,dr
    item('Registrations',r['Next session date']||'Registration needs placement','Match this player to the requested dated session.',record('Website Registrations',id));
  }
  for(const v of draftStates)if(['creating','review'].includes(v.status)&&data.registrations.some(r=>r.id===v.id&&!r.fields['Confirmation Gmail ID']&&r.fields.Status!=='Declined'))item('Registrations','Confirmation draft needs review',v.reason,record('Website Registrations',v.id));
+ for(const r of data.draftLog||[]){const f=r.fields;if(!f['Email key']?.startsWith('Test:')&&(['Review','Creating','Obsolete'].includes(f.Status)||f.Status==='Draft'&&f['Review detail']?.startsWith('Amount-only'))){
+  const group=f['Email kind']==='Receipt'?'Payments':'Registrations';
+  item(group,(f['Email kind']||'Email')+' draft · '+f.Status,f['Review detail'],'https://airtable.com/appnaG94HQpEaRios/tblptlE64qfzG2i01/'+r.id);
+ }}
  if(draftError)item('Registrations','Draft check unavailable',draftError,record('Website Registrations'));
  if(notices===null)item('Payments','Deposited mail unavailable','Check the club Gmail connection.','https://starsoccer.ca/coachdesk#view=settings');
  else for(const id of new Set(notices)){const r=intake.get(id);if(['Ignore','Duplicate','Matched'].includes(r?.Review))continue;

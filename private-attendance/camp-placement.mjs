@@ -1,3 +1,4 @@
+import training from '../training.js';
 import winterCamps from '../winter-camps.js';
 import {sessionTimes, vancouverInstant} from './airtable-roster.mjs';
 
@@ -32,19 +33,29 @@ export function campRequest(event, now) {
   }
 }
 
-export async function placeCampRegistration(db, {event, registration, family, player, now, confirmationId}) {
+export function weeklyRequest(event) {
+  if(!['SS-WEEKLY-V2','SS-PASS-V1'].includes(event.version))return;
+  const dates=split(event.dates,','),type=event.version==='SS-PASS-V1'?'pass4':'dropin';
+  try{
+    const q=training.booking(event.sessionId,type,dates[0],event.age,new Date(event.received));
+    if(!sameSet(dates,q.dates)||q.price!==Number(event.quotedPrice)||q.label!==event.option)return;
+    const time=q.session.time.replaceAll('.','');
+    return {weekly:true,venue:q.location,pass:type==='pass4',price:q.price,dates,slots:dates.map(date=>({date,time,key:'SS-'+date.replaceAll('-','')+'-'+q.session.day.slice(0,2).toUpperCase()}))};
+  }catch{return;}
+}
+export async function placeCampRegistration(db, {event, registration, family, player, now, confirmationId, weekly}) {
   if (!['Needs review', 'Processing'].includes(registration.fields.Status) || registration.fields.Booking?.length ||
       !player || !family || registration.fields['Source Gmail ID'] !== event.id) {
     return review('Check the family, player and existing registration before placing.');
   }
-  const request = campRequest(event, new Date(event.received));
+  const request = weekly || campRequest(event, new Date(event.received));
   if (!request) return review('Check the camp dates, time slots and age eligibility before placing.');
 
-  const source = sourcePrefix + event.reference;
-  const bookings = await db.list('bookings', ['Source booking ID', 'Player', 'Family', 'Booking status', 'Covered dates', 'Start date']);
+  const source = (weekly?'gmail-weekly:':sourcePrefix) + event.reference;
+  const bookings = await db.list('bookings', ['Source booking ID', 'Booking reference','Player', 'Family', 'Booking status', 'Covered dates', 'Start date']);
   const own = bookings.filter(row => row.fields['Source booking ID'] === source);
   const existing = own[0];
-  if (own.length > 1 || existing && (
+  if (bookings.some(row=>row.id!==existing?.id&&row.fields['Booking reference']===event.reference)||own.length > 1 || existing && (
     !sameLink(existing.fields.Player, player.id) || !sameLink(existing.fields.Family, family.id) ||
     existing.fields['Booking status'] !== 'Accepted' ||
     !sameSet(split(existing.fields['Covered dates'], ','), request.dates)
@@ -61,8 +72,8 @@ export async function placeCampRegistration(db, {event, registration, family, pl
     const matches = sessions.filter(row => row.fields['Source session ID'] === slot.key);
     const session = matches[0];
     const s = session?.fields;
-    if (matches.length !== 1 || s.Date !== slot.date || s.Venue !== 'Kitsilano Turf' ||
-        !open.has(s['Session status']) || s['Weekly program']?.length ||
+    if (matches.length !== 1 || s.Date !== slot.date || s.Venue !== (weekly?request.venue:'Kitsilano Turf') ||
+        !open.has(s['Session status']) || (weekly?s['Weekly program']?.length!==1:s['Weekly program']?.length) ||
         !Number.isInteger(s.Capacity) || s.Capacity < 1 || s.Capacity > 20) {
       return review('Check the dated camp session and its capacity before placing.');
     }
@@ -90,7 +101,7 @@ export async function placeCampRegistration(db, {event, registration, family, pl
       sameLink(previous[0].fields.Session, session.id) && sameLink(previous[0].fields.Player, player.id) &&
       sameLink(previous[0].fields['Website Registrations'], registration.id) && previous[0].fields['Coverage state'] === 'Active';
     const active = rows.filter(row => row.fields['Coverage state'] === 'Active');
-    const autoPlaced = active.filter(row => row.fields['Source coverage key']?.startsWith(sourcePrefix)).length;
+    const autoPlaced = active.filter(row => /^(gmail-camp:|gmail-weekly:)/.test(row.fields['Source coverage key']||'')).length;
     const reported = s['Expected headcount (owner reported)'] ?? 0;
     if (previous.length && !alreadyPlaced || active.some(row => row.fields.Player.includes(player.id) && row !== previous[0]) ||
         !Number.isInteger(reported) || reported < 0 ||
@@ -104,8 +115,8 @@ export async function placeCampRegistration(db, {event, registration, family, pl
   // an uncertain API response without rewriting attendance already on the roster.
   const booking = existing || await db.save('bookings', {
     'Source booking ID': source, 'Booking reference': event.reference, Player: [player.id], Family: [family.id],
-    'Booking type': 'Drop-in', 'Booking status': 'Accepted', 'Charge review': 'Agreed', 'Charge CAD': request.price,
-    ...(event.version === 'SS-CAMP-V2' ? {'Fixed-price package': true} : {}),
+    'Booking type': request.pass?'Four consecutive sessions':'Drop-in', 'Booking status': 'Accepted', 'Charge review': 'Agreed', 'Charge CAD': request.price,
+    ...((event.version === 'SS-CAMP-V2'||request.pass) ? {'Fixed-price package': true} : {}),
     ...(event.version === 'SS-CAMP-DROPIN-V1' ? {'Agreed per-visit CAD': request.price / (request.slots.filter(slot => slot.date !== winterCamps.getWeek(event.campWeek).freeDate).length || 1)} : {}),
     'Start date': request.dates[0], 'Covered dates': request.dates.join(', '),
     'First session': [coverage[0].session.id], 'Accepted date': now.toISOString().slice(0, 10)
@@ -118,8 +129,8 @@ export async function placeCampRegistration(db, {event, registration, family, pl
   await db.save('registrations', {
     Status: confirmationId ? 'Confirmed' : 'Expected', Booking: [booking.id], Family: [family.id], Player: [player.id],
     'Confirmation Gmail ID': confirmationId,
-    'Processing notes': confirmationId ? 'Owner confirmation recorded from Gmail. Payment is recorded separately.' : 'Returning player placed on the camp roster. This registration did not record a payment.',
-    'Camp session keys': request.slots.map(slot => slot.key).join('; ')
+    'Processing notes': confirmationId ? 'Owner confirmation recorded from Gmail. Payment is recorded separately.' : 'Player placed on the verified dated roster. Owner confirmation draft pending.',
+    ...(weekly?{}:{'Camp session keys': request.slots.map(slot => slot.key).join('; ')})
   }, {id: registration.id});
-  return {placed: true, message: confirmationId ? 'Parent confirmation recorded and player placed on the camp roster.' : 'Returning player placed on the camp roster. No payment recorded.'};
+  return {placed: true, message: confirmationId ? 'Parent confirmation recorded and player placed on the camp roster.' : 'Player placed on the roster. Review the confirmation draft.'};
 }

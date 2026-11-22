@@ -9,7 +9,7 @@ async function setup(t,contactFixture){
  const one=coaches.actor('one@example.test'),two=coaches.actor('two@example.test'),admin=coaches.actor('admin@example.test');
  coaches.assign(owner,{email:one.email,sessionId:rid(1),assigned:true});
  const ledgerCalls=[],familyLedger={async directory(){ledgerCalls.push('directory');return [];},async detail(id){ledgerCalls.push(id);return {balance:50};}};
- const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,sessionBooks:contactFixture?.sessionBooks,attention:async({kind})=>({kind}),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
+ const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,sessionBooks:contactFixture?.sessionBooks,bookingPayments:contactFixture?.bookingPayments,attention:async({kind})=>({kind}),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
  const request=(actor,path,payload)=>{const session=auth.createVerifiedSession(actor.email),origin='https://attendance.starsoccer.ca';return handler(new Request(origin+'/workspace/api/'+path,{method:payload===undefined?'GET':'POST',headers:{origin,'content-type':'application/json',cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf},...(payload===undefined?{}:{body:JSON.stringify(payload)})}));};
  return {store,coaches,owner,one,two,admin,request,auth,handler,ledgerCalls};
 }
@@ -276,4 +276,14 @@ test('registration follow-up reports and manual checks require the signed-in own
  for(const actor of [admin,one])assert.equal((await request(actor,'family-followups',{})).status,403);
  assert.deepEqual(await (await request(owner,'family-followups')).json(),{preview:false});
  assert.deepEqual(await (await request(owner,'family-followups',{})).json(),{preview:true});
+});
+
+test('only a signed-in owner can submit a booking payment',async t=>{
+ const calls=[];
+ const {coaches,owner,one,admin,request}=await setup(t,{bookingPayments:async (op,payload)=>{calls.push([op,payload]);return {saved:true};}});
+ coaches.saveUser(owner,{email:admin.email,name:'Test admin',role:'super_admin',expectedVersion:1});
+ for(const actor of [one,admin])assert.equal((await request(actor,'booking-payment',{id:'test'})).status,403);
+ assert.equal((await request(owner,'booking-payment')).status,405);assert.equal(calls.length,0);
+ assert.equal((await request(owner,'booking-payment',{id:'test'})).status,200);
+ assert.deepEqual(calls,[['record-booking-payment',{actor:owner.email,input:{id:'test'}}]]);
 });

@@ -84,7 +84,7 @@ module.exports = async function checkBooks(fixture) {
   try {
     const {page} = f;
     const unpaid = page.locator('#home-unpaid');
-    await unpaid.locator('summary').getByText('Unpaid sessions (1 family)',{exact:true}).waitFor();
+    await unpaid.locator(':scope > summary').getByText('Unpaid sessions (1 family)',{exact:true}).waitFor();
     await page.waitForLoadState('networkidle');
     assert(await page.locator('#home-attention').isVisible(),'One unpaid session keeps the otherwise-empty attention card visible');
     assert(await page.locator('#home-mail-summary').isHidden());
@@ -93,7 +93,7 @@ module.exports = async function checkBooks(fixture) {
     assert.equal(await unpaid.evaluate(el=>el.open),false);
     assert.equal(await unpaid.locator('.books-entry').count(),0,'Only a count is rendered while collapsed');
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
-    await unpaid.locator('summary').click();
+    await unpaid.locator(':scope > summary').click();
     const homeRow=unpaid.locator('#home-unpaid-list li');
     const booking=homeRow.getByRole('button');
     await booking.waitFor();
@@ -109,8 +109,8 @@ module.exports = async function checkBooks(fixture) {
     for(const width of [320,390,1365])await checkLayout(page,entry,width);
     await details.getByRole('button',{name:'Close'}).click();
     assert(await booking.evaluate(el=>el===document.activeElement),'Closing returns focus to the family');
-    await unpaid.locator('summary').click();
-    await unpaid.locator('summary').click();
+    await unpaid.locator(':scope > summary').click();
+    await unpaid.locator(':scope > summary').click();
     await booking.waitFor();
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}],'Reopening uses the same due-only result');
     for(const width of [320,390,1365]){
@@ -206,6 +206,27 @@ module.exports = async function checkBooks(fixture) {
     assert.deepEqual(grouped.errors,[]);
   }finally{await grouped.context.close();}
 
+  const accountingRows=[{...due}];
+  const payment=await fixture({...emptyHome,books:accountingRows,paymentRecording:true});
+  try{
+    const {page}=payment;let submissions=0;
+    await payment.context.route('**/workspace/api/booking-payment',async route=>{
+      const data=route.request().postDataJSON();submissions++;
+      assert.equal(data.familyId,due.familyId);assert.equal(data.method,'Cash');
+      assert.deepEqual(data.items,[{bookingId:due.bookingId,applyCents:1000,dueCents:3150}]);
+      accountingRows[0].amountDue=21.5;
+      await route.fulfill({json:{saved:true}});
+    });
+    await page.getByText('Unpaid sessions (1 family)',{exact:true}).click();
+    await page.locator('#home-unpaid-list button').click();
+    await page.locator('#payment-entry summary').click();
+    await page.locator('#payment-amount').fill('10');
+    await page.locator('#payment-method').selectOption('Cash');
+    await page.locator('#payment-submit').click();
+    await page.locator('#home-unpaid-list').getByText('$21.50').waitFor();
+    assert.equal(submissions,1);assert.deepEqual(payment.errors,[]);
+  }finally{await payment.context.close();}
+
   const retry = await fixture({...emptyHome,hash:'#view=settings',books:[due]});
   try {
     const {page} = retry;
@@ -217,7 +238,7 @@ module.exports = async function checkBooks(fixture) {
     const unpaid=page.locator('#home-unpaid');
     await unpaid.getByText('Check unpaid sessions',{exact:true}).waitFor();
     assert(await page.locator('#home-attention').isVisible(),'A failed lookup cannot mark an otherwise empty Overview as clear');
-    await unpaid.locator('summary').click();
+    await unpaid.locator(':scope > summary').click();
     await unpaid.getByText(due.familyName,{exact:true}).waitFor();
     assert.deepEqual(reads(retry).map(r=>r.payload),[{view:'unpaid'}],'After a failed lookup, expanding retries the due-only read');
     assert.deepEqual(retry.errors,[]);

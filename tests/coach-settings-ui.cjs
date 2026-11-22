@@ -30,7 +30,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   const browser = await chromium.launch(); let checks = 0;
   try {
     async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail, homeQueues = false, bundleDesk = homeQueues,
-      followups = false, roster = sessions, refreshRoster, books = [], openInquiry = true, booksAvailable = role==='owner'||(role==='admin'&&familyAccess),
+      paymentRecording = false, followups = false, roster = sessions, refreshRoster, books = [], openInquiry = true, booksAvailable = role==='owner'||(role==='admin'&&familyAccess),
       families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
       let reportCompleted=null;
@@ -50,7 +50,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         const payload = request.postData() ? request.postDataJSON() : undefined; requests.push({ path, method: request.method(), payload });
         let value;
         if (path.endsWith('/refresh') && refreshRoster !== undefined) roster = refreshRoster;
-        const desk = { profile: state.profile, sessions:roster, notes: [], tasks: [], observedAt: now, ...(booksAvailable?{booksAvailable:true}:{}),
+        const desk = { profile: state.profile, sessions:roster, notes: [], tasks: [], observedAt: now, ...(booksAvailable?{booksAvailable:true}:{}), ...(paymentRecording?{paymentRecordingAvailable:true}:{}),
           attentionAvailable: homeQueues && familyAccess, familyFollowupsAvailable: (followups || homeQueues) && role==='owner' };
         const includeDesk = bundleDesk && state.profile && request.headers()['x-coach-desk'] === 'full';
         if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true, ...(includeDesk ? {desk} : {}) };

@@ -674,13 +674,15 @@
  const familyMoney = value => Number.isFinite(value) ? cadFormat.format(value) : 'Not recorded';
  const familyDate=value=>value && Number.isFinite(Date.parse(value))?dateWithYearFormat.format(Date.parse(value)):value;
  const booksPageSize=40;
- let unpaidFamilies=[];
+ let unpaidFamilies=[],paymentFamily=null,paymentCommand=null,paymentBusy=false;
+ const canRecordPayment=()=>canViewBooks()&&profile.role==='owner'&&data.paymentRecordingAvailable===true;
  let booksRequest=0,booksRows=null,booksDenied=false,booksLimit=booksPageSize,homeUnpaidState='idle';
  const canViewBooks=()=>!booksDenied&&data?.booksAvailable===true&&(profile?.role==='owner'||(profile?.role==='admin'&&profile.familyAccess===true));
  const sessionDue=row=>row.scope==='session'&&row.status==='due'&&Number.isFinite(row.amountDue)&&row.amountDue>0;
  const bookStatuses={due:'Payment due',paid:'Paid',upcoming:'Upcoming','no-charge':'No charge',package:'Package',review:'Needs review'};
 
  function resetBooks(){
+  paymentFamily=null;paymentCommand=null;$('pending-booking-payments').replaceChildren();$('booking-payment-form').reset();$('payment-split').textContent='';$('payment-result').textContent='';$('payment-target').replaceChildren();$('payment-entry').hidden=true;
   unpaidFamilies=[];if($('unpaid-bookings').open)$('unpaid-bookings').close();
   $('unpaid-booking-list').replaceChildren();$('unpaid-bookings-title').textContent='';
   booksRequest++;booksRows=null;booksLimit=booksPageSize;homeUnpaidState='idle';
@@ -746,7 +748,7 @@
    if(row.bookingId&&bookings.has(row.bookingId))continue;
    if(row.bookingId)bookings.add(row.bookingId);
    const key=row.familyId||row.bookingId||row;
-   if(!families.has(key))families.set(key,{name:row.familyName||row.contact?.guardian||'Family unconfirmed',cents:0,rows:[]});
+   if(!families.has(key))families.set(key,{id:row.familyId,name:row.familyName||row.contact?.guardian||'Family unconfirmed',cents:0,rows:[]});
    const family=families.get(key);
    family.cents+=Math.round(row.amountDue*100);family.rows.push(row);
   }
@@ -762,7 +764,91 @@
    return entry;
   });
   $('unpaid-booking-list').replaceChildren(...entries);
+  setupPaymentForm(family);
   $('unpaid-bookings').showModal();
+ }
+ function setupPaymentForm(family){
+  paymentFamily=family;paymentCommand=null;
+  const entry=$('payment-entry');entry.open=false;entry.hidden=!canRecordPayment()||!family.id;
+  const form=$('booking-payment-form');form.reset();$('payment-result').textContent='';
+  if(entry.hidden)return;
+  const select=$('payment-target');
+  select.replaceChildren(new Option('All unpaid sessions · oldest first',''));
+  for(const row of family.rows)select.add(new Option([familyDate(row.date),row.playerName,familyMoney(row.amountDue)].filter(Boolean).join(' · '),row.bookingId));
+  $('payment-target-label').hidden=family.rows.length===1;
+  $('payment-date').max=today();$('payment-date').value=today();
+  for(const field of form.elements)field.disabled=paymentBusy;
+  updatePaymentForm();
+ }
+ function updatePaymentForm(){
+  if(!paymentFamily)return [];
+  const transfer=$('payment-method').value==='E-transfer';
+  $('payment-ref-label').hidden=!transfer;$('payment-reference').required=transfer;
+  const target=$('payment-target').value,amount=$('payment-amount');
+  const rows=paymentFamily.rows.filter(r=>!target||r.bookingId===target)
+   .sort((a,b)=>String(a.date).localeCompare(String(b.date))||a.bookingId.localeCompare(b.bookingId));
+  const max=rows.reduce((sum,r)=>sum+Math.round(r.amountDue*100),0);
+  amount.max=(max/100).toFixed(2);
+  let left=Math.round(amount.valueAsNumber*100);
+  const items=[],lines=[];
+  if(left>0&&left<=max)for(const row of rows){
+   const dueCents=Math.round(row.amountDue*100),applyCents=Math.min(dueCents,left);
+   items.push({bookingId:row.bookingId,applyCents,dueCents});
+   lines.push(familyDate(row.date)+' · '+row.playerName+' · '+familyMoney(applyCents/100));left-=applyCents;
+   if(!left)break;
+  }
+  $('payment-split').textContent=items.length?'Apply to '+lines.join('; '):'Available balance: '+familyMoney(max/100);
+  return items;
+ }
+ $('booking-payment-form').addEventListener('input',updatePaymentForm);
+ async function submitBookingPayment(command,button){
+  if(paymentBusy||!canRecordPayment())return;
+  const ticket=generation,form=$('booking-payment-form'),inDialog=$('unpaid-bookings').open;
+  paymentBusy=true;button.disabled=true;
+  const closeButton=$('unpaid-bookings').querySelector('form[method=dialog] button');
+  if(inDialog){closeButton.disabled=true;for(const e of form.elements)e.disabled=true;$('payment-result').textContent='Recording payment…';}
+  let saved=false;
+  try{
+   await api('booking-payment',command);
+   if(ticket!==generation)return;
+   saved=true;paymentCommand=null;if($('unpaid-bookings').open)$('unpaid-bookings').close();
+   resetFamilyRecords();notice('Payment recorded in Airtable.');
+  }catch(error){
+   if(ticket!==generation)return;
+   const retrySame=!error.code||['PAYMENT_PENDING','SERVICE_UNAVAILABLE'].includes(error.code);
+   if(!retrySame)paymentCommand=null;
+   if(inDialog){
+    for(const e of form.elements)e.disabled=retrySame;
+    $('payment-result').textContent=error.message;
+   }else notice(error.message,true);
+  }finally{
+   paymentBusy=false;closeButton.disabled=false;
+   if(ticket===generation){
+    button.disabled=false;
+    if(tab==='home'&&(saved||!inDialog||paymentCommand)){
+     homeUnpaidState='idle';await loadBooks(true);
+    }
+   }
+  }
+ }
+ $('unpaid-bookings').addEventListener('cancel',event=>{if(paymentBusy)event.preventDefault();});
+ $('booking-payment-form').addEventListener('submit',event=>{
+  event.preventDefault();if(!canRecordPayment()||!paymentFamily||paymentBusy)return;
+  if(!paymentCommand){
+   const items=updatePaymentForm();if(!items.length)return;
+   const method=$('payment-method').value;
+   paymentCommand={id:crypto.randomUUID(),familyId:paymentFamily.id,date:$('payment-date').value,method,
+    reference:method==='E-transfer'?$('payment-reference').value.trim().toUpperCase():'',items};
+  }
+  submitBookingPayment(paymentCommand,$('payment-submit'));
+ });
+ function renderPendingPayments(commands){
+  const list=$('pending-booking-payments');list.replaceChildren();
+  if(!canRecordPayment())return;
+  for(const pending of commands){
+   const b=node('button','Finish recording '+familyMoney(pending.amount)+' for '+pending.name,'secondary');b.type='button';
+   b.addEventListener('click',()=>submitBookingPayment({id:pending.id},b));list.append(b);
+  }
  }
  function renderUnpaidRows(){
   const list=$('home-unpaid-list');list.replaceChildren();
@@ -787,8 +873,10 @@
    if(!Array.isArray(result.rows))throw Error('Books unavailable.');
    if(!unpaid){booksRows=result.rows;renderBooks();return;}
    unpaidFamilies=unpaidByFamily(result.rows);homeUnpaidState='ready';
-   $('home-unpaid-label').textContent='Unpaid sessions ('+unpaidFamilies.length+(unpaidFamilies.length===1?' family)':' families)');
-   $('home-unpaid').hidden=!unpaidFamilies.length;
+   renderPendingPayments(result.pendingPayments||[]);
+   const pending=$('pending-booking-payments').childElementCount;
+   $('home-unpaid-label').textContent=unpaidFamilies.length?'Unpaid sessions ('+unpaidFamilies.length+(unpaidFamilies.length===1?' family)':' families)'):'Payment to finish';
+   $('home-unpaid').hidden=!unpaidFamilies.length&&!pending;
    updateHomeAttention();renderUnpaidRows();status.textContent='';
   }catch(error){
    if(ticket!==booksRequest)return;

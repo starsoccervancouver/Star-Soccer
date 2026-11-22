@@ -112,7 +112,7 @@ export function createRosterReader({baseId,token,tableMap,verifiedContacts={},ti
   const allIds=new Set(tables.attendance.map(r=>r.id));for(const s of tables.sessions)if(links(s.fields.Attendance).some(id=>!allIds.has(id)))throw new Error('INCOMPLETE_AIRTABLE_READ');
   return {tables,observedAt};
  }
- return {familyLedger:createFamilyLedger(read),async overview(){const {tables,observedAt}=await collect();return buildOwnerOverview(tables,observedAt,verifiedContacts);},async read(revision,sessionId){if(!/^rec[A-Za-z0-9]{14}$/.test(sessionId||''))throw new Error('EXACT_SESSION_REQUIRED');const {tables,observedAt}=await collect();
+ return {familyLedger:createFamilyLedger(read),async overview(){const {tables,observedAt}=await collect();return buildOwnerOverview(tables,observedAt,verifiedContacts,{baseId,tables:tableMap});},async read(revision,sessionId){if(!/^rec[A-Za-z0-9]{14}$/.test(sessionId||''))throw new Error('EXACT_SESSION_REQUIRED');const {tables,observedAt}=await collect();
   tables.sessions=tables.sessions.filter(r=>r.id===sessionId);if(tables.sessions.length!==1)throw new Error('SESSION_NOT_FOUND');tables.attendance=tables.attendance.filter(r=>links(r.fields.Session).includes(sessionId));
   return normalizeAirtableRoster({tables,observedAt,revision,verifiedContacts,timeZone});}};
 }

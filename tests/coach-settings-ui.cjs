@@ -30,7 +30,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   const browser = await chromium.launch(); let checks = 0;
   try {
     async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail,
-      roster = sessions, families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
+      followups = false, roster = sessions, families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
       let reportCompleted=null;
       const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, familyAccess, sessionVersion: 1, ...(displayEmail ? { displayEmail } : {}) } }, requests = [], errors = [];
@@ -49,7 +49,8 @@ require('./coach-fixture-fonts.cjs')(assets);
         const payload = request.postData() ? request.postDataJSON() : undefined; requests.push({ path, method: request.method(), payload });
         let value;
         if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true };
-        else if (path.endsWith('/desk')) value = { profile: state.profile, sessions:roster, notes: [], tasks: [], observedAt: now };
+        else if (path.endsWith('/desk')) value = { profile: state.profile, sessions:roster, notes: [], tasks: [], familyFollowupsAvailable:followups, observedAt: now };
+        else if (path.endsWith('/family-followups') && role==='owner' && followups) value = {state:'ready',enabled:true,eligibleBookings:1,checkedAt:now,items:[{label:'Sample booking',confirmationAt:'2026-10-28',bookingUrl:'https://airtable.com/app00000000000001/tbl00000000000002/'+rid(40)}]};
         else if (path.endsWith('/families') && familyAccess) value = { families };
         else if (path.endsWith('/needs-attention/inquiries') && familyAccess && payload.completionToken==='fixture-row') {reportCompleted=payload.completed;value={completed:reportCompleted};}
         else if (path.includes('/needs-attention/') && familyAccess) {
@@ -81,6 +82,22 @@ require('./coach-fixture-fonts.cjs')(assets);
     const section = (f, name) => f.page.locator('#settings-navigation [data-settings-tab="' + name + '"]');
     const count = (f, suffix) => f.requests.filter(r => r.path.endsWith(suffix)).length;
 
+    {
+      const familyUrl='https://airtable.com/app00000000000001/tbl00000000000003/'+rid(50);
+      const roster=[{...sessions[0],issues:[{player:'Jamie',reason:'Parent email missing',action:{label:'Review family contact',href:familyUrl}}]}];
+      const f=await fixture({followups:true,roster});
+      await f.page.getByRole('button',{name:/Roster details to review/}).click();
+      assert.equal(await f.page.getByRole('link',{name:'Review family contact'}).getAttribute('href'),familyUrl);
+      await f.page.locator('#report-open').click();
+      await f.page.goBack();
+      await f.page.getByRole('link',{name:'Review family contact'}).waitFor();
+      await openDestination(f.page,'home');
+      await f.page.locator('#home-registration-review').click();
+      assert.equal(await f.page.locator('#roster-review-type').inputValue(),'registrations');
+      assert.equal(await f.page.getByRole('link',{name:'Review booking · Sample booking'}).getAttribute('href'),'https://airtable.com/app00000000000001/tbl00000000000002/'+rid(40));
+      assert.equal(await f.page.locator('#report-mail').isVisible(),false);
+      assert.deepEqual(f.errors,[]); await f.context.close(); checks++;
+    }
     for (const role of ['owner', 'admin', 'coach']) {
       const f = await fixture({ role }); await clickSettings(f);
       assert.equal(await f.page.locator('#panel-settings').isVisible(), true);
@@ -181,7 +198,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         await done.waitFor();
         assert.equal(await f.page.locator('.report-filter').count(),role==='owner'?5:4);
         await done.click();await f.page.getByText('Moved to completed.').waitFor();
-        assert.match(await f.page.locator('#home-mail-summary').textContent(),/^0 inquiries/);
+        assert.match(await f.page.locator('#home-mail-summary').textContent(),/Review inbox · 0 inquiries/);
         await f.page.locator('#attention-refresh').click();
         await f.page.getByRole('button',{name:'Show completed',exact:true}).click();
         const reopen=f.page.getByRole('button',{name:'Reopen: Session question'});
@@ -192,7 +209,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         await reopen.click();await f.page.getByText('Moved to inbox.').waitFor();
         await f.page.locator('#report-open').click();await done.waitFor();
         await f.page.locator('#attention-refresh').click();await done.waitFor();
-        assert.match(await f.page.locator('#home-mail-summary').textContent(),/^1 inquiries/);
+        assert.match(await f.page.locator('#home-mail-summary').textContent(),/Review inbox · 1 inquiries/);
         await f.page.locator('#logout').click();
         await f.page.locator('#login').waitFor();
         assert.equal(await f.page.locator('#family-results').textContent(),'');

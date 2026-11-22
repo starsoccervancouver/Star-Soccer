@@ -73,6 +73,22 @@ test('overview exposes exactly one well-formed existing Weekly program link',asy
  assert.deepEqual(overview.sessions.map(session=>session.programId),[rid(100),rid(101),null,null,null,null,null]);assert.equal(JSON.stringify(tables),before);assert.equal(overview.manualOnly,true);assert.equal(overview.draftOnly,true);
 });
 
+test('roster review actions link to the source record for each issue',async()=>{
+ const {buildOwnerOverview}=await import('../private-attendance/owner-overview.mjs');
+ const row=(id,fields)=>({id:rid(id),fields});
+ const tables={sessions:[row(1,{Session:'Fixture',Capacity:0})],players:[row(2,{Player:'Fixture player',Family:[rid(3)],'Player status':'Name to confirm'})],
+  families:[row(3,{})],bookings:[],enrollments:[row(4,{Player:[rid(2)],'Enrollment status':'Active'})],registrations:[],
+  attendance:[row(5,{Player:[rid(2)],Session:[rid(1)],Enrollment:[rid(4)],'Coverage state':'Active'})]};
+ const baseId='app00000000000000',map=Object.fromEntries(Object.keys(tables).map((name,i)=>[name,'tbl'+String(i).padStart(14,'0')]));
+ const overview=(source)=>buildOwnerOverview(tables,'2026-10-29T18:00:00Z',{},source).sessions[0];
+ const {issues,players}=overview({baseId,tables:map});
+ for(const [reason,table,id] of [['Parent email missing','families',3],['Player name to confirm','players',2],['Weekly check-in preference needs review','enrollments',4],['Capacity needs review before any confirmation','sessions',1]]){
+  assert.equal(issues.find(issue=>issue.reason===reason).action.href,'https://airtable.com/'+baseId+'/'+map[table]+'/'+rid(id));
+ }
+ assert(overview({}).issues.every(issue=>!issue.action));
+ assert(!JSON.stringify(players).includes('airtable.com'));
+});
+
 test('family directory separates Pro-D events from regular Fridays and winter weeks',async()=>{
  const {buildOwnerOverview}=await import('../private-attendance/owner-overview.mjs');
  const tables={players:[],families:[],bookings:[],enrollments:[],registrations:[],attendance:[],sessions:[

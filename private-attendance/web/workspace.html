@@ -266,13 +266,28 @@
 </section>
 <section id="panel-books" class="tab-panel" hidden>
 <section class="card" aria-label="Session books">
+<div id="books-summary" hidden>
+<h2>Needs attention</h2>
+<dl class="books-totals" aria-label="Totals across all books">
+<div><dt>Confirmed outstanding</dt><dd id="books-outstanding"></dd></div>
+<div><dt>Due now</dt><dd id="books-due"></dd></div>
+<div><dt>Due later</dt><dd id="books-upcoming"></dd></div>
+<div><dt>Needs review</dt><dd id="books-review-count"></dd></div>
+</dl>
+</div>
+<div id="books-modes" role="group" aria-label="Books view">
+<button type="button" data-books-mode="grid" aria-pressed="false">Grid</button>
+<button type="button" data-books-mode="list" aria-pressed="false">List</button>
+<button type="button" data-books-mode="session" aria-pressed="false">By session</button>
+<button type="button" data-books-mode="family" aria-pressed="true">By family</button>
+</div>
 <div class="books-tools">
-<label>Player or session <input id="books-search" type="search" placeholder="Search books"></label>
-<label>Show <select id="books-filter"><option value="all">All records</option><option value="due">Unpaid sessions</option><option value="paid">Paid</option><option value="booking">Whole bookings</option><option value="review">Needs review</option></select></label>
+<label>Search <input id="books-search" type="search" placeholder="Parent, player or session"></label>
+<label>Show <select id="books-filter"><option value="attention">Needs attention</option><option value="all">All records</option><option value="outstanding">All outstanding</option><option value="due">Due now</option><option value="upcoming">Due later</option><option value="review">Needs review</option><option value="paid">Paid</option><option value="booking">Whole bookings</option></select></label>
 <button id="books-refresh" class="secondary" type="button">Refresh books</button>
 </div>
 <p id="books-status" role="status"></p>
-<ul id="books-list" class="books-list" aria-label="Booking and session balances"></ul>
+<ul id="books-list" class="books-list" data-mode="family" aria-label="Booking and session balances"></ul>
 <button type="button" id="books-more" class="secondary" hidden>Show more records</button>
 </section>
 </section>

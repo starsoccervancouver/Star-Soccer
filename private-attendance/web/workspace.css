@@ -2592,3 +2592,55 @@ body #app #report-filters .report-filter[aria-pressed=false]:hover:not(:disabled
   .books-entry { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.15fr); column-gap: 20px; }
   .books-entry > .books-balance { justify-items: end; text-align: right; padding-right: 8px; }
 }
+
+#books-summary h2 { margin: 0 0 .65rem; }
+.books-totals {
+  display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,8.5rem),1fr));
+  gap: .5rem 1rem; margin: 0 0 1rem; padding: .65rem .85rem;
+  border-inline-start: 3px solid var(--desk-accent); background: var(--desk-inset);
+}
+.books-totals dt, #books-list small, #books-status, .book-detail { color: var(--desk-muted); font-size: .84rem; }
+.books-totals dd { margin: 0; color: var(--desk-ink); font-size: 1.06rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+#books-modes { display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 100%; margin-bottom: .75rem; padding: 2px; border: 1px solid var(--desk-line); border-radius: 10px; background: var(--desk-inset); }
+#books-modes button { min-height: 40px; margin: 0; padding: .32rem .7rem; color: var(--desk-navy-soft); background: transparent; border: 1px solid transparent; border-radius: 7px; }
+#books-modes button[aria-pressed="true"] { background: var(--desk-accent); color: #fff; }
+#books-modes button:not([aria-pressed="true"]):hover, #books-list summary:hover { color: var(--desk-ink); background: var(--desk-option-hover); }
+#panel-books :is(button, summary, input, select, a):focus-visible { outline: 2px solid var(--desk-accent); outline-offset: 2px; }
+#books-status { margin: .65rem 0 .4rem; }
+#books-list, .book-members { list-style: none; margin: 0; padding: 0; }
+#books-list { display: grid; align-items: start; gap: 0; }
+#books-list > li { min-width: 0; border-bottom: 1px solid var(--desk-line); }
+#books-list summary {
+  display: grid; grid-template-columns: .6rem minmax(0,1fr) auto;
+  align-items: baseline; gap: .55rem; min-height: 44px; padding: .5rem .4rem;
+  color: var(--desk-ink); line-height: 1.35; list-style: none; cursor: pointer;
+}
+#books-list summary::-webkit-details-marker { display: none; }
+#books-list summary::before {
+  content: ""; width: .35rem; height: .35rem; align-self: start; margin-top: .39rem;
+  border: solid var(--desk-muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg);
+}
+#books-list details[open] > summary::before { transform: rotate(45deg); }
+.book-label { display: grid; gap: .12rem; min-width: 0; overflow-wrap: anywhere; }
+.book-label strong { font-size: .93rem; }
+.book-amount { color: var(--desk-navy); text-align: right; font-size: .87rem; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.book-amount:empty { display: none; }
+.book-detail, .books-group > details > .books-contact { margin: 0 .6rem .6rem 1.55rem; overflow-wrap: anywhere; }
+.book-detail, #books-list .books-contact { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .85rem; }
+#books-list .books-contact { color: var(--desk-muted); font-size: .84rem; }
+#books-list .book-members { margin: 0 0 .45rem .8rem; padding-left: .4rem; border-inline-start: 2px solid var(--desk-line); }
+#books-list[data-mode="grid"] { grid-template-columns: repeat(auto-fill,minmax(min(100%,17rem),1fr)); gap: .55rem; }
+#books-list[data-mode="grid"] > li { border: 1px solid var(--desk-line); border-radius: 9px; }
+#books-list[data-mode="grid"] summary { padding: .65rem; }
+#books-list[data-mode="grid"] summary { grid-template-columns: .6rem minmax(0,1fr); }
+#books-list[data-mode="grid"] .book-amount { grid-column: 2; text-align: start; }
+@container (max-width: 32rem) {
+  #books-list summary { grid-template-columns: .6rem minmax(0,1fr); gap: .14rem .5rem; }
+  #books-list .book-amount { grid-column: 2; text-align: start; }
+}
+@media (max-width: 420px) {
+  #books-modes { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #books-modes button { min-height: 44px; }
+  .books-tools { gap: .4rem .65rem; }
+  .books-totals { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}

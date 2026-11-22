@@ -1,46 +1,112 @@
 const assert = require('node:assert/strict');
 const {openDestination} = require('./coach-fixture-navigation.cjs');
+const recordId = n => 'rec'+String(n).padStart(14,'0');
 
 // These rows are the browser contract for an already reconciled ledger.
 const due = {
-  familyId:'rec00000000000001',familyName:'Fictional family',bookingId:'rec00000000000002',
-  bookingUrl:'https://airtable.com/app00000000000001/tbl00000000000002/rec00000000000002',
+  playerId:recordId(101),familyId:recordId(51),familyName:'Avery Fictional',
+  bookingId:recordId(201),sessionId:recordId(301),attendanceId:recordId(401),
+  sessionGroupKey:'friday-pm',sessionGroupLabel:'Friday after-school training',
+  bookingUrl:'https://airtable.com/app00000000000001/tbl00000000000002/'+recordId(201),
   scope:'session', playerName:'Taylor Fictional', sessionLabel:'Friday after-school training',
   date:'2026-10-23', time:'3:45 PM', location:'Fictional west training field',
-  bookingType:'Drop-in', attendanceStatus:'Present', status:'due', amountCharged:42, amountPaid:10.50, amountDue:31.50,
+  bookingType:'Drop-in', attendanceStatus:'Present', status:'due', amountCharged:42, amountPaid:10.50, amountDue:31.50,amountOutstanding:31.50,amountUpcoming:0,
   contact:{guardian:'Avery Fictional',email:'sample.household.with.a.long.address@example.test',phone:'604-555-0132'}
 };
-const paid = {...due, playerName:'Robin Fictional', status:'paid', amountPaid:42, amountDue:0, contact:null};
-const review = {...due,scope:'booking', playerName:'Casey Fictional', bookingType:'Winter camp',
-  status:'review', amountCharged:null, amountPaid:null, amountDue:null, contact:null};
+const paid = {...due, playerId:recordId(102),bookingId:recordId(202),attendanceId:recordId(402),playerName:'Robin Fictional', status:'paid', amountPaid:42, amountDue:0,amountOutstanding:0,contact:null};
+const review = {...due,scope:'booking', playerId:recordId(103),playerName:'Casey Fictional', bookingType:'Winter camp',
+  familyId:null,familyName:null,bookingId:recordId(203),attendanceId:null,sessionId:null,
+  sessionGroupKey:'winter-1',sessionGroupLabel:'Winter camp Week 1',sessionLabel:'Unplaced booking',
+  status:'review', amountCharged:null, amountPaid:null, amountDue:null,amountOutstanding:null,amountUpcoming:null,reviewBalance:null,contact:null};
 const books = [due,paid,review];
+const siblingPackage = {...due,scope:'booking',bookingId:recordId(204),attendanceId:null,sessionId:null,
+  playerId:recordId(104),playerName:'Jordan Fictional',sessionGroupKey:'winter-1',sessionGroupLabel:'Winter camp Week 1',
+  sessionLabel:'Winter camp Week 1',bookingType:'Winter week',date:'2026-12-21',coveredDates:['2026-12-21','2026-12-22'],
+  amountCharged:125.25,amountPaid:30,amountDue:0,amountUpcoming:95.25,amountOutstanding:95.25,status:'package'};
+const otherParent = {...due,bookingId:recordId(205),attendanceId:recordId(405),sessionId:recordId(305),
+  playerId:recordId(105),playerName:'Morgan Fictional',familyId:recordId(52),date:'2026-10-16',
+  amountCharged:25,amountPaid:.5,amountDue:24.50,amountOutstanding:24.50,
+  contact:{guardian:due.contact.guardian,email:'different.household@example.test',phone:null}};
+const noParent = {...due,bookingId:recordId(206),attendanceId:recordId(406),sessionId:recordId(306),
+  playerId:recordId(106),playerName:'Sam Example',familyId:null,familyName:null,contact:null,
+  sessionGroupKey:'sun-am',sessionGroupLabel:'Sunday 9 AM',sessionLabel:'Sunday 9 AM',
+  status:'upcoming',date:'2026-11-01',time:'9 AM',amountCharged:15,amountPaid:0,amountDue:0,amountOutstanding:15,amountUpcoming:15};
+const unresolved = {...review,bookingId:recordId(207),playerId:recordId(107),playerName:noParent.playerName,
+  bookingType:'Pro-D camp',sessionGroupKey:'pro-d',sessionGroupLabel:'Pro-D camp',sessionLabel:'Pro-D camp',reviewBalance:11.25};
+const receiptReview = {scope:'family',status:'review',bookingId:null,playerId:null,sessionId:null,date:null,
+  familyId:otherParent.familyId,familyName:otherParent.familyName,contact:otherParent.contact,
+  sessionGroupKey:'payment-review',sessionGroupLabel:'Family payment reviews',reviewReason:'Verified receipt awaits booking allocation.',
+  amountUnapplied:19.75,amountCharged:null,amountPaid:null,amountOutstanding:null,amountDue:null,amountUpcoming:null};
+const allBooks = [due,paid,siblingPackage,otherParent,noParent,review,unresolved,receiptReview];
 const reads = fixture => fixture.requests.filter(request=>request.path.endsWith('/session-books'));
+
+async function checkWholeLedger(page) {
+  for(const [id,amount] of [['outstanding','$166.25'],['due','$56.00'],['upcoming','$110.25']]){
+    assert((await page.locator('#books-'+id).innerText()).includes(amount),'Whole-ledger '+id+' equals '+amount);
+  }
+  assert.match(await page.locator('#books-review-count').innerText(),/\b3\b/,'Unresolved charges and a receipt allocation are counted as review work');
+}
+
+const bookMode=(page,mode)=>page.locator('#books-modes [data-books-mode="'+mode+'"]');
+async function selectMode(page,mode) {
+  const button=bookMode(page,mode);
+  await button.click();
+  assert.equal(await button.getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#books-list').getAttribute('data-mode'),mode);
+}
+
+async function expandAllGroups(list) {
+  for(const group of await list.locator('.books-group').all()){
+    const summary=group.locator('summary').first();
+    if(!await summary.evaluate(el=>el.parentElement.open)) await summary.click();
+    await group.locator('.books-record').first().waitFor();
+  }
+}
+
+async function checkBookContrast(container,width) {
+  const failures = await container.evaluate(list=>{
+    const rgba=css=>{
+      if(!/^rgba?\(/.test(css))throw Error('Unexpected computed colour: '+css);
+      const [r,g,b,a=1]=css.match(/[\d.]+/g).map(Number);
+      return [r,g,b,a];
+    };
+    const blend=(surface,paint)=>surface.map((channel,i)=>channel+(paint[i]-channel)*paint[3]);
+    const luminance=color=>{
+      const [r,g,b]=color.map(channel=>channel/255).map(n=>n<=.04045?n/12.92:((n+.055)/1.055)**2.4);
+      return .2126*r+.7152*g+.0722*b;
+    };
+    const contrast=el=>{
+      const paints=[];
+      for(let ancestor=el;ancestor;ancestor=ancestor.parentElement){
+        const color=rgba(getComputedStyle(ancestor).backgroundColor);
+        if(color[3]>0)paints.push(color);
+        if(color[3]===1)break;
+      }
+      const surface=paints.reverse().reduce(blend,[255,255,255]);
+      const foreground=getComputedStyle(el).color;
+      const bg=luminance(surface),fg=luminance(blend(surface,rgba(foreground)));
+      const ratio=(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
+      return {element:el.tagName,foreground,background:surface.map(Math.round),paints,ratio};
+    };
+    return Array.from(list.querySelectorAll('a,strong,small,.book-amount,.books-amount,.books-date,.books-venue')).filter(el=>el.getClientRects().length).map(contrast).filter(result=>result.ratio<4.5);
+  });
+  assert.deepEqual(failures,[],'Names, session details, balances and contacts have readable text contrast at '+width+'px');
+}
 
 async function checkLayout(page, row, width) {
   await page.setViewportSize({width,height:900});
   const layout = await row.evaluate(el=>{
-    const luminance = rgb => {
-      const components = rgb.match(/[\d.]+/g).slice(0,3).map(Number).map(v=>(v/=255)<=.04045?v/12.92:((v+.055)/1.055)**2.4);
-      return .2126*components[0]+.7152*components[1]+.0722*components[2];
-    };
-    let surface = el;
-    while(getComputedStyle(surface).backgroundColor==='rgba(0, 0, 0, 0)' && surface.parentElement) surface=surface.parentElement;
-    const background=luminance(getComputedStyle(surface).backgroundColor);
-    const ratios=Array.from(el.querySelectorAll('strong,span,small,a'),child=>{
-      const foreground=luminance(getComputedStyle(child).color);
-      return (Math.max(foreground,background)+.05)/(Math.min(foreground,background)+.05);
-    });
     const blocks = Array.from(el.children, child=>{
       const rect = child.getBoundingClientRect();
       return {top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right};
     });
-    return {blocks,ratios,listWidth:el.clientWidth,screenWidth:document.documentElement.clientWidth,contentWidth:document.documentElement.scrollWidth};
+    return {blocks,listWidth:el.clientWidth,screenWidth:document.documentElement.clientWidth,contentWidth:document.documentElement.scrollWidth};
   });
   assert(layout.contentWidth <= width + 1,'No horizontal page overflow at ' + width);
   assert.equal(layout.blocks.length,3,'Session, balance and contact are all displayed');
   assert(layout.blocks.every(b=>b.left>=0 && b.right<=layout.screenWidth+1 && b.bottom>b.top),'Every field fits at ' + width);
   const [session,balance,contact] = layout.blocks;
-  assert(layout.ratios.every(ratio=>ratio>=4.5),'Names, balances, dates and contact details meet minimum text contrast at '+width);
+  await checkBookContrast(row,width);
   if(layout.listWidth < 576) {
     assert(session.bottom<=balance.top+1 && balance.bottom<=contact.top+1,'Session, balance and contact stack without overlap on phones');
   } else {
@@ -48,6 +114,38 @@ async function checkLayout(page, row, width) {
   }
   const clipped = await row.locator('*').evaluateAll(elements=>elements.filter(el=>el.clientWidth && el.scrollWidth>el.clientWidth+1).map(el=>el.tagName));
   assert.deepEqual(clipped,[],'Long contact details and payment amounts fit at '+width);
+}
+
+async function checkCompactLayout(page,mode,width) {
+  await page.setViewportSize({width,height:900});
+  if(mode==='family'){
+    const summary=page.locator('#books-list > .books-group > details > summary').first();
+    await summary.focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await summary.hover();
+    assert(await summary.evaluate(el=>el.matches(':hover:focus-visible')),'Measure the family summary with keyboard focus and hover');
+  }
+  const layout=await page.locator('#books-list').evaluate(list=>{
+    const bounds=el=>{const {x,y,width,height}=el.getBoundingClientRect();return {x,y,width,height};};
+    return {
+      viewport:document.documentElement.clientWidth,
+      content:document.documentElement.scrollWidth,
+      rows:Array.from(list.children,bounds),
+      clipped:Array.from(list.querySelectorAll('*')).filter(el=>el.getClientRects().length && el.clientWidth && el.scrollWidth>el.clientWidth+1).map(el=>el.className||el.tagName),
+    };
+  });
+  assert(layout.content<=width+1,mode+' fits a '+width+'px screen');
+  assert.deepEqual(layout.clipped,[],mode+' text and amounts fit at '+width+'px');
+  await checkBookContrast(page.locator('#books-list'),width);
+  assert(layout.rows.length>=2);
+  for(const rect of layout.rows) assert(rect.x>=0 && rect.x+rect.width<=layout.viewport+1 && rect.height>0);
+  const [first,second]=layout.rows;
+  if(mode==='grid' && width===1365) {
+    assert(Math.abs(first.y-second.y)<=1 && first.x+first.width<=second.x+1,'Desktop Grid shows adjacent records');
+  } else if(mode==='list'||mode==='family'||mode==='session') {
+    assert(first.y+first.height<=second.y+1,mode+' keeps entries in separate compact rows');
+  }
 }
 
 async function finishReadAfterExit({page,context}, exit) {
@@ -67,6 +165,8 @@ async function finishReadAfterExit({page,context}, exit) {
   await page.waitForLoadState('networkidle');
   await context.unroute(endpoint,delayed);
   for(const selector of ['#home-unpaid-list','#books-list']) assert.equal((await page.locator(selector).textContent()).trim(),'');
+  for(const id of ['books-outstanding','books-due','books-upcoming','books-review-count'])
+    assert.equal(await page.locator('#'+id).textContent(),'','No private balance or count survives leaving Books');
   assert(!(await page.locator('body').textContent()).includes(due.contact.email));
 }
 
@@ -91,7 +191,7 @@ module.exports = async function checkBooks(fixture) {
     assert(await page.locator('#home-registration-review').isHidden());
     assert.equal(await page.locator('#home-priorities').evaluate(el=>el.childElementCount),0);
     assert.equal(await unpaid.evaluate(el=>el.open),false);
-    assert.equal(await unpaid.locator('.books-entry').count(),0,'Only a count is rendered while collapsed');
+    assert.equal(await unpaid.locator('#home-unpaid-list > li').count(),0,'Only a count is rendered while collapsed');
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
     await unpaid.locator('summary').click();
     const homeRow=unpaid.locator('#home-unpaid-list li');
@@ -121,38 +221,114 @@ module.exports = async function checkBooks(fixture) {
     await page.locator('.desk-nav-more').waitFor();
     await openDestination(page,'books');
     const list = page.locator('#books-list');
-    const row = list.locator('.books-entry').filter({hasText:due.playerName});
-    await row.waitFor();
-    assert.equal(await page.locator('#books-filter').inputValue(),'all','Open Books defaults to all records');
-    await list.getByText(review.playerName,{exact:true}).waitFor();
-    assert.equal(await list.locator('.books-entry').count(),3);
+    await list.locator('.books-group').first().waitFor();
+    assert.equal(await page.locator('#books-filter').inputValue(),'attention','Open Books starts with outstanding balances and review work');
+    assert.equal(await list.getAttribute('data-mode'),'family','Open Books starts with parents');
+    await selectMode(page,'list');
+    const row = list.locator('.books-record').filter({hasText:due.playerName});
+    await row.locator('summary').click();
+    await row.getByRole('link',{name:due.contact.email}).waitFor();
+    assert.equal(await row.locator('a[href^="http"]').count(),0,'Expanded Books details stay inside Coach Desk');
     for(const value of [due.sessionLabel,due.location,due.time,due.contact.guardian,due.contact.email,due.contact.phone,'42.00','10.50','31.50'])
       assert((await row.innerText()).includes(value),'Ledger shows '+value);
     assert.equal(await row.getByRole('link',{name:due.contact.email}).getAttribute('href'),'mailto:'+due.contact.email);
     assert.equal(await row.getByRole('link',{name:due.contact.phone}).getAttribute('href'),'tel:6045550132');
-    for(const width of [320,390,1365]) await checkLayout(page,row,width);
     await page.locator('#books-filter').selectOption('due');
-    await list.getByText(due.playerName,{exact:true}).waitFor();
-    assert.equal(await list.locator('.books-entry').count(),1);
+    assert.equal(await list.locator('.books-record').count(),1);
+    assert.match(await list.innerText(),/Taylor Fictional/);
     await page.locator('#books-filter').selectOption('paid');
-    await list.getByText(paid.playerName,{exact:true}).waitFor();
-    assert.equal(await list.locator('.books-entry').count(),1);
-    assert((await list.innerText()).includes('Parent contact unavailable'));
+    assert.equal(await list.locator('.books-record').count(),1);
+    assert.match(await list.innerText(),/Robin Fictional/);
     await page.locator('#books-filter').selectOption('review');
-    await list.getByText(review.playerName,{exact:true}).waitFor();
+    assert.match(await list.innerText(),/Casey Fictional/);
     assert(!/\$0\.00/.test(await list.innerText()),'Unknown values stay distinct from an actual zero');
     await page.locator('#books-filter').selectOption('booking');
-    await list.getByText(review.playerName,{exact:true}).waitFor();
-    assert.equal(await list.locator('.books-entry').count(),1);
+    assert.match(await list.innerText(),/Casey Fictional/);
+    assert.equal(await list.locator('.books-record').count(),1);
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'},{}],'Filters work with the same ledger read');
     await page.locator('#books-filter').selectOption('all');
 
     await finishReadAfterExit(f,async()=>{await openDestination(page,'home');await page.locator('#panel-home').waitFor();});
     await openDestination(page,'books');
-    await row.waitFor();
+    await list.locator('.books-group').first().waitFor();
     await finishReadAfterExit(f,async()=>{await page.locator('#logout').click();await page.locator('#login').waitFor();});
     assert.deepEqual(f.errors,[]);
   } finally { await f.context.close(); }
+
+  const grouped=await fixture({hash:'#view=books',books:allBooks});
+  try {
+    const {page}=grouped,list=page.locator('#books-list'),filter=page.locator('#books-filter'),search=page.locator('#books-search');
+    await list.locator('.books-group').first().waitFor();
+    await page.getByRole('heading',{name:'Needs attention',exact:true}).waitFor();
+    assert.equal(await list.getAttribute('data-mode'),'family');
+    assert.equal(await filter.inputValue(),'attention');
+    await checkWholeLedger(page);
+    assert.equal(await list.locator('.books-group').count(),5,'Two verified families and three independently unlinked players stay distinct');
+    assert.equal(await list.locator('details[open]').count(),0,'The parent list starts compact');
+    for(const width of [320,390,1365]) await checkCompactLayout(page,'family',width);
+    const firstSummary=list.locator('summary').first();
+    await firstSummary.focus();
+    await page.keyboard.press('Enter');
+    await list.locator('.books-group .books-record').first().waitFor();
+    await page.keyboard.press('Enter');
+    assert.equal(await list.locator('details[open]').count(),0,'Parents can be expanded and collapsed from the keyboard');
+    await expandAllGroups(list);
+    const firstFamily=list.locator('.books-group').filter({hasText:siblingPackage.playerName});
+    assert.equal(await firstFamily.count(),1);
+    const household=await firstFamily.innerText();
+    assert(household.includes(due.playerName),'Siblings share one verified household');
+    assert(!household.includes(otherParent.playerName),'Another household with the same guardian name stays separate');
+    assert.equal(await firstFamily.getByRole('link',{name:due.contact.email}).count(),1,'Parent contact is shown once for siblings');
+    for(const width of [320,390]) await checkCompactLayout(page,'family',width);
+    assert.equal(await list.locator('.books-group').filter({hasText:noParent.playerName}).count(),2,'Unlinked same-name children stay separate');
+    assert(!(await list.innerText()).includes(paid.playerName),'A settled sibling is omitted from the attention queue');
+    await filter.selectOption('all');
+    await expandAllGroups(list);
+    assert((await list.innerText()).includes(paid.playerName),'All records includes the settled sibling');
+    await search.fill(due.contact.guardian.toUpperCase());
+    assert.equal(await list.locator('.books-group').count(),2,'Parent search honours both independent matching households');
+    await checkWholeLedger(page);
+    await search.fill(siblingPackage.playerName);
+    assert.equal(await list.locator('.books-group').count(),1);
+    await search.fill('');
+    await selectMode(page,'session');
+    for(const width of [320,390,1365]) await checkCompactLayout(page,'session',width);
+    await expandAllGroups(list);
+    const weeklyGroup=list.locator('.books-group').filter({hasText:due.playerName});
+    assert.equal(await weeklyGroup.count(),1);
+    assert((await weeklyGroup.innerText()).includes(otherParent.playerName),'Friday on different dates shares its regular training slot');
+    assert(!(await weeklyGroup.innerText()).includes(noParent.playerName),'Sunday bookings have a separate slot');
+    const winterGroup=list.locator('.books-group').filter({hasText:siblingPackage.playerName});
+    assert((await winterGroup.innerText()).includes(siblingPackage.sessionGroupLabel));
+    assert(!(await winterGroup.innerText()).includes(unresolved.sessionGroupLabel),'Pro-D is distinct from a week of camp');
+    await search.fill('sunday 9');
+    assert.equal(await list.locator('.books-group').count(),1,'Session search finds a slot');
+    await search.fill('');
+    for(const mode of ['grid','list']){
+      await selectMode(page,mode);
+      assert.equal(await list.locator('.books-record').count(),allBooks.length);
+      assert.equal(await list.locator('details[open]').count(),0);
+      for(const width of [320,390,1365]) await checkCompactLayout(page,mode,width);
+      for(const [value,count] of [['attention',7],['outstanding',4],['due',2],['upcoming',2],['review',3],['paid',1],['booking',3]]){
+        await filter.selectOption(value);
+        assert.equal(await list.locator('.books-record').count(),count,mode+' includes every '+value+' record exactly once');
+        await checkWholeLedger(page);
+      }
+      await filter.selectOption('review');
+      let item=list.locator('.books-record').filter({hasText:unresolved.playerName});
+      await item.locator('summary').click();
+      assert((await item.innerText()).includes('$11.25'),'Known disputed amount is visible for review');
+      assert.match(await item.innerText(),/review|unconfirmed|to confirm/i);
+      const receipt=list.locator('.books-record').filter({hasText:otherParent.contact.guardian});
+      await receipt.locator('summary').click();
+      await receipt.getByText(receiptReview.reviewReason,{exact:true}).waitFor();
+      assert((await receipt.innerText()).includes('$19.75'),'The unapplied receipt is available for matching');
+      assert(!/\$19\.75 (outstanding|due|owing)|Player to confirm|Session to confirm/i.test(await receipt.innerText()),'An unapplied receipt is never presented as a debt, player or session');
+      await filter.selectOption('all');
+    }
+    assert.deepEqual(reads(grouped).map(r=>r.payload),[{}],'All layouts, totals, groups and filters share the single full ledger read');
+    assert.deepEqual(grouped.errors,[]);
+  } finally { await grouped.context.close(); }
 
   for(const [role,familyAccess,booksAvailable] of [['admin',true,true],['admin',false,false],['coach',false,false],['coach',true,true],['owner',true,false]]) {
     const f = await fixture({role,familyAccess,booksAvailable,hash:'#view=books',books:[]});
@@ -161,7 +337,7 @@ module.exports = async function checkBooks(fixture) {
         await f.page.locator('#panel-books').waitFor();
         await f.page.waitForLoadState('networkidle');
         assert.equal(reads(f).length,1);
-        assert.equal(await f.page.locator('#books-list .books-entry').count(),0);
+        assert.equal(await f.page.locator('#books-list').evaluate(list=>list.childElementCount),0);
         assert((await f.page.locator('#panel-books').innerText()).match(/no .*(sessions|entries|records|bookings|results)/i),'Empty books gives a readable status');
         await f.page.setViewportSize({width:390,height:900});
         await openDestination(f.page,'home');
@@ -184,9 +360,9 @@ module.exports = async function checkBooks(fixture) {
   const secondId='rec00000000000003',second={...due,playerName:'Sibling Example',amountDue:12.25,
     bookingId:secondId,bookingUrl:due.bookingUrl.replace(due.bookingId,secondId)};
   const otherId='rec00000000000004',other={...due,familyId:'rec00000000000005',bookingId:otherId,bookingUrl:due.bookingUrl.replace(due.bookingId,otherId)};
-  const grouped=await fixture({...emptyHome,books:[due,second,other,second]});
+  const homeFamilies=await fixture({...emptyHome,books:[due,second,other,second]});
   try{
-    const {page}=grouped;
+    const {page}=homeFamilies;
     const unpaid=page.locator('#home-unpaid');
     await unpaid.getByText('Unpaid sessions (2 families)',{exact:true}).click();
     const rows=unpaid.locator('#home-unpaid-list > li');
@@ -203,8 +379,8 @@ module.exports = async function checkBooks(fixture) {
     await rows.getByRole('button',{name:/31\.50/}).click();
     assert.equal(await chooser.locator('.books-entry').count(),1);
     assert.equal(await page.context().pages().length,1);
-    assert.deepEqual(grouped.errors,[]);
-  }finally{await grouped.context.close();}
+    assert.deepEqual(homeFamilies.errors,[]);
+  }finally{await homeFamilies.context.close();}
 
   const retry = await fixture({...emptyHome,hash:'#view=settings',books:[due]});
   try {
@@ -223,18 +399,24 @@ module.exports = async function checkBooks(fixture) {
     assert.deepEqual(retry.errors,[]);
   } finally { await retry.context.close(); }
 
-  const more = await fixture({hash:'#view=books',books:Array.from({length:43},(_,i)=>({...due,playerName:'Example Player '+(i+1)}))});
+  const more = await fixture({hash:'#view=books',books:Array.from({length:43},(_,i)=>({...due,playerName:'Example Player '+(i+1),
+    playerId:recordId(1000+i),bookingId:recordId(2000+i),attendanceId:recordId(3000+i)}))});
   try {
     const {page} = more, list=page.locator('#books-list'), search=page.locator('#books-search');
     await page.setViewportSize({width:320,height:900});
-    await list.getByText('Example Player 40',{exact:true}).waitFor();
-    assert.equal(await list.locator('.books-entry').count(),40);
+    await list.locator('.books-group').waitFor();
+    assert.match(await list.innerText(),/1,354\.50/,'The first family page includes all 43 charges in its total');
+    await expandAllGroups(list);
+    assert.match(await list.innerText(),/Example Player 43/,'A household is never split across ledger pages');
+    assert(await page.locator('#books-more').isHidden());
+    await selectMode(page,'list');
+    assert.equal(await list.locator('.books-record').count(),40);
     await page.locator('#books-more').focus();
     await page.keyboard.press('Enter');
-    await list.getByText('Example Player 43',{exact:true}).waitFor();
+    assert.match(await list.innerText(),/Example Player 43/);
     assert(await page.locator('#books-more').isHidden());
     await search.fill('E Player 43');
-    assert.equal(await list.locator('.books-entry').count(),1);
+    assert.equal(await list.locator('.books-record').count(),1);
     assert((await list.innerText()).includes('Example Player 43'));
     await page.keyboard.press('Tab');
     assert(await page.locator('#books-filter').evaluate(el=>el===document.activeElement),'Search and filter follow keyboard reading order');
@@ -247,4 +429,20 @@ module.exports = async function checkBooks(fixture) {
     assert.equal(await list.textContent(),'');
     assert.deepEqual(more.errors,[]);
   } finally { await more.context.close(); }
+
+  const manyFamilies = await fixture({hash:'#view=books',books:Array.from({length:41},(_,i)=>({...due,
+    playerId:recordId(1000+i),bookingId:recordId(2000+i),attendanceId:recordId(3000+i),familyId:recordId(4000+i),
+    familyName:'Household '+String(i+1).padStart(2,'0'),playerName:'Player '+(i+1),contact:null}))});
+  try {
+    const {page}=manyFamilies,list=page.locator('#books-list');
+    await list.locator('.books-group').first().waitFor();
+    assert.equal(await list.locator('.books-group').count(),40);
+    assert.equal(await page.locator('#books-outstanding').innerText(),'$1,291.50','Header includes balances beyond the visible families');
+    await page.locator('#books-more').click();
+    assert.equal(await list.locator('.books-group').count(),41);
+    assert.match(await list.innerText(),/Household 41/);
+    assert(await page.locator('#books-more').isHidden());
+    assert.equal(reads(manyFamilies).length,1);
+    assert.deepEqual(manyFamilies.errors,[]);
+  } finally { await manyFamilies.context.close(); }
 };

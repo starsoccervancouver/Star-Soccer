@@ -164,7 +164,9 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       await storage.put('report',{lastCheck:new Date(clock()).toISOString(),error:retries.size?retries.values().next().value.error:null,pendingRetries:retries.size});
       const follow=followupEnabled?await checkFollowups(access).catch(()=>({state:'unavailable'})):null;
       const filingPending=filing?await filing.step():false;
-      if(filing && clock()-(await storage.get('mail-drafts:last')||0)>=900000){
+      const previousDraftCheck=await storage.get('mail-drafts:report');
+      const draftInterval=previousDraftCheck?.waitingRenewal?pollInterval:900000;
+      if(filing && clock()-(await storage.get('mail-drafts:last')||0)>=draftInterval){
         try{
           const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:STAR_SOCCER_OWNER});
           const report=await runDraftJob({db:ledger,storage,mail,now:clock()});
@@ -276,7 +278,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const report=await storage.get('report')||{};
       const scan=await storage.get('scan'),pending=await storage.list({prefix:'q:',limit:1});
       const filing=await storage.get('filing:progress');
-      return {draftAutomations:await storage.get('mail-drafts:report')||null,draftAutomationError:await storage.get('confirmation:error')||null,placementEnabled:Number.isFinite(Date.parse(campPlacementSince)),calendarEnabled:!!await storage.get('calendar:enabled'),confirmationCheckedAt:await storage.get('confirmation:last')||null,connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
+      return {ownerDraftTestStep:await storage.get('owner-email-acceptance:20261122:cursor')||0,ownerDraftTestError:await storage.get('mail-drafts:test-error')||null,draftAutomations:await storage.get('mail-drafts:report')||null,draftAutomationError:await storage.get('confirmation:error')||null,placementEnabled:Number.isFinite(Date.parse(campPlacementSince)),calendarEnabled:!!await storage.get('calendar:enabled'),confirmationCheckedAt:await storage.get('confirmation:last')||null,connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
     }
     if(op==='stop-labels'){await storage.put('filing:enabled',false);return {labelFiling:false};}
     if(op==='start'){

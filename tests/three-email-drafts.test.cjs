@@ -54,3 +54,12 @@ test('an uncertain Gmail POST stays held on a retry and historical receipts stay
  assert.equal(s.d.draftLog.find(r=>r.fields['Email key']==='Confirmation:Paid').fields.Status,'Review');
  const other=await setup();other.map.delete('mail-drafts:baseline:v1');await other.run();await other.run();assert.ok(![...other.drafts.values()].some(x=>['Confirmation','Receipt'].includes(x.c.kind)));
 });
+
+test('withdrawing an edited reminder preserves its contents and removes all family recipients',async()=>{
+ const {draftMailbox}=await import('../private-attendance/draft-mailbox.mjs');
+ const old='To: parent@example.test\r\nCc: second@example.test,\r\n third@example.test\r\nBcc: fourth@example.test\r\nSubject: family edit\r\nContent-Type: text/plain\r\n\r\nOwner-edited renewal body.';
+ let updated;const mb=draftMailbox({owner:'owner@example.test',access:'fixture',read:async()=>({message:{raw:Buffer.from(old).toString('base64url')}}),fetchFn:async(url,options)=>{assert.equal(options.method,'PUT');updated=Buffer.from(JSON.parse(options.body).message.raw,'base64url').toString();return Response.json({id:'draft'});}});
+ await mb.obsolete('draft','Renewal:example:2027-01-12','Renewed');
+ assert.match(updated,/^To: owner@example.test/);assert.ok(updated.endsWith('Owner-edited renewal body.'));
+ assert.doesNotMatch(updated,/parent@|second@|third@|fourth@/);
+});

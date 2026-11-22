@@ -45,6 +45,7 @@ export async function runDraftJob({db,storage,mail,now}){
  }
  if(candidates.length){
   for(const name of Object.keys(draftFields))if(!data[name])data[name]=await db.list(name,draftFields[name]);
+  let firstError;
   for(const [kind,r,expiry] of candidates){
    let c;
    if(kind==='Confirmation')c=confirmation(data,r,today);
@@ -53,11 +54,13 @@ export async function runDraftJob({db,storage,mail,now}){
    if(kind==='Renewal'&&expiry==='unknown'&&!coverageDay(r.fields['Approved coverage expiry'])){c.review='Confirm the approved coverage expiry.';delete c.obsolete;}
    const old=logs.get(c.key)?.fields||{};
    if(old.Status==='Sent'||old.Status==='Obsolete')continue;
-   await processDraft({c,old,db,storage,mail});
+   try{await processDraft({c,old,db,storage,mail});}catch(error){firstError??=error;}
   }
+  if(firstError)throw firstError;
  }
  if(daily)await storage.put('mail-drafts:renewal-day',today);
- return {activated:baseline.at,checked:new Date(now).toISOString(),renewals:today};
+ const waitingRenewal=candidates.some(([kind,r,expiry])=>kind==='Renewal'&&coverageDay(r.fields['Approved coverage expiry'])===expiry&&expiry>=today&&!['Sent','Obsolete'].includes(logs.get('Renewal:'+r.id+':'+expiry)?.fields.Status));
+ return {activated:baseline.at,checked:new Date(now).toISOString(),renewals:today,waitingRenewal};
 }
 export async function processDraft({c,old,db,storage,mail}){
  const lock=mailKey(c.key),state=await storage.get(lock);

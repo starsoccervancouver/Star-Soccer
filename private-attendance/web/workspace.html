@@ -235,7 +235,7 @@
 <p class="eyebrow">Keep the week moving</p>
 <h2>Needs your attention</h2>
 <button type="button" class="secondary" id="home-mail-summary" hidden>Review inbox</button>
-<section id="owner-family-followups" hidden aria-label="Registration follow-ups"><p id="family-followup-state" class="small" role="status"></p><div id="family-followup-items"></div><button id="family-followup-check" type="button" class="secondary">Check registration follow-ups</button></section>
+<button type="button" class="secondary" id="home-registration-review" hidden>Review registration follow-ups</button>
 <div id="home-priorities"></div>
 <div id="home-followups" hidden>
 </div>
@@ -257,18 +257,29 @@
 </section>
 <section id="panel-attention" class="tab-panel" hidden>
 <details id="owner-workflow-panel" hidden><summary>Owner operations report</summary><div id="owner-workflow-content" aria-live="polite"></div></details>
-<section class="report-inbox" aria-label="Reports inbox">
+<section class="report-inbox" aria-label="Reports">
+<div class="report-views" role="group" aria-label="Report view">
+<button id="report-open" aria-pressed="true" type="button">Inbox</button>
+<button id="report-roster" aria-pressed="false" type="button">Roster review</button>
+<button id="report-completed" aria-pressed="false" type="button">Show completed</button>
+</div>
+<div id="report-mail">
 <div class="report-tools">
 <label class="report-search"><span class="report-lens" aria-hidden="true"></span><input id="report-search" type="search" aria-label="Search reports" placeholder="Search reports"></label>
 <button id="attention-refresh" type="button" class="secondary">Refresh</button>
 </div>
-<div class="report-views" role="group" aria-label="Report status">
-<button id="report-open" aria-pressed="true" type="button">Inbox</button>
-<button id="report-completed" aria-pressed="false" type="button">Show completed</button>
-</div>
 <div id="report-filters" role="group" aria-label="Filter by category"></div>
 <div id="attention-groups" class="report-list"></div>
 <p id="attention-status" role="status"></p>
+</div>
+<section id="report-roster-panel" aria-label="Roster review" hidden>
+<div class="roster-review-tools">
+<label>Review type <select id="roster-review-type"></select></label>
+<button id="roster-review-refresh" class="secondary" type="button">Refresh roster</button>
+</div>
+<div id="roster-review-list"></div>
+<section id="owner-family-followups" hidden aria-label="Registration follow-ups"><p id="family-followup-state" class="small" role="status"></p><div id="family-followup-items"></div><button id="family-followup-check" type="button" class="secondary">Check registration follow-ups</button></section>
+</section>
 </section>
 </section>
 <section id="panel-plan" class="tab-panel" hidden>

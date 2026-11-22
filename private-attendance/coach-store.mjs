@@ -61,7 +61,7 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
   requireSession(actor,sessionId){if(!api.canSession(actor,sessionId))deny();},
   scope(actor,data){
    const fresh=api.actor(actor.email);
-   if(['owner','admin'].includes(fresh.role))return {...data,sessions:data.sessions.map(s=>({...s})),profile:fresh};
+   if(['owner','admin'].includes(fresh.role))return {...data,sessions:data.sessions.map(s=>({...s,...(!fresh.familyAccess?{issues:(s.issues||[]).map(({player,reason})=>({player,reason}))}:{})})),profile:fresh};
    const assigned=new Set(store.all('SELECT session_id FROM coach_assignments WHERE email=?',fresh.email).map(row=>row.session_id));
    const sessions=data.sessions.filter(s=>assigned.has(rid(s.id))).map(s=>({...s,issues:[],players:s.players.map(p=>({
     attendanceId:p.attendanceId,age:p.age,playerId:p.playerId,name:p.name,kind:p.kind,status:p.status,response:p.response,

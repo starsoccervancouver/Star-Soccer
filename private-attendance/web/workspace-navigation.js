@@ -6,16 +6,24 @@
     const p = new URLSearchParams(hash.replace(/^#/, '')), view = p.get('view')==='reports'?'attention':p.get('view');
     if (!views.has(view)) return null;
     const sessionId = p.get('session'), section = p.get('section') || 'plan';
+    if (view==='attention') {
+      const pane=p.get('section')||'open', filter=p.get('filter')||'all';
+      if(sessionId || p.has('family') || !['open','roster','completed'].includes(pane) ||
+        !['all','attendance','observations','details','registrations'].includes(filter) || (pane!=='roster' && p.has('filter'))) return null;
+      return {view,reportView:pane,reviewFilter:filter};
+    }
     if (sessionId && (view !== 'plan' || !/^rec[a-zA-Z0-9]{14}$/.test(sessionId)) || !['plan','attendance','notes'].includes(section)) return null;
     const familyId = p.get('family');
     if (p.has('family') && (view !== 'families' || !/^rec[a-zA-Z0-9]{14}$/.test(familyId))) return null;
     return {view, sessionId:sessionId || null, familyId, section};
   };
-  const hashFor = route => { const p = new URLSearchParams({view:route.view==='attention'?'reports':route.view}); if (route.sessionId) { p.set('session', route.sessionId); p.set('section', route.section); } if (route.familyId) p.set('family', route.familyId); return '#' + p; };
+  const hashFor = route => { const p = new URLSearchParams({view:route.view==='attention'?'reports':route.view}); if (route.sessionId) { p.set('session', route.sessionId); p.set('section', route.section); } if (route.view==='attention' && route.reportView!=='open') {
+    p.set('section',route.reportView); if(route.reportView==='roster' && route.reviewFilter!=='all') p.set('filter',route.reviewFilter);
+  } if (route.familyId) p.set('family', route.familyId); return '#' + p; };
   let context = null, saved = '', applying = false, pending = parse(window.CoachInitialRoute || '');
   function current() {
     if (!context?.profile) return null;
-    return {view:context.tab,familyId:context.tab === 'families' ? context.familyId : null,sessionId:context.tab === 'plan' && window.CoachPlanner?.isFocused() ? context.session?.id : null,section:context.workspaceView || 'plan'};
+    return {view:context.tab,reportView:context.reportView,reviewFilter:context.reviewFilter,familyId:context.tab === 'families' ? context.familyId : null,sessionId:context.tab === 'plan' && window.CoachPlanner?.isFocused() ? context.session?.id : null,section:context.workspaceView || 'plan'};
   }
   function remember(replace = false) {
     const route = current(); if (!route || !views.has(route.view) || applying) return;

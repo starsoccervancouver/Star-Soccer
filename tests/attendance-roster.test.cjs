@@ -22,6 +22,7 @@ test('overview scopes supporting tables to linked rows and preserves complete va
   for(let i=0;i<210;i++)tables[name].push(row(1000+i,{}));
  }
  const names=Object.keys(tables), tableMap=Object.fromEntries(names.map((name,i)=>[name,'tbl'+String(i).padStart(14,'0')]));
+ const source={baseId:'app00000000000000',tables:tableMap};
  const calls=[];
  const reader=createRosterReader({baseId:'app00000000000000',token:'fictional',clock:()=>new Date(observedAt),tableMap,fetchFn:async url=>{
   const t=names.find(k=>url.pathname.endsWith(tableMap[k]));
@@ -35,7 +36,7 @@ test('overview scopes supporting tables to linked rows and preserves complete va
   return Response.json({records,...(offset+100<source.length?{offset:String(offset+100)}:{})});
  }});
  const snapshot=await reader.overview();
- assert.deepEqual(snapshot,buildOwnerOverview(tables,observedAt));
+ assert.deepEqual(snapshot,buildOwnerOverview(tables,observedAt,{},source));
  for(const t of ['families','players','bookings','registrations']){
   const captured=calls.filter(c=>c.table===t);
   assert.equal(captured.length,1,t);assert.match(captured[0].filter,/RECORD_ID\(\)/);assert.equal(captured[0].count,1);
@@ -44,7 +45,7 @@ test('overview scopes supporting tables to linked rows and preserves complete va
  assert.deepEqual(calls.find(c=>c.table==='bookings').fields,['Booking type','Booking status']);
  assert.equal(JSON.stringify(snapshot).includes('fictional@example.com'),false);
  tables.attendance[0].fields['Website Registrations']=[];calls.length=0;
- assert.deepEqual(await reader.overview(),buildOwnerOverview(tables,observedAt));
+ assert.deepEqual(await reader.overview(),buildOwnerOverview(tables,observedAt,{},source));
  assert(!calls.some(c=>c.table==='registrations'));
  // A dense linked set spans multiple ID batches and must remain complete.
  for(let i=0;i<110;i++){
@@ -52,7 +53,7 @@ test('overview scopes supporting tables to linked rows and preserves complete va
   tables.attendance.push(row(3000+i,{Session:[id(1)],Player:[id(1000+i)],'Coverage state':'Active'}));
  }
  calls.length=0;
- assert.deepEqual(await reader.overview(),buildOwnerOverview(tables,observedAt));
+ assert.deepEqual(await reader.overview(),buildOwnerOverview(tables,observedAt,{},source));
  assert.deepEqual(calls.filter(c=>c.table==='players').map(c=>c.count),[100,11]);
  // A missing linked attendance row must still fail rather than cache partial data.
  tables.sessions[0].fields.Attendance.push(id(99999));

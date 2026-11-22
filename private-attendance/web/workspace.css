@@ -1808,9 +1808,7 @@ button.priority-action:hover:not(:disabled) { color: var(--desk-ink); background
 .priority-arrow { font-size: 21px; font-weight: 400; flex-shrink: 0; }
 button.priority-amber .small { color: #895414; }
 .priority-info { border-left: 2px solid #ba8d49; padding-left: 12px; color: #6b4d26; font-size: 12px; }
-.priority-roster-details { margin-top: 12px; border-top: 1px solid var(--desk-line); }
-.priority-roster-details summary { min-height: 48px; padding: 13px 0; cursor: pointer; font-size: 14px; font-weight: 750; }
-.priority-roster-details .small { margin: 0 0 12px; font-size: 12px; }
+
 .note-filter-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .note-filter-row > label:first-child { flex: 1; min-width: 160px; }
 .note-filter-row .inline-check { margin: 14px 0; }
@@ -2521,3 +2519,14 @@ body #app #report-filters .report-filter[aria-pressed=false]:hover:not(:disabled
  .report-row{grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;padding:10px 12px}
  .report-action{grid-column:1;grid-row:1/3}.report-tag{grid-column:2;grid-row:1}.report-info{grid-column:2/4;grid-row:2}.report-row time{grid-column:3;grid-row:1}
 }
+
+.roster-review-tools { display:flex; align-items:end; flex-wrap:wrap; gap:12px; padding:16px; background:var(--desk-inset); }
+.roster-review-tools label { margin:0; min-width:min(100%,14rem); }
+.roster-review-section, #report-roster-panel #owner-family-followups, #roster-review-list > .empty-state { margin:0; padding:16px; }
+.roster-review-section + .roster-review-section { border-top:1px solid var(--desk-line); }
+.roster-review-section h3 { margin:0 0 10px; }
+.roster-review-section .priority-action .small { white-space:pre-line; }
+.report-views { flex-wrap:wrap; }
+
+.roster-issue { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; padding:12px 0; border-top:1px solid var(--desk-line); }
+.roster-issue .small { margin:2px 0 0; }

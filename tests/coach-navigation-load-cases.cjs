@@ -48,14 +48,14 @@ module.exports = async function checkNavigation(fixture, {benchmarkOnly = false}
     });
   const restricted = await visit('restricted-reports', {hash:'#view=reports',role:'coach',familyAccess:false},
     async page => {
-      await page.locator('#panel-home').waitFor();
-      assert(await page.locator('#panel-attention').isHidden());
+      await page.locator('#report-roster-panel').waitFor();
+      assert(await page.locator('#report-open').isHidden());
     });
   const fallback = await visit('bootstrap-fallback', {hash:'#view=families',bundleDesk:false},
     page => page.locator('#family-directory .family-choice').first().waitFor());
   if (benchmarkOnly) return samples;
   const home = await visit('owner-home', {hash:'#view=home'}, async page => {
-    await page.locator('#family-followup-state').getByText(/0 eligible bookings/).waitFor();
+    await page.locator('#home-registration-review').getByText(/0 to review/).waitFor();
     await page.locator('#home-mail-summary').getByText(/1 inquiries/).waitFor();
   });
   const refresh = await visit('refresh-groups', {hash:'#view=plan',refreshRoster:[]},

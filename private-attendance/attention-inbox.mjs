@@ -12,7 +12,8 @@ function inboxPolicy(labels) {
   const labelIds = pattern => new Set(Object.entries(labels).filter(([name])=>pattern.test(name)).map(([,id])=>id));
   const admin = labelIds(/^(?:admin|business|payments - outgoing|newsletters|social media)(?:\/|$)/i);
   const family = labelIds(/^(?:leads|registrations|payments - incoming)(?:\/|$)/i);
-  const isAdminSubject = subject => /\b(?:payroll|vendor invoice|merchant payout|stripe payout|domain renewal|workspace licen[cs](?:e|ing)|search console|google analytics|software subscription)\b/i.test(subject);
+  const isAdminSubject = subject => /\b(?:payroll|vendor invoice|merchant payout|stripe payout|domain renewal|workspace licen[cs](?:e|ing)|search console|google analytics|software subscription)\b/i.test(subject)
+    || /\bpayout (?:for|to) star\s*soccer\b/i.test(subject);
   function administrative(message, fallback='') {
     const subject = header(message,'Subject') || fallback;
     const sender = header(message,'From').match(/[\w.+-]+@[\w.-]+/i)?.[0].toLowerCase() || '';

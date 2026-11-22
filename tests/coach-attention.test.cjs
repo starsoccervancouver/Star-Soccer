@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const inbox='romeo@example.test', now=Date.parse('2026-11-20T08:05Z');
 const id=n=>String(1000000000000000+n);
 const wrap=fields=>({fields,id:id(100)});
-const query=async(kind,{tables={},messages=[],threads={}}={},cursor)=>{
+const query=async(kind,{tables={},messages=[],threads={},labels={Deposited:'label1'}}={},cursor)=>{
  const {attentionPage}=await import('../private-attendance/attention-inbox.mjs');
  const ledger={list:async name=>(tables[name]||[]).map(wrap)};
  async function read(path){
@@ -13,7 +13,7 @@ const query=async(kind,{tables={},messages=[],threads={}}={},cursor)=>{
   const key=path.slice(8);if(threads[key])return {messages:threads[key]};
   throw Error('GMAIL_404');
  }
- return attentionPage({ledger,read,labels:{Deposited:'label1'},mailbox:inbox,now},kind,cursor);
+ return attentionPage({ledger,read,labels,mailbox:inbox,now},kind,cursor);
 };
 const message=(n,labels,subject)=>({id:id(n),threadId:id(n),labelIds:labels,internalDate:String(now+n),payload:{headers:[{name:'Subject',value:subject}]}});
 test('registration queue retains expected and pending requests while suppressing confirmed, declined, past and duplicate sources',async()=>{
@@ -39,6 +39,8 @@ test('incoming transfers remain pending when read, reminders reconcile by exact 
   m.payload.headers.push({name:'From',value:'notify@payments.interac.ca'},{name:'authentication-results',value:'mx.google.com; dmarc='+(valid?'pass':'fail')+' header.from=payments.interac.ca'});
   return m;
  }
+ const nested=await query('payments',{labels:{'Payments - Incoming/Deposited':'nested'},messages:[transfer(2,'DEF456',['nested']),transfer(4,'HIJ789',[])]});
+ assert.deepEqual(nested.resolved,['INTERAC-DEF456']);assert.deepEqual(nested.items.map(i=>i.key),['INTERAC-HIJ789']);
  const res=await query('payments',{messages:[transfer(1,'ABC123',[]),transfer(2,'DEF456',[]),transfer(3,'DEF456',['label1']),transfer(4,'HIJ789',[]),transfer(5,'SPOOF1',[],undefined,false)],tables:{payments:[{Verification:'Verified',Direction:'Incoming','Evidence reference':'Gmail '+id(4)+'; Interac HIJ789'}]}});
  assert.deepEqual(res.items.filter(i=>!res.resolved.includes(i.key)).map(i=>i.key),['INTERAC-ABC123']);
 });

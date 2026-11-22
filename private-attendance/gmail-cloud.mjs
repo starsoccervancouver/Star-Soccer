@@ -65,8 +65,12 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }
     return {phase:'recent',start:prior?.lastScan||prior?.start||clock()-86400000,history:profile.historyId};
   }
+  async function readLabels(access){
+    const data=await gmail(access,'labels');
+    return Object.fromEntries(data.labels.map(l=>[l.name,l.id]));
+  }
   async function ensureLabels(access){
-    const data=await gmail(access,'labels'),labels=Object.fromEntries(data.labels.map(l=>[l.name,l.id]));
+    const labels=await readLabels(access);
     if(!labels.Deposited)throw Error('PAYMENT_LABELS_MISSING');
     return labels;
   }
@@ -183,7 +187,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         if(!encrypted)throw Error('GOOGLE_RECONNECT');
         const grant=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
         access=grant.access_token;
-        if(payload.kind==='payments')labels=await ensureLabels(access);
+        if(payload.kind==='payments')labels=await readLabels(access);
       }
       const read=(path,params)=>gmail(access,path,params);
       const value=await attentionPage({ledger,read,labels,mailbox:await storage.get('ownerAddress')||STAR_SOCCER_OWNER,now:clock()},payload.kind,payload.cursor);

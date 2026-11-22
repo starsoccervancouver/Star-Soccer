@@ -188,6 +188,9 @@
   };
  }
  function openReview(filter){go('attention',false,null,{reportView:'roster',reviewFilter:filter});if(tab==='attention')$('roster-review-type').focus();}
+ function updateHomeAttention(){
+  $('home-attention').hidden=!$('home-priorities').childElementCount&&$('home-mail-summary').hidden&&$('home-registration-review').hidden;
+ }
  function renderHome(){
   if(!data)return;const s=session(),date=today(),end=addDate(date,6),week=attendanceSessions('upcoming').filter(s=>s.status!=='Cancelled'),{past,due,groups}=rosterReviews();
   $('home-stats').replaceChildren(stat('Sessions · next 7 days',week.length),stat('Training groups',allGroups().length),stat('Notes to review',due.length));
@@ -201,7 +204,7 @@
   if(due.length)priorities.append(homeAction('Review coaching observations',due.length+' note'+(due.length===1?'':'s')+' with a review date due',()=>openReview('observations')));
   if(groups.length)priorities.append(homeAction('Roster details to review',groups.length+' training group'+(groups.length===1?'':'s'),()=>openReview('details')));
   $('home-followups').replaceChildren();
-  if(!due.length&&!past.length&&!groups.length)priorities.append(empty('No attendance, coaching observations or roster details to review.'));
+  updateHomeAttention();
 
  }
  function renderAttendance(){renderAttendanceNavigation();const s=session(),query=$('roster-search').value.trim().toLocaleLowerCase(),players=s?.players||[],statusFilter=$('roster-status-filter').value,filtered=!!query||statusFilter!=='all',visible=players.filter(p=>(!query||String(p.name||'').toLocaleLowerCase().includes(query))&&(statusFilter==='all'||(p.actualAttendance||'Not marked')===statusFilter||attendancePending.has(s.id+'|'+p.attendanceId)||attendanceErrors.has(s.id+'|'+p.attendanceId)));$('roster-search').disabled=(saveBusy&&!attendancePending.size)||loadingDesk||!players.length;$('roster-status-filter').disabled=(saveBusy&&!attendancePending.size)||loadingDesk||!players.length;$('roster-search-clear').hidden=!query;$('roster-search-clear').disabled=saveBusy&&!attendancePending.size;$('roster-search-count').textContent=filtered?visible.length+' of '+players.length+' players shown':players.length+' '+(players.length===1?'player':'players');$('attendance-stats').hidden=!s;$('attendance-stats').replaceChildren(stat('Expected roster',s?.expected||0),stat('Parent replied Yes',s?.counts.yes||0),stat('Registered pass / camp',s?.counts.confirmed||0),stat('Marked present',s?.players.filter(p=>p.actualAttendance==='Present').length||0),stat('Marked absent',s?.players.filter(p=>p.actualAttendance==='Absent').length||0));$('roster-title').textContent=s?day(s.date)+' roster':attendanceView==='past'?'No past session selected':'No upcoming session recorded';$('roster-details').textContent=s?s.time+' · '+s.location:'';$('marking-help').textContent=s?.status==='Cancelled'?'This session was cancelled. Its attendance record is read-only.':s&&s.date>today()?'Attendance marking opens on the session day. You can prepare notes and the plan now.':'Parent replies help you prepare. Mark Present or Absent only after checking the player is there.';$('roster').replaceChildren(...visible.map(p=>{const rowKey=s.id+'|'+p.attendanceId,pending=attendancePending.has(rowKey);const row=node('div','','roster-row'),info=node('div'),controls=node('div','','attendance-controls');controls.setAttribute('role','group');controls.setAttribute('aria-label','Attendance for '+p.name);info.append(node('strong',p.name),node('span',(p.actualAttendance||'Not marked')+(pending?' · Saving…':''),'attendance-status '+({Present:'status-present',Absent:'status-absent','Not marked':'status-unmarked'}[p.actualAttendance]||'status-unmarked')),node('p',(p.age?'Age '+p.age+' · ':'')+({dropin:'Weekly drop-in',pass:'Four-session pass',camp:'Camp',unknown:'Booking type to review'})[p.kind]+' · '+p.status));for(const [label,status]of [['Present','Present'],['Absent','Absent'],['Not marked','Not marked']]){const b=node('button',label,p.actualAttendance===status?'current'+(status==='Absent'?' absent':status==='Not marked'?' unmarked':''):'');b.type='button';b.disabled=(saveBusy&&!attendancePending.size)||pending||loadingDesk||s.status==='Cancelled'||status!=='Not marked'&&s.date>today();b.setAttribute('aria-pressed',String(p.actualAttendance===status));b.addEventListener('click',()=>markAttendance(p,status));controls.append(b);}row.dataset.attendanceId=p.attendanceId;row.setAttribute('aria-busy',String(pending));if(attendanceErrors.has(rowKey))info.append(node('p','Save not confirmed. Tap a status to retry.','attendance-save-error'));row.append(info,controls);return row;}));if(filtered&&!visible.length)$('roster').append(empty('No players match these filters. Clear the search or choose All players to see the full roster.'));else if(!s?.players.length)$('roster').append(empty(!s?(attendanceView==='past'?'Choose a previous session above to review its attendance.':'The next seven days only appear here. Previous sessions are in Past attendance.'):s.capacityUsed?'Expected players still need individual roster records.':'No named players recorded for this session.'));}
@@ -438,22 +441,29 @@
  async function loadOwnerFollowups(check=false){
   if(profile?.role!=='owner'||!data?.familyFollowupsAvailable||!(tab==='home'||tab==='attention'&&reportView==='roster'))return;
   const ticket=++followupRequest,box=$('owner-family-followups'),list=$('family-followup-items'),state=$('family-followup-state'),button=$('family-followup-check');
-  $('home-registration-review').hidden=false;box.hidden=!(tab==='attention'&&reportView==='roster'&&['all','registrations'].includes(reviewFilter));button.disabled=true;list.replaceChildren();state.textContent='Checking registration follow-ups…';
+  const homeButton=$('home-registration-review');
+  box.hidden=!(tab==='attention'&&reportView==='roster'&&['all','registrations'].includes(reviewFilter));button.disabled=true;list.replaceChildren();state.textContent='Checking registration follow-ups…';
   try{
    const result=await api('family-followups',check?{}:undefined);
    if(ticket!==followupRequest||profile?.role!=='owner')return;
    if(result.state==='ready'){
     const time=timeFormat.format(new Date(result.checkedAt));
-    $('home-registration-review').textContent='Review registration follow-ups · '+result.items.length+' to review';
+    homeButton.hidden=!result.items.length;
+    homeButton.textContent='Review registration follow-ups · '+result.items.length+' to review';
     state.textContent=(result.enabled?'Hourly registration check':'One-off registration preview')+' · '+result.eligibleBookings+' eligible bookings · '+result.items.length+' to review · '+time;
     for(const item of result.items){
      const row=node('div','','priority-row'),link=node('a','Review booking · '+item.label);
      link.href=item.bookingUrl;link.target='_blank';link.rel='noopener noreferrer';
      row.append(link,node('p','Confirmation sent '+item.confirmationAt+' · Vancouver','small'));list.append(row);
     }
-   }else state.textContent=({checking:'Registration check in progress.',off:'Hourly registration check is off.',unavailable:'Registration follow-ups unavailable. Try checking again.'})[result.state];
-  }catch{if(ticket===followupRequest)state.textContent='Registration follow-ups unavailable. Try checking again.';}
-  finally{if(ticket===followupRequest)button.disabled=false;}
+   }else{
+    homeButton.hidden=result.state!=='unavailable';
+    homeButton.textContent='Check registration follow-ups';
+    state.textContent=({checking:'Registration check in progress.',off:'Hourly registration check is off.',unavailable:'Registration follow-ups unavailable. Try checking again.'})[result.state];
+   }
+  }catch{
+   if(ticket===followupRequest){homeButton.hidden=false;homeButton.textContent='Check registration follow-ups';state.textContent='Registration follow-ups unavailable. Try checking again.';}
+  }finally{if(ticket===followupRequest){button.disabled=false;updateHomeAttention();}}
  }
  $('family-followup-check').addEventListener('click',()=>loadOwnerFollowups(true));
  const categories={inquiries:'Inquiries',registrations:'Registrations',payments:'Payments',other:'Other email'};
@@ -465,18 +475,24 @@
   if(!keepView){reportView='open';reviewFilter='all';}
   $('home-registration-review').hidden=true;$('home-registration-review').textContent='Review registration follow-ups';$('roster-review-list').replaceChildren();$('roster-review-type').replaceChildren();
   reportKind='all';reportSaved='';$('report-search').value='';
-  $('home-mail-summary').hidden=true;$('home-mail-summary').textContent='Review inbox';
+  $('home-mail-summary').hidden=true;$('home-mail-summary').textContent='Review inbox';updateHomeAttention();
   $('owner-workflow-panel').open=false;$('owner-workflow-panel').hidden=true;$('owner-workflow-content').replaceChildren();
   for(const id of ['attention-status','attention-groups','report-filters'])$(id).replaceChildren();
  }
  function renderReports(){
   const completed=reportView==='completed',query=$('report-search').value.trim().toLowerCase();
   const summary=$('home-mail-summary');
-  summary.hidden=false;
-  summary.textContent='Review inbox · '+[...reportGroups].map(([kind,group])=>{
-   const count=group.liveOK&&group.historyOK?[...group.rows.values()].filter(item=>!item.completed).length:'—';
-   return count+' '+(kind==='other'?'other':kind);
-  }).join(' · ');
+  const counts=[];
+  for(const [kind,group] of reportGroups){
+   if(group.liveOK&&group.historyOK){
+    const count=[...group.rows.values()].filter(item=>!item.completed).length;
+    const label=count===1?{inquiries:'inquiry',registrations:'registration',payments:'payment',other:'other'}[kind]:kind;
+    if(count)counts.push(count+' '+label);
+   }else if(group.finished)counts.push(categories[kind]+' unavailable');
+  }
+  summary.hidden=!counts.length;
+  summary.textContent=['Review inbox',...counts].join(' · ');
+  updateHomeAttention();
   if(tab!=='attention'||reportView==='roster')return;
   const rows=[],problems=[];
   for(const [kind,group] of reportGroups){

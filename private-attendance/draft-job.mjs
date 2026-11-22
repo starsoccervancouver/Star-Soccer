@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {accepted,verified,localDay,coverageDay,confirmation,receipt,renewal,draftFields} from './draft-rules.mjs';
 const snapshot=c=>createHash('sha256').update(JSON.stringify([c.to,c.subject,c.html])).digest('hex');
+const previouslyVerified=p=>p.Verification==='Verified'&&p.Direction==='Incoming';
 const sourceKey='mail-drafts:baseline:v1';
 const mailKey=k=>'mail-drafts:lock:'+k;
 const actionable=new Set(['Draft','Creating','Review']);
@@ -9,7 +10,7 @@ export async function runDraftJob({db,storage,mail,now}){
  // Airtable transport rate limits calls; read just trigger tables until there is work.
  for(const name of ['bookings','payments','enrollments','draftLog'])data[name]=await db.list(name,draftFields[name]);
  const today=localDay(now),first=await storage.get(sourceKey);
- const baseline=first||{at:new Date(now).toISOString(),bookings:data.bookings.filter(x=>accepted(x.fields)).map(x=>x.id),payments:data.payments.filter(x=>verified(x.fields)).map(x=>x.id)};
+ const baseline=first||{at:new Date(now).toISOString(),bookings:data.bookings.filter(x=>accepted(x.fields)).map(x=>x.id),payments:data.payments.filter(x=>previouslyVerified(x.fields)).map(x=>x.id)};
  if(!first)await storage.put(sourceKey,baseline);
  const logs=new Map(data.draftLog.map(r=>[r.fields['Email key'],r]));
  const candidates=[];
@@ -22,7 +23,7 @@ export async function runDraftJob({db,storage,mail,now}){
  }
  // Once a grandfathered record becomes ineligible, a later acceptance/verification is new activity.
  const stillAccepted=new Set(data.bookings.filter(x=>accepted(x.fields)).map(x=>x.id));
- const stillVerified=new Set(data.payments.filter(x=>verified(x.fields)).map(x=>x.id));
+ const stillVerified=new Set(data.payments.filter(x=>previouslyVerified(x.fields)).map(x=>x.id));
  const remaining={...baseline,bookings:baseline.bookings.filter(id=>stillAccepted.has(id)),payments:baseline.payments.filter(id=>stillVerified.has(id))};
  if(remaining.bookings.length!==baseline.bookings.length||remaining.payments.length!==baseline.payments.length)await storage.put(sourceKey,remaining);
  for(const [key,log] of logs){
@@ -43,8 +44,10 @@ export async function runDraftJob({db,storage,mail,now}){
   const [,id,expiry]=key.split(':'),r=data.enrollments.find(e=>e.id===id)||{id,fields:{}};
   if(!candidates.some(([k,x,v])=>k==='Renewal'&&x.id===id&&expiry===v))candidates.push(['Renewal',r,expiry]);
  }
- if(candidates.length){
+ const preflight=await storage.get('mail-drafts:source-check');
+ if(candidates.length||!preflight){
   for(const name of Object.keys(draftFields))if(!data[name])data[name]=await db.list(name,draftFields[name]);
+  if(!preflight)await storage.put('mail-drafts:source-check',new Date(now).toISOString());
   let firstError;
   for(const [kind,r,expiry] of candidates){
    let c;
@@ -60,7 +63,7 @@ export async function runDraftJob({db,storage,mail,now}){
  }
  if(daily)await storage.put('mail-drafts:renewal-day',today);
  const waitingRenewal=candidates.some(([kind,r,expiry])=>kind==='Renewal'&&coverageDay(r.fields['Approved coverage expiry'])===expiry&&expiry>=today&&!['Sent','Obsolete'].includes(logs.get('Renewal:'+r.id+':'+expiry)?.fields.Status));
- return {activated:baseline.at,checked:new Date(now).toISOString(),renewals:today,waitingRenewal};
+ return {activated:baseline.at,checked:new Date(now).toISOString(),renewals:today,sourcesChecked:preflight||new Date(now).toISOString(),waitingRenewal};
 }
 export async function processDraft({c,old,db,storage,mail}){
  const lock=mailKey(c.key),state=await storage.get(lock);

@@ -27,9 +27,12 @@ export function draftMailbox({read,fetchFn,access,owner}){
    if(await search(q+quote(marker(c.key))).then(x=>x.length))return true;
    const queries=[];
    if(c.lookup)queries.push(quote(c.lookup));
-   if(c.kind==='Confirmation')queries.push('subject:confirm '+quote(c.child)+' '+quote(c.acceptedDate));
+   if(c.kind==='Confirmation'){
+    const since=Date.parse(c.registeredAt);
+    queries.push('{subject:confirm subject:registration} '+quote(c.child)+' '+(Number.isFinite(since)?'after:'+Math.floor((since-86400000)/1000):quote(c.acceptedDate)));
+   }
    if(c.kind==='Receipt')queries.push('subject:receipt '+quote(c.paymentAmount)+' after:'+String(Math.floor(Date.parse(c.paymentDate)/1000)-86400));
-   if(c.kind==='Renewal')queries.push('subject:renew '+quote(c.child)+' '+quote(c.expiry));
+   if(c.kind==='Renewal')queries.push('subject:renew '+quote(c.child)+' after:'+Math.floor(Date.parse(c.expiry)/1000-21*86400));
    for(const extra of queries){
     for(const hit of await search(q+extra)){
      const m=await info(hit.id),tag=header(m,'subject').match(/SSMAIL-[a-f0-9]{22}/i)?.[0];

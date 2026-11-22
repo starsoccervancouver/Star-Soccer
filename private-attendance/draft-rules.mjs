@@ -7,7 +7,7 @@ export const draftFields={
  payments:['Payment reference','Booking reference','Booking','Family','Amount CAD','Training portion CAD','Method','Direction','Verification','Payment date'],
  allocations:['Payment','Booking','Applied CAD','Amount CAD','Review status'],
  families:['Email','Secondary guardian email','Contact status','Newsletter status','Marketing consent','Preferred contact method'],
- players:['Player','Family'],registrations:['Child','Parent email','Reference','Status','Player','Booking','Family','Confirmation Gmail ID','Source Gmail ID','Camp session keys'],
+ players:['Player','Family'],registrations:['Received at','Child','Parent email','Reference','Status','Player','Booking','Family','Confirmation Gmail ID','Source Gmail ID','Camp session keys'],
  attendance:['Player','Booking','Coverage state','Session date','Session'],sessions:['Session','Date','Time','Venue','Session status','Weekly program','Source session ID'],
  enrollments:['Enrollment status','Billing schedule','Billing approval','Weekly program','Player','Family','Approved coverage expiry','Renewal guidance','Effective from','Effective until','Prepaid covered from','Prepaid covered until','Weekly attendance email preference'],
  programs:['Program'],suppression:['Email','Status'],templates:['Template','HTML','Version'],
@@ -86,7 +86,7 @@ export function confirmation(d,row,today){
   const raw=renderConfirmation(masters[0].fields.HTML,templateReg,slots,pay);
   const html=Buffer.from(Buffer.from(raw,'base64url').toString().split('\r\n\r\n')[1],'base64').toString();
   return {...content(key,to,'Star Soccer registration confirmed | '+ref,html),registration:reg?.id,
-    lookup:ref,legacySource:r?.['Source Gmail ID'],child:name,acceptedDate:b['Start date']};
+    lookup:ref,legacySource:r?.['Source Gmail ID'],child:name,acceptedDate:b['Start date'],registeredAt:r?.['Received at']};
  });
 }
 export function receipt(d,row,today){

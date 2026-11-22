@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Coach Desk">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" color="#1455eb" role="img" aria-label="Coach Desk">
   <style>
     :root { color: #1455eb; }
     @media (prefers-color-scheme: dark) { :root { color: #79bfff; } }

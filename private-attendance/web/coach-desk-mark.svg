@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" color="#1455eb" role="img" aria-label="Coach Desk">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" color="#1246cc" role="img" aria-label="Coach Desk">
   <style>
-    :root { color: #1455eb; }
-    @media (prefers-color-scheme: dark) { :root { color: #79bfff; } }
+    :root { color: #1246cc; }
+    @media (prefers-color-scheme: dark) { :root { color: #5891f0; } }
   </style>
   <path fill="currentColor" fill-rule="evenodd" transform="rotate(-15 32 32)"
         d="M22 18h6v8l8-8h22a2 2 0 0 1 2 2v9a2 2 0 0 1-1.5 1.94L40 36a18 18 0 1 1-18-18Zm0 11a7 7 0 1 0 0 14 7 7 0 0 0 0-14Z"/>

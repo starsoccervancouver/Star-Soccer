@@ -2,7 +2,6 @@ import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypt
 import {Buffer} from 'node:buffer';
 import {createFollowupJob} from './registration-followup-job.mjs';
 import {ownerWorkflows,fields as reportFields} from './owner-workflows.mjs';
-import {ownerDraftAcceptance} from './owner-draft-acceptance.mjs';
 import {runDraftJob} from './draft-job.mjs';
 import {draftMailbox} from './draft-mailbox.mjs';
 import {outcomeFiling} from './gmail-outcome-labels.mjs';
@@ -166,7 +165,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const filingPending=filing?await filing.step():false;
       const previousDraftCheck=await storage.get('mail-drafts:report');
       const draftInterval=previousDraftCheck?.waitingRenewal?pollInterval:900000;
-      if(filing && clock()-(await storage.get('mail-drafts:last')||0)>=draftInterval){
+      if(filing && (!previousDraftCheck?.sourcesChecked||clock()-(await storage.get('mail-drafts:last')||0)>=draftInterval)){
         try{
           const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:await storage.get('ownerAddress')||STAR_SOCCER_OWNER});
           const report=await runDraftJob({db:ledger,storage,mail,now:clock()});
@@ -178,15 +177,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
           await storage.put('confirmation:error','Check the three email draft rules and Email Draft Log. '+(/^(GMAIL|AIRTABLE)_[A-Z0-9_]+$/.test(error.message)?error.message:''));
         }
       }
-      let testPending=false;
-      if(filing&&config.baseId==='appnaG94HQpEaRios'&&await storage.get('mail-drafts:report')){
-       try{
-        const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:await storage.get('ownerAddress')||STAR_SOCCER_OWNER});
-        testPending=await ownerDraftAcceptance({db:ledger,storage,mail,profile:()=>gmail(access,'profile')});
-        await storage.delete('mail-drafts:test-error');
-       }catch(e){await storage.put('mail-drafts:test-error',e.message);}
-      }
-      if(testPending||filingPending||pending.size||state?.phase!=='history'||state.page||follow?.state==='checking')await storage.setAlarm(clock()+3000);
+      if(filingPending||pending.size||state?.phase!=='history'||state.page||follow?.state==='checking')await storage.setAlarm(clock()+3000);
     }catch(err){
       const allowed=/^(AIRTABLE_\d{3}|GMAIL_\d{3}|GMAIL_API_DISABLED|PAYMENT_LABELS_MISSING|GOOGLE_RECONNECT|GOOGLE_TOKEN_FAILED)$/;
       const report=await storage.get('report')||{};
@@ -279,7 +270,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const report=await storage.get('report')||{};
       const scan=await storage.get('scan'),pending=await storage.list({prefix:'q:',limit:1});
       const filing=await storage.get('filing:progress');
-      return {ownerDraftTestStep:await storage.get('owner-email-acceptance:20261122:cursor')||0,ownerDraftTestError:await storage.get('mail-drafts:test-error')||null,draftAutomations:await storage.get('mail-drafts:report')||null,draftAutomationError:await storage.get('confirmation:error')||null,placementEnabled:Number.isFinite(Date.parse(campPlacementSince)),calendarEnabled:!!await storage.get('calendar:enabled'),confirmationCheckedAt:await storage.get('confirmation:last')||null,connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
+      return {draftAutomations:await storage.get('mail-drafts:report')||null,draftAutomationError:await storage.get('confirmation:error')||null,placementEnabled:Number.isFinite(Date.parse(campPlacementSince)),calendarEnabled:!!await storage.get('calendar:enabled'),confirmationCheckedAt:await storage.get('confirmation:last')||null,connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
     }
     if(op==='stop-labels'){await storage.put('filing:enabled',false);return {labelFiling:false};}
     if(op==='start'){

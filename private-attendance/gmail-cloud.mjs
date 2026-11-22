@@ -3,7 +3,7 @@ import {Buffer} from 'node:buffer';
 import {createFollowupJob} from './registration-followup-job.mjs';
 import {reportCompletions} from './report-completions.mjs';
 import {attentionPage} from './attention-inbox.mjs';
-import {classifyMessage} from './gmail-message.mjs';
+import {classifyMessage,depositLabel} from './gmail-message.mjs';
 import {airtableClient,syncLedgerEvent} from './gmail-ledger.mjs';
 import {createAirtableTransport} from './airtable-transport.mjs';
 import {STAR_SOCCER_OWNER} from './deployment-config.mjs';
@@ -71,7 +71,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
   }
   async function ensureLabels(access){
     const labels=await readLabels(access);
-    if(!labels.Deposited)throw Error('PAYMENT_LABELS_MISSING');
+    if(!labels[depositLabel])throw Error('PAYMENT_LABELS_MISSING');
     return labels;
   }
   async function enqueue(ids,scan){
@@ -87,7 +87,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         const incoming=followupEnabled?'{-in:sent (in:sent subject:confirmed)}':campPlacementSince?'{-in:sent (in:sent subject:"Star Soccer camp registration confirmed")}':'-in:sent';
         params.push(['q','after:'+Math.floor((scan.start-300000)/1000)+' '+incoming+' -in:drafts -in:spam -in:trash']);
       }
-      else params.push(['labelIds',labels.Deposited]);
+      else params.push(['labelIds',labels[depositLabel]]);
       const data=await gmail(access,'messages',params);
       const next={...scan,page:data.nextPageToken||''};
       if(!data.nextPageToken)next.phase=scan.phase==='recent'?'deposits':'history';
@@ -96,7 +96,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     let data;
     try{data=await gmail(access,'history',[...params,['startHistoryId',scan.history],['historyTypes','messageAdded'],['historyTypes','labelAdded']]);}
     catch(err){if(err.message!=='GMAIL_404')throw err;await storage.put('scan',await bootstrap(access,scan,await storage.get('ownerAddress')));return;}
-    const relevant=new Set(['Deposited','Payments - Incoming','Leads','Registrations'].map(k=>labels[k]).filter(Boolean));
+    const relevant=new Set([depositLabel,'Payments - Incoming','Leads','Registrations'].map(k=>labels[k]).filter(Boolean));
     const ids=[];
     for(const change of data.history||[]){
       for(const added of change.messagesAdded||[])ids.push(added.message.id);
@@ -196,7 +196,8 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }
     if(op==='status'){
       const report=await storage.get('report')||{};
-      return {connected:!!await storage.get('refresh'),...report};
+      const scan=await storage.get('scan'),pending=await storage.list({prefix:'q:',limit:1});
+      return {connected:!!await storage.get('refresh'),...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
     }
     if(op==='start'){
       const state='ledger.'+random(),browser=random(),verifier=random();

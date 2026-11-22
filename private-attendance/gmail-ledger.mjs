@@ -81,7 +81,7 @@ export async function syncLedgerEvent(db,event,{campPlacementSince,trackConfirma
     }
     return db.save('intake',fields,{key:'Message ID'});
   }
-  if(e.type==='payment' && existingIntake?.fields.Review==='Ignore')return;
+  if(e.type==='payment' && (['Ignore','Duplicate'].includes(existingIntake?.fields.Review)||existingIntake?.fields.Kind==='Payment claim'&&existingIntake.fields.Review==='Matched'))return;
   if(e.type==='payment')return payment(db,e,intake,existingIntake);
   const families=e.contact?await db.list('families',['Email','Secondary guardian email','Guardian name'], 'OR('+exact('Email',e.contact)+','+exact('Secondary guardian email',e.contact)+')'):[];
   let family=families.length===1?families[0]:null;
@@ -175,11 +175,15 @@ async function recordCampConfirmation(db,confirmation,since,now) {
 async function payment(db,e,intake,existingIntake) {
   const review = (reason,family) => intake('Payment claim','Needs clarification',reason,{'Candidate amount CAD':e.amount,...(family?{Family:[family.id]}:{})});
   if(!e.verified)return review('Deposited label present. Verify notification source, transfer reference and CAD amount.');
-  const source='INTERAC-'+e.ref, amount=cents(e.amount);
+  const ref=e.ref.toUpperCase(),source='INTERAC-'+ref, amount=cents(e.amount);
   const holds=existingIntake?.fields;
-  const receipts=await db.list('payments',['Family','Family reference','Amount CAD','Payment reference','Verification','Source payment ID','Evidence reference','Allocation requested CAD','Verified signed CAD','Payment context','Payment Allocations']);
-  const identified=receipts.filter(p=>[source,e.id,'gmail:'+e.id].includes(p.fields['Source payment ID'])||[e.id,e.ref].some(k=>(p.fields['Evidence reference']||'').includes(k)));
-  if(identified.length>1 || identified.some(p=>cents(p.fields['Amount CAD'])!==amount))return review('Conflicting receipt evidence. Review the existing payment records.');
+  const receipts=await db.list('payments',['Family','Family reference','Amount CAD','Payment reference','Direction','Verification','Source payment ID','Evidence reference','Allocation requested CAD','Verified signed CAD','Payment context','Payment Allocations']);
+  const sourceKeys=new Set([source,ref,e.id.toUpperCase(),'GMAIL:'+e.id.toUpperCase()]);
+  const identified=receipts.filter(({fields:f})=>{
+    const evidence=String(f['Evidence reference']||'').toUpperCase().match(/[A-Z0-9]+/g)||[];
+    return [f['Source payment ID'],f['Payment reference']].some(k=>sourceKeys.has(String(k||'').trim().toUpperCase()))||evidence.includes(ref)||evidence.includes(e.id.toUpperCase());
+  });
+  if(identified.length>1 || identified.some(p=>cents(p.fields['Amount CAD'])!==amount||p.fields.Direction&&p.fields.Direction!=='Incoming'))return review('Conflicting receipt evidence. Review the existing payment records.');
   let receipt=identified[0];
   if(receipt && receipt.fields.Verification==='Verified' && !(receipt.fields['Payment context']||'').startsWith('Cloud Gmail intake.')){
     return intake('Payment claim','Matched','Deposited label reconciled with the existing verified receipt. Existing allocations retained.');
@@ -203,10 +207,10 @@ async function payment(db,e,intake,existingIntake) {
     Family:[family.id],'Verified by':depositedBy,'Evidence reference':'Gmail '+e.id+'; Interac '+e.ref,'Payment date':e.received.slice(0,10),
     'Payment context':'Cloud Gmail intake. Sender: '+e.payer+'. Notice dated '+e.received.slice(0,10)+'. '+(e.memo||'')},{key:'Source payment ID'});
   const matched = () => intake('Payment claim','Matched','Verified receipt reconciled with its booking allocation.',{Family:[family.id],'Candidate amount CAD':e.amount});
-  if(receipt.fields['Payment Allocations']?.length){
-    const existing=await db.list('allocations',['Payment','Applied CAD','Review status']);
-    const posted=existing.filter(a=>a.fields.Payment?.length===1&&a.fields.Payment[0]===receipt.id);
-    if(posted.length&&posted.every(a=>a.fields['Review status']==='Verified allocation')&&posted.reduce((total,a)=>total+(cents(a.fields['Applied CAD'])||0),0)===amount)return matched();
+  const existing=await db.list('allocations',['Payment','Applied CAD','Review status']);
+  const posted=existing.filter(a=>a.fields.Payment?.includes(receipt.id));
+  if(receipt.fields['Payment Allocations']?.length||posted.length){
+    if(posted.length&&posted.every(a=>a.fields.Payment.length===1&&a.fields['Review status']==='Verified allocation')&&posted.reduce((total,a)=>total+(cents(a.fields['Applied CAD'])||0),0)===amount)return matched();
     return review('Verified receipt has existing allocations. Review the applied amounts before making changes.',family);
   }
   const bookings=await db.list('bookings',['Booking reference','Family','Family reference','Payment Allocations','Player','Booking status','Charge review','Balance CAD','Covered dates','Start date','Accepted date']);

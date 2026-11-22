@@ -79,15 +79,20 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    return json(200,{profile:result.profile,csrfToken:result.csrf},{'Set-Cookie':'__Host-ss_staff='+result.token+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=43200'});
   }
   if(!signed)deny('SIGN_IN_REQUIRED',401);const actor=signed.actor;
+  if(path==='/workspace/api/owner-workflows'&&request.method==='GET'){
+   coaches.owner(actor);if(!gmailSync)deny('NOT_FOUND',404);
+   const reader=preview||createOperationsPreview({cookieKey,origin,coaches,overview,familyLedger,clock});
+   const desk=await reader.read(actor).catch(()=>null);return json(200,await gmailSync('owner-workflows',{desk:desk?{sessions:desk.sessions}:null}));
+  }
   if(path.startsWith('/workspace/api/gmail-sync/')){
    coaches.owner(actor);
    if(!gmailSync)deny('NOT_FOUND',404);
    const action=path.slice('/workspace/api/gmail-sync/'.length);
    if(action==='status'&&request.method==='GET')return json(200,await gmailSync('status'));
-   if(request.method!=='POST'||!['connect','disconnect','connect-labels','stop-labels'].includes(action))deny('NOT_FOUND',404);
+   if(request.method!=='POST'||!['connect','disconnect','connect-labels','stop-labels','connect-calendar'].includes(action))deny('NOT_FOUND',404);
    await body(request,[]);
    if(action==='disconnect'||action==='stop-labels')return json(200,await gmailSync(action));
-   const consent=await gmailSync('start',{ownerAddress:actor.displayEmail||actor.email,labelFiling:action==='connect-labels'});
+   const consent=await gmailSync('start',{ownerAddress:actor.displayEmail||actor.email,labelFiling:action==='connect-labels',...(action==='connect-calendar'?{calendar:true}:{})});
    return json(200,{url:consent.url},{'Set-Cookie':'__Host-ss_mail_consent='+consent.browser+'; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600'});
   }
   if(path==='/workspace/api/family-followups'&&['GET','POST'].includes(request.method)){

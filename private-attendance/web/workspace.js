@@ -354,6 +354,7 @@
    location.assign(url.href);
   }catch(e){notice(e.message,true);}
  }
+ $('calendar-sync-connect').addEventListener('click',()=>connectMail('connect-calendar'));
  $('gmail-sync-connect').addEventListener('click',()=>connectMail($('gmail-sync-labels').dataset.on==='true'?'connect-labels':'connect'));
  $('gmail-sync-labels').addEventListener('click',async()=>{
   if($('gmail-sync-labels').dataset.on!=='true')return connectMail('connect-labels');
@@ -437,6 +438,7 @@
   attentionRequest++;attentionRunning=false;attentionTime=0;reportGroups.clear();pendingReports.clear();
   reportView='open';reportKind='all';reportSaved='';$('report-search').value='';
   $('home-mail-summary').hidden=true;$('home-mail-summary').textContent='Review inbox';
+  $('owner-workflow-panel').open=false;$('owner-workflow-panel').hidden=true;$('owner-workflow-content').replaceChildren();
   for(const id of ['attention-status','attention-groups','report-filters'])$(id).replaceChildren();
  }
  function renderReports(){
@@ -495,7 +497,22 @@
   }catch(e){if(request===attentionRequest)notice('Could not save that report change. Please try again.',true);}
   finally{if(request===attentionRequest){pendingReports.delete(token);renderReports();const target=$('attention-groups').querySelector('button:not(:disabled)')||$(reportView==='completed'?'report-completed':'report-open');target.focus();}}
  }
+ let workflowLoading=false;
+ async function renderOwnerWorkflow(){
+  const pane=$('owner-workflow-panel'),content=$('owner-workflow-content');if(!pane.open||profile?.role!=='owner'||workflowLoading)return;
+  const seq=generation;workflowLoading=true;content.textContent='Checking the ledger, club mailbox and session roster…';
+  try{const data=await api('owner-workflows');if(seq!==generation||profile?.role!=='owner')return;content.replaceChildren();
+   for(const name of ['Registrations','Payments','Sessions','Coach pay','Winter camp','Attribution']){
+    const detail=document.createElement('details'),head=document.createElement('summary'),items=data.items.filter(i=>i.group===name);head.textContent=name+' · '+items.length+' to review';detail.append(head);
+    for(const l of data.lines.filter(i=>i.group===name)){const p=document.createElement('p');p.textContent=l.text;detail.append(p);}
+    for(const i of items){const p=document.createElement('p'),a=document.createElement('a');a.href=i.link;a.textContent=i.title;a.target='_blank';a.rel='noopener noreferrer';p.append(a,document.createTextNode(' — '+i.action));detail.append(p);}
+    content.append(detail);
+   }
+  }catch{if(seq===generation)content.textContent='The operations report could not be read. Refresh to retry.';}finally{workflowLoading=false;}
+ }
+ $('owner-workflow-panel').addEventListener('toggle',renderOwnerWorkflow);
  async function loadAttention(force=false){
+  $('owner-workflow-panel').hidden=profile?.role!=='owner';if(force)renderOwnerWorkflow();
   if(!profile?.familyAccess||attentionRunning||pendingReports.size||!force&&Date.now()-attentionTime<90000)return;
   const request=++attentionRequest;attentionRunning=true;reportSaved='';reportGroups.clear();
   for(const kind of Object.keys(categories))if(kind!=='other'||profile.role==='owner')reportGroups.set(kind,{rows:new Map(),liveOK:false,historyOK:false,finished:false});

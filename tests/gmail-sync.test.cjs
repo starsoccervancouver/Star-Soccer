@@ -321,6 +321,60 @@ test('saved Reports apply current Gmail labels to completed and reopened rows wi
  assert.equal(second.items[0].reopened,true);assert.equal(second.next,null);
  for(const [key,json] of rows)assert.equal(JSON.stringify(records.get(key)),json);
 });
+test('report categories share a short ledger snapshot with fresh filing, receipts and connection checks',async()=>{
+ const {createCloudMail}=await import('../private-attendance/gmail-cloud.mjs');
+ const {STAR_SOCCER_OWNER}=await import('../private-attendance/deployment-config.mjs');
+ const records=new Map(),tables=[],source='1234567890abcdef';
+ let now=Date.UTC(2026,10,20),grants=0,labelReads=0,denied=false;
+ const labels={'Payments - Incoming/Deposited':'deposited'};
+ const storage={
+  get:async key=>Array.isArray(key)?new Map(key.filter(k=>records.has(k)).map(k=>[k,records.get(k)])):records.get(key),
+  put:async(k,v)=>records.set(k,v),delete:async k=>(Array.isArray(k)?k:[k]).forEach(key=>records.delete(key)),
+  transaction:async fn=>fn(storage),setAlarm:async()=>{},deleteAlarm:async()=>{},list:async()=>new Map()
+ };
+ const parent={...msg('parent@example.test','Winter training','',['INBOX','new-label']),id:source};
+ async function fetchFn(input){
+  const url=new URL(input),last=decodeURIComponent(url.pathname.split('/').pop());
+  if(url.hostname==='oauth2.googleapis.com'){
+   grants++;return Response.json({access_token:'access',refresh_token:'example-refresh',scope:'https://www.googleapis.com/auth/gmail.readonly'});
+  }
+  if(url.hostname==='api.airtable.com'){
+   tables.push(last);
+   const fields=last==='Email Intake'?{'Message ID':source,'Gmail thread ID':source,Kind:'Question'}:{'Source Gmail ID':source,Status:'Pending'};
+   return Response.json({records:last==='Payments'?[]:[{id:'recExample0000000',fields}]});
+  }
+  if(last==='profile')return Response.json({emailAddress:STAR_SOCCER_OWNER,historyId:'1'});
+  if(last==='labels'){
+   labelReads++;if(denied)return new Response(null,{status:401});
+   return Response.json({labels:Object.entries(labels).map(([name,id])=>({name,id}))});
+  }
+  if(last==='threads'||last==='messages')return Response.json({});
+  if(last===source)return Response.json(url.pathname.includes('/threads/')?{messages:[parent]}:parent);
+  throw Error('Unexpected report fixture request');
+ }
+ const mail=createCloudMail(storage,{COOKIE_KEY:'example-key',AIRTABLE_CONFIG:'{"baseId":"example","tables":{}}'},{fetchFn,clock:()=>now});
+ const start=await mail.handle('start',{});
+ await mail.handle('finish',{state:new URL(start.url).searchParams.get('state'),browser:start.browser,code:'example'});
+ grants=0;labelReads=0;
+ const read=(kind,cursor)=>mail.handle('attention',{kind,cursor});
+ assert.equal((await read('inquiries')).items.length,1);
+ labels['Admin/Payroll']='new-label';
+ assert.equal((await read('registrations')).items.length,0,'New administrative filing applies immediately to uncached categories');
+ await read('other');await read('payments');
+ assert.deepEqual({grants,labelReads,tables:[...tables].sort()},{grants:1,labelReads:4,tables:['Email Intake','Payments','Website Registrations']});
+ assert.equal((await read('inquiries')).items.length,0,'Changed filing invalidates earlier cached pages');
+ await read('payments','page-two');
+ assert.equal(tables.filter(table=>table==='Payments').length,2,'Each new payment page reconciles current ledger receipts');
+ delete labels['Payments - Incoming/Deposited'];
+ await assert.rejects(read('payments','page-three'),/PAYMENT_LABELS_MISSING/);
+ denied=true;await assert.rejects(read('inquiries','0'),/GMAIL_401/);denied=false;
+ delete labels['Admin/Payroll'];
+ assert.equal((await read('inquiries')).items.length,1,'Retry reauthenticates and does not cache an authorization failure');
+ assert.equal(grants,2);
+ now+=30001;await read('inquiries');assert.equal(grants,3);
+ assert.equal(tables.filter(table=>table==='Email Intake').length,3,'A new authenticated window refreshes the intake snapshot');
+ await mail.handle('disconnect',{});await assert.rejects(read('inquiries'),/GOOGLE_RECONNECT/);
+});
 test('two Gmail messages for the same transfer keep one receipt and one allocation, even with a stale backlink',async()=>{
  const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
  const db=ledger();await syncLedgerEvent(db,e);

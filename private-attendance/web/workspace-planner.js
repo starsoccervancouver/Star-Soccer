@@ -9,10 +9,13 @@
   };
   const emit = (name, detail) => window.dispatchEvent(new CustomEvent(name, { detail }));
   const club = window.CoachClub || { timeZone: 'America/Vancouver', trainingDays: [3, 4, 5, 0] };
+  const sessionDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric' });
+  const clockFormat = new Intl.DateTimeFormat('en-CA', { timeZone: club.timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const noteDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: club.timeZone, month: 'short', day: 'numeric' });
   const weekday = date => new Date(date + 'T12:00:00Z').getUTCDay();
-  const label = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric' }).format(new Date(date + 'T12:00:00Z'));
+  const label = date => sessionDateFormat.format(new Date(date + 'T12:00:00Z'));
   const localNow = () => {
-    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: club.timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).map(p => [p.type, p.value]));
+    const parts = Object.fromEntries(clockFormat.formatToParts(new Date()).map(p => [p.type, p.value]));
     return { date: parts.year + '-' + parts.month + '-' + parts.day, minute: Number(parts.hour) * 60 + Number(parts.minute) };
   };
   const startMinute = session => {
@@ -28,10 +31,10 @@
     const end = String(session.time || '').split(/[–—-]/)[1];
     return end ? startMinute({ time: end.trim() }) : null;
   };
-  const inProgress = session => {
+  const inProgress = (session, now = localNow()) => {
     if (!usable(session)) return false;
     if (session.startAt) return Number.isFinite(Date.parse(session.endAt)) && Date.parse(session.startAt) <= Date.now() && Date.parse(session.endAt) > Date.now();
-    const now = localNow(), start = startMinute(session), end = endMinute(session);
+    const start = startMinute(session), end = endMinute(session);
     return session.date === now.date && start !== null && end !== null && end > start && start <= now.minute && end > now.minute;
   };
   const sortSessions = rows => [...rows].sort((a, b) => a.date.localeCompare(b.date) || (startMinute(a) ?? 1440) - (startMinute(b) ?? 1440) || String(a.id).localeCompare(String(b.id)));
@@ -39,10 +42,10 @@
     const now = localNow();
     return sortSessions((rows || []).filter(s => {
       if (!usable(s) || day !== null && weekday(s.date) !== Number(day)) return false;
-      if (inProgress(s)) return true;
+      if (inProgress(s,now)) return true;
       if (s.startAt && Number.isFinite(Date.parse(s.startAt))) return Date.parse(s.startAt) >= Date.now();
       return s.date > now.date || s.date === now.date && startMinute(s) !== null && startMinute(s) >= now.minute;
-    })).sort((a, b) => Number(inProgress(b)) - Number(inProgress(a)))[0] || null;
+    })).sort((a, b) => Number(inProgress(b,now)) - Number(inProgress(a,now)))[0] || null;
   };
   let context = null, identity = '', pane = '', opener = null, noteSaving = false, uncertain = false;
   let historyLimit = 10, dateLimit = 20, focusedSession = '', focusEpoch = 0;
@@ -100,7 +103,7 @@
     $('planner-focus-bar').hidden = !active;
     $('planner-session-browser').hidden = active;
     $('planner-workspace').hidden = !active;
-    const group = selectedGroup();
+    const group = active ? selectedGroup() : null;
     $('planner-focus-title').textContent = active ? group?.kind === 'camp' ? group.label : (group?.day || 'Training') + ' group' + (group?.label.match(/ · Group \d+$/)?.[0] || '') : '';
     $('planner-focus-detail').textContent = active ? [readOnly() ? 'Cancelled · Read only' : '', label(selected.date), selected.time, selected.location].filter(Boolean).join(' · ') : '';
     if (!active) closeDatePicker();
@@ -153,7 +156,7 @@
     $('planner-session-detail').textContent = selected ? [label(selected.date), selected.time, selected.location].filter(Boolean).join(' · ') : 'No assigned training group.';
     const next = group && nextSession(group.sessions);
     $('planner-session-mode').textContent = selected ? inProgress(selected) ? 'In progress' : next?.id === selected.id ? 'Next session for this group' : 'Selected date' : 'No session selected';
-    renderDates();
+    if(pane==='dates')renderDates();
     $('planner-open-selected').disabled = locked() || !selected;
     for (const id of ['planner-open-notes', 'planner-open-tools', 'planner-open-run']) $(id).disabled = locked() || !selected;
     if (readOnly()) for (const id of ['planner-open-tools', 'planner-open-run']) $(id).disabled = true;
@@ -179,7 +182,7 @@
     const cards = list.slice(0, historyLimit).map(note => {
       const source = context.sessions.find(s => s.id === note.session_id), card = make('article', '', 'planner-note-card note-card');
       const date = source?.date ? label(source.date) : 'Previous session';
-      card.append(make('span', note.category, 'tag'), make('h3', date), make('p', note.body, 'note-body'), make('p', (note.author_email === context.profile.email ? 'Your private note' : note.author_email) + (note.updated_at ? ' · ' + new Intl.DateTimeFormat('en-CA', { timeZone: club.timeZone, month: 'short', day: 'numeric' }).format(new Date(note.updated_at)) : ''), 'small'));
+      card.append(make('span', note.category, 'tag'), make('h3', date), make('p', note.body, 'note-body'), make('p', (note.author_email === context.profile.email ? 'Your private note' : note.author_email) + (note.updated_at ? ' · ' + noteDateFormat.format(new Date(note.updated_at)) : ''), 'small'));
       const goal = window.CoachGoals?.renderCard(note);
       if (goal) card.append(goal);
       return card;
@@ -202,6 +205,9 @@
     for (const id of ['tactics-disclosure', 'practice-ideas', 'session-field-disclosure']) if ($(id)) $(id).open = false;
     for (const id of ['planner-open-notes', 'planner-open-tools', 'planner-open-run', 'planner-focus-date', 'planner-other-date']) $(id)?.setAttribute('aria-expanded', 'false');
     if (wasOpen) document.dispatchEvent(new Event('coach:dictation-stop'));
+    if (wasOpen) {
+      for(const id of ['planner-dates-upcoming','planner-dates-past','planner-notes-list'])$(id).replaceChildren();
+    }
     document.dispatchEvent(new Event('coach:dictation-state'));
     if (!force && opener?.isConnected && !opener.disabled) opener.focus();
   }
@@ -283,18 +289,23 @@
   });
   window.addEventListener('coach:context', event => {
     const next = event.detail || null, nextIdentity = next?.profile ? [next.profile.email, next.profile.role, next.profile.sessionVersion, next.session?.id || ''].join(':') : '';
+    const leavingPlan=context?.tab==='plan' && next?.tab!=='plan';
+    if (context?.sessions !== next?.sessions && pane !== 'notes') {
+      $('planner-notes-player').replaceChildren(); $('planner-notes-list').replaceChildren();
+    }
     if (identity !== nextIdentity) {
       dateLimit = 20; $('planner-dates-month').value = '';
       closeDrawer(true); resetDraft(); historyLimit = 10; $('planner-notes-search').value = ''; $('planner-notes-results').textContent = ''; $('planner-notes-more').hidden = true; $('planner-notes-player').replaceChildren(); $('planner-notes-player').dataset.previous = '';
     }
     identity = nextIdentity; context = next;
-    if (!next?.profile) {
+    if (!next?.profile || leavingPlan) {
       focusedSession = ''; focusEpoch++; closeDatePicker(); renderFocus();
       closeDrawer(true); resetDraft();
-      for (const id of ['planner-days', 'planner-session-title', 'planner-session-detail', 'planner-session-mode', 'planner-dates-upcoming', 'planner-dates-past', 'planner-dates-detail', 'planner-dates-count', 'planner-notes-list']) $(id).replaceChildren();
+      window.CoachViews?.unmount?.('training');
+      for (const id of ['planner-days', 'planner-session-title', 'planner-session-detail', 'planner-session-mode', 'planner-dates-upcoming', 'planner-dates-past', 'planner-dates-detail', 'planner-dates-count', 'planner-notes-list','planner-notes-player','planner-notes-results']) $(id).replaceChildren();
       return;
     }
-    if (next.tab !== 'plan') { focusedSession = ''; focusEpoch++; closeDatePicker(); closeDrawer(true); }
+    if (next.tab !== 'plan')return;
     renderDays();
     if (pane === 'notes') renderNotes();
   });

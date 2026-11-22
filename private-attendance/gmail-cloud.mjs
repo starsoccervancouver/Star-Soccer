@@ -177,7 +177,26 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       await storage.put('report',{...report,error:allowed.test(err.message)?err.message:'SYNC_RETRY'});
     }
   }
-  const attentionCache=new Map();
+  // Fetches on this mailbox coordinator are serialized. Reuse successful reads across
+  // categories/pages within the same 30-second lifetime as the report itself.
+  let reportWindow;
+  async function reportContext() {
+    const encrypted=await storage.get('refresh');
+    if(!encrypted){reportWindow=null;throw Error('GOOGLE_RECONNECT');}
+    if(reportWindow?.encrypted===encrypted && reportWindow.until>clock())return reportWindow;
+    const grant=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
+    const ttl=Math.min(30000,(grant.expires_in??3600)*1000);
+    const tables=new Map();
+    const reportLedger={async list(name,fields){
+      // Reconcile each new payments page against the current receipt ledger.
+      if(name!=='intake'&&name!=='registrations')return ledger.list(name,fields);
+      const key=JSON.stringify([name,fields]);
+      if(!tables.has(key))tables.set(key,await ledger.list(name,fields));
+      return tables.get(key);
+    }};
+    reportWindow={encrypted,access:grant.access_token,until:clock()+ttl,ledger:reportLedger,pages:new Map()};
+    return reportWindow;
+  }
   const completions=reportCompletions(storage,env.COOKIE_KEY);
   async function handle(op,payload){
     if(op==='owner-workflows'){
@@ -220,17 +239,24 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const history=payload.history?await completions.history(payload.kind,payload.cursor,12):null;
       if(history&&!history.items.length)return history;
       const key=payload.kind+'|'+(payload.cursor||'');
-      for(const [id,entry] of attentionCache)if(entry.until<=clock())attentionCache.delete(id);
-      if(!history&&attentionCache.has(key))return completions.include(payload.kind,attentionCache.get(key).value);
-      const encrypted=await storage.get('refresh');
-      if(!encrypted)throw Error('GOOGLE_RECONNECT');
-      const {access_token:access}=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
-      const labels=await readLabels(access);
-      const read=(path,params)=>gmail(access,path,params);
-      if(history)return filterReportItems(history,payload.kind,{read,labels});
-      const value=await attentionPage({ledger,read,labels,mailbox:await storage.get('ownerAddress')||STAR_SOCCER_OWNER,now:clock()},payload.kind,payload.cursor);
-      if(attentionCache.size<128)attentionCache.set(key,{until:clock()+30000,value});
-      return completions.include(payload.kind,value);
+      const context=await reportContext();
+      if(!history&&context.pages.has(key))return completions.include(payload.kind,context.pages.get(key));
+      const read=(path,params)=>gmail(context.access,path,params);
+      try{
+        // A mailbox label can be added, removed or renamed between categories.
+        // Always classify uncached live pages and saved history against current filing.
+        const labels=await readLabels(context.access);
+        const labelRevision=JSON.stringify(Object.entries(labels).sort(([a],[b])=>a.localeCompare(b)));
+        if(context.labelRevision!==labelRevision)context.pages.clear();
+        context.labelRevision=labelRevision;
+        if(history)return await filterReportItems(history,payload.kind,{read,labels});
+        const value=await attentionPage({ledger:context.ledger,read,labels,mailbox:await storage.get('ownerAddress')||STAR_SOCCER_OWNER,now:clock()},payload.kind,payload.cursor);
+        if(context.pages.size<128)context.pages.set(key,value);
+        return completions.include(payload.kind,value);
+      }catch(error){
+        if(error.message==='GMAIL_401')reportWindow=null;
+        throw error;
+      }
     }
     if(op==='status'){
       const report=await storage.get('report')||{};
@@ -265,10 +291,10 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         await tx.put('report',{error:null});
         await tx.setAlarm(clock()+1000);
       });
-      attentionCache.clear();return {connected:true};
+      reportWindow=null;return {connected:true};
     }
     if(op==='disconnect'){
-      attentionCache.clear();
+      reportWindow=null;
       await storage.delete(['refresh','consent','filing:enabled']);await storage.deleteAlarm();
       await storage.delete('report');return {connected:false};
     }

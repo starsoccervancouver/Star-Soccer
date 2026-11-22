@@ -70,6 +70,8 @@
     if (typeof groupKey !== 'string' || !Array.isArray(sessions)) return [];
     return sessions.filter(session => key(session) === groupKey).slice().sort(compareSessions);
   }
+  let clockFormat, clockZone;
+  const eventDateFormat = new Intl.DateTimeFormat('en-CA', {month:'short', day:'numeric', year:'numeric', timeZone:'UTC'});
   function groups(sessions, { now = new Date(), timeZone = globalThis.CoachClub?.timeZone || 'America/Vancouver' } = {}) {
     const buckets = new Map();
     for (const session of Array.isArray(sessions) ? sessions : []) {
@@ -87,7 +89,11 @@
     }
     // Distinct programs at the same time and venue stay separate and selectable.
     for (const sameLabel of labels.values()) if (sameLabel.length > 1) sameLabel.forEach((group, index) => { group.label += ' · Group ' + (index + 1); });
-    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).formatToParts(now).map(part => [part.type, part.value]));
+    if (!clockFormat || timeZone !== clockZone) {
+      clockFormat = new Intl.DateTimeFormat('en-CA', { timeZone, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
+      clockZone = timeZone;
+    }
+    const parts = Object.fromEntries(clockFormat.formatToParts(now).map(part => [part.type, part.value]));
     const local = { date: parts.year + '-' + parts.month + '-' + parts.day, minute: Number(parts.hour) * 60 + Number(parts.minute) };
     const next = new Map(result.map(group => [group.key, group.sessions.find(session => upcoming(session, now, local))]));
     // Keep history reachable after upcoming groups; stable keys break equal-slot ties.
@@ -107,7 +113,7 @@
       }
       const eventKey = JSON.stringify([session.date, venueKey(session.location)]);
       if (!proDays.has(eventKey)) {
-        const date = new Intl.DateTimeFormat('en-CA', {month:'short', day:'numeric', year:'numeric', timeZone:'UTC'}).format(new Date(session.date + 'T12:00:00Z'));
+        const date = eventDateFormat.format(new Date(session.date + 'T12:00:00Z'));
         proDays.set(eventKey, {label:['Pro-D Camp', date, text(session.location)].filter(Boolean).join(' · '), sessions:[]});
       }
       proDays.get(eventKey).sessions.push(session);

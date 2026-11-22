@@ -29,8 +29,8 @@ require('./coach-fixture-fonts.cjs')(assets);
 (async () => {
   const browser = await chromium.launch(); let checks = 0;
   try {
-    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail,
-      roster = sessions, families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
+    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail, homeQueues = false, bundleDesk = homeQueues,
+      roster = sessions, refreshRoster, families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
       let reportCompleted=null;
       const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, familyAccess, sessionVersion: 1, ...(displayEmail ? { displayEmail } : {}) } }, requests = [], errors = [];
@@ -48,8 +48,13 @@ require('./coach-fixture-fonts.cjs')(assets);
         if (assets[path]) return route.fulfill({ status: 200, contentType: assets[path].type, body: assets[path].body });
         const payload = request.postData() ? request.postDataJSON() : undefined; requests.push({ path, method: request.method(), payload });
         let value;
-        if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true };
-        else if (path.endsWith('/desk')) value = { profile: state.profile, sessions:roster, notes: [], tasks: [], observedAt: now };
+        if (path.endsWith('/refresh') && refreshRoster !== undefined) roster = refreshRoster;
+        const desk = { profile: state.profile, sessions:roster, notes: [], tasks: [], observedAt: now,
+          attentionAvailable: homeQueues && familyAccess, familyFollowupsAvailable: homeQueues && role==='owner' };
+        const includeDesk = bundleDesk && state.profile && request.headers()['x-coach-desk'] === 'full';
+        if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true, ...(includeDesk ? {desk} : {}) };
+        else if (path.endsWith('/desk')) value = desk;
+        else if (path.endsWith('/family-followups') && homeQueues && role==='owner') value={state:'ready',checkedAt:now,enabled:true,items:[],eligibleBookings:0};
         else if (path.endsWith('/families') && familyAccess) value = { families };
         else if (path.endsWith('/needs-attention/inquiries') && familyAccess && payload.completionToken==='fixture-row') {reportCompleted=payload.completed;value={completed:reportCompleted};}
         else if (path.includes('/needs-attention/') && familyAccess) {
@@ -68,7 +73,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         else if (path.endsWith('/legacy-notes') && role !== 'coach') value = { notes: [] };
         else if (path.endsWith('/diagrams/list')) value = { diagrams: [] };
         else if (path.endsWith('/drills/list')) value = { drills: [] };
-        else if (path.endsWith('/refresh')) value = { profile: state.profile, sessions:roster, observedAt: now };
+        else if (path.endsWith('/refresh')) value = includeDesk ? desk : { profile: state.profile, sessions:roster, observedAt: now };
         else if (path.endsWith('/logout')) { state.profile = null; value = { signedOut: true }; }
         else { errors.push('Unexpected fixture action: ' + request.method() + ' ' + path); return route.fulfill({ status: 403, contentType: 'application/json', body: '{"error":"FICTIONAL_FORBIDDEN"}' }); }
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
@@ -80,6 +85,8 @@ require('./coach-fixture-fonts.cjs')(assets);
     const clickSettings = async f => { if (await f.page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) { await f.page.locator('#planner-home').click(); if (await f.page.locator('body').evaluate(body => body.classList.contains('planner-focus-mode'))) return; } await openDestination(f.page, 'settings'); };
     const section = (f, name) => f.page.locator('#settings-navigation [data-settings-tab="' + name + '"]');
     const count = (f, suffix) => f.requests.filter(r => r.path.endsWith(suffix)).length;
+
+    await require('./coach-navigation-load-cases.cjs')(fixture); checks++;
 
     for (const role of ['owner', 'admin', 'coach']) {
       const f = await fixture({ role }); await clickSettings(f);

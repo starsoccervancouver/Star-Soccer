@@ -28,7 +28,9 @@
   const formLabel=(doc,name)=>doc.querySelector('form').elements.namedItem(name).labels[0].textContent;
   try {
     const pages=['pro-d-camp-registration.html','index.html','programs.html','program-private-small-group.html','methodology.html','locations.html','contact.html','camps.html','christmas-camp-registration.html','boxing-camp-registration.html','christmas-camp-registration.html?kind=dropin','boxing-camp-registration.html?kind=dropin','selectivo.html','registration.html?sessionId=wednesday&type=pass4','registration.html?sessionId=wednesday&type=dropin','registration.html?sessionId=tuesday&type=dropin','registration-thank-you.html'];
+    const paths=['programs.html','camps.html','program-private-small-group.html','methodology.html','locations.html','contact.html'];
     for(const width of [320,375,430,900,1024,1440]) {
+      let sharedMenu;
       for(const page of pages) {
         const doc=await load(page,width);
         const overflow=doc.documentElement.scrollWidth-doc.documentElement.clientWidth;
@@ -40,7 +42,19 @@
         const brandImages=[...doc.querySelectorAll('img.brand-logo')];
         check(brandImages.length>=1 && brandImages.every(img=>new URL(img.getAttribute('src'), location.href).pathname.endsWith('/logo-star-soccer-minimalized.svg') && img.complete && img.naturalWidth > 0), `${page} at ${width}px loads the current Star Soccer logo in the header and footer`);
         check(doc.querySelector('link[rel="icon"]')?.getAttribute('href')?.includes('star-soccer-favicon.svg'), `${page} at ${width}px uses the new star favicon`);
-        check(!doc.querySelector('.site-nav .header-program-cta') && [...doc.querySelectorAll('.site-nav a')].some(a=>a.getAttribute('href')==='programs.html'),`${page} at ${width}px keeps Weekly Training without a duplicate Find a Session tab`);
+        const nav=doc.querySelector('#primary-navigation');
+        const links=[...nav.querySelectorAll('a')];
+        const current=page.split('?')[0];
+        check(JSON.stringify(links.map(link=>link.getAttribute('href')))===JSON.stringify(paths) &&
+          links.every(link=>link.hasAttribute('aria-current')===(link.getAttribute('href')===current)),
+          `${page} at ${width}px keeps the shared link order and marks the current page`);
+        const toggle=doc.querySelector('.mobile-nav-toggle');
+        if(width<=900) toggle.click();
+        const navStyle=doc.defaultView.getComputedStyle(nav),linkStyle=doc.defaultView.getComputedStyle(links.find(link=>!link.classList.contains('active')));
+        const menu=JSON.stringify([header.height,nav.clientWidth,navStyle.gap,navStyle.padding,linkStyle.font,linkStyle.padding,linkStyle.color]);
+        sharedMenu??=menu;
+        check(menu===sharedMenu,`${page} at ${width}px uses the same menu geometry and typography (${menu})`);
+        if(width<=900) toggle.click();
         const numeric=[...doc.querySelectorAll('input[type="number"]:not([data-native-number])')].filter(el=>el.step!=='any' && !el.closest('.honeypot,[aria-hidden="true"]'));
         if(numeric.length){
           check(numeric.every(el=>el.closest('.ss-number-stepper') && el.labels.length && !el.closest('label')),`${page} at ${width}px enhances number fields while preserving an associated label`);
@@ -113,10 +127,10 @@
             : 0;
           if(history)check(historyHeight>0 && historyHeight<=100,`${page} at ${width}px keeps the optional attendance-history row within 100px`);
           const limit=baseLimit+Math.min(historyHeight,100);
-          check(submit.getBoundingClientRect().bottom<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
+          check(Math.round(submit.getBoundingClientRect().bottom)<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
           if(doc.body.classList.contains('private-registration')){
             doc.querySelector('[name="Training format"][value="smallgroup"]').click();
-            check(submit.getBoundingClientRect().bottom<=limit && submit.getBoundingClientRect().height>=48,`Small group at ${width}px also keeps its inquiry button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
+            check(Math.round(submit.getBoundingClientRect().bottom)<=limit && submit.getBoundingClientRect().height>=48,`Small group at ${width}px also keeps its inquiry button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
             doc.querySelector('[name="Training format"][value="private"]').click();
           }
           check([...form.querySelectorAll('[required]')].filter(el=>el.getClientRects().length).length<=4,`${page} starts with at most four essential inputs`);

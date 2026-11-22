@@ -41,6 +41,23 @@ function item(kind,row,build,expiry){
  const b=base(kind,row.id,expiry);
  try{return {...b,...build(b)};}catch(e){return {...b,review:e.message};}
 }
+function approvedLayout(d){
+ const masters=d.templates.filter(t=>t.fields.Template==='Camp Email Master'&&/^REVIEW05\b/.test(t.fields.Version));
+ const html=masters.length===1&&masters[0].fields.HTML;
+ if(!html||(html.match(/<img\b/gi)||[]).length<3)fail('Check the approved Review 05 template and its logo, field photo and signature.');
+ return html;
+}
+export function brandUpdate(template,kind,body){
+ const receipt=kind==='Receipt';
+ if(!receipt&&kind!=='Renewal')throw Error('Unsupported graphic layout.');
+ const start=/<p\b[^>]*>Thanks for registering!/.exec(template);
+ const sign=/<p\b[^>]*>Thanks,\s*<br\s*\/?>\s*Romeo/i.exec(template);
+ if(!start||!sign||sign.index<=start.index||!template.includes('{{CAMP_TITLE}}')||!template.includes('Registration confirmed'))throw Error('Check the approved Review 05 layout.');
+ const header=template.slice(0,start.index).replace('PRO-D CAMPS',receipt?'PAYMENTS':'TRAINING PASSES')
+   .replace('Registration confirmed',receipt?'Payment received':'Pass coverage').replace('{{CAMP_TITLE}}',receipt?'Payment receipt':'Pass renewal');
+ const paragraph=start[0].slice(0,start[0].indexOf('>')+1);
+ return header+body.replaceAll('<p>',()=>paragraph)+template.slice(sign.index);
+}
 function content(key,to,title,html){
  const token=marker(key),subject=title+' | '+token;
  return {to,subject,html:html+'<p style="font-size:11px;color:#677684">Email reference: '+token+'</p>'};
@@ -79,11 +96,10 @@ export function confirmation(d,row,today){
   if(balance>0&&d.payments.some(p=>(p.fields.Booking?.includes(bid)||b['Booking reference']&&p.fields['Booking reference']===b['Booking reference'])&&!allocations.some(a=>single(a.fields.Payment)===p.id)))fail('Reconcile the payment referencing this booking before drafting the balance.');
   const pay=!fee?'There is no fee for this booking.':!balance?'Thank you. Your payment of '+money(applied)+' covers this booking in full.':
    (applied?'We have applied '+money(applied)+'. Your remaining balance is ':'The booking fee is ')+money(balance)+'. Please e-transfer to starsoccervancouver@gmail.com with the player name, or arrange cash payment with your coach.';
-  const masters=d.templates.filter(t=>t.fields.Template==='Camp Email Master'&&/^REVIEW05\b/.test(t.fields.Version));
-  if(masters.length!==1)fail('Check the approved Review 05 template.');
+  const template=approvedLayout(d);
   const ref=r?.Reference||b['Booking reference'];if(!ref)fail('Add a booking reference.');
   const templateReg={Child:name,Reference:ref,'Parent email':to,'Registration kind':/camp/i.test(slots[0].Session)?'CAMP':'Training'};
-  const raw=renderConfirmation(masters[0].fields.HTML,templateReg,slots,pay);
+  const raw=renderConfirmation(template,templateReg,slots,pay);
   const html=Buffer.from(Buffer.from(raw,'base64url').toString().split('\r\n\r\n')[1],'base64').toString();
   return {...content(key,to,'Star Soccer registration confirmed | '+ref,html),registration:reg?.id,
     lookup:ref,legacySource:r?.['Source Gmail ID'],child:name,acceptedDate:b['Start date'],registeredAt:r?.['Received at']};
@@ -104,8 +120,8 @@ export function receipt(d,row,today){
   }
   const method=p.Method==='Cash'?'cash':'Interac e-transfer';
   const html='<p>Thank you. Star Soccer received '+money(amount)+' by '+method+' on '+date+'.</p>'+
-    (lines.length?'<ul>'+lines.map(l=>'<li>'+l+'</li>').join('')+'</ul>':'')+'<p>Star Soccer Vancouver</p>';
-  return {...content(key,to,'Star Soccer payment receipt | '+date,html),lookup:p['Payment reference'],paymentDate:date,paymentAmount:(amount/100).toFixed(2),detail:lines.length?'':'Amount-only receipt. Review the booking allocation.'};
+    (lines.length?'<ul>'+lines.map(l=>'<li>'+l+'</li>').join('')+'</ul>':'');
+  return {...content(key,to,'Star Soccer payment receipt | '+date,brandUpdate(approvedLayout(d),'Receipt',html)),lookup:p['Payment reference'],paymentDate:date,paymentAmount:(amount/100).toFixed(2),detail:lines.length?'':'Amount-only receipt. Review the booking allocation.'};
  });
 }
 export function renewal(d,row,expiry,today){
@@ -127,6 +143,6 @@ export function renewal(d,row,expiry,today){
     if(!sessions.length||sessions.some(s=>!single(s?.['Weekly program'])))fail('Verify the program on a possible replacement pass.');
     if(sessions.some(s=>single(s['Weekly program'])===prog))return {obsolete:'A replacement pass is already booked.'};}
   const guidance=e['Renewal guidance'];if(!guidance||/unknown|review|pending/i.test(guidance))fail('Confirm renewal instructions for this pass.');
-  return {...content(key,to,'Star Soccer pass renewal | '+name+' | '+expiry,'<p>'+esc(name)+'’s '+esc(p)+' pass covers sessions through '+expiry+'.</p><p>To renew, reply to this email with the dates you would like to book. We’ll confirm availability and your new pass dates.</p><p>Star Soccer Vancouver</p>'),child:name,expiry};
+  return {...content(key,to,'Star Soccer pass renewal | '+name+' | '+expiry,brandUpdate(approvedLayout(d),'Renewal','<p>'+esc(name)+'’s '+esc(p)+' pass covers sessions through '+expiry+'.</p><p>To renew, reply to this email with the dates you would like to book. We’ll confirm availability and your new pass dates.</p>')),child:name,expiry};
  },expiry);
 }

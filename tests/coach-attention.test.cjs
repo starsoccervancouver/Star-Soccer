@@ -58,6 +58,7 @@ test('incoming transfers remain pending when read, reminders reconcile by exact 
  assert.deepEqual(nested.resolved,['INTERAC-DEF456']);assert.deepEqual(nested.items.map(i=>i.key),['INTERAC-HIJ789']);
  const res=await query('payments',{messages:[transfer(1,'ABC123',[]),transfer(2,'DEF456',[]),transfer(3,'DEF456',['label1']),transfer(4,'HIJ789',[]),transfer(5,'SPOOF1',[],undefined,false)],tables:{payments:[{Verification:'Verified',Direction:'Incoming','Evidence reference':'Gmail '+id(4)+'; Interac HIJ789'}]}});
  assert.deepEqual(res.items.filter(i=>!res.resolved.includes(i.key)).map(i=>i.key),['INTERAC-ABC123']);
+ assert.deepEqual(new Set(res.resolved),new Set(['INTERAC-DEF456','INTERAC-HIJ789']));
 });
 test('other mail skips tracked and answered threads and opens the exact flagged incoming message',async()=>{
  const threads={[id(1)]:[message(1,['INBOX','IMPORTANT'],'Tracked')],[id(2)]:[incoming(2,'Winter soccer camp availability','Parent <parent@example.test>')],[id(3)]:[message(3,['INBOX','IMPORTANT'],'Old'),message(4,['SENT'],'Answered')]};
@@ -98,6 +99,37 @@ test('flagged payroll, vendor and service mail stays outside the coaching inbox'
  const threads=Object.fromEntries(rows.map(row=>[row.id,[row]]));
  const {items}=await query('other',{threads,labels:filingLabels});
  assert.deepEqual(items.map(item=>item.key),[id(7)]);
+});
+
+const officeAlerts=[
+ incoming(20,'[Case #12345] Reduce Business Plus trial from two licences to one before Nov 28; automatic licence controls unavailable','Google Workspace Support <workspacesupport@google.com>'),
+ incoming(21,'[club/Star-Soccer] Run failed: Deploy static content to Pages','GitHub <notifications@github.com>'),
+ incoming(22,'Windsor.ai: Airtable authentication failed','Windsor.ai <hi@mailing.windsor.ai>'),
+];
+const parentQuestions=[
+ incoming(25,'Re: Soccer camp','Parent <member@example.test>'),
+ incoming(26,'Can I get an invoice for the winter camp?','Parent <member@example.test>'),
+ incoming(27,'Security question about soccer camp pickup','Parent <member@example.test>'),
+];
+test('unlabelled office notices stay out of inquiries, manual follow-ups and flagged Gmail results',async()=>{
+ const accountAlert=incoming(23,'Security alert','Google <no-reply@accounts.google.com>');
+ const rows=[...officeAlerts,accountAlert,...parentQuestions],threads=Object.fromEntries(rows.map(m=>[m.id,[m]]));
+ for(const [kind,intakeKind] of [['inquiries','Question'],['other','Other'],['other',null]]){
+  const intake=intakeKind?rows.map(m=>({Kind:intakeKind,Review:'Needs clarification','Message ID':m.id,'Gmail thread ID':m.id,Subject:m.payload.headers[0].value})):[];
+  const result=await query(kind,{tables:{intake},threads});
+  assert.deepEqual(result.items.map(i=>i.messageId),parentQuestions.map(m=>m.id),intakeKind||'flagged only');
+ }
+});
+
+test('saved report history excludes technical office alerts even when the source message is gone',async()=>{
+ const {filterReportItems}=await import('../private-attendance/attention-inbox.mjs');
+ const rows=[...officeAlerts,...parentQuestions],threads=Object.fromEntries(rows.map(m=>[m.id,[m]]));
+ const items=rows.map(m=>({key:m.id,messageId:m.id,title:m.payload.headers[0].value,reopened:true,completed:false}));
+ for(const data of [{threads},{}])for(const [kind,status] of [['inquiries','Awaiting reply'],['other','Follow-up requested']]){
+  const page=await filterReportItems({items:items.map(i=>({...i,status})),next:'later'},kind,fixture(data));
+  assert.deepEqual(page.items.map(i=>i.messageId),parentQuestions.map(m=>m.id));
+  assert.equal(page.next,'later');
+ }
 });
 
 test('reopened history respects current admin filing and keeps the parent payment inquiry',async()=>{

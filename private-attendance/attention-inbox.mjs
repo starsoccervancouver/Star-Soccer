@@ -3,7 +3,7 @@ import {transferNotice} from './gmail-message.mjs';
 
 const pageSize = 12;
 const mailId = id => typeof id === 'string' && /^[a-f0-9]{10,32}$/i.test(id);
-const header = (message, name) => message?.payload?.headers?.find(h => h.name.toLowerCase() === name)?.value || '';
+const header = (message, name) => message?.payload?.headers?.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
 const live = m => !m.labelIds?.some(s => ['DRAFT','TRASH','SPAM','CHAT'].includes(s));
 const sent = m => m.labelIds?.includes('SENT');
 const metadata = [['format','metadata'],['metadataHeaders','Subject'],['metadataHeaders','From']];
@@ -12,18 +12,22 @@ function inboxPolicy(labels) {
   const labelIds = pattern => new Set(Object.entries(labels).filter(([name])=>pattern.test(name)).map(([,id])=>id));
   const admin = labelIds(/^(?:admin|business|payments - outgoing|newsletters|social media)(?:\/|$)/i);
   const family = labelIds(/^(?:leads|registrations|payments - incoming)(?:\/|$)/i);
+  // Saved rows can outlive the source email. Use distinctive service subjects when only the title survives.
   const isAdminSubject = subject => /\b(?:payroll|vendor invoice|merchant payout|stripe payout|domain renewal|workspace licen[cs](?:e|ing)|search console|google analytics|software subscription)\b/i.test(subject)
-    || /\bpayout (?:for|to) star\s*soccer\b/i.test(subject);
+    || /\bpayout (?:for|to) star\s*soccer\b/i.test(subject)
+    || /\b(?:google workspace|business plus trial)\b.*\blicen[cs](?:es?|ing)\b/i.test(subject)
+    || /\[[\w.-]+\/[\w.-]+\]\s*run (?:failed|cancelled|canceled):/i.test(subject)
+    || /\bairtable authentication (?:failed|error|expired)\b/i.test(subject);
   function administrative(message, fallback='') {
     const subject = header(message,'Subject') || fallback;
     const sender = header(message,'From').match(/[\w.+-]+@[\w.-]+/i)?.[0].toLowerCase() || '';
     return !!message?.labelIds?.some(id=>admin.has(id)) || isAdminSubject(subject)
-      || /^(?:no-?reply@accounts\.google\.com|sc-noreply@google\.com|workspace-support@google\.com)$/.test(sender)
+      || /^(?:no-?reply@accounts\.google\.com|sc-noreply@google\.com|workspace-?support@google\.com|notifications@github\.com|hi@mailing\.windsor\.ai)$/.test(sender)
       || sender==='notifications@stripe.com' && /\bpayout\b/i.test(subject)
       || /@(?:[\w-]+\.)?(?:openai\.com|googleworkspace\.com)$/.test(sender) && /\b(?:invoice|billing|receipt|support|licen[cs]e)\b/i.test(subject);
   }
   function coaching(message, title) {
-    return !!message?.labelIds?.some(id=>family.has(id)) || /\b(?:camp|camps|soccer|training|coaching|lesson[s]?|class(?:es)?|player[s]?|registration|practice|pickup|drop-in|tournament)\b/i.test(title.replace(/star\s*soccer/gi,''));
+    return !!message?.labelIds?.some(id=>family.has(id)) || /\b(?:camp|camps|soccer|training|coaching|lesson[s]?|class(?:es)?|player[s]?|registration|practice|pickup|drop-in|tournament)\b/i.test(title.replace(/star[\s-]*soccer/gi,''));
   }
   return {administrative, coaching};
 }

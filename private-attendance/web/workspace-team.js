@@ -12,8 +12,10 @@
   const identityOf = value => allowed(value) ? [value.profile.email, value.profile.role, value.profile.sessionVersion].join(':') : '';
   const countLabel = (n, text) => n + ' ' + text + (n === 1 ? '' : 's');
   const initials = name => String(name || '?').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
-  const dateLabel = value => { const date = new Date(value); return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: 'short', day: 'numeric' }).format(date) : ''; };
-  const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const recordDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: 'short', day: 'numeric' });
+  const clubDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const dateLabel = value => { const date = new Date(value); return Number.isFinite(date.getTime()) ? recordDateFormat.format(date) : ''; };
+  const today = () => clubDateFormat.format(new Date());
   let context = null, identity = '', coaches = [], selected = '', loaded = false, loading = false, directoryEpoch = 0, notesEpoch = 0;
   let notes = [], notesFor = '', notesLoading = false, notesError = '', section = 'groups', noteLimit = 10;
   const active = () => allowed(context) && context.tab === 'coaches';

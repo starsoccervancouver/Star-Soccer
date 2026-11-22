@@ -106,13 +106,35 @@ export function createRosterReader({baseId,token,tableMap,verifiedContacts={},ti
   } while (offset);
   return rows;
  }
- async function collect(){const observedAt=clock().toISOString(),tables={};for(const name of ['sessions','attendance','players','families','bookings','enrollments','registrations'])tables[name]=await read(name);
+ async function readLinked(name, fields, rows, linkField) {
+  const values=rows.flatMap(row=>Array.isArray(row.fields[linkField])?row.fields[linkField]:[]);
+  const linkedIds=[...new Set(values.map(value=>typeof value==='string'?value:value?.id))];
+  if(!linkedIds.length)return [];
+  if(linkedIds.length>10000 || !linkedIds.every(id=>typeof id==='string' && /^rec[A-Za-z0-9]{14}$/.test(id)))return read(name,fields);
+  // Airtable returns up to 100 records per page. Keep each ID query within one page.
+  const linked=[];
+  for(let i=0;i<linkedIds.length;i+=100)linked.push(...await read(name,fields,linkedIds.slice(i,i+100)));
+  return linked;
+ }
+ async function collect(forOverview=false){
+  const observedAt=clock().toISOString(),tables={};
+  tables.sessions=await read('sessions');
+  tables.attendance=await read('attendance');
+  if(forOverview){
+   tables.players=await readLinked('players',readFields.players,tables.attendance,'Player');
+   tables.families=await readLinked('families',readFields.families,tables.players,'Family');
+   tables.bookings=await readLinked('bookings',['Booking type','Booking status'],tables.attendance,'Booking');
+   tables.enrollments=tables.players.length?await read('enrollments',['Enrollment status','Player','Weekly attendance email preference']):[];
+   tables.registrations=await readLinked('registrations',readFields.registrations,tables.attendance,'Website Registrations');
+  }else{
+   for(const name of ['players','families','bookings','enrollments','registrations'])tables[name]=await read(name);
+  }
   // A second read rejects changes during collection, rather than blessing an incomplete roster.
   const second=await read('attendance'),sessions=await read('sessions');if(digest(second)!==digest(tables.attendance)||digest(sessions)!==digest(tables.sessions))throw new Error('ROSTER_CHANGED_DURING_READ');
   const allIds=new Set(tables.attendance.map(r=>r.id));for(const s of tables.sessions)if(links(s.fields.Attendance).some(id=>!allIds.has(id)))throw new Error('INCOMPLETE_AIRTABLE_READ');
   return {tables,observedAt};
  }
- return {familyLedger:createFamilyLedger(read),async overview(){const {tables,observedAt}=await collect();return buildOwnerOverview(tables,observedAt,verifiedContacts);},async read(revision,sessionId){if(!/^rec[A-Za-z0-9]{14}$/.test(sessionId||''))throw new Error('EXACT_SESSION_REQUIRED');const {tables,observedAt}=await collect();
+ return {familyLedger:createFamilyLedger(read),async overview(){const {tables,observedAt}=await collect(true);return buildOwnerOverview(tables,observedAt,verifiedContacts);},async read(revision,sessionId){if(!/^rec[A-Za-z0-9]{14}$/.test(sessionId||''))throw new Error('EXACT_SESSION_REQUIRED');const {tables,observedAt}=await collect();
   tables.sessions=tables.sessions.filter(r=>r.id===sessionId);if(tables.sessions.length!==1)throw new Error('SESSION_NOT_FOUND');tables.attendance=tables.attendance.filter(r=>links(r.fields.Session).includes(sessionId));
   return normalizeAirtableRoster({tables,observedAt,revision,verifiedContacts,timeZone});}};
 }

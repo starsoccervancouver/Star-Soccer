@@ -15,6 +15,23 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    ? createOperationsPreview({cookieKey,origin,coaches,overview,familyLedger,clock}) : null;
  const sign=v=>createHmac('sha256',cookieKey).update(v).digest('base64url'),rates=new Map();
 
+ function currentSession(raw,initial){
+  const fresh=auth.session(raw);
+  if(!fresh || fresh.actor.email!==initial.actor.email || fresh.actor.sessionVersion!==initial.actor.sessionVersion)deny('SIGN_IN_REQUIRED',401);
+  return fresh;
+ }
+ async function readDesk(raw,initial,{refresh=false,full=true}={}){
+  const roster=await overview({refresh});
+  const {actor}=currentSession(raw,initial);
+  const data=coaches.scope(actor,roster);
+  if(!full)return data;
+  return {...data,
+   ...(familyFollowups&&data.profile.role==='owner'?{familyFollowupsAvailable:true}:{}),
+   ...(attention&&data.profile.familyAccess?{attentionAvailable:true}:{}),
+   ...(gmailSync&&data.profile.role==='owner'?{gmailSyncAvailable:true}:{}),
+   notes:coaches.notes(data.profile),tasks:coaches.tasks(data.profile)};
+ }
+
  function anon(request){const raw=cookie(request,'__Host-ss_coach_browser');if(!raw)return null;const p=raw.split('.');if(p.length!==3||!/^\d{13}$/.test(p[1])||+p[1]<=clock()||+p[1]>clock()+1800000||!/^[A-Za-z0-9_-]{43}$/.test(p[0])||!same(p[2],sign('staff-browser:'+p[0]+'.'+p[1])))return null;return {browser:p[0],csrf:sign('staff-csrf:'+raw)};}
  async function body(request,allowed){if(!/^application\/json(?:;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')||''))deny('INVALID_CONTENT_TYPE',415);const reader=request.body?.getReader();if(!reader)deny('INVALID_REQUEST',400);const parts=[];let size=0;for(;;){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>64000){await reader.cancel();deny('REQUEST_TOO_LARGE',413);}parts.push(value);}let v;try{v=JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{deny('INVALID_JSON',400);}if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).some(k=>!allowed.includes(k)))deny('INVALID_REQUEST',400);return v;}
  return async request=>{const id=requestId(),json=(status,body,extra={})=>new Response(JSON.stringify(body),{status,headers:{...headers,'Content-Type':'application/json','X-Request-ID':id,...extra}});try{
@@ -60,9 +77,19 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
   if(request.method==='GET'&&assets[path])return new Response(assets[path].body,{headers:{...headers,'Content-Type':assets[path].type}});
   if(!path.startsWith('/workspace/api/'))deny('NOT_FOUND',404);
   const raw=cookie(request,'__Host-ss_staff'),signed=auth.session(raw),a=anon(request);
+  const fullDesk=request.headers.get('X-Coach-Desk')==='full';
   if(path==='/workspace/api/bootstrap'&&request.method==='GET'){
    let browser=a,extra={};if(!browser){const payload=random()+'.'+(clock()+1800000),value=payload+'.'+sign('staff-browser:'+payload);browser={browser:payload.split('.')[0],csrf:sign('staff-csrf:'+value)};extra={'Set-Cookie':'__Host-ss_coach_browser='+value+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=1800'};}
-   return json(200,{profile:signed?.actor||null,csrfToken:signed?.csrf||browser.csrf,googleEnabled:!!googleAuth,draftOnly:true},extra);
+   let session=signed,desk;
+   if(signed && fullDesk){
+    try{desk=await readDesk(raw,signed);}
+    catch(error){
+     // A usable sign-in can recover a temporary roster failure with the ordinary desk request.
+     session=currentSession(raw,signed);
+     logFailure(error,id,'desk-prefetch');
+    }
+   }
+   return json(200,{profile:desk?.profile||session?.actor||null,csrfToken:session?.csrf||browser.csrf,googleEnabled:!!googleAuth,draftOnly:true,...(desk?{desk}:{})},extra);
   }
   if(request.method==='POST'){
    if(request.headers.get('origin')!==origin||request.headers.get('sec-fetch-site')&&request.headers.get('sec-fetch-site')!=='same-origin'||!signed&&!a||!same(request.headers.get('x-csrf-token'),signed?.csrf||a?.csrf))deny('CSRF_FAILED',403);
@@ -114,7 +141,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
   }
   if(path==='/workspace/api/families'&&request.method==='GET'){
    coaches.requireFamilyAccess(actor);
-   return json(200,{families:await familyLedger.directory()});
+   return json(200,{families:await familyLedger.directory({reuseRecent:true})});
   }
   if(path==='/workspace/api/parent-contact'&&request.method==='POST'){
    const {sessionId,playerId}=await body(request,['sessionId','playerId']);
@@ -153,14 +180,17 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    }
    return json(200,{family});
   }
-  if(path==='/workspace/api/desk'&&request.method==='GET'){const data=coaches.scope(actor,await overview({}));return json(200,{...data,...(familyFollowups&&actor.role==='owner'?{familyFollowupsAvailable:true}:{}),...(attention&&data.profile.familyAccess?{attentionAvailable:true}:{}),...(gmailSync&&actor.role==='owner'?{gmailSyncAvailable:true}:{}),notes:coaches.notes(actor),tasks:coaches.tasks(actor)});}
+  if(path==='/workspace/api/desk'&&request.method==='GET')return json(200,await readDesk(raw,signed));
   if(path==='/workspace/api/audit'&&request.method==='GET')return json(200,{events:coaches.audit(actor)});
   if(path==='/workspace/api/users'&&request.method==='GET')return json(200,{users:coaches.users(actor),credentials:auth.credentialSummary(actor)});
   if(path==='/workspace/api/coaching-team'&&request.method==='GET')return json(200,{coaches:coaches.coachingTeam(actor)});
   if(request.method!=='POST')deny('NOT_FOUND',404);
   if(path==='/workspace/api/logout'){await body(request,[]);auth.logout(raw);return json(200,{signedOut:true},{'Set-Cookie':'__Host-ss_staff=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'});}
   if(path==='/workspace/api/coaching-team/notes'){const v=await body(request,['email']);return json(200,{notes:coaches.coachingNotes(actor,v.email)});}
-  if(path==='/workspace/api/refresh'){await body(request,[]);return json(200,coaches.scope(actor,await overview({refresh:true})));}
+  if(path==='/workspace/api/refresh'){
+   await body(request,[]);familyLedger?.invalidateDirectory?.();
+   return json(200,await readDesk(raw,signed,{refresh:true,full:fullDesk}));
+  }
   if(path==='/workspace/api/session'){const v=await body(request,['sessionId']);coaches.requireSession(actor,v.sessionId);return json(200,{plan:coaches.plan(actor,v.sessionId),notes:coaches.notes(actor,{sessionId:v.sessionId})});}
   if(path==='/workspace/api/notes/save'){
    const v=await body(request,['id','playerId','sessionId','category','body','reviewDate','expectedVersion','goal']);coaches.requireSession(actor,v.sessionId);const data=await overview({}),s=data.sessions.find(s=>s.id===v.sessionId);if(!s||!v.id&&v.playerId&&!s.players.some(p=>p.playerId===v.playerId))deny('PLAYER_NOT_IN_SESSION',403);return json(200,{note:coaches.saveNote(actor,v)});

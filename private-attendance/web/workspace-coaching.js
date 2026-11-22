@@ -84,7 +84,7 @@
     if (!context) return;
     target.className = 'card coaching-hub';
     const start = today(), groups = authorizedGroups();
-    heading(target, 'Your training groups', 'Choose a group', 'Open the group to prepare a session, check attendance or find a player’s notes.');
+    target.append(element('h2', 'Training groups'));
     const agenda = element('div', '', 'coaching-agenda');
     const camps = element('section', '', 'coach-camps-section'); camps.setAttribute('aria-label', 'Camps');
     camps.append(element('h3', 'Camps', 'coach-camps-heading'));

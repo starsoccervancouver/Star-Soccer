@@ -190,30 +190,12 @@ a {
   transition: color 160ms ease;
 }
 
-.site-nav a::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--blue), transparent);
-  transform: scaleX(0.35);
-  opacity: 0;
-  transition: transform 160ms ease, opacity 160ms ease;
-}
-
 .site-nav a:focus-visible {
   color: var(--text);
 }
 
 .site-nav a.active {
   color: var(--text);
-}
-
-.site-nav a.active::after {
-  transform: scaleX(1);
-  opacity: 1;
 }
 
 .home-page .site-header {
@@ -294,16 +276,6 @@ a {
   font-family: "Bebas Neue", sans-serif;
   font-size: 1.1rem;
   line-height: 1;
-}
-
-.home-page .site-nav a::after {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #ff2f35, transparent);
-}
-
-.site-nav a:focus-visible::after {
-  transform: scaleX(1);
-  opacity: 1;
 }
 
 .button {

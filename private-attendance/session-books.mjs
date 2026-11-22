@@ -32,7 +32,7 @@ function coveredDates(booking) {
 }
 
 function household(familyId, family) {
-  return {familyId: family ? familyId : null, familyName: family?.Family?.trim() || family?.['Guardian name']?.trim() || null, contact: contactOf(family)};
+  return {familyId: family ? familyId : null, familyName: family?.Family?.trim() || null, contact: contactOf(family)};
 }
 
 function contactOf(family) {

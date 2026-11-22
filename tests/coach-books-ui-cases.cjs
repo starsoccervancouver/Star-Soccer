@@ -195,11 +195,11 @@ module.exports = async function checkBooks(fixture) {
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
     await unpaid.locator(':scope > summary').click();
     const homeRow=unpaid.locator('#home-unpaid-list li');
-    const booking=homeRow.getByRole('button');
+    const booking=homeRow.getByRole('link');
     await booking.waitFor();
     assert.equal(await homeRow.count(),1);
     assert.deepEqual(await booking.locator(':scope > *').allTextContents(),[due.familyName,'$31.50']);
-    const details=page.getByRole('dialog',{name:due.familyName});
+    const details=page.locator('#panel-books #unpaid-bookings');
     await booking.click();
     const entry=details.locator('.books-entry');
     for(const value of [due.playerName,due.sessionLabel,due.time,due.location,due.bookingType,due.attendanceStatus,due.contact.guardian,'42.00','10.50','31.50']){
@@ -207,19 +207,11 @@ module.exports = async function checkBooks(fixture) {
     }
     assert.equal(await details.locator('a[href^="http"]').count(),0);
     for(const width of [320,390,1365])await checkLayout(page,entry,width);
-    await details.getByRole('button',{name:'Close'}).click();
-    assert(await booking.evaluate(el=>el===document.activeElement),'Closing returns focus to the family');
-    await unpaid.locator(':scope > summary').click();
-    await unpaid.locator(':scope > summary').click();
-    await booking.waitFor();
-    assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}],'Reopening uses the same due-only result');
-    for(const width of [320,390,1365]){
-      await page.setViewportSize({width,height:900});
-      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
-    }
-    await page.setViewportSize({width:320,height:900});
-    await page.locator('.desk-nav-more').waitFor();
-    await openDestination(page,'books');
+    assert.equal(new URL(page.url()).hash,'#view=books&balance=booking-'+due.bookingId);
+    assert.equal(await page.getByRole('dialog').count(),0);
+    await page.reload();await entry.waitFor();
+    assert.equal(await entry.locator('.books-session strong').innerText(),due.playerName);
+    await details.getByRole('link',{name:/All Books/}).click();
     const list = page.locator('#books-list');
     await list.locator('.books-group').first().waitFor();
     assert.equal(await page.locator('#books-filter').inputValue(),'attention','Open Books starts with outstanding balances and review work');
@@ -245,7 +237,7 @@ module.exports = async function checkBooks(fixture) {
     await page.locator('#books-filter').selectOption('booking');
     assert.match(await list.innerText(),/Casey Fictional/);
     assert.equal(await list.locator('.books-record').count(),1);
-    assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'},{}],'Filters work with the same ledger read');
+    assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'},{},{},{}],'Filters reuse the directory read');
     await page.locator('#books-filter').selectOption('all');
 
     await finishReadAfterExit(f,async()=>{await openDestination(page,'home');await page.locator('#panel-home').waitFor();});
@@ -331,7 +323,7 @@ module.exports = async function checkBooks(fixture) {
   } finally { await grouped.context.close(); }
 
   for(const [role,familyAccess,booksAvailable] of [['admin',true,true],['admin',false,false],['coach',false,false],['coach',true,true],['owner',true,false]]) {
-    const f = await fixture({role,familyAccess,booksAvailable,hash:'#view=books',books:[]});
+    const f = await fixture({role,familyAccess,booksAvailable,hash:role==='admin'&&familyAccess?'#view=books':'#view=books&balance=booking-'+due.bookingId,books:[]});
     try {
       if(role==='admin' && familyAccess) {
         await f.page.locator('#panel-books').waitFor();
@@ -368,19 +360,29 @@ module.exports = async function checkBooks(fixture) {
     const rows=unpaid.locator('#home-unpaid-list > li');
     await rows.nth(1).waitFor();
     assert.equal(await rows.count(),2,'Same-name households remain separate');
-    const household=rows.getByRole('button',{name:/43\.75/});
+    const household=rows.getByRole('link',{name:/43\.75/});
     assert.deepEqual(await household.locator(':scope > *').allTextContents(),[due.familyName,'$43.75']);
     await household.click();
-    const chooser=page.getByRole('dialog',{name:due.familyName});
+    const chooser=page.locator('#panel-books #unpaid-bookings');await chooser.locator('.books-entry').first().waitFor();
     assert.deepEqual(await chooser.locator('.books-session strong').allTextContents(),[due.playerName,second.playerName]);
     assert.deepEqual(await chooser.locator('.books-amount').allTextContents(),['$31.50 owing','$12.25 owing']);
     assert.equal(await chooser.locator('a[href^="http"]').count(),0);
-    await page.keyboard.press('Escape');assert(await chooser.isHidden());
-    await rows.getByRole('button',{name:/31\.50/}).click();
+    await page.goBack();await unpaid.locator('summary').click();
+    await rows.getByRole('link',{name:/31\.50/}).click();await chooser.locator('.books-entry').first().waitFor();
     assert.equal(await chooser.locator('.books-entry').count(),1);
     assert.equal(await page.context().pages().length,1);
     assert.deepEqual(homeFamilies.errors,[]);
   }finally{await homeFamilies.context.close();}
+
+  const unnamed=await fixture({...emptyHome,books:[{...due,familyName:null,familyId:null}]});
+  try{
+    await unnamed.page.locator('#home-unpaid-label').click();
+    const link=unnamed.page.locator('#home-unpaid-list').getByRole('link',{name:/Taylor Fictional/});
+    await link.click();
+    await unnamed.page.locator('#unpaid-bookings-title').getByText(due.playerName,{exact:true}).waitFor();
+    assert.equal(new URL(unnamed.page.url()).hash,'#view=books&balance=booking-'+due.bookingId);
+    assert(await unnamed.page.locator('#payment-entry').isHidden());
+  }finally{await unnamed.context.close();}
 
   const accountingRows=[{...due}];
   const payment=await fixture({...emptyHome,books:accountingRows,paymentRecording:true});
@@ -401,18 +403,19 @@ module.exports = async function checkBooks(fixture) {
       await route.fulfill({json:{saved:true}});
     });
     await page.getByText('Unpaid sessions (1 family)',{exact:true}).click();
-    await page.locator('#home-unpaid-list button').click();
+    await page.locator('#home-unpaid-list a').click();
     await page.locator('#payment-entry summary').click();
     await page.locator('#payment-amount').fill('10');
     await page.locator('#payment-method').selectOption('Cash');
     await page.locator('#payment-submit').click();
-    await page.locator('#home-unpaid-list').getByText('$21.50').waitFor();
-    await openDestination(page,'books');
+    await page.locator('#selected-balance').getByText('$21.50 owing').waitFor();
+    await page.getByRole('link',{name:/All Books/}).click();
     await page.locator('#books-list .books-group > details > summary').first().click();
     await page.locator('#books-list').getByRole('button',{name:'Record a payment'}).click();
     await page.locator('#payment-amount').fill('21.50');await page.locator('#payment-method').selectOption('E-transfer');
     await page.locator('#payment-reference').fill('example123');await page.locator('#payment-submit').click();
-    await page.locator('#unpaid-bookings').waitFor({state:'hidden'});await page.waitForLoadState('networkidle');
+    await page.getByText('No unpaid sessions remain in this selection.').waitFor();
+    await page.getByRole('link',{name:/All Books/}).click();await page.waitForLoadState('networkidle');
     assert.equal(await page.locator('#books-list .books-group').count(),0);
     assert.equal(submissions,2);assert.deepEqual(payment.errors,[]);
   }finally{await payment.context.close();}

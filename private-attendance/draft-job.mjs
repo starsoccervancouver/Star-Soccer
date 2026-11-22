@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
-import {accepted,verified,localDay,coverageDay,confirmation,receipt,renewal,draftFields} from './draft-rules.mjs';
+import {Buffer} from 'node:buffer';
+import {accepted,verified,localDay,coverageDay,confirmation,receipt,renewal,draftFields,marker} from './draft-rules.mjs';
 const snapshot=c=>createHash('sha256').update(JSON.stringify([c.to,c.subject,c.html])).digest('hex');
 const previouslyVerified=p=>p.Verification==='Verified'&&p.Direction==='Incoming';
 const sourceKey='mail-drafts:baseline:v1';
@@ -65,7 +66,42 @@ export async function runDraftJob({db,storage,mail,now}){
  const waitingRenewal=candidates.some(([kind,r,expiry])=>kind==='Renewal'&&coverageDay(r.fields['Approved coverage expiry'])===expiry&&expiry>=today&&!['Sent','Obsolete'].includes(logs.get('Renewal:'+r.id+':'+expiry)?.fields.Status));
  return {activated:baseline.at,checked:new Date(now).toISOString(),renewals:today,sourcesChecked:preflight||new Date(now).toISOString(),waitingRenewal};
 }
-export async function processDraft({c,old,db,storage,mail}){
+// Gmail may assign a different Message-ID at send time. Require the managed
+// subject reference, a unique persisted intent, the original recipient and a
+// consumed draft before accepting the immutable SENT message as evidence.
+export async function observeDraftSend({message,db,storage,mail,owner}){
+ const labels=message?.labelIds||[];
+ if(!labels.includes('SENT')||labels.includes('DRAFT')||!message.id)return false;
+ const rawSubject=message.payload?.headers?.find(h=>h.name.toLowerCase()==='subject')?.value||'';
+ const subject=rawSubject.replace(/=\?UTF-8\?B\?([A-Za-z0-9+/=]+)\?=/gi,(_,v)=>Buffer.from(v,'base64').toString('utf8'));
+ const reference=subject.match(/\bSSMAIL-[0-9a-f]{22}\b/i)?.[0]?.toLowerCase();
+ if(!reference)return false;
+ const logs=await db.list('draftLog',draftFields.draftLog);
+ const matches=logs.filter(({fields:f})=>{
+  const key=f['Email key']||'';
+  // The isolated owner tests retained their production-style subject marker.
+  const fixture=key.match(/^Test:\d{8}:(.+)$/);
+  if(fixture&&(!subject.startsWith('[OWNER TEST ')||f.Recipient?.toLowerCase()!==owner.toLowerCase()))return false;
+  return marker(fixture?fixture[1]:key).toLowerCase()===reference;
+ });
+ if(matches.length!==1)return false;
+ const old=matches[0].fields,key=old['Email key'];
+ if(!actionable.has(old.Status)||!old['Gmail draft ID']||!old.Recipient)return false;
+ const intent=await storage.get(mailKey(key));
+ if(intent?.draftId!==old['Gmail draft ID']||intent.to!==old.Recipient)return false;
+ if(!await mail.sent(message.id,old.Recipient)||await mail.getDraft(intent.draftId))return false;
+ const c={key,kind:old['Email kind'],source:old['Source record']};
+ if(key.startsWith('Confirmation:')){
+  const booking=key.slice('Confirmation:'.length);
+  const regs=(await db.list('registrations',['Booking','Status'])).filter(r=>r.fields.Status!=='Declined'&&r.fields.Booking?.includes(booking));
+  if(regs.length>1||regs.some(r=>r.fields.Booking.length!==1))return false;
+  c.registration=regs[0]?.id;
+ }
+ await processDraft({c,old,db,storage,mail,observedSentId:message.id});
+ return true;
+}
+export async function processDraft({c,old,db,storage,mail,observedSentId}){
+ if(old.Status==='Sent')return;
  const lock=mailKey(c.key),state=await storage.get(lock);
  async function save(status,detail='',extra={}){
   const values={'Email key':c.key,'Email kind':c.kind,'Source record':c.source,Status:status,'Review detail':detail||'—',...extra};
@@ -90,7 +126,7 @@ export async function processDraft({c,old,db,storage,mail}){
   const extra={'Gmail draft ID':draftId,Recipient:old.Recipient||state.to};
   const draft=await mail.getDraft(draftId);
   if(!draft){
-   const found=await mail.findSent(c.key,{...old,...extra,'Gmail thread ID':old['Gmail thread ID']||state?.thread});
+   const found=observedSentId||await mail.findSent(c.key,{...old,...extra,'Gmail thread ID':old['Gmail thread ID']||state?.thread});
    if(found)return sent(found);
    return save('Review','Draft is missing and a sent copy could not be verified. Check Gmail before taking action.',extra);
   }

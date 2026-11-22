@@ -84,10 +84,11 @@
     warning.append(makeButton('Return to plan', id + '-return', () => { closeField(); window.dispatchEvent(new CustomEvent('coach:return-plan')); }));
     return warning;
   }
+  const sessionDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const readableDate = value => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return 'Date not recorded';
     const date = new Date(value + 'T12:00:00Z');
-    return Number.isNaN(date.getTime()) ? 'Date not recorded' : new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(date);
+    return Number.isNaN(date.getTime()) ? 'Date not recorded' : sessionDateFormat.format(date);
   };
   const makeButton = (text, id, action, primary = false) => {
     const button = node('button', text, primary ? 'button' : 'secondary');

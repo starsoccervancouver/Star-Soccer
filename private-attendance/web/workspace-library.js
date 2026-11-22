@@ -93,8 +93,10 @@
     const trigger = sessionReturn; sessionReturn = null; if (restore && trigger?.isConnected) trigger.focus();
   }
   const availableSessions = () => (context?.sessions || []).filter(session => !['cancelled', 'completed'].includes(String(session.status).toLowerCase()));
-  const localDate = () => new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-  const sessionDateLabel = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(value + 'T12:00:00Z')) : 'Date to confirm';
+  const clubDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const sessionDateFormat = new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+  const localDate = () => clubDateFormat.format(new Date());
+  const sessionDateLabel = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? sessionDateFormat.format(new Date(value + 'T12:00:00Z')) : 'Date to confirm';
   function sessionCard(title, detail, handler) {
     const button = action('', handler, 'library-session-card'); button.append(node('strong', title), node('span', detail), node('span', 'Choose →', 'library-session-link')); return button;
   }

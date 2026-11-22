@@ -20,21 +20,38 @@ function familyName(fields, players) {
   return [guardian, child].filter(Boolean).join(' / ') || fields.Family || 'Unnamed family';
 }
 
-export function createFamilyLedger(read) {
+export function createFamilyLedger(read, {clock = Date.now} = {}) {
+  let recentDirectory;
   async function related(table, ids, familyId) {
     if (ids === undefined) return [];
     if (!Array.isArray(ids) || ids.some(id => typeof id !== 'string' || !recordId.test(id))) throw Error('INVALID_FAMILY_LINK');
     const results = [];
     const unique = [...new Set(ids)];
-    for (let offset = 0; offset < unique.length; offset += 50) {
-      const batch = unique.slice(offset, offset + 50);
+    // Up to one 100-record Airtable page per bounded list of validated IDs.
+    const pageSize = 100;
+    for (let offset = 0; offset < unique.length; offset += pageSize) {
+      const batch = unique.slice(offset, offset + pageSize);
       const rows = await read(table, ['Family', ...linkedFields[table]], batch);
-      if (rows.length !== batch.length || rows.some(row => !batch.includes(row.id) || row.fields.Family?.length !== 1 || row.fields.Family[0] !== familyId)) {
+      const returned = new Set(rows.map(row => row.id));
+      if (rows.length !== batch.length || batch.some(id => !returned.has(id)) || rows.some(row => row.fields.Family?.length !== 1 || row.fields.Family[0] !== familyId)) {
         throw Error('INCONSISTENT_FAMILY_LINK');
       }
       results.push(...rows);
     }
     return results;
+  }
+  async function readDirectory() {
+    const [rows, players] = await Promise.all([
+      read('families', ['Family', 'Guardian name', 'Players']), read('players', ['Player', 'Family'])
+    ]);
+    const byId = new Map(players.map(player => [player.id, player.fields]));
+    return rows.map(({id, fields}) => {
+      const linked = [...new Set(fields.Players || [])].filter(playerId => {
+        const parents = byId.get(playerId)?.Family;
+        return parents?.length === 1 && parents[0] === id;
+      });
+      return {id, playerIds:linked, name:familyName(fields, linked.map(playerId => ({name:byId.get(playerId).Player})))};
+    }).sort((a, b) => a.name.localeCompare(b.name));
   }
   return {
     async balances() {
@@ -50,18 +67,22 @@ export function createFamilyLedger(read) {
       if (family?.id !== links[0]) return null;
       return {phone:family.fields.Phone || null, ...(includeEmail ? {email:family.fields.Email || null} : {})};
     },
-    async directory() {
-      const [rows, players] = await Promise.all([
-        read('families', ['Family', 'Guardian name', 'Players']), read('players', ['Player', 'Family'])
-      ]);
-      const byId = new Map(players.map(player => [player.id, player.fields]));
-      return rows.map(({id, fields}) => {
-        const linked = [...new Set(fields.Players || [])].filter(playerId => {
-          const parents = byId.get(playerId)?.Family;
-          return parents?.length === 1 && parents[0] === id;
-        });
-        return {id, playerIds:linked, name:familyName(fields, linked.map(playerId => ({name:byId.get(playerId).Player})))};
-      }).sort((a, b) => a.name.localeCompare(b.name));
+    invalidateDirectory() {
+      recentDirectory = undefined;
+    },
+    async directory({reuseRecent = false} = {}) {
+      if (!reuseRecent) return readDirectory();
+      const now = clock();
+      if (!recentDirectory || now >= recentDirectory.expires) {
+        const lookup = readDirectory();
+        recentDirectory = {expires: now + 30000, lookup};
+        try { return await lookup; }
+        catch (error) {
+          if (recentDirectory?.lookup === lookup) recentDirectory = undefined;
+          throw error;
+        }
+      }
+      return recentDirectory.lookup;
     },
     async detail(id) {
       if (!recordId.test(id)) throw Error('INVALID_FAMILY');

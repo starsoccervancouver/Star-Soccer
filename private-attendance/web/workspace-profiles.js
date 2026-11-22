@@ -4,8 +4,10 @@
   const host = document.getElementById('player-profiles'); if (!host) return;
   const node = (tag, text = '', cls = '') => { const el = document.createElement(tag); el.textContent = text; if (cls) el.className = cls; return el; };
   const button = (text, fn, cls = 'secondary') => { const el = node('button', text, cls); el.type = 'button'; el.addEventListener('click', fn); return el; };
-  const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-  const dateLabel = date => /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(date + 'T12:00:00Z')) : 'Date to confirm';
+  const clubDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: window.CoachClub?.timeZone || 'America/Vancouver', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const sessionDateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const today = () => clubDateFormat.format(new Date());
+  const dateLabel = date => /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? sessionDateFormat.format(new Date(date + 'T12:00:00Z')) : 'Date to confirm';
   const scopeKey = session => { const group = scopeBySession.get(session.id); return group?.verified ? group.key : session.id; };
   const scopeLabel = session => window.CoachGroups.label(session) + (scopeBySession.get(session.id)?.verified ? '' : ' · ' + dateLabel(session.date));
   let scopeBySession = new Map(), rosterSource = null;
@@ -205,9 +207,21 @@
   window.addEventListener('coach:context', event => {
     const next = event.detail, key = next?.profile ? [next.profile.email, next.profile.role, next.profile.sessionVersion].join(':') : '';
     if (key !== identity) { epoch++; discard(); saving = false; identity = key; selected = group = ''; directory = []; scopeBySession.clear(); rosterSource = null; search.value = ''; filter.replaceChildren(); cards.replaceChildren(); detail.replaceChildren(); count.textContent = ''; pending = false; }
+    const leavingProfiles=context?.tab==='profiles' && next?.tab!=='profiles';
     context = next;
     if (!next?.profile) { detail.hidden = true; return; }
-    if (rosterSource !== next.sessions) { buildDirectory(); rosterSource = next.sessions; } if (next.tab === 'profiles') render(); else { cards.replaceChildren(); detail.replaceChildren(); count.textContent = ''; }
+    if (next.tab !== 'profiles') {
+      if (leavingProfiles) { cards.replaceChildren(); detail.replaceChildren(); count.textContent = ''; }
+      if (rosterSource && rosterSource !== next.sessions) {
+        directory=[]; scopeBySession.clear(); rosterSource=null; filter.replaceChildren();
+      }
+      return;
+    }
+    if (rosterSource !== next.sessions) {
+      buildDirectory(); rosterSource = next.sessions;
+      if (selected && !directory.some(entry=>entry.id===selected)) { epoch++; discard(); detail.replaceChildren(); pending=false; }
+    }
+    render();
   });
   window.dispatchEvent(new CustomEvent('coach:request-context'));
 })();

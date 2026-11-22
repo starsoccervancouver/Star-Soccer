@@ -24,6 +24,21 @@ const query=async(kind,data,cursor)=>{
  const {attentionPage}=await import('../private-attendance/attention-inbox.mjs');
  return attentionPage(fixture(data),kind,cursor);
 };
+test('saved report metadata reads are bounded, deduplicated and return rows in input order',async()=>{
+ const {filterReportItems}=await import('../private-attendance/attention-inbox.mjs');
+ const items=Array.from({length:12},(_,n)=>({key:'saved-'+n,messageId:id(n),title:'Weekly training'}));
+ items.push({...items[1],key:'another-row'});
+ const calls=[];let active=0,peak=0;
+ async function read(path){
+  const source=path.split('/').pop();calls.push(source);active++;peak=Math.max(active,peak);
+  await new Promise(resolve=>setImmediate(resolve));active--;
+  if(source===id(3))throw Error('GMAIL_404');
+  return {id:source,labelIds:source===id(4)?['admin']:[]};
+ }
+ const page=await filterReportItems({items,next:'next-page'},'inquiries',{read,labels:{Admin:'admin'}});
+ assert.equal(calls.length,12);assert.equal(peak,3);
+ assert.deepEqual(page.items,items.filter(item=>item.messageId!==id(4)));assert.equal(page.next,'next-page');
+});
 const message=(n,labels,subject)=>({id:id(n),threadId:id(n),labelIds:labels,internalDate:String(now+n),payload:{headers:[{name:'Subject',value:subject}]}});
 const filingLabels={Admin:'folder-1','Admin/Payroll':'folder-2',Business:'folder-3','Payments - Outgoing':'folder-4','Payments - Incoming':'folder-5',Deposited:'folder-6'};
 function incoming(n,subject,from,labels=['INBOX','STARRED']) {

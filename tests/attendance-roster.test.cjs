@@ -12,3 +12,49 @@ test('custom invitations cannot take over rows linked to legacy Calendar RSVP re
 test('shared Airtable transport serializes reads and writes with a rate-limit gap',async()=>{const {createAirtableTransport}=await import('../private-attendance/airtable-transport.mjs'),starts=[];const transport=createAirtableTransport({intervalMs:25,fetchFn:async()=>{starts.push(Date.now());return new Response('{}');}});await Promise.all([transport('https://api.airtable.com/first'),transport('https://api.airtable.com/second'),transport('https://api.airtable.com/third')]);assert.equal(starts.length,3);assert(starts[1]-starts[0]>=20);assert(starts[2]-starts[1]>=20);});
 test('reader completes pagination, limits private fields, detects collection drift, and selects exact session',async()=>{const {createRosterReader}=await modulePromise,v=fixture(),names=Object.keys(v.tables),tableMap=Object.fromEntries(names.map((name,i)=>[name,'tbl'+String(i).padStart(14,'0')]));let calls=0;const fetchFn=async url=>{calls++;const u=new URL(url),name=names.find(k=>u.pathname.endsWith(tableMap[k]));assert(u.searchParams.getAll('fields[]').length);return new Response(JSON.stringify({records:v.tables[name]}));};const reader=createRosterReader({baseId:'app00000000000000',token:'test-only',tableMap,fetchFn});const r=await reader.read(1,id(1));assert.equal(r.history.length,1);assert.equal(calls,9);await assert.rejects(()=>reader.read(2,'bad'),/EXACT_SESSION_REQUIRED/);const bad=createRosterReader({baseId:'app00000000000000',token:'test-only',tableMap,fetchFn:async url=>new Response(JSON.stringify({records:[],offset:'repeat'}))});await assert.rejects(()=>bad.read(2,id(1)),/AIRTABLE_PAGE_LIMIT/);});
 test('preference adapter verifies exact family/player and writes only opt-out fields with readback',async()=>{const {createPreferenceAdapter}=await import('../private-attendance/preference-adapter.mjs');const fields={player:'fld00000000000001',family:'fld00000000000002',preference:'fld00000000000003',updatedAt:'fld00000000000004'},calls=[];let record={id:id(6),fields:{[fields.player]:[id(2)],[fields.family]:[id(3)]}};const adapter=createPreferenceAdapter({baseId:'app00000000000000',tableId:'tbl00000000000000',fields,token:'test',enabled:true,fetchFn:async(url,options)=>{calls.push(options);if(options.method==='PATCH'){const v=JSON.parse(options.body);assert.deepEqual(Object.keys(v.fields).sort(),[fields.preference,fields.updatedAt].sort());record.fields={...record.fields,...v.fields};}return new Response(JSON.stringify(record));}});const event={player_id:id(2),family_id:id(3),occurred_at:'2026-11-02T18:00:00Z'},targets=[{enrollmentId:id(6),playerId:id(2),familyId:id(3)}];assert((await adapter.deliver(event,targets)).delivered);await adapter.deliver(event,targets);assert.equal(calls.filter(c=>c.method==='PATCH').length,1);record.fields[fields.family]=[id(99)];await assert.rejects(()=>adapter.deliver(event,targets),/PREFERENCE_IDENTITY_CONFLICT/);});
+test('overview scopes supporting tables to linked rows and preserves complete validated rosters',async()=>{
+ const {createRosterReader}=await modulePromise;
+ const {buildOwnerOverview}=await import('../private-attendance/owner-overview.mjs');
+ const {tables}=fixture(),observedAt='2026-11-02T18:00:00.000Z';
+ tables.registrations.push(row(70,{'Registration kind':'SS-PASS-V1'}));
+ tables.attendance[0].fields['Website Registrations']=[id(70)];
+ for(const name of ['players','families','bookings','registrations']){
+  for(let i=0;i<210;i++)tables[name].push(row(1000+i,{}));
+ }
+ const names=Object.keys(tables), tableMap=Object.fromEntries(names.map((name,i)=>[name,'tbl'+String(i).padStart(14,'0')]));
+ const calls=[];
+ const reader=createRosterReader({baseId:'app00000000000000',token:'fictional',clock:()=>new Date(observedAt),tableMap,fetchFn:async url=>{
+  const t=names.find(k=>url.pathname.endsWith(tableMap[k]));
+  const filter=url.searchParams.get('filterByFormula'),fields=url.searchParams.getAll('fields[]');
+  const wanted=new Set(filter?.match(/rec[A-Za-z0-9]{14}/g));
+  const source=tables[t].filter(r=>!filter||wanted.has(r.id));
+  const offset=Number(url.searchParams.get('offset')||0), records=source.slice(offset,offset+100).map(({id,fields:values})=>({
+   id,fields:Object.fromEntries(Object.entries(values).filter(([name])=>fields.includes(name)))
+  }));
+  calls.push({table:t,filter,fields,count:records.length});
+  return Response.json({records,...(offset+100<source.length?{offset:String(offset+100)}:{})});
+ }});
+ const snapshot=await reader.overview();
+ assert.deepEqual(snapshot,buildOwnerOverview(tables,observedAt));
+ for(const t of ['families','players','bookings','registrations']){
+  const captured=calls.filter(c=>c.table===t);
+  assert.equal(captured.length,1,t);assert.match(captured[0].filter,/RECORD_ID\(\)/);assert.equal(captured[0].count,1);
+ }
+ assert.equal(calls.length,9);assert.equal(calls.filter(c=>c.table==='sessions').length,2);assert.equal(calls.filter(c=>c.table==='attendance').length,2);
+ assert.deepEqual(calls.find(c=>c.table==='bookings').fields,['Booking type','Booking status']);
+ assert.equal(JSON.stringify(snapshot).includes('fictional@example.com'),false);
+ tables.attendance[0].fields['Website Registrations']=[];calls.length=0;
+ assert.deepEqual(await reader.overview(),buildOwnerOverview(tables,observedAt));
+ assert(!calls.some(c=>c.table==='registrations'));
+ // A dense linked set spans multiple ID batches and must remain complete.
+ for(let i=0;i<110;i++){
+  tables.sessions[0].fields.Attendance.push(id(3000+i));
+  tables.attendance.push(row(3000+i,{Session:[id(1)],Player:[id(1000+i)],'Coverage state':'Active'}));
+ }
+ calls.length=0;
+ assert.deepEqual(await reader.overview(),buildOwnerOverview(tables,observedAt));
+ assert.deepEqual(calls.filter(c=>c.table==='players').map(c=>c.count),[100,11]);
+ // A missing linked attendance row must still fail rather than cache partial data.
+ tables.sessions[0].fields.Attendance.push(id(99999));
+ await assert.rejects(()=>reader.overview(),/INCOMPLETE_AIRTABLE_READ/);
+});

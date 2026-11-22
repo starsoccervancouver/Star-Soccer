@@ -168,7 +168,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const draftInterval=previousDraftCheck?.waitingRenewal?pollInterval:900000;
       if(filing && clock()-(await storage.get('mail-drafts:last')||0)>=draftInterval){
         try{
-          const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:STAR_SOCCER_OWNER});
+          const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:await storage.get('ownerAddress')||STAR_SOCCER_OWNER});
           const report=await runDraftJob({db:ledger,storage,mail,now:clock()});
           await storage.put('mail-drafts:report',report);
           await storage.put('mail-drafts:last',clock());
@@ -181,8 +181,9 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       let testPending=false;
       if(filing&&config.baseId==='appnaG94HQpEaRios'&&await storage.get('mail-drafts:report')){
        try{
-        const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:STAR_SOCCER_OWNER});
+        const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:await storage.get('ownerAddress')||STAR_SOCCER_OWNER});
         testPending=await ownerDraftAcceptance({db:ledger,storage,mail,profile:()=>gmail(access,'profile')});
+        await storage.delete('mail-drafts:test-error');
        }catch(e){await storage.put('mail-drafts:test-error',e.message);}
       }
       if(testPending||filingPending||pending.size||state?.phase!=='history'||state.page||follow?.state==='checking')await storage.setAlarm(clock()+3000);

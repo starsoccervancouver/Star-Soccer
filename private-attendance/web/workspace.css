@@ -228,7 +228,7 @@ h2, h3 {
   height: 1.45em;
 }
 
-.desk-header .desk-wordmark img { filter: brightness(0) invert(1); }
+.desk-header .desk-wordmark img { color-scheme: dark; }
 
 .signin-card .desk-wordmark {
   margin: 0 0 .55rem;

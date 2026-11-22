@@ -578,6 +578,8 @@
   if(!profiles.length)players.append(node('p','No linked players.','muted'));
   for(const player of profiles){
    const card=node('article','','family-player');card.append(node('h3',player.name));players.append(card);
+   familyFields(card,[['Applied to training',familyMoney(player.applied)],['Due now',familyMoney(player.dueNow)]]);
+   if(player.paymentStatus)card.append(node('p',player.paymentStatus));
    card.append(node('h4','Coaching notes'));
    if(player.notes?.length){
     for(const note of player.notes){

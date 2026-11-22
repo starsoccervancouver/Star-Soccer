@@ -14,9 +14,9 @@ const sampleFamilies = [
 const sampleRecord = {
   name:sampleFamilies[0].name, guardian:'Morgan Sample', email:'morgan@example.test', phone:'604-555-0100',
   players:['Jamie','Alex'], playerProfiles:[
-    {id:rid(101),name:'Jamie',notes:[{body:'Practised looking up before passing.',category:'Development',updatedAt:now}],
+    {id:rid(101),name:'Jamie',applied:45,dueNow:0,paymentStatus:'Paid to date',notes:[{body:'Practised looking up before passing.',category:'Development',updatedAt:now}],
       attendance:[{date:'2026-10-28',time:'3:45 PM',label:'Wednesday practice',location:'Connaught Park',status:'Present'}]},
-    {id:rid(102),name:'Alex',notes:[],attendance:[]}
+    {id:rid(102),name:'Alex',applied:15,dueNow:15,paymentStatus:'Payment pending',notes:[],attendance:[]}
   ],
   balance:15, dueNow:15, verifiedReceipts:60, bookings:[],
   registrations:[{child:'Alex',program:'Camp'}], payments:[{date:'2026-10-28',amount:60,verification:'Verified',reference:'EXAMPLE-001'}]
@@ -251,6 +251,9 @@ require('./coach-fixture-fonts.cjs')(assets);
       assert.equal(detailHash,'#view=families&family='+rid(50));
       assert(await directory.isHidden());
       assert.equal(await page.locator('#page-title').innerText(),sampleFamilies[0].name);
+      const cards=profile.locator('.family-player');
+      assert.match(await cards.nth(0).innerText(), /45\.00[\s\S]*0\.00[\s\S]*Paid to date/);
+      assert.match(await cards.nth(1).innerText(), /15\.00[\s\S]*15\.00[\s\S]*Payment pending/);
       const content=await profile.innerText();
       for(const text of ['Jamie','Alex','Coaching notes','Attendance records','Present','morgan@example.test','Verified receipts','EXAMPLE-001'])assert(content.includes(text),text+' appears on the family page');
       const ordered=['Players','Coaching notes','Attendance records','Contact information','Family records','Payments'];

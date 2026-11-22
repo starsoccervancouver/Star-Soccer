@@ -75,14 +75,14 @@ test('family ledger keeps sibling bookings and a shared transfer separate and pr
  const {createFamilyLedger}=await import('../private-attendance/family-ledger.mjs');
  const id=rid(1),row=(n,fields)=>({id:rid(n),fields});
  const tables={families:[row(1,{Family:'Example family','Guardian name':'Example Guardian',Players:[rid(2),rid(3)],Bookings:[rid(4),rid(5)],Payments:[rid(6)],'Verified family receipts CAD':90,'Balance CAD':0})],
-  players:[row(3,{Player:'Child B',Family:[id]}),row(2,{Player:'Child A',Family:[id]})],
+  players:[row(3,{Player:'Child B',Family:[id]}),row(2,{Player:'Child A',Family:[id],'Verified applied total CAD':60,'Outstanding CAD':0,'Payment status':'Paid to date'})],
   bookings:[row(4,{Family:[id],Player:[rid(2)],'Verified applied CAD':60}),row(5,{Family:[id],Player:[rid(3)],'Verified applied CAD':30})],
   payments:[row(6,{Family:[id],'Amount CAD':90,Verification:'Verified'})]};
  const ledger=createFamilyLedger(async(table,fields,ids)=>tables[table].filter(r=>!ids||ids.includes(r.id)));
  const family=await ledger.detail(id);
  assert.deepEqual(family.players,['Child A','Child B']);assert.equal(family.payments.length,1);
  assert.deepEqual(family.bookings.map(b=>b.applied),[60,30]);assert.equal(family.balance,0);assert.equal(family.dueNow,null);
- assert.equal(family.name,'Example Guardian / Child A');assert.deepEqual(family.playerProfiles,[{id:rid(2),name:'Child A'},{id:rid(3),name:'Child B'}]);
+ assert.equal(family.name,'Example Guardian / Child A');assert.deepEqual(family.playerProfiles,[{id:rid(2),name:'Child A',applied:60,dueNow:0,paymentStatus:'Paid to date'},{id:rid(3),name:'Child B',applied:null,dueNow:null,paymentStatus:undefined}]);
  assert.equal(await ledger.detail(rid(9)),null);assert.deepEqual(await ledger.directory(),[{id,name:family.name,playerIds:[rid(2),rid(3)]}]);
  tables.families[0].fields.Players.unshift(rid(10));
  tables.players.push(row(10,{Player:'Different family child',Family:[rid(8)]}));

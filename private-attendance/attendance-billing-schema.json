@@ -1,0 +1,133 @@
+{
+  "Families": {
+    "Balance CAD": {
+      "type": "formula",
+      "formula": "IF({Visits awaiting billing review}>0,BLANK(),IF(OR({Unpriced bookings}>0,{Unverified payment claims CAD}!=0),BLANK(),MAX(0,ROUND({Due now total CAD},2))))"
+    },
+    "Balance status": {
+      "type": "formula",
+      "formula": "IF({Visits awaiting billing review}>0,'Review attended visit',IF({Unpriced bookings}>0,'Confirm pricing',IF({Unverified payment claims CAD}!=0,'Reconcile transfers',IF({Due now total CAD}>0,'Balance due now','Paid to date'))))"
+    },
+    "Visits awaiting billing review": {
+      "type": "rollup",
+      "via": "Players",
+      "field": "Visits awaiting billing review",
+      "aggregation": "SUM(values)"
+    }
+  },
+  "Players": {
+    "Outstanding CAD": {
+      "type": "formula",
+      "formula": "IF({Visits awaiting billing review}>0,BLANK(),IF(OR({Unpriced bookings count}>0,{Unverified family claims CAD}!=0),BLANK(),MAX(0,ROUND({Due now total CAD},2))))"
+    },
+    "Payment status": {
+      "type": "formula",
+      "formula": "IF({Visits awaiting billing review}>0,'Review attended visit',IF({Unpriced bookings count}>0,'Confirm price',IF({Unverified family claims CAD}!=0,'Reconcile family transfer',IF({Due now total CAD}>0,'Payment pending','Paid to date'))))"
+    },
+    "Covered session keys": {
+      "type": "rollup",
+      "via": "Attendance",
+      "field": "Covered session key",
+      "aggregation": "ARRAYJOIN(ARRAYUNIQUE(ARRAYCOMPACT(values)),',')"
+    },
+    "Visits awaiting billing review": {
+      "type": "rollup",
+      "via": "Attendance",
+      "field": "Unlinked attended visit",
+      "aggregation": "SUM(values)"
+    }
+  },
+  "Dated Attendance (internal)": {
+    "Billing session ID": {
+      "type": "formula",
+      "formula": "RECORD_ID()"
+    }
+  },
+  "Bookings": {
+    "Balance CAD": {
+      "type": "formula",
+      "formula": "IF({Billing basis}='Attendance',IF(COUNT({Attendance-adjusted charge CAD}),ROUND({Attendance-adjusted charge CAD}-{Verified applied CAD},2),BLANK()),IF({Charge CAD}=BLANK(),BLANK(),ROUND({Charge CAD}-{Verified applied CAD},2)))"
+    },
+    "Payment attention": {
+      "type": "formula",
+      "formula": "IF({Billing basis}='Attendance',IF({Booking status}='Cancelled','Cancelled',IF({Unresolved price count},'Confirm attended rate',IF({Balance CAD}<0,'Review credit',IF({Attended visits}=0,'No attendance charge',IF({Due now CAD}>0,'Payment pending','Settled'))))),IF({Charge CAD}=BLANK(),\"CONFIRM CHARGE\",IF({Balance CAD}<=0,\"SETTLED\",\"REVIEW PAYMENTS BEFORE REMINDING\")))"
+    },
+    "Unresolved price count": {
+      "type": "formula",
+      "formula": "IF({Billing basis}='Attendance',IF(AND(OR({Booking status}='Accepted',{Booking status}='Completed'),{Attended visits}>0,COUNT({Attendance-adjusted charge CAD})=0),1,0),IF(AND({Booking status}!='Cancelled',OR({Charge review}!='Agreed',{Charge CAD}=BLANK())),1,0))"
+    },
+    "Due now CAD": {
+      "type": "formula",
+      "formula": "IF({Billing basis}='Attendance',IF(AND(OR({Booking status}='Accepted',{Booking status}='Completed'),COUNT({Balance CAD})),MAX(0,{Balance CAD}),0),IF(AND({Booking status}!='Cancelled',OR(LEFT({Booking reference},5)='HIST-',AND({Start date},IS_BEFORE({Start date},DATEADD(TODAY(),1,'days'))))),MAX(0,{Balance CAD}),0))"
+    },
+    "Fixed-price package": {
+      "type": "checkbox"
+    },
+    "Agreed per-visit CAD": {
+      "type": "currency"
+    },
+    "Linked registration kinds": {
+      "type": "multipleLookupValues",
+      "via": "Website Registrations",
+      "field": "Registration kind"
+    },
+    "Attended visits": {
+      "type": "rollup",
+      "via": "Attendance",
+      "field": "Attended billing session",
+      "aggregation": "COUNTA(ARRAYUNIQUE(ARRAYCOMPACT(values)))"
+    },
+    "Billing basis": {
+      "type": "formula",
+      "formula": "IF(AND({Start date},IS_BEFORE({Start date},DATETIME_PARSE('2026-11-21'))),'Historical',IF(AND(NOT({Start date}),LEFT({Booking reference},5)='HIST-'),'Historical',IF(OR({Fixed-price package},{Booking type}='Four consecutive sessions',FIND('SS-PASS-V1',ARRAYJOIN({Linked registration kinds})),FIND('SS-CAMP-V2',ARRAYJOIN({Linked registration kinds}))),'Pass or package','Attendance')))"
+    },
+    "Attendance-adjusted charge CAD": {
+      "type": "formula",
+      "formula": "IF({Billing basis}!='Attendance',{Agreed booked CAD},IF(OR({Booking status}='Cancelled',NOT(OR({Booking status}='Accepted',{Booking status}='Completed')),{Attended visits}=0),0,IF(AND({Charge review}='Agreed',COUNT({Charge CAD})=1,{Charge CAD}>=0),IF(AND(COUNT({Agreed per-visit CAD})=1,{Agreed per-visit CAD}>=0),ROUND(MIN({Charge CAD},{Attended visits}*{Agreed per-visit CAD}),2),IF(AND({Linked session count}=1,{Start date},OR(TRIM({Covered dates}&'')='',TRIM({Covered dates}&'')=DATETIME_FORMAT({Start date},'YYYY-MM-DD'))),{Charge CAD},BLANK())),BLANK())))"
+    },
+    "Linked session count": {
+      "type": "rollup",
+      "via": "Attendance",
+      "field": "Billing session ID",
+      "aggregation": "COUNTA(ARRAYUNIQUE(ARRAYFLATTEN(ARRAYCOMPACT(values))))"
+    }
+  },
+  "Attendance": {
+    "Weekly payment flag": {
+      "type": "formula",
+      "formula": "IF(AND(ARRAYJOIN({Web session date})!='',LEFT(ARRAYJOIN({Web session date}),10)>='2026-11-21'),IF(OR({Coverage state}!='Active',ARRAYJOIN({Web session status})='Cancelled',ARRAYJOIN({Web booking status})='Cancelled'),'Excluded',IF(OR({Billing schedule at date}='Four-session prepaid',FIND('SS-PASS-V1',ARRAYJOIN({Preparation registration kind})),ARRAYJOIN({Preparation booking type})='Four consecutive sessions',ARRAYJOIN({Booking billing basis})='Pass or package'),'Pass or package',IF({Attendance status}!='Present','No attendance charge',IF({Booking},ARRAYJOIN({Booking payment review}),'Review attended visit')))),IF({RSVP status}=\"No\",\"Not attending (RSVP)\",IF({RSVP status}=\"Yes\",IF({Billing schedule at date}=\"Per session\",\"Payment pending - review verified deposits\",IF(AND(OR({Billing schedule at date}=\"Four-session prepaid\",{Billing schedule at date}=\"Monthly agreement\"),{Coverage approved}),\"Covered by approved plan\",\"Billing needs review\")),IF({RSVP status}=\"Awaiting response\",\"Awaiting RSVP\",IF({RSVP status}=\"Needs clarification\",\"Clarify RSVP\",\"Not requested\")))))"
+    },
+    "Billing session ID": {
+      "type": "multipleLookupValues",
+      "via": "Session",
+      "field": "Billing session ID"
+    },
+    "Attended billing session": {
+      "type": "formula",
+      "formula": "IF(AND({Attendance status}='Present',{Coverage state}='Active',OR(ARRAYJOIN({Web booking status})='Accepted',ARRAYJOIN({Web booking status})='Completed'),ARRAYJOIN({Web session status})!='Cancelled',REGEX_MATCH(ARRAYJOIN({Billing session ID}),'^rec[A-Za-z0-9]{14}$'),REGEX_MATCH(ARRAYJOIN({Web player key}),'^rec[A-Za-z0-9]{14}$'),ARRAYJOIN({Web player key})=ARRAYJOIN({Web booking player key}),REGEX_MATCH(ARRAYJOIN({Web session date}),'^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[^,]+)?$'),OR(NOT({Session date}),DATETIME_FORMAT({Session date},'YYYY-MM-DD')=LEFT(ARRAYJOIN({Web session date}),10)),IF(ARRAYJOIN({Web booking dates})!='',FIND(LEFT(ARRAYJOIN({Web session date}),10),ARRAYJOIN({Web booking dates})),LEFT(ARRAYJOIN({Web session date}),10)=LEFT(ARRAYJOIN({Web booking start}),10)),NOT(FIND(','&ARRAYJOIN({Billing session ID})&',',','&ARRAYJOIN({Player covered sessions})&',')),LEFT(ARRAYJOIN({Web session date}),10)<=DATETIME_FORMAT(SET_TIMEZONE(NOW(),'America/Vancouver'),'YYYY-MM-DD'),NOT(FIND('SS-PASS-V1',ARRAYJOIN({Preparation registration kind}))),NOT(AND(FIND('SS-CAMP-DROPIN-V1',ARRAYJOIN({Preparation registration kind})),LEFT(ARRAYJOIN({Web session date}),10)='2026-12-25'))),ARRAYJOIN({Billing session ID}),BLANK())"
+    },
+    "Booking billing basis": {
+      "type": "multipleLookupValues",
+      "via": "Booking",
+      "field": "Billing basis"
+    },
+    "Booking payment review": {
+      "type": "multipleLookupValues",
+      "via": "Booking",
+      "field": "Payment attention"
+    },
+    "Covered session key": {
+      "type": "formula",
+      "formula": "IF(AND({Coverage state}='Active',ARRAYJOIN({Web session status})!='Cancelled',REGEX_MATCH(ARRAYJOIN({Billing session ID}),'^rec[A-Za-z0-9]{14}$'),OR(AND(ARRAYJOIN({Booking billing basis})='Pass or package',OR(ARRAYJOIN({Web booking status})='Accepted',ARRAYJOIN({Web booking status})='Completed'),ARRAYJOIN({Web booking player key})=ARRAYJOIN({Web player key}),FIND(LEFT(ARRAYJOIN({Web session date}),10),ARRAYJOIN({Web booking dates})&','&LEFT(ARRAYJOIN({Web booking start}),10))),AND(NOT({Booking}),{Billing schedule at date}='Four-session prepaid',{Coverage approved},{Billing review}='Approved coverage'))),ARRAYJOIN({Billing session ID}),BLANK())"
+    },
+    "Player covered sessions": {
+      "type": "multipleLookupValues",
+      "via": "Player",
+      "field": "Covered session keys"
+    },
+    "Unlinked attended visit": {
+      "type": "formula",
+      "formula": "IF(AND({Coverage state}='Active',ARRAYJOIN({Web session status})!='Cancelled',LEFT(ARRAYJOIN({Web session date}),10)>='2026-11-21',{Attendance status}='Present',NOT({Booking}),NOT(FIND(','&ARRAYJOIN({Billing session ID})&',',','&ARRAYJOIN({Player covered sessions})&','))),1,0)"
+    }
+  }
+}

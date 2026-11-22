@@ -331,7 +331,7 @@
  $('task-cancel').addEventListener('click',()=>{if(saveBusy||loadingDesk)return;if(taskDirty()&&!confirm('Discard this unsaved task draft?'))return;resetTaskDraft();renderTasks();});
  $('task-search').addEventListener('input',renderTasks);$('task-scope').addEventListener('change',renderTasks);
  $('task-search-clear').addEventListener('click',()=>{$('task-search').value='';renderTasks();$('task-search').focus();});
- const mailErrors={WRONG_MAILBOX:'Choose the Star Soccer Gmail account.',GMAIL_API_DISABLED:'Enable the Gmail API in the Google Cloud project for this OAuth application, then reconnect.',GOOGLE_RECONNECT:'Reconnect Gmail to renew read access.',CONSENT_EXPIRED:'The approval expired. Start the connection again.',PAYMENT_LABELS_MISSING:'Restore the Deposited and Payments - Incoming labels, then retry.',cancelled:'Google authorization was cancelled.'};
+ const mailErrors={WRONG_MAILBOX:'Choose the Star Soccer Gmail account.',GMAIL_API_DISABLED:'Enable the Gmail API in the Google Cloud project for this OAuth application, then reconnect.',GOOGLE_RECONNECT:'Reconnect Gmail to renew read access.',CONSENT_EXPIRED:'The approval expired. Start the connection again.',PAYMENT_LABELS_MISSING:'Restore the Payments - Incoming/Deposited Gmail label, then retry.',cancelled:'Google authorization was cancelled.'};
  let mailChecked=false;
  async function mailStatus(){
   if(!data?.gmailSyncAvailable||profile?.role!=='owner')return;
@@ -339,18 +339,25 @@
    const state=await api('gmail-sync/status');
    const issue=state.error||(!state.connected&&fragment.get('gmail'));
    $('gmail-sync-status').textContent=(state.connected?'Connected. '+(state.lastCheck?'Last checked '+when(state.lastCheck)+'.':'First sync pending.'):'Awaiting Google authorization.')+(issue?' '+(mailErrors[issue]||'Sync needs attention: '+issue):'');
+   $('gmail-sync-status').textContent+=state.labelFiling?' Verified Gmail labels enabled.'+(state.labelError?' Filing needs attention: '+state.labelError:state.labelCheckedAt?' Last checked '+when(state.labelCheckedAt)+'.':' First check pending.'):'';
+   $('gmail-sync-labels').dataset.on=String(!!state.labelFiling);$('gmail-sync-labels').textContent=state.labelFiling?'Pause verified Gmail labels':'Enable verified Gmail labels';
    $('gmail-sync-connect').textContent=state.connected?'Reconnect Gmail':'Connect Star Soccer Gmail';
    $('gmail-sync-disconnect').hidden=!state.connected;
   }catch(e){if(profile)$('gmail-sync-status').textContent=e.message;}
  }
  $('gmail-sync-check').addEventListener('click',mailStatus);
- $('gmail-sync-connect').addEventListener('click',async()=>{
+ async function connectMail(action){
   if(!data?.gmailSyncAvailable||profile?.role!=='owner')return;
   try{
-   const result=await api('gmail-sync/connect',{}),url=new URL(result.url);
+   const result=await api('gmail-sync/'+action,{}),url=new URL(result.url);
    if(url.origin!=='https://accounts.google.com'||url.pathname!=='/o/oauth2/v2/auth')throw Error('Invalid Google authorization address.');
    location.assign(url.href);
   }catch(e){notice(e.message,true);}
+ }
+ $('gmail-sync-connect').addEventListener('click',()=>connectMail($('gmail-sync-labels').dataset.on==='true'?'connect-labels':'connect'));
+ $('gmail-sync-labels').addEventListener('click',async()=>{
+  if($('gmail-sync-labels').dataset.on!=='true')return connectMail('connect-labels');
+  try{await api('gmail-sync/stop-labels',{});await mailStatus();}catch(e){notice(e.message,true);}
  });
  $('gmail-sync-disconnect').addEventListener('click',async()=>{
   if(!confirm('Stop syncing and remove this Gmail connection from Coach Desk?'))return;

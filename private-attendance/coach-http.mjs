@@ -84,10 +84,10 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    if(!gmailSync)deny('NOT_FOUND',404);
    const action=path.slice('/workspace/api/gmail-sync/'.length);
    if(action==='status'&&request.method==='GET')return json(200,await gmailSync('status'));
-   if(request.method!=='POST'||!['connect','disconnect'].includes(action))deny('NOT_FOUND',404);
+   if(request.method!=='POST'||!['connect','disconnect','connect-labels','stop-labels'].includes(action))deny('NOT_FOUND',404);
    await body(request,[]);
-   if(action==='disconnect')return json(200,await gmailSync('disconnect'));
-   const consent=await gmailSync('start',{ownerAddress:actor.displayEmail||actor.email});
+   if(action==='disconnect'||action==='stop-labels')return json(200,await gmailSync(action));
+   const consent=await gmailSync('start',{ownerAddress:actor.displayEmail||actor.email,labelFiling:action==='connect-labels'});
    return json(200,{url:consent.url},{'Set-Cookie':'__Host-ss_mail_consent='+consent.browser+'; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600'});
   }
   if(path==='/workspace/api/family-followups'&&['GET','POST'].includes(request.method)){

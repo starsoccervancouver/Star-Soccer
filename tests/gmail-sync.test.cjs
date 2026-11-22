@@ -290,3 +290,9 @@ test('two Gmail messages for the same transfer keep one receipt and one allocati
  await syncLedgerEvent(db,{...e,id:'another-gmail-id',ref:e.ref.toLowerCase()});
  assert.equal(db.tables.payments.length,1);assert.equal(db.tables.allocations.length,1);assert.equal(db.tables.bookings[0].fields['Balance CAD'],20);
 });
+
+test('replaying a historically documented hold cannot create or apply a receipt',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');const db=ledger();
+ db.tables.intake.push({id:'hold',fields:{'Message ID':e.id,Kind:'Payment claim',Review:'Needs clarification',Family:['familyA'],'Next action':'Historical notice. Verify settlement in the actual bank and match sender, amount and booking before adding a verified payment.'}});
+ await syncLedgerEvent(db,e);assert.equal(db.tables.payments.length,0);assert.equal(db.tables.allocations.length,0);
+});

@@ -82,7 +82,11 @@ export async function syncLedgerEvent(db,event,{campPlacementSince,trackConfirma
     return db.save('intake',fields,{key:'Message ID'});
   }
   if(e.type==='payment' && (['Ignore','Duplicate'].includes(existingIntake?.fields.Review)||existingIntake?.fields.Kind==='Payment claim'&&existingIntake.fields.Review==='Matched'))return;
-  if(e.type==='payment')return payment(db,e,intake,existingIntake);
+  if(e.type==='payment'){
+    // These migration holds predate live intake and require individual reconciliation.
+    if(existingIntake?.fields.Review==='Needs clarification'&&/^Historical notice\. Verify settlement/im.test(existingIntake.fields['Next action']||''))return;
+    return payment(db,e,intake,existingIntake);
+  }
   const families=e.contact?await db.list('families',['Email','Secondary guardian email','Guardian name'], 'OR('+exact('Email',e.contact)+','+exact('Secondary guardian email',e.contact)+')'):[];
   let family=families.length===1?families[0]:null;
   const summary={'Parent email':e.contact,'Parent name':e.guardian,'Player name':e.child,'Requested training':e.option,'Web client reference':e.reference,'Body excerpt':e.excerpt,...(family?{Family:[family.id]}:{})};

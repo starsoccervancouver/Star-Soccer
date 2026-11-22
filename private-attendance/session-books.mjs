@@ -6,7 +6,7 @@ const fields = {
   players: ['Player', 'Family', 'Attendance', 'Bookings'],
   bookings: ['Player', 'Family', 'Attendance', 'First session', 'Start date', 'Covered dates', 'Booking status', 'Booking type',
     'Charge review', 'Charge CAD', 'Billing basis', 'Attendance-adjusted charge CAD', 'Payment Allocations', 'Verified applied CAD', 'Balance CAD', 'Due now CAD', 'Unresolved price count', 'Fixed-price package'],
-  families: ['Players', 'Guardian name', 'Email', 'Phone', 'Payments', 'Unverified payment claims CAD', 'Verified family receipts CAD', 'Verified applied CAD']
+  families: ['Family', 'Players', 'Guardian name', 'Email', 'Phone', 'Payments', 'Unverified payment claims CAD', 'Verified family receipts CAD', 'Verified applied CAD']
 };
 
 const links = value => Array.isArray(value) ? value : [];
@@ -63,7 +63,7 @@ function reconciledAmounts(booking, family, upcoming) {
   return {amountCharged: charged / 100, amountPaid: paid / 100, amountDue: due / 100};
 }
 
-export function buildSessionBooks(tables, today) {
+export function buildSessionBooks(tables, today, source = {}) {
   if (!validDate(today)) throw Error('SESSION_BOOKS_DATE_REQUIRED');
   const sessions = fieldIndex(tables.sessions), players = fieldIndex(tables.players), bookings = fieldIndex(tables.bookings);
   const families = fieldIndex(tables.families), attendance = fieldIndex(tables.attendance);
@@ -155,6 +155,13 @@ export function buildSessionBooks(tables, today) {
           Object.assign(row, amounts, {status: 'no-charge'});
         }
       }
+      if (row.status === 'due') {
+        row.familyId = family ? single(player.Family) : null;
+        row.familyName = family?.Family || family?.['Guardian name'] || null;
+        if (/^app[A-Za-z0-9]{14}$/.test(source.baseId) && /^tbl[A-Za-z0-9]{14}$/.test(source.bookings) && /^rec[A-Za-z0-9]{14}$/.test(bookingId)) {
+          row.bookingUrl = 'https://airtable.com/' + source.baseId + '/' + source.bookings + '/' + bookingId;
+        }
+      }
       rows.push(row);
     }
   }
@@ -188,10 +195,10 @@ export function buildSessionBooks(tables, today) {
     String(a.sessionLabel || '').localeCompare(String(b.sessionLabel || '')) || String(a.playerName || '').localeCompare(String(b.playerName || '')))};
 }
 
-export async function readSessionBooks(read, now, timeZone) {
+export async function readSessionBooks(read, now, timeZone, source) {
   const tables = await Promise.all(Object.entries(fields).map(async ([key, wanted]) => [key, await read(key, wanted)]));
   // Matches sessionInstant's BC rule on hosts still using pre-2026 timezone data.
   const zone = timeZone === 'America/Vancouver' && now >= new Date('2026-03-09') ? 'Etc/GMT+7' : timeZone;
   const today = new Intl.DateTimeFormat('en-CA', {timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit'}).format(now);
-  return buildSessionBooks(Object.fromEntries(tables), today);
+  return buildSessionBooks(Object.fromEntries(tables), today, source);
 }

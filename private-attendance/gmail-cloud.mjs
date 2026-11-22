@@ -1,6 +1,7 @@
 import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypto';
 import {Buffer} from 'node:buffer';
 import {createFollowupJob} from './registration-followup-job.mjs';
+import {reportCompletions} from './report-completions.mjs';
 import {attentionPage} from './attention-inbox.mjs';
 import {classifyMessage} from './gmail-message.mjs';
 import {airtableClient,syncLedgerEvent} from './gmail-ledger.mjs';
@@ -153,6 +154,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }
   }
   const attentionCache=new Map();
+  const completions=reportCompletions(storage,env.COOKIE_KEY);
   async function handle(op,payload){
     if(op==='family-followups'||op==='preview-family-followups'){
       const encrypted=await storage.get('refresh');
@@ -170,9 +172,10 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       return {enabled:true,...report};
     }
     if(op==='attention'){
+      if(payload.completionToken!==undefined)return completions.set(payload.kind,payload.completionToken,payload.completed);
       const key=payload.kind+'|'+(payload.cursor||'');
       for(const [id,entry] of attentionCache)if(entry.until<=clock())attentionCache.delete(id);
-      if(attentionCache.has(key))return attentionCache.get(key).value;
+      if(attentionCache.has(key))return completions.include(payload.kind,attentionCache.get(key).value);
       let access,labels={};
       {
         const encrypted=await storage.get('refresh');
@@ -184,7 +187,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const read=(path,params)=>gmail(access,path,params);
       const value=await attentionPage({ledger,read,labels,mailbox:await storage.get('ownerAddress')||STAR_SOCCER_OWNER,now:clock()},payload.kind,payload.cursor);
       if(attentionCache.size<128)attentionCache.set(key,{until:clock()+30000,value});
-      return value;
+      return completions.include(payload.kind,value);
     }
     if(op==='status'){
       const report=await storage.get('report')||{};

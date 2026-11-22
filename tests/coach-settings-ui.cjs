@@ -16,6 +16,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   try {
     async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
+      let reportCompleted=false;
       const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, familyAccess, sessionVersion: 1, ...(displayEmail ? { displayEmail } : {}) } }, requests = [], errors = [];
       await context.addInitScript(({ now, key, stored, deniedStorage }) => {
         const Base = Date; window.Date = class extends Base { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return Base.parse(now); } };
@@ -34,7 +35,8 @@ require('./coach-fixture-fonts.cjs')(assets);
         if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true };
         else if (path.endsWith('/desk')) value = { profile: state.profile, sessions, notes: [], tasks: [], observedAt: now };
         else if (path.endsWith('/families') && familyAccess) value = { families: [{id:rid(50),name:'Example family',playerIds:[rid(101)]}] };
-        else if (path.includes('/needs-attention/') && familyAccess) value = {items:path.endsWith('/inquiries')?[{key:'sample',title:'Session question',date:'2026-10-29',status:'Awaiting reply',href:'https://mail.google.com/mail/u/0/#all/123456789ab'}]:[],resolved:[],next:null,inbox:'https://mail.google.com/'};
+        else if (path.endsWith('/needs-attention/inquiries') && familyAccess && payload.completionToken==='fixture-row') {reportCompleted=payload.completed;value={completed:reportCompleted};}
+        else if (path.includes('/needs-attention/') && familyAccess) value = {items:path.endsWith('/inquiries')?[{key:'sample',completed:reportCompleted,completionToken:'fixture-row',title:'Session question',date:'2026-10-29',status:'Awaiting reply',href:'https://mail.google.com/mail/u/0/#all/123456789ab'}]:[],resolved:[],next:null,inbox:'https://mail.google.com/'};
         else if (path.endsWith('/family') && familyAccess && payload.familyId === rid(50)) value = { family: {name:'Example family', players:['Player A','Player B'], balance:15, dueNow:15, verifiedReceipts:60, payments:[{amount:60,verification:'Verified'}], bookings:[], registrations:[{child:'Player B',program:'Camp'}]} };
         else if (path.endsWith('/session')) value = { plan: { session_id: payload.sessionId, version: 0, content: {} } };
         else if (path.endsWith('/users') && role === 'owner') value = { users: [{ ...state.profile, active: 1, session_version: 1, assignments: [] }], credentials: [] };
@@ -113,6 +115,15 @@ require('./coach-fixture-fonts.cjs')(assets);
         await f.page.getByRole('link',{name:'Session question'}).waitFor();
         assert.equal(await f.page.locator('.attention-group strong').first().innerText(),'1');
         assert.equal(await f.page.locator('.attention-group').count(),role==='owner'?4:3);
+        const done=f.page.getByRole('button',{name:'Mark complete: Session question'});
+        await done.click();await f.page.getByText('Marked complete.').waitFor();
+        assert.equal(await f.page.locator('.attention-group strong').first().innerText(),'0');
+        assert.match(await f.page.locator('#home-mail-summary').textContent(),/^0 inquiries/);
+        await f.page.getByRole('button',{name:'Undo completion: Session question'}).click();await done.waitFor();
+        await done.click();await f.page.getByText('Marked complete.').waitFor();
+        await f.page.locator('#attention-refresh').click();
+        await f.page.waitForFunction(()=>document.querySelector('.attention-group strong')?.textContent==='0');
+        assert.equal(await done.count(),0);
         await f.page.locator('#logout').click();
         await f.page.locator('#login').waitFor();
         assert.equal(await f.page.locator('#family-results').textContent(),'');

@@ -2557,7 +2557,7 @@ body #app #report-filters .report-filter[aria-pressed=false]:hover:not(:disabled
 .family-balance-list strong { white-space:nowrap; font-variant-numeric:tabular-nums; }
 #app .family-balance-list > li > :is(a,button):hover { background:var(--desk-option-hover); }
 #app .family-balance-list :focus-visible { outline:2px solid var(--desk-accent); outline-offset:-2px; }
-#unpaid-bookings { width:min(32rem,calc(100% - 2rem)); max-height:80vh; padding:16px; border:1px solid var(--desk-line); border-radius:12px; background:var(--desk-surface); color:var(--desk-ink); }
+#unpaid-bookings { width:min(48rem,calc(100% - 2rem)); max-height:80vh; padding:16px; border:1px solid var(--desk-line); border-radius:12px; background:var(--desk-surface); color:var(--desk-ink); }
 #unpaid-bookings::backdrop { background:rgb(16 34 50 / .45); }
 #unpaid-bookings > header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
 #unpaid-bookings-title { margin:0; font-size:18px; overflow-wrap:anywhere; }

@@ -82,6 +82,19 @@ async function campEvent() {
 }
 
 const placementOptions={campPlacementSince:'2026-11-19T00:00:00Z',now:new Date('2026-11-19T02:00:00Z')};
+test('new siblings with distinct form references share a weekly session and replay without new seats',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ const db=campLedger(),seed=await campEvent(),options={...placementOptions,confirmedDraftFlow:true};
+ db.tables.sessions=[{id:'wed',fields:{Session:'Wednesday training','Source session ID':'SS-20261125-WE',Date:'2026-11-25',Time:'3:45 pm – 5:15 pm',Venue:'Connaught Park','Weekly program':['weekly'],'Session status':'Planned',Capacity:20,Attendance:[]}}];
+ const forms=['First Player','Second Player'].map((child,i)=>({...seed,type:'registration',form:true,id:'11111111111'+i,reference:'SS-PLAYER-'+i,contact:'parent@example.test',child,age:'10',sessionId:'wednesday',quotedPrice:'30',option:'Drop-in',dates:'2026-11-25',version:'SS-WEEKLY-V2'}));
+ for(const event of [...forms,...forms])await syncLedgerEvent(db,event,options);
+ const placed=db.tables.bookings.filter(r=>r.fields['Source booking ID']?.startsWith('gmail-weekly:'));
+ assert.equal(placed.length,2);
+ assert.equal(new Set(placed.map(r=>r.fields.Player[0])).size,2);
+ assert.equal(db.tables.attendance.length,2);
+ assert.ok(db.tables.attendance.every(r=>r.fields.Session[0]==='wed'));
+ assert.ok(db.tables.registrations.every(r=>r.fields.Booking.length===1&&r.fields.Status==='Expected'));
+});
 test('returning verified camper is placed in both dated slots once with the published price and no new payment',async()=>{
  const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
  const db=campLedger(),event=await campEvent();

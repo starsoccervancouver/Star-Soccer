@@ -164,7 +164,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const filingPending=filing?await filing.step():false;
       if(filing && !filingPending && clock()-(await storage.get('confirmation:last')||0)>=3600000){
         try{
-          await checkConfirmationDrafts({db:ledger,storage,now:clock(),read:id=>gmail(access,'messages/'+id,[['format','minimal']]),search:async q=>(await gmail(access,'messages',[['q',q],['maxResults','1']])).messages||[],create:async raw=>{
+          await checkConfirmationDrafts({db:ledger,storage,now:clock(),read:async id=>{const m=await gmail(access,'messages/'+id,[['format','full']]);const event=classifyMessage(m,labels,STAR_SOCCER_OWNER);return event?.form&&event.type==='registration'?{id:m.id,reference:event.reference,contact:event.contact,labelIds:m.labelIds}:null;},search:async q=>(await gmail(access,'messages',[['q',q],['maxResults','1']])).messages||[],create:async raw=>{
             const response=await fetchFn(new URL('drafts',root),{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({message:{raw}})});
             if(!response.ok)throw Error('GMAIL_'+response.status);return response.json();
           }});

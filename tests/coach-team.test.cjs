@@ -118,12 +118,18 @@ test('family profile joins notes and marked attendance by player identity across
 
 test('only authorized family staff can read work queues and the owner can review general mailbox subjects',async t=>{
  const {coaches,owner,admin,one,request}=await setup(t);
+ const completion={completionToken:'a'.repeat(43)+'.'+'b'.repeat(43),completed:true};
+ assert.equal((await request(one,'needs-attention/payments',completion)).status,403);
+ assert.equal((await request(owner,'needs-attention/other',{completed:true})).status,400);
+ assert.equal((await request(owner,'needs-attention/other',completion)).status,200);
  assert.equal((await request(one,'needs-attention/payments',{})).status,403);
  assert.equal((await request(admin,'needs-attention/inquiries',{})).status,403);
  assert.equal((await request(owner,'needs-attention/other',{})).status,200);
  coaches.saveUser(owner,{email:admin.email,name:'Elevated',role:'super_admin',expectedVersion:1});
  assert.equal((await request(admin,'needs-attention/registrations',{})).status,200);
  assert.equal((await request(admin,'needs-attention/other',{})).status,403);
+ assert.equal((await request(admin,'needs-attention/other',completion)).status,403);
+ assert.equal((await request(admin,'needs-attention/payments',completion)).status,200);
 });
 
 test('parent contact reads are limited to the assigned roster and select email only for administrative roles',async t=>{

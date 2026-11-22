@@ -14,7 +14,7 @@
  const fragment=new URLSearchParams(location.hash.slice(1));let googleFailure=location.hash==='#google-error',enrollment=fragment.get('enroll'),googleEnabled=false;window.CoachInitialRoute=fragment.has('view')?location.hash:'';history.replaceState(null,'',location.pathname);
  let hasOpenedGroup=false,workspaceView='plan',noteFolder='',groupSource=null,groupCache=[];
  let generation=0,csrf='',profile=null,data=null,selected='',tab=preferences.start,notes=[],tasks=[],users=[],editingNote=null,editingUser=null,plan={version:0,content:{}},saveBusy=false,loadingDesk=false,planSession=null,planLoad=0,attendanceView='upcoming',attendancePastDay='all',taskView='open';const attendanceCommands=new Map(),attendancePending=new Map(),attendanceErrors=new Map();
- const titles={attention:['Coach Desk','Reports','Open a category to review its messages in Gmail.'],families:['Coach Desk','Families','Choose a family to see their players, attendance and payments.'],coaches:['Your coaching team','Coaching team','View coach notes, assigned groups and their players.'],profiles:['Player development','Player profiles','Get to know each player. Review their goals, notes and attendance by training group.'],library:['Your coaching toolkit','Coach resources','Your drills, inspiration and practical coaching guides in one place.'],home:['Coach Desk','Your coaching week','A clear view of who’s coming and what comes next.'],attendance:['On the field','Attendance','Parent replies and actual attendance stay separate.'],notes:['Player development','Player notes & goals','Private observations, useful goals and coaching progress.'],plan:['Your training groups','Choose your group','Open a recurring group to see attendance, session plans and each player’s notes.'],tasks:['Follow through','Tasks & follow-ups','Your preparation, equipment and player follow-ups.'],settings:['Your workspace','Settings & profile','Your account, preferences and administrative tools.'],team:['Owner controls','Team & access','Approve accounts, assign sessions and control full access.'],activity:['Accountability','Activity log','Recent attendance, notes, planning and permission updates.'],legacy:['Admin-only history','Existing coaching records','Unattributed Airtable notes stay restricted to full-access accounts.']};
+ const titles={attention:['Coach Desk','Reports','Review incoming messages and reopen completed reports.'],families:['Coach Desk','Families','Choose a family to see their players, attendance and payments.'],coaches:['Your coaching team','Coaching team','View coach notes, assigned groups and their players.'],profiles:['Player development','Player profiles','Get to know each player. Review their goals, notes and attendance by training group.'],library:['Your coaching toolkit','Coach resources','Your drills, inspiration and practical coaching guides in one place.'],home:['Coach Desk','Your coaching week','A clear view of who’s coming and what comes next.'],attendance:['On the field','Attendance','Parent replies and actual attendance stay separate.'],notes:['Player development','Player notes & goals','Private observations, useful goals and coaching progress.'],plan:['Your training groups','Choose your group','Open a recurring group to see attendance, session plans and each player’s notes.'],tasks:['Follow through','Tasks & follow-ups','Your preparation, equipment and player follow-ups.'],settings:['Your workspace','Settings & profile','Your account, preferences and administrative tools.'],team:['Owner controls','Team & access','Approve accounts, assign sessions and control full access.'],activity:['Accountability','Activity log','Recent attendance, notes, planning and permission updates.'],legacy:['Admin-only history','Existing coaching records','Unattributed Airtable notes stay restricted to full-access accounts.']};
  const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:club.timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),day=v=>new Intl.DateTimeFormat('en-CA',{timeZone:'UTC',weekday:'short',month:'short',day:'numeric'}).format(new Date(v+'T12:00:00Z')),when=v=>v?new Intl.DateTimeFormat('en-CA',{timeZone:club.timeZone,month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(v)):'—';
  const full=()=>['owner','admin'].includes(profile?.role),session=()=>data?.sessions.find(s=>s.id===selected),empty=text=>node('p',text,'empty-state');
  function allGroups(){if(groupSource!==data?.sessions){groupSource=data?.sessions;groupCache=window.CoachGroups?.groups(groupSource||[])||[];}return groupCache;}
@@ -422,56 +422,119 @@
   finally{if(ticket===followupRequest)button.disabled=false;}
  }
  $('family-followup-check').addEventListener('click',()=>loadOwnerFollowups(true));
- const categories={inquiries:'Unanswered inquiries',registrations:'Unconfirmed registrations',payments:'Payments awaiting deposit verification',other:'Other important email'};
- let attentionRequest=0, attentionRunning=false, attentionTime=0;
+ const categories={inquiries:'Inquiries',registrations:'Registrations',payments:'Payments',other:'Other email'};
+ let attentionRequest=0,attentionRunning=false,attentionTime=0,reportView='open',reportKind='all',reportSaved='';
+ const reportGroups=new Map(),pendingReports=new Set();
  function clearAttention(){
   followupRequest++;$('owner-family-followups').hidden=true;$('family-followup-state').textContent='';$('family-followup-items').replaceChildren();
-  attentionRequest++;attentionRunning=false;attentionTime=0;
+  attentionRequest++;attentionRunning=false;attentionTime=0;reportGroups.clear();pendingReports.clear();
+  reportView='open';reportKind='all';reportSaved='';$('report-search').value='';
   $('home-mail-summary').hidden=true;$('home-mail-summary').textContent='Review inbox';
-  $('attention-status').textContent='';$('attention-groups').replaceChildren();
+  for(const id of ['attention-status','attention-groups','report-filters'])$(id).replaceChildren();
+ }
+ function renderReports(){
+  const completed=reportView==='completed',query=$('report-search').value.trim().toLowerCase();
+  $('report-open').setAttribute('aria-pressed',String(!completed));$('report-completed').setAttribute('aria-pressed',String(completed));
+  const rows=[],counts=new Map(),problems=[];
+  for(const [kind,group] of reportGroups){
+   const items=[...group.rows.values()];
+   counts.set(kind,(group.liveOK&&group.historyOK)?items.filter(i=>!i.completed).length:null);
+   for(const item of items)if(item.completed===completed)rows.push({kind,item});
+   if(group.finished&&(!group.historyOK||(!completed&&!group.liveOK)))problems.push(categories[kind]);
+  }
+  const summary=$('home-mail-summary');summary.hidden=false;
+  summary.textContent=[...counts].map(([kind,count])=>(count??'—')+' '+(kind==='other'?'other':kind)).join(' · ');
+  const filters=$('report-filters');filters.replaceChildren();
+  for(const [key,label] of [['all','All'],...[...reportGroups.keys()].map(k=>[k,categories[k]])]){
+   const b=node('button',label,'report-filter');b.type='button';b.setAttribute('aria-pressed',String(reportKind===key));
+   if(key!=='all'){
+    const group=reportGroups.get(key),ready=group.historyOK&&(completed||group.liveOK);
+    b.append(node('span',ready?String(rows.filter(r=>r.kind===key).length):'—','report-total'));
+   }
+   b.addEventListener('click',()=>{reportKind=key;renderReports();filters.querySelector('[aria-pressed="true"]').focus();});filters.append(b);
+  }
+  const visible=rows.filter(({kind,item})=>(reportKind==='all'||reportKind===kind)&&[categories[kind],item.title,item.status,item.date].join(' ').toLowerCase().includes(query));
+  const sortDate=item=>completed?(item.completedAt||item.date||''):(item.date||'');
+  visible.sort((a,b)=>sortDate(b.item).localeCompare(sortDate(a.item))||a.item.title.localeCompare(b.item.title));
+  const list=$('attention-groups');list.replaceChildren();
+  for(const {kind,item} of visible){
+   const row=node('div','','report-row');
+   const action=node('button',completed?'Reopen':'✓','report-action'+(completed?' report-reopen':''));
+   action.type='button';action.title=completed?'Reopen':'Mark complete';action.setAttribute('aria-label',action.title+': '+item.title);
+   action.disabled=!reportGroups.get(kind).finished||pendingReports.has(item.completionToken);action.addEventListener('click',()=>saveReport(kind,item));
+   const info=node('div','','report-info'),category=node('span',categories[kind],'report-tag report-'+kind);
+   const link=node('a',item.title,'report-subject');link.href=item.href;link.target='_blank';link.rel='noopener noreferrer';
+   info.append(link,node('small',item.reopened?'Reopened for review':item.status));
+   const date=node('time',item.date||'');
+   if(/^\d{4}-\d{2}-\d{2}$/.test(item.date||'')){
+    date.dateTime=item.date;date.textContent=new Intl.DateTimeFormat('en-CA',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}).format(new Date(item.date+'T12:00:00Z'));
+   }
+   if(item.completedAt)date.title='Completed '+new Intl.DateTimeFormat('en-CA',{timeZone:'America/Vancouver',dateStyle:'medium'}).format(new Date(item.completedAt));
+   row.append(action,category,info,date);list.append(row);
+  }
+  if(!visible.length)list.append(node('p',attentionRunning?'Checking reports…':problems.length?'No matching items in the available results.':query?'No reports match your search.':completed?'No completed reports here yet.':'Nothing to review.','report-empty'));
+  $('attention-refresh').disabled=attentionRunning||pendingReports.size>0;
+  $('attention-status').textContent=[reportSaved,attentionRunning?'Checking reports…':problems.length?'Could not load every item in '+problems.join(', ')+'. Refresh to retry.':''].filter(Boolean).join(' ');
+ }
+ async function saveReport(kind,item){
+  const request=attentionRequest,token=item.completionToken,completed=!item.completed;
+  if(pendingReports.has(token))return;
+  pendingReports.add(token);reportSaved='';renderReports();
+  try{
+   const result=await api('needs-attention/'+kind,{completionToken:token,receipt:item.receipt,completed});
+   if(request!==attentionRequest)return;
+   Object.assign(item,{completed,reopened:!completed,completedAt:result.completedAt||null});
+   reportSaved=completed?'Moved to completed.':'Moved to inbox.';
+  }catch(e){if(request===attentionRequest)notice('Could not save that report change. Please try again.',true);}
+  finally{if(request===attentionRequest){pendingReports.delete(token);renderReports();const target=$('attention-groups').querySelector('button:not(:disabled)')||$(reportView==='completed'?'report-completed':'report-open');target.focus();}}
  }
  async function loadAttention(force=false){
-  if(!profile?.familyAccess||attentionRunning||!force&&Date.now()-attentionTime<90000)return;
-  const request=++attentionRequest, summary=$('home-mail-summary'), counts=new Map();
-  attentionRunning=true;summary.hidden=false;summary.textContent='Checking inbox…';
-  $('attention-refresh').disabled=true;$('attention-status').textContent='Checking Gmail and the ledger…';$('attention-groups').replaceChildren();
-  async function check(kind){
-   const group=node('details','','attention-group'),heading=node('summary'),count=node('strong','Checking…'),body=node('div','','attention-items');
-   heading.append(node('span',categories[kind]),count);group.append(heading,body);$('attention-groups').append(group);
-   try {
-    let cursor='',inbox='';const items=new Map(),resolved=new Set(),pages=new Set();
-    do{
-     if(pages.has(cursor))throw Error('Incomplete Gmail page.');
-     pages.add(cursor);
-     const page=await api('needs-attention/'+kind,{cursor});
-     if(request!==attentionRequest)return;
-     inbox=page.inbox;
-     for(const item of page.items)if(!items.has(item.key)||String(item.date)>String(items.get(item.key).date))items.set(item.key,item);
-     for(const key of page.resolved)resolved.add(key);
-     cursor=page.next;
-    }while(cursor);
-    for(const key of resolved)items.delete(key);
-    count.textContent=String(items.size);counts.set(kind,items.size);
-    if(!items.size)body.append(node('p','Nothing to review.'));
-    for(const item of [...items.values()].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))){
-     const row=node('div','','attention-item'),link=node('a',item.title);
-     link.href=item.href;link.rel='noopener noreferrer';link.target='_blank';
-     row.append(link,node('small',[item.date,item.status,item.href===inbox?'Open inbox':'Open email'].filter(Boolean).join(' · ')));body.append(row);
-    }
-   }catch(e){
+  if(!profile?.familyAccess||attentionRunning||pendingReports.size||!force&&Date.now()-attentionTime<90000)return;
+  const request=++attentionRequest;attentionRunning=true;reportSaved='';reportGroups.clear();
+  for(const kind of Object.keys(categories))if(kind!=='other'||profile.role==='owner')reportGroups.set(kind,{rows:new Map(),liveOK:false,historyOK:false,finished:false});
+  renderReports();
+  async function readPages(kind,history,collect){
+   let cursor='';const seen=new Set();
+   do{
+    if(seen.has(cursor))throw Error('Repeated report page');seen.add(cursor);
+    const page=await api('needs-attention/'+kind,history?{cursor,history:true}:{cursor});
     if(request!==attentionRequest)return;
-    count.textContent='Unavailable';body.append(node('p','Could not check this category. Refresh to try again.'));
-   }
+    collect(page);cursor=page.next;
+   }while(cursor);
   }
-  const visible=Object.keys(categories).filter(kind=>kind!=='other'||profile.role==='owner');
-  await Promise.all(visible.map(check));
-  if(request!==attentionRequest)return;
-  attentionRunning=false;attentionTime=Date.now();$('attention-refresh').disabled=false;
-  $('attention-status').textContent=(counts.size===visible.length?'Checked ':'Some categories unavailable · Checked ')+new Intl.DateTimeFormat('en-CA',{timeZone:club.timeZone,hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date())+'. Transfer notices and flagged Gmail messages cover the last 30 days.';
-  const short={inquiries:'inquiries',registrations:'registrations',payments:'payments',other:'other'};
-  summary.textContent=visible.map(k=>(counts.has(k)?counts.get(k):'—')+' '+short[k]).join(' · ');
+  await Promise.all([...reportGroups].map(async([kind,group])=>{
+   const latest=new Map(),resolved=new Set();
+   try{
+    await readPages(kind,false,page=>{
+     for(const item of page.items){
+      const previous=latest.get(item.key);
+      if(!previous||String(item.date||'')>String(previous.date||'')||item.date===previous.date&&String(item.messageId)>String(previous.messageId))latest.set(item.key,item);
+     }
+     for(const key of page.resolved)resolved.add(key);
+    });
+    if(request!==attentionRequest)return;
+    for(const [key,item] of latest)if(!resolved.has(key))group.rows.set(item.completionToken,item);
+    group.liveOK=true;
+   }catch{}
+   if(request!==attentionRequest)return;
+   try{
+    await readPages(kind,true,page=>{
+     for(const record of page.items){
+      const live=group.rows.get(record.completionToken);
+      group.rows.set(record.completionToken,live?{...live,completed:record.completed,reopened:record.reopened,completedAt:record.completedAt}:record);
+     }
+    });
+    group.historyOK=true;
+   }catch{}
+   group.finished=true;if(request===attentionRequest)renderReports();
+  }));
+  if(request===attentionRequest){attentionRunning=false;attentionTime=Date.now();renderReports();}
  }
- $('home-mail-summary').addEventListener('click',()=>go('attention'));
+ for(const [id,view] of [['report-open','open'],['report-completed','completed']]){
+  $(id).addEventListener('click',()=>{reportView=view;reportSaved='';renderReports();});
+ }
+ $('report-search').addEventListener('input',renderReports);
+ $('home-mail-summary').addEventListener('click',()=>{reportView='open';reportKind='all';$('report-search').value='';go('attention');renderReports();});
  $('attention-refresh').addEventListener('click',()=>loadAttention(true));
  let familyRequest = 0;
  const familyMoney = value => Number.isFinite(value) ? new Intl.NumberFormat('en-CA', {style:'currency', currency:'CAD'}).format(value) : 'Not recorded';

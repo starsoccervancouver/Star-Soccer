@@ -22,7 +22,7 @@ export async function attentionPage({ledger,read,labels,mailbox,now}, kind, curs
   const root='https://mail.google.com/mail/u/?authuser='+encodeURIComponent(mailbox);
   const result={items:[],resolved:[],next:null,inbox:root+'#inbox'};
   function add(key,title,status,id,date) {
-    result.items.push({key,title,status,date,href:mailId(id)?root+'#all/'+id:result.inbox});
+    result.items.push({key,title,status,date,messageId:id||'',href:mailId(id)?root+'#all/'+id:result.inbox});
   }
   async function thread(id) {
     if(!mailId(id))return null;
@@ -36,7 +36,7 @@ export async function attentionPage({ledger,read,labels,mailbox,now}, kind, curs
     result.next=page.nextPageToken||null;
     return page[type]||[];
   }
-  const intake=async()=> (await ledger.list('intake',intakeFields)).map(r=>r.fields);
+  const intake=async()=> (await ledger.list('intake',intakeFields)).map(r=>({...r.fields,intakeId:r.id}));
   const registrations=async()=> (await ledger.list('registrations',regFields)).map(r=>({...r.fields,id:r.id}));
   if(kind==='registrations'){
     const [regs,mail]=await Promise.all([registrations(),intake()]);
@@ -62,7 +62,7 @@ export async function attentionPage({ledger,read,labels,mailbox,now}, kind, curs
     }
     if(!cursor)for(const f of mail){
       if(f.Kind!=='Registration candidate'||origins.has(sourceId(f))||ignored(f)||noReply(f)||f.Review==='Matched')continue;
-      add(sourceId(f)||f.Subject,f.Subject||'Registration request','Registration needs review',sourceId(f),f['Received date']);
+      add(sourceId(f)||f.intakeId,f.Subject||'Registration request','Registration needs review',sourceId(f),f['Received date']);
     }
   }else if(kind==='inquiries'){
     const candidates=new Map();
@@ -84,7 +84,8 @@ export async function attentionPage({ledger,read,labels,mailbox,now}, kind, curs
       add(key,header(latest,'subject')||f.Subject||'Parent inquiry',latest?'Awaiting reply':'Check reply in Gmail',id,latest?day(Number(latest.internalDate)):f['Received date']);
     }
   }else if(kind==='payments'){
-    if(!labels.Deposited)throw Error('PAYMENT_LABELS_MISSING');
+    const depositLabels=[labels.Deposited,labels['Payments - Incoming/Deposited']].filter(Boolean);
+    if(!depositLabels.length)throw Error('PAYMENT_LABELS_MISSING');
     const receipts=await ledger.list('payments',['Source payment ID','Direction','Verification','Evidence reference']);
     const verified=new Set(receipts.filter(r=>r.fields.Verification==='Verified'&&r.fields.Direction==='Incoming').flatMap(({fields:f})=>[f['Source payment ID'],...String(f['Evidence reference']||'').split(/[^a-zA-Z0-9_-]+/)]).filter(Boolean));
     for(const {id} of await search('messages','newer_than:30d from:notify@payments.interac.ca')){
@@ -92,7 +93,7 @@ export async function attentionPage({ledger,read,labels,mailbox,now}, kind, curs
       const note=transferNotice(msg);
       if(!note)continue;
       const key=note.ref?'INTERAC-'+note.ref:msg.threadId||id;
-      if(msg.labelIds?.includes(labels.Deposited)||note.closed||[key,id,'gmail:'+id,note.ref].some(value=>verified.has(value))){result.resolved.push(key);continue;}
+      if(depositLabels.some(label=>msg.labelIds?.includes(label))||note.closed||[key,id,'gmail:'+id,note.ref].some(value=>verified.has(value))){result.resolved.push(key);continue;}
       if(note.incoming)add(key,note.subject,'Awaiting deposit verification',id,day(Number(msg.internalDate)));
     }
   }else if(kind==='other'){
@@ -101,7 +102,7 @@ export async function attentionPage({ledger,read,labels,mailbox,now}, kind, curs
       if(ignored(f)||f.Review==='Matched'||noReply(f))continue;
       const depositReview=f.Kind==='Payment claim'&&f.Review==='Needs clarification';
       const manual=f.Kind==='Other'&&(f.Review==='Needs clarification'||f['Lead stage']==='Follow-up needed'||['Needs review','Awaiting approval','Changes requested','Blocked'].includes(f['Reply workflow']));
-      if(depositReview||manual)add(f['Gmail thread ID']||sourceId(f),f.Subject||'Email follow-up',depositReview?'Review the payment match':'Follow-up requested',sourceId(f),f['Received date']);
+      if(depositReview||manual)add(f['Gmail thread ID']||sourceId(f)||f.intakeId,f.Subject||'Email follow-up',depositReview?'Review the payment match':'Follow-up requested',sourceId(f),f['Received date']);
     }
     const tracked=new Set([...mail.filter(f=>f.Kind!=='Other'||ignored(f)||noReply(f)||f.Review==='Matched').flatMap(f=>[f['Gmail thread ID'],sourceId(f)]),...regs.map(sourceId)].filter(Boolean));
     for(const {id} of await search('threads','in:inbox newer_than:30d {is:starred is:important} -category:promotions -category:social -category:forums -from:notify@payments.interac.ca')){

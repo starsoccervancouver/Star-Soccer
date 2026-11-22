@@ -1,6 +1,7 @@
 import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypto';
 import {Buffer} from 'node:buffer';
 import {createFollowupJob} from './registration-followup-job.mjs';
+import {reportCompletions} from './report-completions.mjs';
 import {attentionPage} from './attention-inbox.mjs';
 import {classifyMessage} from './gmail-message.mjs';
 import {airtableClient,syncLedgerEvent} from './gmail-ledger.mjs';
@@ -64,8 +65,12 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }
     return {phase:'recent',start:prior?.lastScan||prior?.start||clock()-86400000,history:profile.historyId};
   }
+  async function readLabels(access){
+    const data=await gmail(access,'labels');
+    return Object.fromEntries(data.labels.map(l=>[l.name,l.id]));
+  }
   async function ensureLabels(access){
-    const data=await gmail(access,'labels'),labels=Object.fromEntries(data.labels.map(l=>[l.name,l.id]));
+    const labels=await readLabels(access);
     if(!labels.Deposited)throw Error('PAYMENT_LABELS_MISSING');
     return labels;
   }
@@ -153,6 +158,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }
   }
   const attentionCache=new Map();
+  const completions=reportCompletions(storage,env.COOKIE_KEY);
   async function handle(op,payload){
     if(op==='family-followups'||op==='preview-family-followups'){
       const encrypted=await storage.get('refresh');
@@ -170,21 +176,23 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       return {enabled:true,...report};
     }
     if(op==='attention'){
+      if(payload.history)return completions.history(payload.kind,payload.cursor);
+      if(payload.completionToken!==undefined)return completions.set(payload.kind,payload.completionToken,payload.completed,payload.receipt);
       const key=payload.kind+'|'+(payload.cursor||'');
       for(const [id,entry] of attentionCache)if(entry.until<=clock())attentionCache.delete(id);
-      if(attentionCache.has(key))return attentionCache.get(key).value;
+      if(attentionCache.has(key))return completions.include(payload.kind,attentionCache.get(key).value);
       let access,labels={};
       {
         const encrypted=await storage.get('refresh');
         if(!encrypted)throw Error('GOOGLE_RECONNECT');
         const grant=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
         access=grant.access_token;
-        if(payload.kind==='payments')labels=await ensureLabels(access);
+        if(payload.kind==='payments')labels=await readLabels(access);
       }
       const read=(path,params)=>gmail(access,path,params);
       const value=await attentionPage({ledger,read,labels,mailbox:await storage.get('ownerAddress')||STAR_SOCCER_OWNER,now:clock()},payload.kind,payload.cursor);
       if(attentionCache.size<128)attentionCache.set(key,{until:clock()+30000,value});
-      return value;
+      return completions.include(payload.kind,value);
     }
     if(op==='status'){
       const report=await storage.get('report')||{};

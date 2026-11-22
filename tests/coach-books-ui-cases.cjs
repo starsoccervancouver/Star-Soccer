@@ -65,23 +65,44 @@ async function expandAllGroups(list) {
 
 async function checkCompactLayout(page,mode,width) {
   await page.setViewportSize({width,height:900});
+  if(mode==='family'){
+    const summary=page.locator('#books-list > .books-group > details > summary').first();
+    await summary.focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await summary.hover();
+    assert(await summary.evaluate(el=>el.matches(':hover:focus-visible')),'Measure the family summary with keyboard focus and hover');
+  }
   const layout=await page.locator('#books-list').evaluate(list=>{
     const bounds=el=>{const {x,y,width,height}=el.getBoundingClientRect();return {x,y,width,height};};
+    const rgba=css=>{
+      if(!/^rgba?\(/.test(css))throw Error('Unexpected computed colour: '+css);
+      const [r,g,b,a=1]=css.match(/[\d.]+/g).map(Number);
+      return [r,g,b,a];
+    };
+    const blend=(surface,paint)=>surface.map((channel,i)=>channel+(paint[i]-channel)*paint[3]);
     const luminance=color=>{
-      const [r,g,b]=color.match(/[\d.]+/g).slice(0,3).map(n=>(n/=255)<=.04045?n/12.92:((n+.055)/1.055)**2.4);
+      const [r,g,b]=color.map(channel=>channel/255).map(n=>n<=.04045?n/12.92:((n+.055)/1.055)**2.4);
       return .2126*r+.7152*g+.0722*b;
     };
     const contrast=el=>{
-      let surface=el;
-      while(surface.parentElement && getComputedStyle(surface).backgroundColor==='rgba(0, 0, 0, 0)')surface=surface.parentElement;
-      const bg=luminance(getComputedStyle(surface).backgroundColor),fg=luminance(getComputedStyle(el).color);
-      return (Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
+      const paints=[];
+      for(let ancestor=el;ancestor;ancestor=ancestor.parentElement){
+        const color=rgba(getComputedStyle(ancestor).backgroundColor);
+        if(color[3]>0)paints.push(color);
+        if(color[3]===1)break;
+      }
+      const surface=paints.reverse().reduce(blend,[255,255,255]);
+      const foreground=getComputedStyle(el).color;
+      const bg=luminance(surface),fg=luminance(blend(surface,rgba(foreground)));
+      const ratio=(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
+      return {element:el.tagName,foreground,background:surface.map(Math.round),paints,ratio};
     };
     return {
       viewport:document.documentElement.clientWidth,
       content:document.documentElement.scrollWidth,
       rows:Array.from(list.children,bounds),
-      lowContrast:Array.from(list.querySelectorAll('a,strong,small,.book-amount')).filter(el=>el.getClientRects().length && contrast(el)<4.5).map(el=>el.tagName),
+      lowContrast:Array.from(list.querySelectorAll('a,strong,small,.book-amount')).filter(el=>el.getClientRects().length).map(contrast).filter(result=>result.ratio<4.5),
       clipped:Array.from(list.querySelectorAll('*')).filter(el=>el.getClientRects().length && el.clientWidth && el.scrollWidth>el.clientWidth+1).map(el=>el.className||el.tagName),
     };
   });

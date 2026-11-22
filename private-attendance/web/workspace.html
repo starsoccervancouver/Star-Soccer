@@ -241,23 +241,6 @@
 <p id="home-unpaid-status" role="status"></p>
 <ul id="home-unpaid-list" class="family-balance-list" aria-label="Family balances owing"></ul>
 <div id="pending-booking-payments"></div>
-<dialog id="unpaid-bookings" aria-labelledby="unpaid-bookings-title">
-<header><h2 id="unpaid-bookings-title"></h2><form method="dialog"><button type="submit" class="secondary">Close</button></form></header>
-<ul id="unpaid-booking-list" class="books-list" aria-label="Booking details"></ul>
-<details id="payment-entry" hidden><summary>Record a payment</summary>
-<form id="booking-payment-form">
-<label id="payment-target-label">Apply to<select id="payment-target"></select></label>
-<div class="payment-fields">
-<label>Amount received (CAD)<input id="payment-amount" type="number" step="0.01" min="0.01" inputmode="decimal" required></label>
-<label>Date received<input id="payment-date" type="date" required></label>
-<label>Payment method<select id="payment-method" required><option value="">Select method</option><option>Cash</option><option>E-transfer</option></select></label>
-<label id="payment-ref-label" hidden>Interac reference<input id="payment-reference" maxlength="24" pattern="[A-Za-z0-9]{6,24}" autocomplete="off"></label>
-</div>
-<p id="payment-split" class="small"></p>
-<button type="submit" id="payment-submit" class="button">Record payment</button>
-<p id="payment-result" role="status"></p>
-</form></details>
-</dialog>
 </details>
 <div id="home-priorities"></div>
 <div id="home-followups" hidden>
@@ -280,13 +263,28 @@
 </section>
 <section id="panel-books" class="tab-panel" hidden>
 <section class="card" aria-label="Session books">
+<div id="books-summary" hidden>
+<h2>Needs attention</h2>
+<dl class="books-totals" aria-label="Totals across all books">
+<div><dt>Confirmed outstanding</dt><dd id="books-outstanding"></dd></div>
+<div><dt>Due now</dt><dd id="books-due"></dd></div>
+<div><dt>Due later</dt><dd id="books-upcoming"></dd></div>
+<div><dt>Needs review</dt><dd id="books-review-count"></dd></div>
+</dl>
+</div>
+<div id="books-modes" role="group" aria-label="Books view">
+<button type="button" data-books-mode="grid" aria-pressed="false">Grid</button>
+<button type="button" data-books-mode="list" aria-pressed="false">List</button>
+<button type="button" data-books-mode="session" aria-pressed="false">By session</button>
+<button type="button" data-books-mode="family" aria-pressed="true">By family</button>
+</div>
 <div class="books-tools">
-<label>Player or session <input id="books-search" type="search" placeholder="Search books"></label>
-<label>Show <select id="books-filter"><option value="all">All records</option><option value="due">Unpaid sessions</option><option value="paid">Paid</option><option value="booking">Whole bookings</option><option value="review">Needs review</option></select></label>
+<label>Search <input id="books-search" type="search" placeholder="Parent, player or session"></label>
+<label>Show <select id="books-filter"><option value="attention">Needs attention</option><option value="all">All records</option><option value="outstanding">All outstanding</option><option value="due">Due now</option><option value="upcoming">Due later</option><option value="review">Needs review</option><option value="paid">Paid</option><option value="booking">Whole bookings</option></select></label>
 <button id="books-refresh" class="secondary" type="button">Refresh books</button>
 </div>
 <p id="books-status" role="status"></p>
-<ul id="books-list" class="books-list" aria-label="Booking and session balances"></ul>
+<ul id="books-list" class="books-list" data-mode="family" aria-label="Booking and session balances"></ul>
 <button type="button" id="books-more" class="secondary" hidden>Show more records</button>
 </section>
 </section>
@@ -605,6 +603,23 @@
 </div>
 </section>
 </section>
+<dialog id="unpaid-bookings" aria-labelledby="unpaid-bookings-title">
+<header><h2 id="unpaid-bookings-title"></h2><form method="dialog"><button type="submit" class="secondary">Close</button></form></header>
+<ul id="unpaid-booking-list" class="books-list" aria-label="Booking details"></ul>
+<details id="payment-entry" hidden><summary>Record a payment</summary>
+<form id="booking-payment-form">
+<label id="payment-target-label">Apply to<select id="payment-target"></select></label>
+<div class="payment-fields">
+<label>Amount received (CAD)<input id="payment-amount" type="number" step="0.01" min="0.01" inputmode="decimal" required></label>
+<label>Date received<input id="payment-date" type="date" required></label>
+<label>Payment method<select id="payment-method" required><option value="">Select method</option><option>Cash</option><option>E-transfer</option></select></label>
+<label id="payment-ref-label" hidden>Interac reference<input id="payment-reference" maxlength="24" pattern="[A-Za-z0-9]{6,24}" autocomplete="off"></label>
+</div>
+<p id="payment-split" class="small"></p>
+<button type="submit" id="payment-submit" class="button">Record payment</button>
+<p id="payment-result" role="status"></p>
+</form></details>
+</dialog>
 <p id="notice" class="desk-notice" role="status" hidden>
 </p>
 </main>

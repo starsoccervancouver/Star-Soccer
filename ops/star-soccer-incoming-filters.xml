@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:apps="http://schemas.google.com/apps/2006">
+  <title>Star Soccer incoming labels</title>
+  <entry>
+    <category term="filter"/><title>Mail Filter</title><id>tag:starsoccer.ca,2026:gmail-filter-1</id><content/>
+    <apps:property name="hasTheWord" value="{from:noreply@formspree.io from:submissions@formsubmit.co from:noreply@formsubmit.co} {subject:&quot;Star Soccer weekly registration&quot; subject:&quot;Star Soccer pass registration&quot; subject:&quot;Star Soccer camp registration&quot; subject:&quot;Star Soccer Pro-D camp registration&quot; subject:&quot;New Star Soccer registration&quot; subject:&quot;Star Soccer winter camp request&quot;}"/>
+    <apps:property name="label" value="Registrations"/>
+  </entry>
+  <entry>
+    <category term="filter"/><title>Mail Filter</title><id>tag:starsoccer.ca,2026:gmail-filter-2</id><content/>
+    <apps:property name="hasTheWord" value="{from:noreply@formspree.io from:submissions@formsubmit.co from:noreply@formsubmit.co} {subject:&quot;Star Soccer private coaching inquiry&quot; subject:&quot;Star Soccer inquiry&quot;}"/>
+    <apps:property name="label" value="Leads"/>
+  </entry>
+  <entry>
+    <category term="filter"/><title>Mail Filter</title><id>tag:starsoccer.ca,2026:gmail-filter-3</id><content/>
+    <apps:property name="hasTheWord" value="{from:workspacesupport@google.com from:sc-noreply@google.com}"/>
+    <apps:property name="label" value="Admin"/>
+  </entry>
+  <entry>
+    <category term="filter"/><title>Mail Filter</title><id>tag:starsoccer.ca,2026:gmail-filter-4</id><content/>
+    <apps:property name="hasTheWord" value="{from:starsoccervancouver@gmail.com from:romeo@starsoccer.ca} subject:&quot;Star Soccer Weekly Business Summary&quot;"/>
+    <apps:property name="label" value="Business"/>
+  </entry>
+</feed>

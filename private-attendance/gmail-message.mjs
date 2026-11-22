@@ -61,6 +61,7 @@ export function classifyMessage(message, labels, ownerEmail, confirmationMailbox
   const flat = body.replace(/\s+/g, ' ');
   const fields = formFields(body);
   const has = name => !!labels[name] && ids.has(labels[name]);
+  if(sender==='notifications@stripe.com'&&/\bpayout\b/i.test(subject))return null;
   if (sender === 'notify@payments.interac.ca' || has('Payments - Incoming') || has(depositLabel)) {
     if (!has(depositLabel) || (!has('Payments - Incoming') && sender!=='notify@payments.interac.ca')) return null;
     const verified = sender==='notify@payments.interac.ca' && /\bdmarc=pass\b[^;]*\bheader\.from=payments\.interac\.ca\b/i.test(auth);

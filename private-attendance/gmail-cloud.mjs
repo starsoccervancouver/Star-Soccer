@@ -1,6 +1,7 @@
 import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypto';
 import {Buffer} from 'node:buffer';
 import {createFollowupJob} from './registration-followup-job.mjs';
+import {outcomeFiling} from './gmail-outcome-labels.mjs';
 import {reportCompletions} from './report-completions.mjs';
 import {attentionPage} from './attention-inbox.mjs';
 import {classifyMessage,depositLabel} from './gmail-message.mjs';
@@ -9,6 +10,7 @@ import {createAirtableTransport} from './airtable-transport.mjs';
 import {STAR_SOCCER_OWNER} from './deployment-config.mjs';
 
 const scope='https://www.googleapis.com/auth/gmail.readonly';
+const labelScope='https://www.googleapis.com/auth/gmail.modify';
 const root='https://gmail.googleapis.com/gmail/v1/users/me/';
 const pollInterval=120000, retryDelay=300000, googleToken='https://oauth2.googleapis.com/token';
 const random=()=>randomBytes(32).toString('base64url');
@@ -117,6 +119,10 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const credentials=await token({grant_type:'refresh_token',refresh_token:open(encrypted,env.COOKIE_KEY)});
       if(credentials.refresh_token)await storage.put('refresh',seal(credentials.refresh_token,env.COOKIE_KEY));
       const access=credentials.access_token,labels=await ensureLabels(access);
+      const filing=await storage.get('filing:enabled')?outcomeFiling({storage,ledger,labels,clock,owners:[STAR_SOCCER_OWNER,await storage.get('ownerAddress')],read:(path,params)=>gmail(access,path,params),modify:async(id,addLabelIds)=>{
+       const r=await fetchFn(new URL('messages/'+id+'/modify',root),{method:'POST',redirect:'manual',signal:AbortSignal.timeout(15000),headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({addLabelIds})});
+       if(!r.ok)throw Error('GMAIL_'+r.status);
+      }}):null;
       let pending=await storage.list({prefix:'q:',limit:1});
       if(!pending.size){
         const scan=await storage.get('scan')||await bootstrap(access,null,await storage.get('ownerAddress'));
@@ -128,6 +134,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         try{message=await gmail(access,'messages/'+key.slice(2),[['format','full']]);}
         catch(err){if(err.message!=='GMAIL_404')throw err;}
         if(message){
+          if(filing?.isReceipt(message))await storage.put('filing:receipt:'+message.id,message.id);
           try{
             const mailbox=campPlacementSince||followupEnabled?(await storage.get('ownerAddress')||STAR_SOCCER_OWNER):undefined;
             await syncLedgerEvent(ledger,classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox,followupEnabled),{campPlacementSince,trackConfirmation:followupEnabled,now:new Date(clock())});
@@ -149,7 +156,8 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       for(const [key,retry] of retries)if(retry.after<=clock())await storage.put('q:'+key.slice(6),true);
       await storage.put('report',{lastCheck:new Date(clock()).toISOString(),error:retries.size?retries.values().next().value.error:null,pendingRetries:retries.size});
       const follow=followupEnabled?await checkFollowups(access).catch(()=>({state:'unavailable'})):null;
-      if(pending.size||state?.phase!=='history'||state.page||follow?.state==='checking')await storage.setAlarm(clock()+3000);
+      const filingPending=filing?await filing.step():false;
+      if(filingPending||pending.size||state?.phase!=='history'||state.page||follow?.state==='checking')await storage.setAlarm(clock()+3000);
     }catch(err){
       const allowed=/^(AIRTABLE_\d{3}|GMAIL_\d{3}|GMAIL_API_DISABLED|PAYMENT_LABELS_MISSING|GOOGLE_RECONNECT|GOOGLE_TOKEN_FAILED)$/;
       const report=await storage.get('report')||{};
@@ -197,14 +205,17 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     if(op==='status'){
       const report=await storage.get('report')||{};
       const scan=await storage.get('scan'),pending=await storage.list({prefix:'q:',limit:1});
-      return {connected:!!await storage.get('refresh'),...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
+      const filing=await storage.get('filing:progress');
+      return {connected:!!await storage.get('refresh'),labelFiling:!!await storage.get('filing:enabled'),labelCheckedAt:filing?.checkedAt?new Date(filing.checkedAt).toISOString():null,labelError:filing?.error||null,...report,historyCheckedAt:scan?.lastScan?new Date(scan.lastScan).toISOString():null,caughtUp:!!scan?.lastScan&&scan.phase==='history'&&!scan.page&&!pending.size&&!report.pendingRetries&&!report.error};
     }
+    if(op==='stop-labels'){await storage.put('filing:enabled',false);return {labelFiling:false};}
     if(op==='start'){
       const state='ledger.'+random(),browser=random(),verifier=random();
       const ownerAddress=payload.ownerAddress?.toLowerCase()||STAR_SOCCER_OWNER;
-      await storage.put('consent',{state:hash(state),browser:hash(browser),verifier,ownerAddress,expires:clock()+600000});
+      const requested=payload.labelFiling===true?labelScope:scope;
+      await storage.put('consent',{state:hash(state),browser:hash(browser),verifier,ownerAddress,requested,expires:clock()+600000});
       const url=new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      url.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:redirect,response_type:'code',scope,state,code_challenge:hash(verifier),code_challenge_method:'S256',access_type:'offline',prompt:'consent',login_hint:ownerAddress}).toString();
+      url.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:redirect,response_type:'code',scope:requested,state,code_challenge:hash(verifier),code_challenge_method:'S256',access_type:'offline',prompt:'consent',login_hint:ownerAddress}).toString();
       return {url:url.href,browser};
     }
     if(op==='finish'){
@@ -212,12 +223,13 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       if(!pending||pending.expires<clock()||!payload.code||pending.state!==hash(payload.state||'')||pending.browser!==hash(payload.browser||''))throw Error('CONSENT_EXPIRED');
       await storage.delete('consent');
       const grant=await token({grant_type:'authorization_code',code:payload.code,code_verifier:pending.verifier,redirect_uri:redirect});
-      if(!grant.refresh_token||!grant.scope?.split(' ').includes(scope))throw Error('GOOGLE_RECONNECT');
+      if(!grant.refresh_token||!grant.scope?.split(' ').includes(pending.requested||scope))throw Error('GOOGLE_RECONNECT');
       const initial=await bootstrap(grant.access_token,await storage.get('scan'),pending.ownerAddress,true);
       await ensureLabels(grant.access_token);
       await storage.transaction(async tx=>{
         await tx.put('refresh',seal(grant.refresh_token,env.COOKIE_KEY));
         await tx.put('ownerAddress',pending.ownerAddress);
+        await tx.put('filing:enabled',pending.requested===labelScope);
         if(!await tx.get('scan'))await tx.put('scan',initial);
         await tx.put('report',{error:null});
         await tx.setAlarm(clock()+1000);
@@ -226,7 +238,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
     }
     if(op==='disconnect'){
       attentionCache.clear();
-      await storage.delete(['refresh','consent']);await storage.deleteAlarm();
+      await storage.delete(['refresh','consent','filing:enabled']);await storage.deleteAlarm();
       await storage.delete('report');return {connected:false};
     }
     throw Error('INVALID_ACTION');

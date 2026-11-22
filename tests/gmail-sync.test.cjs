@@ -283,6 +283,44 @@ test('no background access until consent and a separate signed-in owner flow',as
  await mail.cycle();assert.equal(alarm,now+120000);assert.equal((await mail.handle('status')).error,null);
  await mail.handle('disconnect',{});assert.equal(alarm,0);assert.equal((await mail.handle('status')).connected,false);
 });
+test('saved Reports apply current Gmail labels to completed and reopened rows without losing pagination or storage',async()=>{
+ const {createCloudMail}=await import('../private-attendance/gmail-cloud.mjs');
+ const {STAR_SOCCER_OWNER}=await import('../private-attendance/deployment-config.mjs');
+ const records=new Map(),reads=[];
+ const storage={
+  get:async k=>records.get(k),put:async(k,v)=>records.set(k,v),delete:async k=>records.delete(k),
+  transaction:async fn=>fn(storage),setAlarm:async()=>{},
+  list:async({prefix,startAfter='',limit})=>new Map([...records].filter(([k])=>k.startsWith(prefix)&&k>startAfter).sort(([a],[b])=>a<b?-1:1).slice(0,limit))
+ };
+ const labels={...ids,'Admin/Payroll':'label-payroll'};
+ const mock=async u=>{
+  const url=new URL(u);reads.push(url.pathname);
+  if(url.hostname==='oauth2.googleapis.com')return Response.json({access_token:'access',refresh_token:'example-refresh',scope:'https://www.googleapis.com/auth/gmail.readonly'});
+  if(url.pathname.endsWith('/profile'))return Response.json({emailAddress:STAR_SOCCER_OWNER,historyId:'1'});
+  if(url.pathname.endsWith('/labels'))return Response.json({labels:Object.entries(labels).map(([name,id])=>({name,id}))});
+  const id=url.pathname.split('/').pop();
+  if(!url.pathname.includes('/messages/')||url.searchParams.get('format')!=='metadata')throw Error('Unexpected history request');
+  return Response.json({...msg('sender@example.test','Winter soccer registration','',id.endsWith('13')?['INBOX']:['INBOX','label-payroll']),id});
+ };
+ const mail=createCloudMail(storage,{COOKIE_KEY:'example-key',AIRTABLE_CONFIG:'{"tables":{}}'},{fetchFn:mock});
+ assert.deepEqual(await mail.handle('attention',{kind:'inquiries',history:true}),{items:[],next:null});
+ assert.equal(reads.length,0);
+ const consent=await mail.handle('start',{});
+ await mail.handle('finish',{state:new URL(consent.url).searchParams.get('state'),browser:consent.browser,code:'example'});
+ const rows=[];
+ for(let n=1;n<=13;n++){
+  const id=String(n).padStart(16,'0'),entry={item:{key:id,messageId:id,title:'Winter soccer registration',date:'2026-11-20',status:'Awaiting reply',href:'https://mail.google.com/#all/'+id},completed:n%2===0,completedAt:null};
+  const key='report:history:inquiries:'+String(n).padStart(43,'0');
+  records.set(key,entry);rows.push([key,JSON.stringify(entry)]);
+ }
+ const first=await mail.handle('attention',{kind:'inquiries',history:true});
+ assert.deepEqual(first.items,[]);assert.equal(first.next,String(12).padStart(43,'0'));
+ assert.equal(reads.filter(path=>path.includes('/messages/')).length,12);
+ const second=await mail.handle('attention',{kind:'inquiries',history:true,cursor:first.next});
+ assert.equal(second.items.length,1);assert.equal(second.items[0].messageId,'0000000000000013');
+ assert.equal(second.items[0].reopened,true);assert.equal(second.next,null);
+ for(const [key,json] of rows)assert.equal(JSON.stringify(records.get(key)),json);
+});
 test('two Gmail messages for the same transfer keep one receipt and one allocation, even with a stale backlink',async()=>{
  const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
  const db=ledger();await syncLedgerEvent(db,e);

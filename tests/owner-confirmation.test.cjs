@@ -13,9 +13,9 @@ test('each linked sibling gets one unsent draft, including after a retry',async(
  const attendance=[1,2].map(i=>({fields:{Booking:['b'+i],Player:['p'+i],Session:['s'],'Session date':date,'Coverage state':'Active'}}));
  const sessions=[{id:'s',fields:{Date:date,Time:'3:45–5:15 PM',Venue:'Connaught Park',Session:'Wednesday training','Session status':'Planned'}}];
  const html='<p>Thanks for registering! {{PLAYER_NAMES}}</p><p>The fee is {{PRICE_PER_PLAYER}}</p>';
- const tables={registrations,bookings,attendance,sessions,templates:[{fields:{Template:'Camp Email Master',Version:'REVIEW05 / Pro-D',HTML:html}}]};
+ const tables={registrations,bookings,attendance,sessions,intake:[],templates:[{fields:{Template:'Camp Email Master',Version:'REVIEW05 / Pro-D',HTML:html}}]};
  const db={list:async n=>tables[n]},map=new Map(),storage={get:k=>map.get(k),put:(k,v)=>map.set(k,v),transaction:f=>f(storage)};
- let count=0;const opts={db,storage,now,read:async id=>({id,labelIds:[]}),search:async()=>[],create:async()=>({id:'draft'+ ++count})};
+ let count=0;const opts={db,storage,now,read:async id=>({id,reference:registrations.find(r=>r.fields['Source Gmail ID']===id).fields.Reference,contact:'parent@example.org',labelIds:[]}),search:async()=>[],create:async()=>({id:'draft'+ ++count})};
  await checkConfirmationDrafts(opts);await checkConfirmationDrafts(opts);assert.equal(count,2);
  map.clear();let attempts=0;const uncertain={...opts,create:async()=>{attempts++;throw Error('uncertain')}};
  await assert.rejects(checkConfirmationDrafts(uncertain));await assert.rejects(checkConfirmationDrafts(uncertain));await checkConfirmationDrafts(uncertain);assert.equal(attempts,2);

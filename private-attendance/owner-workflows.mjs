@@ -114,7 +114,7 @@ function coachPay(data,now,line,item){
 }
 function attributionReport({data,books,paid,unknown,line,item}){
  const cohorts=new Map(),seen=new Set();
- for(const {fields:r} of data.registrations){
+ for(const {id:registrationId,fields:r} of data.registrations){
   const bid=single(r.Booking),b=books.get(bid);
   if(r.Status==='Declined'||!eligible(b)||!single(r.Family)||single(r.Family)!==single(b.Family)||!single(r.Player)||single(r.Player)!==single(b.Player)||unknown.has(bid)||seen.has(bid)||b['Charge review']!=='Agreed'||!(paid.get(bid)>0)||b['Balance CAD']!==0)continue;
   seen.add(bid);
@@ -124,6 +124,7 @@ function attributionReport({data,books,paid,unknown,line,item}){
   const previous=[...books.entries()].filter(([id,x])=>id!==bid&&eligible(x)&&single(x.Family)===single(b.Family));
   const date=r['Received at']?.slice(0,10);const first=r['Player history at registration']==='First-time verified'&&date&&previous.every(([,x])=>x['Start date']&&x['Start date']>=date);
   const history=prior||/returning/i.test(r['Player history at registration']||'')?'Returning family':first?'New family (first recorded booking)':'Unknown family history';
+  if(source==='Unknown source'||history==='Unknown family history')item('Attribution','Paid registration · '+source,'Check the original visit tags and prior family bookings. Keep any unsupported source or history unknown.',record('Website Registrations',registrationId));
   const key=source+' · '+history;cohorts.set(key,(cohorts.get(key)||0)+1);
  }
  line('Attribution',seen.size+' fully paid registrations with verified Interac or cash allocations');

@@ -40,12 +40,12 @@ export function reportCompletions(storage, secret) {
     }
     return {...page,items};
   }
-  async function history(kind,cursor='') {
+  async function history(kind,cursor='',pageSize=50) {
     if (cursor && !validId.test(cursor)) throw Error('INVALID_REQUEST');
     const base=prefix(kind);
-    const rows=await storage.list({prefix:base,...(cursor?{startAfter:base+cursor}:{}),limit:51});
-    const items=[...rows].slice(0,50).map(([key,entry])=>present(kind,key.slice(base.length),entry.item,entry));
-    return {items,next:rows.size>50?items[49].completionToken.split('.')[0]:null};
+    const rows=await storage.list({prefix:base,...(cursor?{startAfter:base+cursor}:{}),limit:pageSize+1});
+    const items=[...rows].slice(0,pageSize).map(([key,entry])=>present(kind,key.slice(base.length),entry.item,entry));
+    return {items,next:rows.size>pageSize?items[pageSize-1].completionToken.split('.')[0]:null};
   }
   async function set(kind, token, completed, receipt) {
     if (typeof token!=='string'||!/^[\w-]{43}\.[\w-]{43}$/.test(token)||typeof completed!=='boolean') throw Error('INVALID_REQUEST');

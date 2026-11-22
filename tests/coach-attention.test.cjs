@@ -112,6 +112,13 @@ test('reopened history respects current admin filing and keeps the parent paymen
  assert.equal(page.next,'next-page');
 });
 
+test('saved merchant payout notices are excluded by subject even when the provider is unnamed',async()=>{
+ const {filterReportItems}=await import('../private-attendance/attention-inbox.mjs');
+ const page={items:[{title:'Your CA$100.00 payout for Star Soccer is on the way',status:'Follow-up requested'},
+  {title:'Interac e-Transfer: A parent sent you $60.00',status:'Review the payment match'}]};
+ assert.deepEqual((await filterReportItems(page,'other',{labels:{}})).items,[page.items[1]]);
+});
+
 test('a full page of hidden manual items still leads to the next parent follow-up',async()=>{
  const messages=Array.from({length:13},(_,n)=>incoming(n+1,'Camp pickup','parent@example.test',
   n===12?['INBOX']:['INBOX',filingLabels.Admin]));

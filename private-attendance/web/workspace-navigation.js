@@ -6,6 +6,11 @@
     const p = new URLSearchParams(hash.replace(/^#/, '')), view = p.get('view')==='reports'?'attention':p.get('view');
     if (!views.has(view)) return null;
     const sessionId = p.get('session'), section = p.get('section') || 'plan';
+    if (p.has('balance')) {
+      const bookTarget=p.get('balance');
+      if(view!=='books'||p.size!==2||!/^(family|booking)-rec[A-Za-z0-9]{14}$/.test(bookTarget))return null;
+      return {view,bookTarget};
+    }
     if (view==='attention') {
       const pane=p.get('section')||'open', filter=p.get('filter')||'all';
       if(sessionId || p.has('family') || !['open','roster','completed'].includes(pane) ||
@@ -19,11 +24,11 @@
   };
   const hashFor = route => { const p = new URLSearchParams({view:route.view==='attention'?'reports':route.view}); if (route.sessionId) { p.set('session', route.sessionId); p.set('section', route.section); } if (route.view==='attention' && route.reportView!=='open') {
     p.set('section',route.reportView); if(route.reportView==='roster' && route.reviewFilter!=='all') p.set('filter',route.reviewFilter);
-  } if (route.familyId) p.set('family', route.familyId); return '#' + p; };
+  } if(route.view==='books'&&route.bookTarget)p.set('balance',route.bookTarget); if (route.familyId) p.set('family', route.familyId); return '#' + p; };
   let context = null, saved = '', applying = false, pending = parse(window.CoachInitialRoute || '');
   function current() {
     if (!context?.profile) return null;
-    return {view:context.tab,reportView:context.reportView,reviewFilter:context.reviewFilter,familyId:context.tab === 'families' ? context.familyId : null,sessionId:context.tab === 'plan' && window.CoachPlanner?.isFocused() ? context.session?.id : null,section:context.workspaceView || 'plan'};
+    return {view:context.tab,bookTarget:context.bookTarget,reportView:context.reportView,reviewFilter:context.reviewFilter,familyId:context.tab === 'families' ? context.familyId : null,sessionId:context.tab === 'plan' && window.CoachPlanner?.isFocused() ? context.session?.id : null,section:context.workspaceView || 'plan'};
   }
   function remember(replace = false) {
     const route = current(); if (!route || !views.has(route.view) || applying) return;

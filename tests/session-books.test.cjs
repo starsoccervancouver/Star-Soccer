@@ -45,7 +45,7 @@ test('attributes only the exact charge and its verified partial allocation to a 
     date: '2026-11-20', time: '3:45–4:45 pm', location: 'Kits', attendanceStatus: 'Present', playerId: 'child', playerName: 'Test player',
     bookingId: 'b', bookingType: 'Drop-in', status: 'due', amountCharged: 45, amountPaid: 20,
     amountDue: 25, amountOutstanding:25, amountUpcoming:0, reviewBalance:null,reviewReason:null,
-    familyId:'f',familyName:'Test parent',contact: {guardian: 'Test parent', email: 'parent@example.invalid', phone: '555'}});
+    familyId:'f',familyName:null,contact: {guardian: 'Test parent', email: 'parent@example.invalid', phone: '555'}});
   const [paid] = await project(t => Object.assign(t.bookings[0].fields, {'Verified applied CAD': 45, 'Balance CAD': 0, 'Due now CAD': 0}));
   assert.equal(paid.status, 'paid');
   const [walkIn] = await project(t => {

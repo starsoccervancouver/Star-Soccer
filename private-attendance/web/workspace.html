@@ -175,6 +175,7 @@
 <p>Capture inquiries and registrations. Mark an incoming e-transfer as Deposited to reconcile it with the family ledger.</p>
 <p id="gmail-sync-status" role="status"></p>
 <button type="button" class="button" id="gmail-sync-connect">Connect Star Soccer Gmail</button>
+<button type="button" class="secondary" id="calendar-sync-connect">Connect read-only club Calendar</button>
 <button type="button" class="secondary" id="gmail-sync-labels">Enable verified Gmail labels</button>
 <button type="button" class="secondary" id="gmail-sync-check">Check connection</button>
 <button type="button" class="secondary" id="gmail-sync-disconnect" hidden>Disconnect Gmail</button>
@@ -255,6 +256,7 @@
 </section>
 </section>
 <section id="panel-attention" class="tab-panel" hidden>
+<details id="owner-workflow-panel" hidden><summary>Owner operations report</summary><div id="owner-workflow-content" aria-live="polite"></div></details>
 <section class="report-inbox" aria-label="Reports inbox">
 <div class="report-tools">
 <label class="report-search"><span class="report-lens" aria-hidden="true"></span><input id="report-search" type="search" aria-label="Search reports" placeholder="Search reports"></label>

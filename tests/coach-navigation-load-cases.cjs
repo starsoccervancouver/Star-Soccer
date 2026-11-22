@@ -65,6 +65,10 @@ module.exports = async function checkNavigation(fixture, {benchmarkOnly = false}
       await page.locator('#planner-days').getByText('No assigned training groups yet.').waitFor();
     });
   assert.equal(home['family-followups'],1,'The actual owner Home still displays registration follow-ups');
+  assert.equal(home['session-books'],1,'Overview checks for unpaid sessions once');
+  for (const counts of [directory,detail,reports,chooser,chosen,restricted,fallback,refresh]) {
+    assert(!counts['session-books'],'Cold links outside Overview and Books do not request the ledger');
+  }
   assert.equal(refresh.refresh,1,'One refresh displays the newly scoped roster');
   assert.equal(directory.families,1,'Returning from a profile reuses the directory');
   assert.equal(directory.family,1);

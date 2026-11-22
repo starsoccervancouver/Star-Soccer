@@ -68,11 +68,13 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
   #app #panel-home .home-command-row { margin:0 0 14px; }
   #app #home-attention, #app #coaching-hub { padding:14px 18px; border-radius:14px; }
   #panel-home :is(#home-attention,#coaching-hub) > h2 { margin:0 0 8px; font-size:18px; line-height:1.35; }
-  #app #home-attention button {
+  #app #home-attention :is(.priority-action,#home-mail-summary,#home-registration-review) {
     display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-height:44px;
     margin:0; padding:7px 9px; border:0; border-radius:6px; background:transparent; color:var(--desk-ink);
     text-align:left; font-size:14px; line-height:1.35; white-space:normal;
   }
+  #home-attention #home-unpaid { margin:0; padding:0 9px; border:0; border-radius:6px; }
+  #home-attention #home-unpaid > summary { padding-block:10px; font-size:14px; }
   #home-attention .priority-action > span:first-child { display:flex; align-items:baseline; flex-wrap:wrap; gap:2px 12px; }
   #home-attention button + button, #home-attention > button:not([hidden]) ~ #home-priorities:not(:empty) { border-top:1px solid var(--desk-line); }
   #home-attention > button::after { content:'→' / ''; }

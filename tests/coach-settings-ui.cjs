@@ -30,7 +30,7 @@ require('./coach-fixture-fonts.cjs')(assets);
   const browser = await chromium.launch(); let checks = 0;
   try {
     async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail, homeQueues = false, bundleDesk = homeQueues,
-      followups = false, roster = sessions, refreshRoster, families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
+      followups = false, roster = sessions, refreshRoster, books = [], families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
       let reportCompleted=null;
       const state = { profile: { email: 'fictional-' + role + '@example.test', name: 'Fictional ' + role, role, familyAccess, sessionVersion: 1, ...(displayEmail ? { displayEmail } : {}) } }, requests = [], errors = [];
@@ -54,6 +54,11 @@ require('./coach-fixture-fonts.cjs')(assets);
         const includeDesk = bundleDesk && state.profile && request.headers()['x-coach-desk'] === 'full';
         if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true, ...(includeDesk ? {desk} : {}) };
         else if (path.endsWith('/desk')) value = desk;
+        else if (path.endsWith('/session-books') && state.profile?.familyAccess && ['owner','admin'].includes(state.profile.role)) {
+          assert.equal(request.method(),'POST');
+          assert.deepEqual(payload,payload.view === 'unpaid' ? {view:'unpaid'} : {});
+          value = {rows:payload.view === 'unpaid' ? books.filter(row=>row.scope === 'session' && row.status === 'due' && row.amountDue > 0) : books};
+        }
         else if (path.endsWith('/family-followups') && role==='owner' && followups) value = {state:'ready',enabled:true,eligibleBookings:1,checkedAt:now,items:[{label:'Sample booking',confirmationAt:'2026-10-28',bookingUrl:'https://airtable.com/app00000000000001/tbl00000000000002/'+rid(40)}]};
         else if (path.endsWith('/family-followups') && homeQueues && role==='owner') value={state:'ready',checkedAt:now,enabled:true,items:[],eligibleBookings:0};
         else if (path.endsWith('/families') && familyAccess) value = { families };
@@ -104,11 +109,12 @@ require('./coach-fixture-fonts.cjs')(assets);
       assert.deepEqual(f.errors,[]); await f.context.close(); checks++;
     }
     await require('./coach-navigation-load-cases.cjs')(fixture); checks++;
+    await require('./coach-books-ui-cases.cjs')(fixture); checks++;
 
     for (const role of ['owner', 'admin', 'coach']) {
       const f = await fixture({ role }); await clickSettings(f);
       assert.equal(await f.page.locator('#panel-settings').isVisible(), true);
-      assert.deepEqual(await f.page.locator('#navigation button[data-tab]').evaluateAll(buttons=>buttons.map(button=>button.dataset.tab)), ['home','plan','profiles','library','coaches','families','attention','settings'], 'Main navigation contains only active coaching sections');
+      assert.deepEqual(await f.page.locator('#navigation button[data-tab]').evaluateAll(buttons=>buttons.map(button=>button.dataset.tab)), ['home','plan','profiles','library','coaches','families','books','attention','settings'], 'Main navigation contains only active coaching sections');
       assert.equal(await f.page.locator('#navigation [data-tab="coaches"]').isVisible(), role !== 'coach', 'Coaching team is restricted to full-access roles');
       assert.equal(await f.page.locator('#navigation [data-tab="team"],#navigation [data-tab="activity"],#navigation [data-tab="legacy"]').count(), 0);
       assert.equal(await f.page.locator('#profile-name').innerText(), 'Fictional ' + role);

@@ -9,7 +9,7 @@ async function setup(t,contactFixture){
  const one=coaches.actor('one@example.test'),two=coaches.actor('two@example.test'),admin=coaches.actor('admin@example.test');
  coaches.assign(owner,{email:one.email,sessionId:rid(1),assigned:true});
  const ledgerCalls=[],familyLedger={async directory(){ledgerCalls.push('directory');return [];},async detail(id){ledgerCalls.push(id);return {balance:50};}};
- const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,attention:async({kind})=>({kind}),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
+ const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,sessionBooks:contactFixture?.sessionBooks,attention:async({kind})=>({kind}),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
  const request=(actor,path,payload)=>{const session=auth.createVerifiedSession(actor.email),origin='https://attendance.starsoccer.ca';return handler(new Request(origin+'/workspace/api/'+path,{method:payload===undefined?'GET':'POST',headers:{origin,'content-type':'application/json',cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf},...(payload===undefined?{}:{body:JSON.stringify(payload)})}));};
  return {store,coaches,owner,one,two,admin,request,auth,handler,ledgerCalls};
 }
@@ -71,6 +71,83 @@ test('family access is owner-granted, checked before reads, and immediately revo
  assert.equal((await request(admin,'coaching-team')).status,200);
  assert.throws(()=>coaches.requireFamilyAccess(elevated),/ACCESS_DENIED/);
 });
+test('Books and Home unpaid require the stored finance grant and select exact-session dues',async t=>{
+ let reads=0;
+ const contact={guardian:'Books-only guardian',email:'fictional@example.test',phone:'555-0100'};
+ const due={scope:'session',status:'due',amountDue:25,contact};
+ const rows=[due,{...due,scope:'booking'},{...due,status:'upcoming'},{...due,status:'review'},
+  {...due,status:'paid',amountDue:0},{...due,amountDue:null},{...due,amountDue:'25'},{...due,amountDue:-25}];
+ const {coaches,owner,admin,one,auth,handler,request}=await setup(t,{
+  sessionBooks:async()=>{reads++;return {rows,privateDiagnostic:'internal'};},overview:async()=>({sessions:[]})
+ });
+ const origin='https://attendance.starsoccer.ca',route=origin+'/workspace/api/session-books';
+ assert.equal((await handler(new Request(route))).status,401);
+ for(const actor of [one,admin]){
+  for(const input of [{},{view:'unpaid'},{role:'owner'}])assert.equal((await request(actor,'session-books',input)).status,403);
+ }
+ for(const input of [{view:'all'},{view:null},{view:['unpaid']},{sessionId:rid(1)},{view:'unpaid',familyAccess:true}])
+  assert.equal((await request(owner,'session-books',input)).status,400);
+ assert.equal((await request(owner,'session-books')).status,405);
+ const ownerSession=auth.createVerifiedSession(owner.email);
+ assert.equal((await handler(new Request(route,{method:'POST',headers:{cookie:'__Host-ss_staff='+ownerSession.token},body:'{}'}))).status,403);
+ coaches.saveUser(owner,{email:admin.email,name:'Finance admin',role:'super_admin',expectedVersion:1});
+ for(const actor of [one,owner,admin]){
+  const session=auth.createVerifiedSession(actor.email);
+  const bootstrap=await handler(new Request(origin+'/workspace/api/bootstrap',{headers:{cookie:'__Host-ss_staff='+session.token,'X-Coach-Desk':'full'}}));
+  for(const response of [bootstrap,await request(actor,'desk'),await request(actor,'refresh',{}),await request(actor,'session',{sessionId:rid(1)})]){
+   assert.equal(response.status,200);assert.doesNotMatch(await response.text(),/Books-only|amountDue|privateDiagnostic/);
+  }
+ }
+ assert.equal(reads,0,'Books are fetched exclusively through their authorized route');
+ for(const actor of [owner,admin]){
+  const full=await request(actor,'session-books',{});assert.equal(full.status,200);
+  assert.equal(full.headers.get('cache-control'),'no-store');
+  assert.deepEqual(await full.json(),{rows});
+  const home=await request(actor,'session-books',{view:'unpaid'});assert.equal(home.status,200);
+  assert.deepEqual(await home.json(),{rows:[due]});
+ }
+ assert.equal(reads,4);
+});
+
+test('Books discard financial data when sign-in or grant changes during a read',async t=>{
+ for(const change of ['downgrade','sign-out','remove grant','revoked with provider failure']){
+  await t.test(change,async t=>{
+   let invalidate;
+   const {store,coaches,owner,admin,auth,handler}=await setup(t,{sessionBooks:async()=>{
+    invalidate();
+    if(change==='revoked with provider failure')throw Error('private upstream diagnostic');
+    return {rows:[{status:'due',contact:{guardian:'Books-only guardian'}}]};
+   }});
+   coaches.saveUser(owner,{email:admin.email,name:'Finance admin',role:'super_admin',expectedVersion:1});
+   const session=auth.createVerifiedSession(admin.email),origin='https://attendance.starsoccer.ca';
+   invalidate=()=>{
+    if(change==='remove grant')store.run('UPDATE coach_users SET family_access=0 WHERE email=?',admin.email);
+    else if(change==='downgrade')coaches.saveUser(owner,{email:admin.email,name:'Ordinary admin',role:'admin',expectedVersion:2});
+    else auth.logout(session.token);
+   };
+   const response=await handler(new Request(origin+'/workspace/api/session-books',{method:'POST',headers:{
+    origin,cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf,'content-type':'application/json'
+   },body:JSON.stringify(change==='remove grant'?{view:'unpaid'}:{})}));
+   assert.equal(response.status,change==='remove grant'?403:401);
+   assert.doesNotMatch(await response.text(),/Books-only|private upstream diagnostic/);
+  });
+ }
+});
+
+test('Books recheck authorization after reading the request and before starting financial reads',async t=>{
+ let reads=0,controller;
+ const {coaches,owner,admin,auth,handler}=await setup(t,{sessionBooks:async()=>{reads++;return {rows:[]};}});
+ coaches.saveUser(owner,{email:admin.email,name:'Finance admin',role:'super_admin',expectedVersion:1});
+ const session=auth.createVerifiedSession(admin.email),origin='https://attendance.starsoccer.ca';
+ const body=new ReadableStream({start(stream){controller=stream;}});
+ const pending=handler(new Request(origin+'/workspace/api/session-books',{method:'POST',duplex:'half',body,headers:{
+  origin,cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf,'content-type':'application/json'
+ }}));
+ auth.logout(session.token);
+ controller.enqueue(new TextEncoder().encode('{}'));controller.close();
+ assert.equal((await pending).status,401);assert.equal(reads,0);
+});
+
 test('directory shares recent verified links, expires and refreshes without caching failed reads',async()=>{
  const {createFamilyLedger}=await import('../private-attendance/family-ledger.mjs');
  const family=rid(1),player=rid(2),recent={reuseRecent:true};

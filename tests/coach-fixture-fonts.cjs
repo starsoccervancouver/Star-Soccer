@@ -8,6 +8,7 @@ module.exports = function addCoachFixtureFonts(assets) {
   ]) assets[url] = { body: fs.readFileSync(path.join(__dirname, '..', 'fonts', file)), type: 'font/woff2' };
   for (const [url, file, type] of [
     ...['blocks','status','starters','presets','team'].flatMap(name=>['js','css'].map(ext=>['/workspace/assets/'+name+'.'+ext,'workspace-'+name+'.'+ext,ext==='js'?'text/javascript':'text/css'])),
+    ['/workspace/assets/coach-desk-mark.svg', 'coach-desk-mark.svg', 'image/svg+xml'],
     ['/workspace/assets/resources.js', 'workspace-resources.js', 'text/javascript'],
     ['/workspace/assets/resources.css', 'workspace-resources.css', 'text/css'],
     ['/workspace/assets/navigation.js', 'workspace-navigation.js', 'text/javascript'],

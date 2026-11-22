@@ -2,6 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 test('public bundles bypass the coordinator; private APIs and parent routes retain their writer',async()=>{
  const [{default:worker},{publicCoachBuilds:builds,coachBuildMetrics:metrics}]=await Promise.all([import('../private-attendance/cloudflare/production-worker.mjs'),import('../private-attendance/cloudflare/assets.generated.mjs')]);
  let calls=0;const env={ATTENDANCE_MODE:'live',LIVE_EMAIL_SENDS:'false',OWNER_APPROVED:'true',ADMIN_KEY:'preview',COOKIE_KEY:'preview',AIRTABLE_TOKEN:'preview',AIRTABLE_CONFIG:'{}',COACH_DASHBOARD_ENABLED:'true',COACH_MAIN_ORIGIN:'https://starsoccer.ca',COACH_MAIN_PATH:'/coachdesk',COACH_MAIN_SIGNIN_READY:'true',ATTENDANCE_COORDINATOR:{idFromName:()=>1,get:()=>({fetch:()=>{calls++;return new Response('private',{headers:{'Cache-Control':'no-store'}});}})}};
+ const expectedMark=require('node:fs').readFileSync(require('node:path').join(__dirname,'../private-attendance/web/coach-desk-mark.svg'),'utf8');
  for(const [origin,base]of [['https://starsoccer.ca','/coachdesk'],['https://attendance.starsoccer.ca','/workspace']]){
   const page=await worker.fetch(new Request(origin+base),env);assert.equal(page.status,200);assert.equal(page.headers.get('cache-control'),'no-store');const html=await page.text();assert.equal((html.match(/<script[^>]+src=/g)||[]).length,1);assert.equal((html.match(/rel="stylesheet"/g)||[]).length,1);assert(html.includes(builds[base].jsPath));
   const response=await worker.fetch(new Request(origin+builds[base].jsPath,{headers:{cookie:'__Host-ss_staff=fictional'}}),env);assert.equal(response.status,200);assert.match(response.headers.get('cache-control'),/immutable/);assert(!response.headers.has('set-cookie'));assert.equal(await response.text(),builds[base].js);
@@ -9,6 +10,13 @@ test('public bundles bypass the coordinator; private APIs and parent routes reta
   const compressed=await worker.fetch(new Request(origin+builds[base].jsPath,{headers:{'If-None-Match':'W/'+response.headers.get('etag')}}),env);assert.equal(compressed.status,304);
   assert.equal((await worker.fetch(new Request(origin+builds[base].cssPath,{method:'HEAD'}),env)).status,200);
   const logo=await worker.fetch(new Request(origin+base+'/assets/logo.svg'),env);assert.equal(logo.status,200);assert.match(logo.headers.get('cache-control'),/must-revalidate/);
+  const markPath=base+'/assets/coach-desk-mark.svg';
+  assert(html.includes('href="'+markPath+'"'),'favicon uses the correct Coach Desk entry path');
+  const mark=await worker.fetch(new Request(origin+markPath),env);
+  assert.equal(mark.status,200);assert.equal(mark.headers.get('content-type'),'image/svg+xml');
+  assert.equal(await mark.text(),expectedMark);assert.match(mark.headers.get('cache-control'),/must-revalidate/);
+  const revalidated=await worker.fetch(new Request(origin+markPath,{headers:{'If-None-Match':mark.headers.get('etag')}}),env);
+  assert.equal(revalidated.status,304);
  }
  assert.equal(calls,0,'No public asset touches the private writer');
  const pending={...env,COACH_MAIN_SIGNIN_READY:'false'};

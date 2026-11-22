@@ -63,18 +63,8 @@ async function expandAllGroups(list) {
   }
 }
 
-async function checkCompactLayout(page,mode,width) {
-  await page.setViewportSize({width,height:900});
-  if(mode==='family'){
-    const summary=page.locator('#books-list > .books-group > details > summary').first();
-    await summary.focus();
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Shift+Tab');
-    await summary.hover();
-    assert(await summary.evaluate(el=>el.matches(':hover:focus-visible')),'Measure the family summary with keyboard focus and hover');
-  }
-  const layout=await page.locator('#books-list').evaluate(list=>{
-    const bounds=el=>{const {x,y,width,height}=el.getBoundingClientRect();return {x,y,width,height};};
+async function checkBookContrast(container,width) {
+  const failures = await container.evaluate(list=>{
     const rgba=css=>{
       if(!/^rgba?\(/.test(css))throw Error('Unexpected computed colour: '+css);
       const [r,g,b,a=1]=css.match(/[\d.]+/g).map(Number);
@@ -98,17 +88,56 @@ async function checkCompactLayout(page,mode,width) {
       const ratio=(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
       return {element:el.tagName,foreground,background:surface.map(Math.round),paints,ratio};
     };
+    return Array.from(list.querySelectorAll('a,strong,small,.book-amount,.books-amount,.books-date,.books-venue')).filter(el=>el.getClientRects().length).map(contrast).filter(result=>result.ratio<4.5);
+  });
+  assert.deepEqual(failures,[],'Names, session details, balances and contacts have readable text contrast at '+width+'px');
+}
+
+async function checkLayout(page, row, width) {
+  await page.setViewportSize({width,height:900});
+  const layout = await row.evaluate(el=>{
+    const blocks = Array.from(el.children, child=>{
+      const rect = child.getBoundingClientRect();
+      return {top:rect.top,bottom:rect.bottom,left:rect.left,right:rect.right};
+    });
+    return {blocks,listWidth:el.clientWidth,screenWidth:document.documentElement.clientWidth,contentWidth:document.documentElement.scrollWidth};
+  });
+  assert(layout.contentWidth <= width + 1,'No horizontal page overflow at ' + width);
+  assert.equal(layout.blocks.length,3,'Session, balance and contact are all displayed');
+  assert(layout.blocks.every(b=>b.left>=0 && b.right<=layout.screenWidth+1 && b.bottom>b.top),'Every field fits at ' + width);
+  const [session,balance,contact] = layout.blocks;
+  await checkBookContrast(row,width);
+  if(layout.listWidth < 576) {
+    assert(session.bottom<=balance.top+1 && balance.bottom<=contact.top+1,'Session, balance and contact stack without overlap on phones');
+  } else {
+    assert(session.right<=balance.left+1 && balance.right<=contact.left+1,'Desktop columns do not overlap');
+  }
+  const clipped = await row.locator('*').evaluateAll(elements=>elements.filter(el=>el.clientWidth && el.scrollWidth>el.clientWidth+1).map(el=>el.tagName));
+  assert.deepEqual(clipped,[],'Long contact details and payment amounts fit at '+width);
+}
+
+async function checkCompactLayout(page,mode,width) {
+  await page.setViewportSize({width,height:900});
+  if(mode==='family'){
+    const summary=page.locator('#books-list > .books-group > details > summary').first();
+    await summary.focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await summary.hover();
+    assert(await summary.evaluate(el=>el.matches(':hover:focus-visible')),'Measure the family summary with keyboard focus and hover');
+  }
+  const layout=await page.locator('#books-list').evaluate(list=>{
+    const bounds=el=>{const {x,y,width,height}=el.getBoundingClientRect();return {x,y,width,height};};
     return {
       viewport:document.documentElement.clientWidth,
       content:document.documentElement.scrollWidth,
       rows:Array.from(list.children,bounds),
-      lowContrast:Array.from(list.querySelectorAll('a,strong,small,.book-amount')).filter(el=>el.getClientRects().length).map(contrast).filter(result=>result.ratio<4.5),
       clipped:Array.from(list.querySelectorAll('*')).filter(el=>el.getClientRects().length && el.clientWidth && el.scrollWidth>el.clientWidth+1).map(el=>el.className||el.tagName),
     };
   });
   assert(layout.content<=width+1,mode+' fits a '+width+'px screen');
   assert.deepEqual(layout.clipped,[],mode+' text and amounts fit at '+width+'px');
-  assert.deepEqual(layout.lowContrast,[],mode+' names, balances, and contacts have readable text contrast at '+width+'px');
+  await checkBookContrast(page.locator('#books-list'),width);
   assert(layout.rows.length>=2);
   for(const rect of layout.rows) assert(rect.x>=0 && rect.x+rect.width<=layout.viewport+1 && rect.height>0);
   const [first,second]=layout.rows;

@@ -55,8 +55,9 @@ module.exports = async function checkNavigation(fixture, {benchmarkOnly = false}
     page => page.locator('#family-directory .family-choice').first().waitFor());
   if (benchmarkOnly) return samples;
   const home = await visit('owner-home', {hash:'#view=home'}, async page => {
-    await page.locator('#home-registration-review').getByText(/0 to review/).waitFor();
-    await page.locator('#home-mail-summary').getByText(/1 inquiries/).waitFor();
+    await page.getByRole('button',{name:'Review inbox · 1 inquiry',exact:true}).waitFor();
+    await page.waitForLoadState('networkidle');
+    assert(await page.locator('#home-registration-review').isHidden());
   });
   const refresh = await visit('refresh-groups', {hash:'#view=plan',refreshRoster:[]},
     page => page.locator('#planner-days [data-group-key]').first().waitFor(), async page => {

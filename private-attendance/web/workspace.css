@@ -2173,6 +2173,7 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
 #app #planner-days button strong { font-size:15px; line-height:1.55; }
 #app #planner-days button span { line-height:1.5; }
 #app .home-command-row { display:block; }
+#app .home-command-row:not(:has(> :not([hidden]))) { display:none; }
 #app .home-command-row > .card { width:100%; }
 #app #planner-workspace .planner-workspace-actions { padding-top:0; }
 @media(max-width:600px) {
@@ -2306,10 +2307,6 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
   .desk-nav :focus-visible, .desk-header :focus-visible, .desk-skip:focus-visible { outline-color:var(--desk-gold); }
   #app .page-heading { margin-bottom:24px; }
   #app .planner-chooser-intro { margin-bottom:16px; }
-  #app .priorities-card:has(#home-priorities .empty-state) { padding-block:18px; }
-  .priorities-card:has(#home-priorities .empty-state) > .eyebrow { display:none; }
-  .priorities-card:has(#home-priorities .empty-state) h2 { margin-bottom:10px; font-size:17px; }
-  #app #home-priorities > .empty-state { padding:0; border:0; background:transparent; }
   #app .desk-stat { background:var(--desk-surface); border-color:var(--desk-line); border-radius:12px; box-shadow:none; }
   #attendance-stats { grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; margin-bottom:18px; }
   #attendance-stats .desk-stat { padding:12px 14px; }

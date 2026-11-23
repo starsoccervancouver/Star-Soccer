@@ -5,6 +5,12 @@ test('public bundles bypass the coordinator; private APIs and parent routes reta
  const expectedMark=require('node:fs').readFileSync(require('node:path').join(__dirname,'../private-attendance/web/coach-desk-mark.svg'),'utf8');
  for(const [origin,base]of [['https://starsoccer.ca','/coachdesk'],['https://attendance.starsoccer.ca','/workspace']]){
   const page=await worker.fetch(new Request(origin+base),env);assert.equal(page.status,200);assert.equal(page.headers.get('cache-control'),'no-store');const html=await page.text();assert.equal((html.match(/<script[^>]+src=/g)||[]).length,1);assert.equal((html.match(/rel="stylesheet"/g)||[]).length,1);assert(html.includes(builds[base].jsPath));
+  const logos = [...html.matchAll(/<img data-club-logo src="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(logos.length, 2); assert.equal(logos[0], logos[1]); assert(logos[0].startsWith(base+'/assets/logo.'));
+  const displayLogo = await worker.fetch(new Request(origin+logos[0]),env);
+  assert.equal(displayLogo.headers.get('content-type'),'image/webp'); assert.match(displayLogo.headers.get('cache-control'),/immutable/);
+  const logoBytes = Buffer.from(await displayLogo.arrayBuffer()); assert.equal(logoBytes.toString('ascii',8,12),'WEBP');
+  assert(logoBytes.length < 40000,'Coach Desk must use the small display logo');
   const response=await worker.fetch(new Request(origin+builds[base].jsPath,{headers:{cookie:'__Host-ss_staff=fictional'}}),env);assert.equal(response.status,200);assert.match(response.headers.get('cache-control'),/immutable/);assert(!response.headers.has('set-cookie'));assert.equal(await response.text(),builds[base].js);
   const conditional=await worker.fetch(new Request(origin+builds[base].jsPath,{headers:{'If-None-Match':response.headers.get('etag')}}),env);assert.equal(conditional.status,304);assert.equal(await conditional.text(),'');
   const compressed=await worker.fetch(new Request(origin+builds[base].jsPath,{headers:{'If-None-Match':'W/'+response.headers.get('etag')}}),env);assert.equal(compressed.status,304);

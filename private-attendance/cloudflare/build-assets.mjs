@@ -1,5 +1,5 @@
 import {readFile,writeFile} from 'node:fs/promises';
-import {buildCoachFrontend} from './build-coach-frontend.mjs';
+import {buildCoachFrontend,digest} from './build-coach-frontend.mjs';
 import {validateClubConfig,clubConfigScript} from '../club-config.mjs';
 const files={teamJS:'workspace-team.js',teamCSS:'workspace-team.css',navigationJS:'workspace-navigation.js',goalsJS:'workspace-goals.js',presetsJS:'workspace-presets.js',presetsCSS:'workspace-presets.css',startersJS:'workspace-starters.js',startersCSS:'workspace-starters.css',blocksJS:'workspace-blocks.js',blocksCSS:'workspace-blocks.css',statusJS:'workspace-status.js',statusCSS:'workspace-status.css',html:'respond.html',landing:'landing.html',css:'app.css',parentJS:'parent.js',logo:'logo.svg',coachDeskMark:'coach-desk-mark.svg',overview:'overview.html',overviewCSS:'overview.css',overviewJS:'overview.js',emailPreview:'email-preview.html',emailPreviewJS:'email-preview.js',workspace:'workspace.html',workspaceCSS:'workspace.css',workspaceJS:'workspace.js',groupsJS:'workspace-groups.js',viewsJS:'workspace-views.js',viewsCSS:'workspace-views.css',resourcesJS:'workspace-resources.js',resourcesCSS:'workspace-resources.css',profilesJS:'workspace-profiles.js',profilesCSS:'workspace-profiles.css',foldersJS:'workspace-folders.js',foldersCSS:'workspace-folders.css',dictationJS:'workspace-dictation.js',coachingJS:'workspace-coaching.js',coachingCSS:'workspace-coaching.css',sessionJS:'workspace-session.js',sessionCSS:'workspace-session.css',libraryJS:'workspace-library.js',libraryCSS:'workspace-library.css',plannerJS:'workspace-planner.js',tacticsJS:'workspace-tactics.js',tacticsCSS:'workspace-tactics.css'};
 const values={};
@@ -9,10 +9,15 @@ for(const [name,file]of Object.entries(files))values[name]=await readFile(new UR
 values.passkeysJS=await readFile(new URL('../../node_modules/@simplewebauthn/browser/dist/bundle/index.umd.min.js',import.meta.url),'utf8');
 for(const [name,file]of Object.entries({workspaceManropeFont:'manrope-normal-latin.woff2',workspaceInstrumentSerifFont:'instrument-serif-italic-latin.woff2'}))values[name]=(await readFile(new URL('../../fonts/'+file,import.meta.url))).toString('base64');
 for(const [name,file]of Object.entries({workspaceManropeLicense:'manrope-OFL.txt',workspaceInstrumentSerifLicense:'instrumentserif-OFL.txt'}))values[name]=await readFile(new URL('../../fonts/'+file,import.meta.url),'utf8');
+const coachLogo = await readFile(new URL('../../site-photos/star-soccer-logo-768.webp',import.meta.url));
+const coachLogoPath = '/workspace/assets/logo.' + digest(coachLogo) + '.webp';
+values.coachLogo = coachLogo.toString('base64');
 const entries=[['/assets/app.css','css','text/css; charset=utf-8'],['/assets/logo.svg','logo','image/svg+xml'],['/workspace/assets/coach-desk-mark.svg','coachDeskMark','image/svg+xml'],['/workspace/assets/club-config.js','clubJS','text/javascript; charset=utf-8'],['/workspace/assets/passkeys.js','passkeysJS','text/javascript; charset=utf-8'],['/workspace/assets/manrope.woff2','workspaceManropeFont','font/woff2'],['/workspace/assets/instrument-serif.woff2','workspaceInstrumentSerifFont','font/woff2'],['/workspace/assets/manrope-OFL.txt','workspaceManropeLicense','text/plain; charset=utf-8'],['/workspace/assets/instrument-serif-OFL.txt','workspaceInstrumentSerifLicense','text/plain; charset=utf-8']];
+entries.push([coachLogoPath,'coachLogo','image/webp']);
 for(const [key,file]of Object.entries(files))if(file.startsWith('workspace')&&/\.(js|css)$/.test(file))entries.push(['/workspace/assets/'+file.replace('workspace-',''),key,file.endsWith('.js')?'text/javascript; charset=utf-8':'text/css; charset=utf-8']);
-const assets=Object.fromEntries(entries.map(([path,key,type])=>[path,{body:type.startsWith('font/')?Buffer.from(values[key],'base64'):values[key],type}]));
-const {builds,hashes,metrics}=await buildCoachFrontend({html:values.workspace,assets});
+const assets=Object.fromEntries(entries.map(([path,key,type])=>[path,{body:type==='image/webp'||type.startsWith('font/')?Buffer.from(values[key],'base64'):values[key],type}]));
+const workspaceHTML = values.workspace.replaceAll('src="/assets/logo.svg"', 'src="' + coachLogoPath + '"');
+const {builds,hashes,metrics}=await buildCoachFrontend({html:workspaceHTML,assets});
 values.coachAssetEntries=entries;values.publicCoachBuilds=builds;values.coachAssetHashes=hashes;values.coachBuildMetrics=metrics;
 await writeFile(new URL('assets.generated.mjs',import.meta.url),'// Generated public UI assets; no private records or credentials.\n'+Object.entries(values).map(([name,value])=>'export const '+name+'='+JSON.stringify(value)+';').join('\n')+'\n');
 console.log('Coach frontend: '+metrics.sourceRequests+' asset requests → '+metrics.bundleRequests+' bundles; '+metrics.sourceBytes+' → '+metrics.bundleBytes+' bytes ('+metrics.bundleGzipBytes+' gzip bytes).');

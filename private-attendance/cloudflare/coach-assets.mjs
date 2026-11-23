@@ -15,6 +15,7 @@ export function createCoachAssetServer(assets,builds,hashes){
    if(base==='/coachdesk')path='/workspace'+path.slice(base.length);
    if(path==='/workspace/assets/app.css')path='/assets/app.css';if(path==='/workspace/assets/logo.svg')path='/assets/logo.svg';
    file=assets[path];hash=hashes[path];
+   if(file?.type==='image/webp' && path.endsWith('.'+hash+'.webp'))immutable=true;
    // Old, unbundled entry points stay usable while an already-open tab finishes loading.
    if(file&&base==='/coachdesk'&&typeof file.body==='string')file={...file,body:file.body.replaceAll('/workspace','/coachdesk').replace(/(["'(])\/assets\//g,'$1/coachdesk/assets/')};
   }
@@ -26,5 +27,5 @@ export function createCoachAssetServer(assets,builds,hashes){
  };
 }
 const staticFiles={};
-for(const [path,key,type]of files.coachAssetEntries)staticFiles[path]={body:type.startsWith('font/')?decode(files[key]):files[key],type};
+for(const [path,key,type]of files.coachAssetEntries)staticFiles[path]={body:type==='image/webp'||type.startsWith('font/')?decode(files[key]):files[key],type};
 export const serveCoachAssets=createCoachAssetServer(staticFiles,files.publicCoachBuilds,files.coachAssetHashes);

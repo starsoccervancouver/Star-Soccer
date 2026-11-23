@@ -22,15 +22,18 @@ export async function preview(request,env,verify=jwtVerify,fetchFn=fetch) {
        payload.workflow_ref!==repository+'/.github/workflows/deploy-pages.yml@refs/heads/main' ||
        !['schedule','workflow_dispatch','push'].includes(payload.event_name))return response({error:'Release identity required'},403);
   } catch {return response({error:'Release identity required'},403);}
+  let stage='Airtable weekly program read';
   try {
     const url=new URL('https://api.airtable.com/v0/appnaG94HQpEaRios/tblbakKBakPnt0zbU');
     for(const field of columns)url.searchParams.append('fields[]',field);
-    const read=await fetchFn(url,{headers:{Authorization:'Bearer '+env.AIRTABLE_TOKEN},redirect:'error',signal:AbortSignal.timeout(15000)});
+    const read=await fetchFn(url,{headers:{Authorization:'Bearer '+env.AIRTABLE_TOKEN},redirect:'manual',signal:AbortSignal.timeout(15000)});
     if(!read.ok)throw Error('Ledger unavailable');
     const data=await read.json();
     if(data.offset)throw Error('Unexpected catalog size');
+    stage='Weekly program validation';
     const projected=offers.feed(offers.fromLedger(training.catalog,data.records));
-    const previous=await fetchFn(published,{redirect:'error',signal:AbortSignal.timeout(10000)});
+    stage='Published catalog comparison';
+    const previous=await fetchFn(published,{redirect:'manual',signal:AbortSignal.timeout(10000)});
     if(!previous.ok)throw Error('Cannot compare the current offer');
     const live=await previous.json();
     const changes=new Map();
@@ -41,9 +44,10 @@ export async function preview(request,env,verify=jwtVerify,fetchFn=fetch) {
         changes.set(data.records.find(r=>r.fields.Day===next.day).id,next);
       }
     }
+    stage='Future dated session check';
     if(changes.size)await checkDatedSessions(changes,env.AIRTABLE_TOKEN,fetchFn);
     return response(projected,200);
-  }catch{return response({error:'Weekly catalog needs review. Check the five Session Dates rows and their prices, times, venues and capacity.'},422);}
+  }catch{return response({error:stage+' failed. Check the weekly programs and linked dated sessions.'},422);}
 }
 
 async function checkDatedSessions(changes,token,fetchFn){
@@ -53,7 +57,7 @@ async function checkDatedSessions(changes,token,fetchFn){
   url.searchParams.set('filterByFormula',`AND({Date}>='${today}',OR({Session status}='Planned',{Session status}='Confirmed'))`);
   const sessions=[],offsets=new Set();
   for(;;){
-    const response=await fetchFn(url,{headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(15000)});
+    const response=await fetchFn(url,{headers:{Authorization:'Bearer '+token},redirect:'manual',signal:AbortSignal.timeout(15000)});
     if(!response.ok)throw Error('Dated session verification failed');
     const page=await response.json();
     sessions.push(...page.records);
@@ -76,7 +80,7 @@ export function publishedReader(fetchFn=fetch,clock=Date.now) {
   let cached,expires=0;
   return async()=>{
     if(cached&&clock()<expires)return cached;
-    const result=await fetchFn(published,{redirect:'error',signal:AbortSignal.timeout(10000),headers:{'Cache-Control':'no-cache'}});
+    const result=await fetchFn(published,{redirect:'manual',signal:AbortSignal.timeout(10000),headers:{'Cache-Control':'no-cache'}});
     if(!result.ok)throw Error('Published weekly catalog unavailable');
     const value=await result.json();
     if(value.zone!==training.catalog.zone || !/^[a-f0-9]{64}$/.test(value.version||''))throw Error('Invalid published weekly catalog');

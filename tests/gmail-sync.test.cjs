@@ -236,6 +236,27 @@ function ledger(){
  }};
 }
 const e={id:'message123',thread:'thread123',type:'payment',sender:from,received:'2026-11-19T12:00:00Z',ref:'CA123456',amount:60,payer:'Example Parent',memo:'Payment for BOOK-100',verified:true};
+test('surname-first deposit recovers an automated hold once and leaves an unspecified sibling split open',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ const db=ledger(),event={...e,payer:'PARENT,EXAMPLE MIDDLE',memo:''};
+ db.tables.bookings.push({id:'sibling',fields:{...db.tables.bookings[0].fields,'Booking reference':'BOOK-101'}});
+ db.tables.intake.push({id:'hold',fields:{'Message ID':e.id,Review:'Needs clarification','Next action':'Deposit confirmed by owner label. Match payer and transfer memo to one family.'}});
+ await syncLedgerEvent(db,event);await syncLedgerEvent(db,event);
+ assert.equal(db.tables.payments.length,1);assert.deepEqual(db.tables.payments[0].fields.Family,['familyA']);
+ assert.equal(db.tables.payments[0].fields.Verification,'Verified');assert.equal(db.tables.allocations.length,0);
+ assert.deepEqual(db.tables.intake[0].fields.Family,['familyA']);
+});
+test('surname-first matching respects competing guardians, manual holds and conflicting middle names',async()=>{
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ for(const scenario of ['duplicate','hold','middle','linked elsewhere']){
+  const db=ledger();
+  if(scenario==='duplicate')db.tables.families.push({id:'other',fields:{'Guardian name':'Example Middle Parent'}});
+  if(scenario==='middle')db.tables.families[0].fields['Guardian name']='Example Different Parent';
+  if(scenario==='hold'||scenario==='linked elsewhere')db.tables.intake.push({id:'hold',fields:{'Message ID':e.id,Review:'Needs clarification','Next action':'Check disputed payment.',...(scenario==='linked elsewhere'?{Family:['other']}:{})}});
+  await syncLedgerEvent(db,{...e,payer:'PARENT,EXAMPLE MIDDLE',memo:''});
+  assert.equal(db.tables.payments.length,0);assert.equal(db.tables.allocations.length,0);
+ }
+});
 test('a matched partial payment applies once, including after a retry',async()=>{
  const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');const db=ledger();
  await syncLedgerEvent(db,e);await syncLedgerEvent(db,e);

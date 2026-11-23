@@ -178,6 +178,19 @@ async function recordCampConfirmation(db,confirmation,since,now) {
   if(!result.placed)await db.save('registrations',{'Processing notes':result.message},{id:row.id});
 }
 
+function matchesInteracGuardian(payer, guardian) {
+  const name=normalize(guardian);
+  if(!name)return false;
+  const parts=String(payer||'').split(',');
+  if(parts.length===1)return name===normalize(payer);
+  if(parts.length!==2)return false;
+  const surname=normalize(parts[0]), given=normalize(parts[1]);
+  if(!surname||!given)return false;
+  // Banks may put the surname first and include middle names omitted by the guardian.
+  return name===given+' '+surname || name===given.split(' ')[0]+' '+surname;
+}
+const unmatchedPayer='Deposit confirmed by owner label. Match payer and transfer memo to one family.';
+const unresolvedMatch='Deposit confirmed by owner label. The existing family or booking match still needs review.';
 async function payment(db,e,intake,existingIntake) {
   const review = (reason,family) => intake('Payment claim','Needs clarification',reason,{'Candidate amount CAD':e.amount,...(family?{Family:[family.id]}:{})});
   if(!e.verified)return review('Deposited label present. Verify notification source, transfer reference and CAD amount.');
@@ -214,11 +227,13 @@ async function payment(db,e,intake,existingIntake) {
   const fams=await db.list('families',['Family','Guardian name','Players']);
   const players=await db.list('players',['Player','Family']);
   const namedChildren=players.filter(p=>words(e.memo,p.fields.Player));
-  let candidates=fams.filter(f=>normalize(f.fields['Guardian name'])===normalize(e.payer));
+  let candidates=fams.filter(f=>matchesInteracGuardian(e.payer,f.fields['Guardian name']));
   if(namedChildren.length)candidates=candidates.filter(f=>namedChildren.some(p=>p.fields.Family?.length===1&&p.fields.Family[0]===f.id));
   if(receipt?.fields.Family?.length===1)candidates=candidates.filter(f=>f.id===receipt.fields.Family[0]);
-  if(holds?.Review==='Needs clarification' && !holds.Family?.length && !namedChildren.length)return review('Deposit confirmed by owner label. The existing family or booking match still needs review.');
-  if(candidates.length!==1)return review('Deposit confirmed by owner label. Match payer and transfer memo to one family.');
+  const priorActions=String(holds?.['Next action']||'').split('\n');
+  const automaticHold=priorActions.every(line=>line===unmatchedPayer||line===unresolvedMatch);
+  if(holds?.Review==='Needs clarification' && !holds.Family?.length && !namedChildren.length && !automaticHold)return review(unresolvedMatch);
+  if(candidates.length!==1 || (holds?.Family?.length&&!one(holds.Family,candidates[0].id)))return review(unmatchedPayer);
   const family=candidates[0];
   if(!receipt && receipts.some(p=>p.fields.Family?.includes(family.id)&&cents(p.fields['Amount CAD'])===amount&&!/^INTERAC-/i.test(p.fields['Source payment ID']||'')))return review('Possible earlier receipt of the same amount. Reconcile it before adding another payment.',family);
   if(receipt && receipt.fields.Verification!=='Verified'){

@@ -68,18 +68,27 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
   #app #panel-home .home-command-row { margin:0 0 14px; }
   #app #home-attention, #app #coaching-hub { padding:14px 18px; border-radius:14px; }
   #panel-home :is(#home-attention,#coaching-hub) > h2 { margin:0 0 8px; font-size:18px; line-height:1.35; }
+  #app #home-attention:not([hidden]), #home-priorities:not(:empty) { display:grid; gap:6px; }
+  #app #home-attention > h2 { margin-bottom:3px; }
+  #home-priorities:empty { display:none; }
   #app #home-attention :is(.priority-action,#home-mail-summary,#home-registration-review) {
-    display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-height:44px;
-    margin:0; padding:7px 9px; border:0; border-radius:6px; background:transparent; color:var(--desk-ink);
-    text-align:left; font-size:14px; line-height:1.35; white-space:normal;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:44px;
+    margin:0; padding:8px 10px 8px 12px; border:1px solid var(--desk-line); border-radius:9px;
+    background:var(--desk-inset); color:var(--desk-ink); box-shadow:none;
+    text-align:left; font-size:14px; font-weight:650; line-height:1.35; white-space:normal;
   }
-  #home-attention #home-unpaid { margin:0; padding:0 9px; border:0; border-radius:6px; }
-  #home-attention #home-unpaid > summary { padding-block:10px; font-size:14px; }
-  #home-attention .priority-action > span:first-child { display:flex; align-items:baseline; flex-wrap:wrap; gap:2px 12px; }
-  #home-attention button + button, #home-attention > button:not([hidden]) ~ #home-priorities:not(:empty) { border-top:1px solid var(--desk-line); }
+  #home-attention .priority-action > span:first-child { display:grid; gap:2px; min-width:0; }
   #home-attention > button::after { content:'→' / ''; }
-  #home-attention .priority-arrow, #home-attention > button::after { color:var(--desk-accent); font-size:18px; }
-  #app #home-attention button:hover:not(:disabled) { background:var(--desk-option-hover); }
+  #home-attention .priority-arrow, #home-attention > button::after {
+    display:grid; place-items:center; flex:none; width:26px; height:26px; border-radius:7px;
+    background:var(--desk-accent-soft); color:var(--desk-accent); font:600 16px/1 system-ui,sans-serif;
+  }
+  #app #home-attention :is(.priority-action,#home-mail-summary,#home-registration-review):is(:hover,:focus-visible):not(:disabled) {
+    border-color:var(--desk-option-hover-border); background:var(--desk-option-hover);
+  }
+  #app #home-attention :is(.priority-action,#home-mail-summary,#home-registration-review):active:not(:disabled) {
+    background:var(--desk-accent-soft); border-color:var(--desk-accent);
+  }
 
   #app #coaching-hub .coach-next-group {
     display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:2px 14px;
@@ -114,7 +123,6 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
   #home-stats .desk-stat span { font-size:12px; }
   #home-stats .desk-stat strong { font-size:22px; }
   #app #home-attention, #app #coaching-hub { padding:12px; }
-  #home-attention .priority-action > span:first-child { display:grid; }
   #app #coaching-hub .coaching-agenda-row { padding:8px; gap:8px; }
   #app #coaching-hub .coaching-inline-actions { width:max-content; max-width:105px; }
 }
@@ -122,16 +130,27 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
 @media screen {
   #app #panel-home #home-attention { border-inline-start:3px solid var(--desk-gold); padding:12px clamp(10px,2vw,18px); }
   #home-attention > h2 { letter-spacing:-.025em; }
-  #home-attention #home-unpaid { margin-block:4px; padding:0; background:var(--desk-inset); border:1px solid var(--desk-line); border-radius:9px; }
-  #home-attention #home-unpaid > summary { padding:10px 12px; border-radius:8px; }
-  #home-attention #home-unpaid[open] > summary { color:var(--desk-ink); background:var(--desk-accent-soft); }
-  #home-attention #home-unpaid-list { padding-inline:6px; }
-  #home-attention #home-unpaid-list a { display:grid; grid-template-columns:minmax(0,1fr) auto 7px; padding:6px 8px; gap:10px; }
+  #home-attention #home-unpaid { margin:0; padding:0; background:var(--desk-field); border:1px solid var(--desk-line); border-radius:9px; }
+  #home-attention #home-unpaid > summary {
+    display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px; padding:8px 12px;
+    border-radius:8px; background:var(--desk-inset); font-size:14px; list-style:none;
+  }
+  #home-unpaid > summary::-webkit-details-marker { display:none; }
+  #home-unpaid > summary::after {
+    content:''; flex:none; width:7px; height:7px; margin-inline-start:auto;
+    border-right:2px solid var(--desk-accent); border-bottom:2px solid var(--desk-accent); transform:rotate(45deg);
+  }
+  #home-unpaid[open] > summary::after { transform:rotate(225deg); }
+  #home-unpaid-label > span { flex:1 1 auto; }
+  #home-attention #home-unpaid[open] > summary { border-radius:8px 8px 0 0; border-bottom:1px solid var(--desk-line); }
+  #app #home-attention #home-unpaid > summary:is(:hover,:focus-visible) { background:var(--desk-option-hover); }
+  #home-attention #home-unpaid-list { padding-inline:5px; }
+  #home-attention #home-unpaid-list a { display:grid; grid-template-columns:minmax(0,1fr) auto 7px; padding:5px 8px; gap:10px; border-radius:5px; }
+  #home-attention #home-unpaid-list a strong { color:var(--desk-ink); }
   #home-unpaid-list a::after { content:''; width:6px; height:6px; border-block-start:1.5px solid var(--desk-accent); border-inline-end:1.5px solid var(--desk-accent); transform:rotate(45deg); }
-  #home-attention #home-priorities .priority-action + .priority-action { border-block-start:1px solid var(--desk-line); border-radius:0; }
 }
 
-#home-unpaid-label .unpaid-total { display:inline-block; margin-inline-start:.65em; color:var(--desk-accent-hover); font-variant-numeric:tabular-nums; white-space:nowrap; }
+#home-unpaid-label .unpaid-total { display:inline-block; padding:2px 7px; border-radius:5px; background:var(--desk-field); color:var(--desk-accent-hover); font-variant-numeric:tabular-nums; white-space:nowrap; }
 
 
 /* One workspace canvas, with the active destination and actionable records on distinct levels. */

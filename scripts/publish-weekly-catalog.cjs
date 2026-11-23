@@ -17,9 +17,14 @@ function sidebarPrices(html,oldCatalog,next) {
   const was=oldCatalog.sessions.find(s=>s.id==='tuesday'),now=next.sessions.find(s=>s.id==='tuesday');
   const venueNames=c=>[...new Set(c.sessions.filter(s=>s.audience!=='women').map(s=>c.locations[s.location].name))];
   const list=new Intl.ListFormat('en-CA',{type:'conjunction'});
+  const venueLink=(c,id)=>'<a href="locations.html#'+id+'">'+escape(c.locations[id].name)+'</a>';
+  const linked=(c,type)=>new Intl.ListFormat('en-CA',{type}).format([...new Set(c.sessions.filter(s=>s.audience!=='women').map(s=>s.location))].map(id=>venueLink(c,id)));
   const subs=[[oldDrop,nextDrop],[oldPass,nextPass],[cash(was.dropin)+' per session',cash(now.dropin)+' per session'],
     [cash(was.dropin)+' per drop-in',cash(now.dropin)+' per drop-in'],
     ['Beginners welcome at '+list.format(venueNames(oldCatalog)),'Beginners welcome at '+list.format(venueNames(next))],
+    ['Our weekly groups train at '+list.format(venueNames(oldCatalog)),'Our weekly groups train at '+list.format(venueNames(next))],
+    ['Choose a group by age and day at '+linked(oldCatalog,'disjunction'),'Choose a group by age and day at '+linked(next,'disjunction')],
+    ['Youth weekly sessions use '+linked(oldCatalog,'conjunction')+'; Tuesday women’s soccer runs at '+venueLink(oldCatalog,was.location),'Youth weekly sessions use '+linked(next,'conjunction')+'; Tuesday women’s soccer runs at '+venueLink(next,now.location)],
     ['Tuesdays, '+was.time+' at '+oldCatalog.locations[was.location].name,'Tuesdays, '+now.time+' at '+next.locations[now.location].name]];
   const substitutions=new Map(subs);
   const pattern=Array.from(substitutions.keys(),s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');

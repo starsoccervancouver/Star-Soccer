@@ -29,3 +29,16 @@ test('only the release workflow can read the validated projection',async()=>{
   assert.equal((await preview(request,{},async()=>({payload:identity}),read)).status,422);
   assert.equal(reads,1);
 });
+test('a venue move updates the card, home and locations while an unpublished price stays out of quotes',()=>{
+  const {artifacts}=require('../scripts/publish-weekly-catalog.cjs');
+  const rows=structuredClone(published.sessions);
+  for(const row of rows.filter(r=>r.id!=='tuesday'))row.venue='Fen Burdett Stadium';
+  rows.find(r=>r.id==='wednesday').dropin=31;
+  const candidate=offers.feed(offers.applyOffers(training.catalog,rows));
+  const files=artifacts(candidate);
+  assert(files['index.html'].includes('Beginners welcome at Fen Burdett Stadium.'));
+  assert(files['programs.html'].includes('Our weekly groups train at Fen Burdett Stadium.'));
+  assert(files['locations.html'].includes('<strong>Wednesday '+rows[1].time+'</strong>'));
+  assert.equal(JSON.parse(files['program-catalog.json']).sessions[1].dropin,31);
+  assert.deepEqual(files,artifacts(candidate));
+});

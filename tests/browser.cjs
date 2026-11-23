@@ -99,34 +99,36 @@ async function checkFootballNews(page, base) {
   await page.clock.setFixedTime(new Date('2026-11-23T01:00:00Z'));
   const url='https://example.com/';
   const checkedAt='2026-11-23T00:00:00Z';
-  const match={away:'Visitor',goals:[2,0],competition:'League',source:'Test feed',url};
-  const award={name:'Player award',source:'Test feed',url};
+  const game={away:'Visitor',goals:[2,0],competition:'League',source:'Test feed',url};
+  const supplementary=['premier-league','champions-league','bundesliga','international-men'];
   await page.route('**/football-news.json', route=>route.fulfill({json:{version:1,sources:{
-    scores:{kind:'results',checkedAt,items:[
-      {...match,home:'Old result',date:'2026-11-15'},
-      {...match,home:'Recent result',date:'2026-11-16'},
-      {...match,home:'Future result',date:'2026-11-23'},
+    whitecaps:{kind:'results',checkedAt,items:[
+      {...game,home:'Vancouver Whitecaps',away:'Real Salt Lake',date:'2026-11-22'},
+      {...game,home:'Old result',date:'2026-11-15'},
+      {...game,home:'Future result',date:'2026-11-23'},
     ]},
-    honors:{kind:'awards',checkedAt,items:[
-      {...award,winner:'Old winner',date:'2026-11-15'},
-      {...award,winner:'Recent winner',date:'2026-11-16'},
-      {...award,winner:'Year only',year:2026},
-    ]}
+    awards:{kind:'awards',checkedAt,items:[
+      {name:'Player award',winner:'Recent winner',date:'2026-11-16',url},
+      {name:'Player award',winner:'Old winner',date:'2026-11-15',url},
+      {name:'Player award',winner:'Year only',year:2026,url},
+    ]},
+    ...Object.fromEntries(supplementary.map(home=>[home,{kind:'results',checkedAt,items:[
+      {...game,home,date:'2026-11-16'},
+    ]}]))
   }}}));
   await page.goto(base+'/index.html');
   const section=page.getByRole('region',{name:'Football News'});
-  const results=section.getByRole('tabpanel',{name:'Results'});
-  await results.getByText('Recent result 2–0 Visitor',{exact:true}).waitFor();
-  assert.equal(await results.getByRole('link').count(),1,'Only the seven most recent Vancouver dates appear');
-  await section.getByRole('tab',{name:'Results'}).press('ArrowRight');
-  const awards=section.getByRole('tabpanel',{name:'Awards'});
-  assert(await awards.getByText('Recent winner',{exact:true}).isVisible());
-  assert.equal(await awards.getByRole('link').count(),1,'Expired and undated awards are hidden');
-  await section.getByRole('tab',{name:'Headlines'}).click();
-  const headlines=section.getByRole('tabpanel',{name:'Headlines'});
-  assert(await headlines.getByText('Recent result beat Visitor 2–0',{exact:true}).isVisible());
-  assert.equal(await headlines.getByRole('link').count(),1,'Headlines use only recent scores');
+  const cards=section.getByRole('article');
+  await cards.first().waitFor();
+  assert.equal(await cards.count(),5,'A single grid displays no more than five stories');
+  assert.equal(await section.getByRole('tab').count(),0,'The story grid does not create subtabs');
+  assert.equal(await cards.first().getByRole('heading').textContent(),'Whitecaps open the playoffs with a 2–0 win');
+  assert(await cards.first().getByRole('img',{name:/Whitecaps match at BC Place/}).isVisible());
+  assert.match(await cards.first().getByRole('link',{name:/Watch highlights/}).getAttribute('href'),/^https:\/\/www\.whitecapsfc\.com\/video\//);
+  assert(await section.getByRole('heading',{name:'Recent winner wins the Player award'}).isVisible());
+  assert.equal(await section.getByText(/Old result|Old winner|Year only|Future result/).count(),0,'Expired, undated, and future items are hidden');
 }
+
 
 (async()=>{
   let browser;
@@ -150,7 +152,7 @@ async function checkFootballNews(page, base) {
       await checkPublicHover(browser,page,'http://127.0.0.1:'+server.address().port);
       console.log('Public hover, selection, keyboard and touch checks passed');
       await checkFootballNews(page,'http://127.0.0.1:'+server.address().port);
-      console.log('Football news tabs and seven-day Vancouver date window passed');
+      console.log('Football news cards, media links, and seven-day Vancouver date window passed');
       await require('./pro-d-camp.cjs')();console.log('Pro-D camp mocked submission checks passed');
     }
   } finally {if(browser)await browser.close();server.close();}

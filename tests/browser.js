@@ -115,9 +115,21 @@
         }
         if(doc.body.classList.contains('quick-flow') && width<=430){
           const form=doc.querySelector('form'),submit=form.querySelector('[type="submit"]');
-          // The approved private form and 44px stepper rows stack on narrow phones.
+          const privateForm=doc.body.classList.contains('private-registration');
+          let priceLineOffset=0;
+          if(privateForm){
+            const priceLine=doc.querySelector('#private-heading + .quick-context');
+            const withPrice=submit.getBoundingClientRect().top;
+            priceLine.hidden=true;
+            priceLineOffset=withPrice-submit.getBoundingClientRect().top;
+            priceLine.hidden=false;
+            // Two lines of text plus the existing paragraph spacing at each breakpoint.
+            const spacing=width<=360?0:width<=420?10:12;
+            const expectedOffset=39.4+spacing;
+            check(Math.abs(priceLineOffset-expectedOffset)<0.1,`Private lesson price at ${width}px moves the inquiry button down ${expectedOffset}px (measured ${priceLineOffset.toFixed(1)}px)`);
+          }
           // Passes now show all four dated availability rows beside submit.
-          const baseLimit=page.startsWith('registration.html') && page.includes('type=pass4')?(width<=420?950:850):page.includes('kind=dropin')?850:doc.body.classList.contains('private-registration')?740:(width<=420 && numeric.length?850:740);
+          const baseLimit=page.startsWith('registration.html') && page.includes('type=pass4')?(width<=420?950:850):page.includes('kind=dropin')?850:privateForm?740:(width<=420 && numeric.length?850:740);
           // The optional attendance-history question adds one row before submit.
           // Account for that row and its grid gap, and cap the added height.
           const history=form.querySelector('[name="Previously attended Star Soccer"]');
@@ -126,9 +138,9 @@
             ? historyRow.getBoundingClientRect().height+(parseFloat(frame.contentWindow.getComputedStyle(form).rowGap)||0)
             : 0;
           if(history)check(historyHeight>0 && historyHeight<=100,`${page} at ${width}px keeps the optional attendance-history row within 100px`);
-          const limit=baseLimit+Math.min(historyHeight,100);
+          const limit=baseLimit+Math.min(historyHeight,100)+Math.ceil(priceLineOffset);
           check(Math.round(submit.getBoundingClientRect().bottom)<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
-          if(doc.body.classList.contains('private-registration')){
+          if(privateForm){
             doc.querySelector('[name="Training format"][value="smallgroup"]').click();
             check(Math.round(submit.getBoundingClientRect().bottom)<=limit && submit.getBoundingClientRect().height>=48,`Small group at ${width}px also keeps its inquiry button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
             doc.querySelector('[name="Training format"][value="private"]').click();

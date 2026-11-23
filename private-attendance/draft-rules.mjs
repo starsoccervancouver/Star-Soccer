@@ -116,12 +116,15 @@ export function receipt(d,row,today){
   const lines=[];
   if(complete)for(const {b,amount:part} of entries){
    const name=pick(d.players,single(b.Player));if(!name?.Player||single(name.Family)!==fid||!b['Booking reference']){lines.length=0;break;}
-   lines.push(esc(name.Player)+' · '+esc(b['Covered dates']||b['Start date']||b['Booking reference'])+' · '+money(part));
+   const dates=b['Covered dates']||b['Start date'];
+   const booking=pick(d.sessions,single(b['First session']))?.Session||b['Booking reference'];
+   lines.push(esc(name.Player)+' · '+esc(booking)+(dates?' · '+esc(dates):'')+' · '+money(part));
   }
   const method=p.Method==='Cash'?'cash':'Interac e-transfer';
-  const html='<p>Thank you. Star Soccer received '+money(amount)+' by '+method+' on '+date+'.</p>'+
-    (lines.length?'<ul>'+lines.map(l=>'<li>'+l+'</li>').join('')+'</ul>':'');
-  return {...content(key,to,'Star Soccer payment receipt | '+date,brandUpdate(approvedLayout(d),'Receipt',html)),lookup:p['Payment reference'],paymentDate:date,paymentAmount:(amount/100).toFixed(2),detail:lines.length?'':'Amount-only receipt. Review the booking allocation.'};
+  const receiptAnchor='Thank you. Star Soccer received '+money(amount)+' by '+method+' on '+date+'.</p>';
+  const allocationHtml=lines.length?'<ul>'+lines.sort().map(l=>'<li>'+l+'</li>').join('')+'</ul>':'';
+  const html='<p>'+receiptAnchor+allocationHtml;
+  return {...content(key,to,'Star Soccer payment receipt | '+date,brandUpdate(approvedLayout(d),'Receipt',html)),receiptAnchor,allocationHtml,receiptFamily:fid,lookup:p['Payment reference'],paymentDate:date,paymentAmount:(amount/100).toFixed(2),detail:lines.length?'':'Amount-only receipt. Review the booking allocation.'};
  });
 }
 export function renewal(d,row,expiry,today){

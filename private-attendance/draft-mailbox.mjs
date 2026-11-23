@@ -55,6 +55,42 @@ export function draftMailbox({read,fetchFn,access,owner}){
    return null;
   },
   create:c=>write('drafts','POST',{raw:mime(c)}),
+  async reviseReceipt(id,c,state,signature,beforeWrite){
+   const section=c.receiptAnchor+c.allocationHtml;
+   const previousSignature=list=>signature({...c,html:c.html.replace(section,()=>c.receiptAnchor+list)});
+   // Only allocation changes may update a receipt already addressed to a family.
+   if(state.allocationHtml!==undefined && previousSignature(state.allocationHtml)!==state.signature)return 'changed';
+   const path='drafts/'+encodeURIComponent(id);
+   const {message}=await read(path,[['format','raw']]);
+   if(!message?.raw)throw Error('GMAIL_DRAFT_UNAVAILABLE');
+   const raw=Buffer.from(message.raw,'base64url').toString('latin1');
+   const boundary=/\r?\n\r?\n/.exec(raw);
+   if(!boundary)return 'review';
+   const headers=raw.slice(0,boundary.index);
+   const unfolded=headers.replace(/\r?\n[ \t]+/g,' ');
+   const to=unfolded.match(/^To:[^\r\n]+/gim)||[];
+   if(to.length!==1||to[0].split('@').length!==2||to[0].slice(3).trim().toLowerCase().replace(/^.*<([^>]+)>$/,'$1')!==c.to||
+      /^(?:Cc|Bcc|Resent-To|Resent-Cc|Resent-Bcc|Content-Length):/im.test(headers)||
+      !/^Content-Type:\s*text\/html\s*;\s*charset=["']?utf-8\b/im.test(headers)||
+      !/^Content-Transfer-Encoding:[ \t]*base64[ \t]*\r?$/im.test(headers))return 'review';
+   const offset=boundary.index+boundary[0].length;
+   const html=Buffer.from(raw.slice(offset),'base64').toString('utf8');
+   const start=html.indexOf(c.receiptAnchor);
+   if(start<0||start!==html.lastIndexOf(c.receiptAnchor))return state.allocationHtml===undefined?'changed':'review';
+   const end=start+c.receiptAnchor.length,tail=html.slice(end);
+   const oldList=/^<ul>(?:<li>[^<]*<\/li>)+<\/ul>/.exec(tail)?.[0]||'';
+   if(!oldList && /^\s*<(?:ul|ol)\b/i.test(tail))return 'review';
+   if(state.allocationHtml===undefined && previousSignature(oldList)!==state.signature &&
+      !(oldList===c.allocationHtml && html===c.html))return 'changed';
+   if(oldList===c.allocationHtml)return 'updated'; // A previous PUT may have succeeded before its checkpoint.
+   if(state.allocationHtml!==undefined && oldList!==state.allocationHtml && oldList!==state.pendingAllocationHtml)return 'review';
+   const revised=html.slice(0,end)+c.allocationHtml+tail.slice(oldList.length);
+   const body=Buffer.from(revised).toString('base64').match(/.{1,76}/g).join('\r\n');
+   await beforeWrite(oldList);
+   const result=await write(path,'PUT',{threadId:message.threadId,raw:Buffer.from(raw.slice(0,offset)+body,'latin1').toString('base64url')});
+   if(result.id!==id)throw Error('GMAIL_DRAFT_UNCERTAIN');
+   return 'updated';
+  },
   async obsolete(id,key,reason){
    const path='drafts/'+encodeURIComponent(id),original=await read(path,[['format','raw']]);
    if(!original.message?.raw)throw Error('GMAIL_DRAFT_UNAVAILABLE');

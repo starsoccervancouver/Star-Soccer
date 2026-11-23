@@ -131,6 +131,20 @@ export async function processDraft({c,old,db,storage,mail,observedSentId}){
    return save('Review','Draft is missing and a sent copy could not be verified. Check Gmail before taking action.',extra);
   }
   if(draft.message?.threadId)extra['Gmail thread ID']=draft.message.threadId;
+  if(c.kind==='Receipt' && c.receiptAnchor && state?.draftId===draftId && state.to===c.to &&
+     (!state.receiptFamily || state.receiptFamily===c.receiptFamily) &&
+     (state.pendingAllocationHtml!==undefined || state.signature!==snapshot(c))){
+   const result=await mail.reviseReceipt(draftId,c,state,snapshot,async oldList=>{
+    await storage.put(lock,{...state,allocationHtml:state.allocationHtml??oldList,pendingAllocationHtml:c.allocationHtml});
+   });
+   if(result==='review')return save('Review','The receipt draft was edited. Check its booking breakdown against the verified allocations before sending.',extra);
+   if(result==='updated'){
+    const revised={...state,signature:snapshot(c),allocationHtml:c.allocationHtml,receiptFamily:c.receiptFamily};
+    delete revised.pendingAllocationHtml;
+    await storage.put(lock,revised);
+    return save('Draft',c.detail,extra);
+   }
+  }
   const withdrawn=c.obsolete||c.review||(c.existingSent?'A sent confirmation already exists.':'')||(state?.signature&&c.html&&state.signature!==snapshot(c)?'Booking, payment or recipient details changed. Review before sending.':'');
   if(withdrawn){
    await mail.obsolete(draftId,c.key,withdrawn);
@@ -158,6 +172,7 @@ export async function processDraft({c,old,db,storage,mail,observedSentId}){
  if(!acquired)return;
  await save('Creating','Checking Gmail for the new draft.',{Recipient:c.to});
  const d=await mail.create(c);if(!d?.id)throw Error('GMAIL_DRAFT_UNCERTAIN');
- await storage.put(lock,{to:c.to,draftId:d.id,thread:d.message?.threadId,signature:snapshot(c)});
+ await storage.put(lock,{to:c.to,draftId:d.id,thread:d.message?.threadId,signature:snapshot(c),
+  ...(c.kind==='Receipt'?{allocationHtml:c.allocationHtml,receiptFamily:c.receiptFamily}:{})});
  await save('Draft',c.detail,{Recipient:c.to,'Gmail draft ID':d.id,...(d.message?.threadId?{'Gmail thread ID':d.message.threadId}:{})});
 }

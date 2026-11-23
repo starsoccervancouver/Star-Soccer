@@ -52,7 +52,6 @@ jobs:
 
       - name: Stage public website files
         run: |
-          node scripts/publish-weekly-catalog.cjs
           node scripts/build-search-data.cjs
           python3 tests/check_site.py
           node scripts/check-published-weekly.cjs

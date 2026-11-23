@@ -53,3 +53,84 @@ body .fall-hero-copy{width:auto;margin:0;padding:0}
  .weekly-training-photo img{object-position:53% 50%}
 }
 @media(max-width:360px){body .fall-hero-copy .eyebrow{display:none}.weekly-training-photo{height:112px}}
+
+/* Homepage program lineup */
+body.home-landing .immersive-hero {
+  --ink: #e6eef5;
+  --muted: #bdcddd;
+  --blue: #97d2ff;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: clamp(16px, 2.6vw, 40px);
+  padding: clamp(24px, 4vw, 64px) max(20px, calc((100% - 1240px) / 2));
+  min-height: 0;
+  background: #081523;
+}
+body.home-landing .immersive-hero::after { display: none; }
+.home-landing .home-training-photo {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  grid-area: 1 / 2;
+  min-height: 260px;
+  overflow: hidden;
+  border-radius: 16px;
+}
+.home-landing .home-training-photo img { position: absolute; inset: 0; object-position: 65% 62%; }
+body.home-landing .immersive-hero-overlay { grid-area: 1 / 1; align-self: center; padding: 12px 0; background: none; }
+body.home-landing .immersive-hero-copy { width: 100%; max-width: 37rem; }
+body.home-landing .immersive-hero .mission-label,
+body.home-landing .hero-action .hero-action-eyebrow {
+  color: var(--blue);
+  font: 800 .73rem/1.45 Manrope, system-ui, sans-serif;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+body.home-landing .immersive-hero h1 {
+  margin: 14px 0;
+  color: var(--ink);
+  font: 800 clamp(2.68rem, 5.4vw, 5.6rem)/1.01 Manrope, system-ui, sans-serif;
+  letter-spacing: -.065em;
+  text-shadow: none;
+}
+body.home-landing .immersive-hero h1 span { color: var(--muted); font-size: .55em; letter-spacing: -.04em; }
+body.home-landing .immersive-hero-lead { color: var(--muted); max-width: 43ch; text-shadow: none; }
+body.home-landing .hero-action-panel {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+}
+body.home-landing .hero-action-panel a.hero-action {
+  min-height: 0;
+  padding: clamp(16px, 2vw, 28px);
+  gap: 4px;
+  border: 1px solid #45617a;
+  border-radius: 14px;
+  background: #10253a;
+  color: var(--ink);
+  box-shadow: none;
+}
+body.home-landing .hero-action-panel a.hero-action-camps { background: #173755; border-color: #7196b8; }
+body.home-landing .hero-action .hero-action-title { color: var(--ink); font: 800 clamp(1.2rem, 2vw, 1.85rem)/1.25 Manrope, system-ui, sans-serif; letter-spacing: -.045em; }
+body.home-landing .hero-action .hero-action-detail, .home-landing .program-rate { color: var(--muted); font: 550 .9rem/1.5 Manrope, system-ui, sans-serif; }
+.home-landing .program-rate { display: block; border-top: 1px solid #45617a; padding-top: 9px; margin-top: 6px; }
+.home-secondary-paths { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0 20px; }
+body.home-landing .home-secondary-paths a { color: var(--blue); padding-block: 10px; }
+body.home-landing .hero-action-panel a:focus-visible { outline: 3px solid #97d2ff; outline-offset: 2px; }
+@media (max-width: 700px) {
+  body.home-landing .immersive-hero { grid-template-columns: 1fr; gap: 14px; padding: 16px; }
+  .home-landing .home-training-photo { grid-area: 1 / 1; min-height: 0; height: clamp(130px, 32vw, 210px); aspect-ratio: auto; }
+  .home-landing .home-training-photo img { object-position: center 80%; }
+  body.home-landing .immersive-hero-overlay { grid-area: 2 / 1; padding: 0; }
+  body.home-landing .hero-action-panel { grid-template-columns: 1fr; }
+}
+.home-landing .program-action {
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 7px 14px;
+  border-radius: 100px;
+  background: #97d2ff;
+  color: #081523;
+  font: 750 .82rem/1.4 Manrope, system-ui, sans-serif;
+}

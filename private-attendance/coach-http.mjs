@@ -180,6 +180,12 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    }
    return json(200,{rows:report.rows});
   }
+  if(path==='/workspace/api/automation-history'&&request.method==='POST'){
+   coaches.owner(actor);if(!gmailSync)deny('NOT_FOUND',404);
+   const {query}=await body(request,['query']);
+   if(typeof query!=='string'||query.trim().length<3||query.length>200)deny('INVALID_SEARCH',400);
+   return json(200,await gmailSync('automation-history',{query}));
+  }
   if(path==='/workspace/api/owner-workflows'&&request.method==='GET'){
    coaches.owner(actor);if(!gmailSync)deny('NOT_FOUND',404);
    const reader=preview||createOperationsPreview({cookieKey,origin,coaches,overview,familyLedger,clock});

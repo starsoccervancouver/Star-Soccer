@@ -42,6 +42,45 @@ test('manual sending, edited drafts and deletion do not regenerate mail',async()
  const lost=s.d.draftLog.find(r=>r.fields['Email key']==='Receipt:cash').fields;s.drafts.delete(lost['Gmail draft ID']);await s.run();await s.run();
  assert.equal(lost.Status,'Review');assert.equal(s.count,6);
 });
+test('a verified split revises the same Gmail draft, survives a lost response and preserves owner text',async()=>{
+ const {draftMailbox,mime}=await import('../private-attendance/draft-mailbox.mjs');
+ const s=await setup(),allocations=s.d.allocations.splice(0);
+ await s.run();
+ const log=s.d.draftLog.find(r=>r.fields['Email key']==='Receipt:siblings').fields;
+ const id=log['Gmail draft ID'],original=s.drafts.get(id).c,thread=log['Gmail thread ID'];
+ const state=s.map.get('mail-drafts:lock:Receipt:siblings');
+ // Existing receipts only stored the original signature.
+ delete state.allocationHtml;delete state.receiptFamily;
+ let raw=mime({...original,html:original.html.replace('Thanks,<br>Romeo','See you soon,<br>Romeo')});
+ const body=()=>Buffer.from(Buffer.from(raw,'base64url').toString().split('\r\n\r\n')[1],'base64').toString();
+ let writes=0;
+ const mailbox=draftMailbox({read:async path=>{
+  assert.equal(path,'drafts/'+id);return {message:{threadId:thread,raw}};
+ },fetchFn:async(url,options)=>{
+  assert.equal(url.pathname.split('/').pop(),id);assert.equal(options.method,'PUT');
+  const payload=JSON.parse(options.body).message;assert.equal(payload.threadId,thread);
+  raw=payload.raw;writes++;if(writes===1)throw Error('response lost');return Response.json({id});
+ }});
+ s.mail.reviseReceipt=mailbox.reviseReceipt;
+ s.d.allocations.push(allocations[0]);await s.run();assert.equal(writes,0);
+ s.d.allocations.push(allocations[1]);
+ await assert.rejects(s.run(),/response lost/);
+ await s.run();await s.run();
+ assert.equal(log.Status,'Draft');assert.equal(log['Gmail draft ID'],id);assert.equal(writes,1);
+ assert.match(body(),/Example Paid.*60\.00.*Example Partial.*20\.00/);
+ assert.match(body(),/See you soon/);assert.equal(s.count,6);
+ s.d.allocations[0].fields['Applied CAD']=s.d.allocations[0].fields['Amount CAD']=55;
+ s.d.allocations[1].fields['Applied CAD']=s.d.allocations[1].fields['Amount CAD']=25;
+ await s.run();await s.run();assert.equal(writes,2);assert.match(body(),/55\.00.*25\.00/);
+ const validRaw=raw;
+ raw=Buffer.from('Cc: other@example.test\r\n'+Buffer.from(raw,'base64url').toString('latin1'),'latin1').toString('base64url');
+ s.d.allocations.pop();await s.run();await s.run();
+ assert.equal(writes,2);assert.equal(log.Status,'Review');
+ raw=validRaw;await s.run();await s.run();
+ assert.equal(writes,3);assert.equal(log.Status,'Draft');assert.ok(!body().includes('<li>'));
+ s.drafts.delete(id);s.delivered.set(original.key,'sent-receipt');await s.run();
+ s.d.allocations.length=0;await s.run();assert.equal(writes,3);assert.equal(log.Status,'Sent');assert.equal(s.count,6);
+});
 test('automated placement, unverified payment and opted-out renewal cannot produce drafts',async()=>{
  const s=await setup();s.d.bookings[1].fields['Source booking ID']='gmail-weekly:form';s.d.payments[1].fields.Verification='Needs review';
  s.d.enrollments[0].fields['Weekly attendance email preference']='Opted out';await s.run();await s.run();

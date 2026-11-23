@@ -32,9 +32,10 @@
  function renderWorkspaceView(){const active=tab==='plan'&&!!window.CoachPlanner?.isFocused();$('panel-attendance').hidden=!active||workspaceView!=='attendance';$('panel-notes').hidden=!active||workspaceView!=='notes';$('session-plan-section').hidden=!active||workspaceView!=='plan';$('planner-save').hidden=workspaceView!=='plan';document.querySelectorAll('[data-session-view]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.sessionView===workspaceView));b.disabled=saveBusy||loadingDesk||plannerBusy()||tacticsBusy();});}
  function setWorkspaceView(view){if(!['attendance','plan','notes'].includes(view)||saveBusy||loadingDesk||plannerBusy()||tacticsBusy())return false;stopDictation();workspaceView=view;if(view==='attendance')renderAttendance();if(view==='notes')renderNotes();if(view==='plan')loadPlan();renderWorkspaceView();publishCoachContext();document.dispatchEvent(new Event('coach:dictation-state'));return true;}
  function notice(text,error=false){if(!error){$('global-error').hidden=true;$('global-error').textContent='';}const el=error?$('global-error'):$('notice');el.textContent=text;el.hidden=false;if(!error)setTimeout(()=>{el.hidden=true;},5000);}
- async function api(path,body,includeDesk=false){
+ async function api(path,body,includeDesk=false,openingOverview=false){
   const flow=generation;
   const headers=includeDesk?{'X-Coach-Desk':'full'}:{};
+  if(openingOverview)headers['X-Coach-Overview']='unpaid';
   const options={credentials:'same-origin',headers};
   if(body!==undefined){
    headers['Content-Type']='application/json';
@@ -689,7 +690,7 @@
   booksRequest++;booksRows=null;booksLimit=booksPageSize;homeUnpaidState='idle';
   $('home-unpaid').hidden=true;$('home-unpaid-label').textContent='Unpaid sessions';updateHomeAttention();
   $('books-search').value='';$('books-more').hidden=true;
-  $('home-unpaid').open=false;$('books-filter').value='attention';$('books-refresh').disabled=false;
+  $('home-unpaid').open=true;$('books-filter').value='attention';$('books-refresh').disabled=false;
   setBooksMode('family');clearBookTotals();
   for(const id of ['books-list','home-unpaid-list','books-status','home-unpaid-status'])$(id).replaceChildren();
  }
@@ -1010,7 +1011,7 @@
  }
  function renderUnpaidRows(){
   const list=$('home-unpaid-list');list.replaceChildren();
-  if(!$('home-unpaid').open||homeUnpaidState!=='ready')return;
+  if(!$('home-unpaid').open)return;
   for(const family of unpaidFamilies){
    const target=family.rows.length===1?'booking-'+family.rows[0].bookingId:'family-'+family.id;
    const action=node('a');action.href='#view=books&balance='+target;
@@ -1018,31 +1019,41 @@
    const item=node('li');item.append(action);list.append(item);
   }
  }
+ function showUnpaid(result){
+   unpaidFamilies=unpaidByFamily(result.rows);homeUnpaidState='ready';
+   renderPendingPayments(result.pendingPayments||[]);
+   const pending=$('pending-booking-payments').childElementCount;
+   $('home-unpaid-label').textContent=unpaidFamilies.length?'Unpaid sessions ('+unpaidFamilies.length+(unpaidFamilies.length===1?' family)':' families)'):'Payment to finish';
+   $('home-unpaid').hidden=!unpaidFamilies.length&&!pending;
+   updateHomeAttention();renderUnpaidRows();$('home-unpaid-status').textContent='';
+ }
  async function loadBooks(unpaid=false){
   if(!canViewBooks()||tab!==(unpaid?'home':'books'))return;
+  let previous=null;
+  if(unpaid&&data.unpaid){
+   previous=data.unpaid;delete data.unpaid;
+   showUnpaid(previous);
+   if(!previous.refresh)return;
+   homeUnpaidState='idle';
+  }
   if(unpaid){if(homeUnpaidState==='loading'||homeUnpaidState==='ready')return;homeUnpaidState='loading';
-   $('home-unpaid-label').textContent='Checking unpaid sessions…';$('home-unpaid').hidden=false;updateHomeAttention();
+   if(!previous){$('home-unpaid-label').textContent='Checking unpaid sessions…';$('home-unpaid').hidden=false;updateHomeAttention();}
   }
   const ticket=++booksRequest,list=$(unpaid?'home-unpaid-list':'books-list'),status=$(unpaid?'home-unpaid-status':bookTarget?'selected-balance-status':'books-status');
-  list.replaceChildren();booksRows=null;
+  if(!previous)list.replaceChildren();booksRows=null;
   if(!unpaid){
    $('unpaid-bookings').hidden=!bookTarget;$('books-directory').hidden=!!bookTarget;
    $('unpaid-booking-list').replaceChildren();$('payment-entry').hidden=true;paymentFamily=null;
    $('unpaid-bookings-title').textContent='Outstanding sessions';$('selected-balance').textContent='';$('selected-balance-retry').hidden=true;
   }
-  status.textContent=unpaid?'Loading unpaid sessions…':'Loading books…';
+  status.textContent=previous?'Last checked '+new Date(previous.checkedAt).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' · Updating…':unpaid?'Loading unpaid sessions…':'Loading books…';
   if(!unpaid){clearBookTotals();$('books-refresh').disabled=true;$('books-more').hidden=true;booksLimit=booksPageSize;}
   try{
    const result=await api('session-books',unpaid?{view:'unpaid'}:{});
    if(ticket!==booksRequest||!canViewBooks())return;
    if(!Array.isArray(result.rows))throw Error('Books unavailable.');
    if(!unpaid){booksRows=result.rows;if(bookTarget)renderSelectedBalance();else{showBookTotals(booksRows);renderBooks();}return;}
-   unpaidFamilies=unpaidByFamily(result.rows);homeUnpaidState='ready';
-   renderPendingPayments(result.pendingPayments||[]);
-   const pending=$('pending-booking-payments').childElementCount;
-   $('home-unpaid-label').textContent=unpaidFamilies.length?'Unpaid sessions ('+unpaidFamilies.length+(unpaidFamilies.length===1?' family)':' families)'):'Payment to finish';
-   $('home-unpaid').hidden=!unpaidFamilies.length&&!pending;
-   updateHomeAttention();renderUnpaidRows();status.textContent='';
+   showUnpaid(result);
   }catch(error){
    if(ticket!==booksRequest)return;
    if(error.code==='ACCESS_DENIED'){
@@ -1051,6 +1062,7 @@
     return;
    }
    if(unpaid){
+    unpaidFamilies=[];renderUnpaidRows();
     homeUnpaidState='failed';$('home-unpaid-label').textContent='Check unpaid sessions';$('home-unpaid').hidden=false;updateHomeAttention();
    }
    if(!unpaid&&bookTarget){
@@ -1208,6 +1220,7 @@
    }
    workspaceView=requestedView;tab=next;renderSelector();$('session-toolbar').hidden=true;$('settings-navigation').hidden=!settingsTabs.includes(tab);$('refresh').hidden=settingsTabs.includes(tab)||['families','books','attention'].includes(tab);if(tab==='attendance')renderAttendance();document.querySelectorAll('.tab-panel').forEach(p=>{p.hidden=p.id!=='panel-'+tab;});document.querySelectorAll('#navigation button[data-tab]').forEach(b=>{const active=b.dataset.tab===(tab==='plan'?'plan':tab)||b.dataset.tab==='settings'&&settingsTabs.includes(tab);b.classList.toggle('nav-active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});document.querySelectorAll('[data-settings-tab]').forEach(b=>{if(b.dataset.settingsTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});const t=tab==='plan'&&workspaceView!=='plan'?[titles[workspaceView][0],titles[workspaceView][1],'Choose a training group to open '+(workspaceView==='attendance'?'its attendance.':'its group and player notes.')]:titles[tab];$('page-eyebrow').textContent=t[0];$('page-title').textContent=t[1];$('page-copy').textContent=t[2];if(tab==='home'){renderHome();if(canViewBooks())loadBooks(true);if(data.familyFollowupsAvailable)loadOwnerFollowups();}if(tab==='attention'){renderReportPane();if(reportView==='roster'&&profile.role==='owner'&&data.familyFollowupsAvailable&&['all','registrations'].includes(reviewFilter))loadOwnerFollowups();}if(profile.familyAccess && (tab==='attention'&&reportView!=='roster'||tab==='home'&&data.attentionAvailable))loadAttention();if(tab==='books')loadBooks();if(tab==='families')showFamilyView(familyId);if(tab==='notes')renderNotes();if(tab==='plan'){if(!preserveSession&&!reopenGroup)window.CoachPlanner?.exitFocus();if(preserveSession||reopenGroup||window.CoachPlanner?.isFocused())loadPlan();renderWorkspaceView();}if(tab==='tasks')renderTasks();if(tab==='settings')renderSettings();if(tab==='team')loadTeam();if(tab==='activity')loadActivity();publishCoachContext();if(reopenGroup){renderAttendance();renderNotes();window.CoachPlanner?.focusSession(selected);}renderWorkspaceView();}
  function render(){if(!data)return;renderSelector();renderHome();renderAttendance();renderNotes();if(tab==='plan'&&!planDirty())loadPlan();if(tab==='team')loadTeam();if(tab==='settings')renderSettings();publishCoachContext();}
+ const opensOverview=()=>(fragment.get('view')||tab)==='home';
  async function loadDesk(refresh=false,initialDesk=null){
   if(saveBusy||paymentBusy||loadingDesk||tacticsBusy()||plannerBusy())return;
   stopDictation();
@@ -1231,7 +1244,7 @@
     planSession=null;
    }
    // Older servers return only a scoped roster on refresh.
-   data=fresh?.profile&&Array.isArray(fresh.notes)&&Array.isArray(fresh.tasks)?fresh:await api('desk');
+   data=fresh?.profile&&Array.isArray(fresh.notes)&&Array.isArray(fresh.tasks)?fresh:await api('desk',undefined,false,!refresh&&opensOverview());
    if(refresh)attendanceErrors.clear();
    if(selected&&!data.sessions.some(s=>s.id===selected)){
     selected='';noteFolder='';planSession=null;planPendingSession=null;planLoad++;resetNote();
@@ -1298,5 +1311,5 @@
  $('navigation').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;const buttons=[...$('navigation').querySelectorAll('button')].filter(button=>!button.hidden&&!button.disabled&&button.getClientRects().length),index=buttons.indexOf(document.activeElement);if(index<0)return;event.preventDefault();const target=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(['ArrowLeft','ArrowUp'].includes(event.key)?-1:1)+buttons.length)%buttons.length;buttons[target].focus();buttons[target].scrollIntoView({block:'nearest',inline:'nearest'});});
  const requestedView=fragment.get('view');if([...startViews,'settings'].includes(requestedView))tab=requestedView;
  $('attendance-past-day').replaceChildren(new Option('All days','all'),...trainingDays.map(d=>new Option(d.label,String(d.number))));
- (async()=>{try{const b=await api('bootstrap',undefined,!enrollment);csrf=b.csrfToken;googleEnabled=!!b.googleEnabled;profile=b.profile;if(profile&&!enrollment)await loadDesk(false,b.desk);else showLogin();}catch(e){showLogin();notice(e.message,true);}})();
+ (async()=>{try{const b=await api('bootstrap',undefined,!enrollment,!enrollment&&opensOverview());csrf=b.csrfToken;googleEnabled=!!b.googleEnabled;profile=b.profile;if(profile&&!enrollment)await loadDesk(false,b.desk);else showLogin();}catch(e){showLogin();notice(e.message,true);}})();
 })();

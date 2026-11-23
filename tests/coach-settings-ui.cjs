@@ -29,7 +29,7 @@ require('./coach-fixture-fonts.cjs')(assets);
 (async () => {
   const browser = await chromium.launch(); let checks = 0;
   try {
-    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail, homeQueues = false, bundleDesk = homeQueues,
+    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail, homeQueues = false, bundleDesk = homeQueues, openingUnpaid=false,
       paymentRecording = false, followups = false, roster = sessions, refreshRoster, books = [], openInquiry = true, booksAvailable = role==='owner'||(role==='admin'&&familyAccess),
       families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
@@ -52,6 +52,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         if (path.endsWith('/refresh') && refreshRoster !== undefined) roster = refreshRoster;
         const desk = { profile: state.profile, sessions:roster, notes: [], tasks: [], observedAt: now, ...(booksAvailable?{booksAvailable:true}:{}), ...(paymentRecording?{paymentRecordingAvailable:true}:{}),
           attentionAvailable: homeQueues && familyAccess, familyFollowupsAvailable: (followups || homeQueues) && role==='owner' };
+        if(openingUnpaid&&booksAvailable&&request.headers()['x-coach-overview']==='unpaid')desk.unpaid={rows:books,checkedAt:Date.now(),refresh:false};
         const includeDesk = bundleDesk && state.profile && request.headers()['x-coach-desk'] === 'full';
         if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true, ...(includeDesk ? {desk} : {}) };
         else if (path.endsWith('/desk')) value = desk;

@@ -287,3 +287,25 @@ test('only a signed-in owner can submit a booking payment',async t=>{
  assert.equal((await request(owner,'booking-payment',{id:'test'})).status,200);
  assert.deepEqual(calls,[['record-booking-payment',{actor:owner.email,input:{id:'test'}}]]);
 });
+
+test('Overview opens with verified balances for finance users and reuses the saved summary',async t=>{
+ const row={scope:'session',status:'due',amountDue:25,familyName:'Example',contact:{phone:'private'}};
+ let calls=0,snapshot=null;
+ const sessionBooks=Object.assign(async()=>{calls++;return {rows:[row]};},{lastUnpaid:()=>snapshot});
+ const {owner,one,auth,handler}=await setup(t,{sessionBooks,overview:async()=>({sessions:[]})});
+ async function open(actor){
+  const session=auth.createVerifiedSession(actor.email);
+  const response=await handler(new Request('https://attendance.starsoccer.ca/workspace/api/bootstrap',{headers:{
+   cookie:'__Host-ss_staff='+session.token,'X-Coach-Desk':'full','X-Coach-Overview':'unpaid'
+  }}));
+  assert.equal(response.status,200);
+  return (await response.json()).desk;
+ }
+ assert.equal((await open(one)).unpaid,undefined);
+ assert.equal(calls,0);
+ const {unpaid}=await open(owner);
+ assert.equal(unpaid.rows[0].amountDue,25);assert.equal(unpaid.rows[0].contact,undefined);
+ assert.equal(unpaid.refresh,false);assert.equal(calls,1);
+ snapshot={rows:unpaid.rows,checkedAt:Date.now()-60000};
+ assert.equal((await open(owner)).unpaid.refresh,true);assert.equal(calls,1);
+});

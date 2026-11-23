@@ -57,7 +57,11 @@ const { chromium } = require('playwright');
     const calls = operation => page.evaluate(operation => fixtureCalls.filter(call => call.operation === operation), operation);
     const fill = async (id, value) => { await page.locator(id).fill(value); await page.locator(id).dispatchEvent('change'); };
     const idle = () => page.waitForFunction(() => !CoachTactics.isBusy());
-    const openReuse = async () => { await page.locator('#tactics-disclosure').evaluate(element => { element.open = true; }); await idle(); await page.locator('#tactics-reuse').evaluate(element => { element.open = true; }); };
+    const expand = async id => {
+      const details = page.locator(id);
+      if (!await details.evaluate(element => element.open)) await details.locator(':scope > summary').click();
+    };
+    const openReuse = async () => { await expand('#tactics-disclosure'); await idle(); await expand('#tactics-reuse'); };
     const loadSource = async () => { await page.locator('#tactics-source-session').selectOption(source.id); await page.locator('#tactics-source-load').click(); await idle(); };
     const openField = async () => { await page.locator('#session-field-disclosure').evaluate(element => { element.open = true; }); await page.locator('#open-field-view').click(); };
     await page.goto(origin + '/workspace');

@@ -62,7 +62,7 @@ export function validateDiagram(content){
     result.facing=position.facing;
    }
    if(Object.hasOwn(position,'rotation')){
-    if(itemKinds.get(id)!=='goal'||typeof position.rotation!=='number'||!Number.isFinite(position.rotation)||position.rotation<0||position.rotation>=360)invalid();
+    if(['home','away'].includes(itemKinds.get(id))||typeof position.rotation!=='number'||!Number.isFinite(position.rotation)||position.rotation<0||position.rotation>=360)invalid();
     result.rotation=position.rotation;
    }
    if(Object.hasOwn(position,'curve'))result.curve=curve(position.curve);

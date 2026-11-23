@@ -143,6 +143,10 @@ const { chromium } = require('playwright');
       if (view.includes('goal')) assert.equal(await page.locator('#tactics-pitch-board [data-field-goal]').getAttribute('data-field-goal'), view === 'facing-goal' ? 'top' : 'bottom');
     }
     await page.locator('#tactics-pitch').selectOption('facing-goal');
+    await page.getByRole('button', {name:'Rotate left 15 degrees'}).click();
+    assert.equal(await page.locator('#tactics-rotation').inputValue(),'345');
+    await page.getByRole('button', {name:'Rotate right 15 degrees'}).click();
+    assert.equal(await page.locator('#tactics-rotation').inputValue(),'0');
     await fill('#tactics-rotation', '90');
     const startingLayout=await draft();await reveal('#tactics-paths');await page.locator('#tactics-paths').uncheck();
     await page.locator('#tactics-mode-record').click();

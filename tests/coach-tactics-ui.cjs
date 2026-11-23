@@ -78,7 +78,7 @@ const { chromium } = require('playwright');
     assert.equal(await count('list'), 0);
     await publish(fixture);
     assert.equal(await count('list'), 0, 'Closed board does not eagerly request stored diagrams');
-    await open();
+    await page.locator('#tactics-disclosure > summary').click();
     await page.locator('#tactics-title').waitFor();
     await page.waitForFunction(() => !CoachTactics.isBusy());
     assert.equal(await count('list'), 1);

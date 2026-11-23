@@ -128,7 +128,7 @@
     }, (color ? color[0].toUpperCase() + color.slice(1) + ' player' : kinds[kind]) + ' added.');
   }
   const playerTools = el('div', '', 'tactics-player-tools'), colorMenu = el('div', '', 'tactics-player-colors'); colorMenu.id = 'tactics-player-colors'; colorMenu.hidden = true; colorMenu.setAttribute('role', 'group'); colorMenu.setAttribute('aria-label', 'Choose player colour');
-  const currentColor = el('span', '', 'tactics-current-color'); currentColor.setAttribute('aria-hidden', 'true');
+  const currentColor = svg('svg', { viewBox:'-30 -30 60 60', width:22, height:22, 'aria-hidden':'true' });
   function closeColors() { colorMenu.hidden = true; newPlayer.setAttribute('aria-expanded', 'false'); addPlayerButton.setAttribute('aria-expanded', 'false'); }
   function choosePlayerColor() { if (!editable()) return; colorMenu.hidden = !colorMenu.hidden; newPlayer.setAttribute('aria-expanded', String(!colorMenu.hidden)); addPlayerButton.setAttribute('aria-expanded', String(!colorMenu.hidden)); if (!colorMenu.hidden) colorMenu.querySelector('button').focus(); }
   function addPlayer(destination) { if (!currentPlayerColor) { choosePlayerColor(); return; } addPiece(currentPlayerColor === 'gold' ? 'away' : 'home', destination, currentPlayerColor); }
@@ -237,13 +237,27 @@
   side.insertBefore(playerColorField, pieceLabel.nextSibling); side.prepend(removeArrow);
   const advanced = el('div', '', 'tactics-piece-settings'); advanced.append(carrierField, routeActions); side.append(advanced);
   const pieceActions = el('div', '', 'tactics-piece-actions'); for (const id of ['tactics-duplicate-item', 'tactics-remove-item']) pieceActions.append(side.querySelector('#' + id)); advanced.before(pieceActions);
-  const rotation = input('tactics-rotation', 'number'); rotation.min = '0'; rotation.max = '360'; rotation.step = 'any';
-  rotation.addEventListener('change', () => mutate(() => { const p = currentFrame().positions.find(p => p.id === selectedItem), value = Number(rotation.value); if (p && Number.isFinite(value) && value >= 0 && value < 360) p.rotation = value; }, 'Goal direction updated for this phase.'));
-  const rotationField = field('Goal direction (degrees)', rotation); side.append(rotationField);
+  function angleKey(kind) { return kind === 'home' || kind === 'away' ? 'facing' : 'rotation'; }
+  const rotation = input('tactics-rotation', 'number'); rotation.step = 'any';
+  const turnTools = el('div', '', 'tactics-turn-tools');
+  function turnSelected(degrees, relative = false) {
+    const item = record.content.items.find(i => i.id === selectedItem);
+    if (!item || selection().length !== 1 || !Number.isFinite(degrees)) return;
+    const p = currentFrame().positions.find(p => p.id === item.id), key = angleKey(item.kind);
+    const angle = relative ? (p[key] || 0) + degrees : degrees;
+    mutate(() => { p[key] = ((angle % 360) + 360) % 360; }, 'Rotation updated for this phase.');
+  }
+  rotation.addEventListener('change', () => {
+    if (Number.isFinite(rotation.valueAsNumber)) turnSelected(rotation.valueAsNumber);
+    else render();
+  });
+  const turnLeft = button('↶ 15°', 'tactics-turn-left', () => turnSelected(-15, true));
+  const turnRight = button('↷ 15°', 'tactics-turn-right', () => turnSelected(15, true));
+  turnLeft.setAttribute('aria-label', 'Rotate left 15 degrees'); turnRight.setAttribute('aria-label', 'Rotate right 15 degrees');
+  turnTools.append(field('Rotation this phase (°)', rotation), turnLeft, turnRight); side.append(turnTools);
   const bodyTools = el('details', '', 'tactics-body-tools'); bodyTools.id = 'tactics-player-tools'; bodyTools.append(el('summary', 'Player overlays'));
   const bodyEnabled = input('tactics-body-direction', 'checkbox'), bodyLabel = field('Show body direction', bodyEnabled); bodyLabel.className = 'tactics-check';
   const playerPosition = () => currentFrame().positions.find(p => p.id === selectedItem);
-  const setFacing = angle => mutate(() => { const p = playerPosition(); if (p) p.facing = ((angle % 360) + 360) % 360; }, 'Body direction updated for this phase. Movement stays unchanged.');
   bodyEnabled.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (bodyEnabled.checked) p.facing = p.facing || 0; else delete p.facing; }));
   const shadowEnabled = input('tactics-cover-shadow', 'checkbox'), shadowLabel = field('Show cover shadow', shadowEnabled); shadowLabel.className = 'tactics-check';
   shadowEnabled.addEventListener('change', () => mutate(() => { const p = playerPosition(); if (shadowEnabled.checked) p.shadow = { length: 25, width: 20 }; else delete p.shadow; }));
@@ -489,6 +503,10 @@
     const item = record.content.items.find(i => i.id === id); if (item?.kind !== 'goal') return;
     item.scale = Math.max(.5, Math.min(4, Math.round(size * 100) / 100));
   }
+  function rotateOffset(x, y, degrees) {
+    const a = degrees * Math.PI / 180;
+    return { x:x*Math.cos(a)-y*Math.sin(a), y:x*Math.sin(a)+y*Math.cos(a) };
+  }
   function goalCorner(item, position) {
     const screenScale = Math.max(.01, Math.hypot(board.getScreenCTM()?.a || 0, board.getScreenCTM()?.b || 0) || 1);
     const size = Math.max(.62, .48 / screenScale) * (item.scale || 1), angle = (position.rotation || 0) * Math.PI / 180;
@@ -548,7 +566,14 @@
   }
   function motionPositions(from, to, t, view = record.content.pitch) {
     return from.positions.map(p => { const q = to.positions.find(v => v.id === p.id), result = { ...(t >= 1 ? q : p), ...motionPosition(from, to, p.id, t, view) }; delete result.attachedTo;
-      if (Number.isFinite(p.facing) && Number.isFinite(q.facing)) result.facing = (p.facing + ((q.facing - p.facing + 540) % 360 - 180) * t + 360) % 360;
+      if (p.rotation !== undefined || q.rotation !== undefined) {
+        const start = p.rotation || 0, end = q.rotation || 0;
+        result.rotation = (start + ((end - start + 540) % 360 - 180) * t + 360) % 360;
+      }
+      if (Number.isFinite(p.facing) || Number.isFinite(q.facing)) {
+        const start = p.facing || 0, end = q.facing || 0;
+        if (t > 0 && t < 1) result.facing = (start + ((end - start + 540) % 360 - 180) * t + 360) % 360;
+      }
       return result;
     });
   }
@@ -561,8 +586,18 @@
     if (!['home', 'away'].includes(kind) || !Number.isFinite(position?.facing)) return pieceArtwork(kind, color);
     const art = svg('g', { 'data-symbol': kind, 'data-facing': position.facing, transform: 'rotate(' + position.facing + ')', 'aria-hidden': 'true' });
     // A top-down head and shoulder line show body angle; the chevron marks the front.
-    art.append(svg('path', { d: 'M-8-11 Q-17-11-23-3 L-21 8 L-13 6 L-12 19 Q0 24 12 19 L13 6 L21 8 L23-3 Q17-11 8-11Z', fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 2.5, 'stroke-linejoin':'round' }), svg('circle', { cy: -12, r: 8, fill: '#f1e4cf', stroke: '#293b31', 'stroke-width': 2 }), svg('path', { d:'M-3-19 L0-24 L3-19Z', fill:'#293b31', 'data-player-front':'' }), svg('path', { d: 'M-9-30 L0-37 L9-30', fill:'none', stroke:'#fffdf7', 'stroke-width':5, 'stroke-linecap':'round', 'stroke-linejoin':'round', 'pointer-events':'none' }), svg('path', { d: 'M-9-30 L0-37 L9-30', fill:'none', stroke:'#20382d', 'stroke-width':2.5, 'stroke-linecap':'round', 'stroke-linejoin':'round', 'data-body-direction':'', 'pointer-events':'none' }));
+    art.append(svg('path', { d: 'M-8-12 Q-18-12-24-4 L-21 7 L-14 5 L-12 17 Q-10 21 0 21 T12 17 L14 5 L21 7 L24-4 Q18-12 8-12Z', fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 2.5, 'stroke-linejoin':'round' }), svg('path',{d:'M-20-5 L-17 1 M20-5 L17 1 M-9 15 Q0 18 9 15',fill:'none',stroke:'#fff','stroke-opacity':.65,'stroke-width':2}), svg('circle', { cy: -12, r: 8, fill: '#dbc6ad', stroke: '#293b31', 'stroke-width': 2 }), svg('path', { d:'M-3-19 L0-24 L3-19Z', fill:'#293b31', 'data-player-front':'' }), svg('path', { d: 'M-9-30 L0-37 L9-30', fill:'none', stroke:'#fffdf7', 'stroke-width':5, 'stroke-linecap':'round', 'stroke-linejoin':'round', 'pointer-events':'none' }), svg('path', { d: 'M-9-30 L0-37 L9-30', fill:'none', stroke:'#20382d', 'stroke-width':2.5, 'stroke-linecap':'round', 'stroke-linejoin':'round', 'data-body-direction':'', 'pointer-events':'none' }));
     return art;
+  }
+  function orientedArtwork(item, position, cameraAngle = 0) {
+    const graphic = playerArtwork(item.kind, position, item.color);
+    if (angleKey(item.kind) === 'facing') {
+      if (!Number.isFinite(position.facing)) graphic.setAttribute('transform', 'rotate(' + -cameraAngle + ')');
+    } else {
+      const angle = position.rotation ?? (item.kind === 'cone' ? -cameraAngle : 0);
+      graphic.setAttribute('transform', 'rotate(' + angle + ') scale(' + (item.scale || 1) + ')');
+    }
+    return graphic;
   }
   function visionArtwork(item, frame, view = record.content.pitch) {
     const p = frame.positions.find(v => v.id === item.id); if (!p?.vision || !['home', 'away'].includes(item.kind)) return null;
@@ -581,9 +616,14 @@
     const art = svg('g', { 'aria-hidden': 'true', 'data-symbol': kind, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
     if (['home', 'away'].includes(kind)) {
       const fill = playerColors[color || (kind === 'away' ? 'gold' : 'blue')];
-      art.append(svg('path', { d: 'M-9-22 L-24-13 L-17-1 L-11-5 V23 H11 V-5 L17-1 L24-13 L9-22 Q0-13-9-22Z', fill, stroke: '#45515a', 'stroke-width': 2 }), svg('path', { d: 'M-9-22 Q0-7 9-22 M-11 18 H11', fill: 'none', stroke: '#ffffff70', 'stroke-width': 2 }));
+      const outline = 'M-9-23 Q-6-18 0-18 Q6-18 9-23 L19-19 L27-9 L19-1 L14-5 L14 18 Q14 22 10 22 H-10 Q-14 22-14 18 V-5 L-19-1 L-27-9 L-19-19Z';
+      art.append(svg('path', { d:outline, fill, stroke:'#142730', 'stroke-width':4 }),
+        svg('path', { d:outline, fill:'none', stroke:'#edf1df', 'stroke-width':1.3 }),
+        svg('path', { d:'M-9-22 Q0-8 9-22 M-25-10 L-19-4 M19-4 L25-10 M-11 17 H11', fill:'none', stroke:'#ffffff', 'stroke-opacity':.65, 'stroke-width':2.3 }));
     } else if (kind === 'cone') {
-      art.append(svg('ellipse', { cy: 5, rx: 15, ry: 6, fill: '#ed9146', stroke: '#8c4c24', 'stroke-width': 1.5 }), svg('path', { d: 'M-13 4 Q-7 1-5-4 Q0-9 5-4 Q7 1 13 4 Q0 11-13 4Z', fill: '#f5a45c', stroke: '#8c4c24', 'stroke-width': 1.2 }), svg('ellipse', { cy: -3, rx: 4, ry: 2, fill: '#87502b' }));
+      art.append(svg('path', { d:'M-20 12 L-12 7 H12 L20 12 V17 Q0 21-20 17Z', fill:'#d66a2e', stroke:'#573823', 'stroke-width':2 }),
+        svg('path', { d:'M-13 11 L-3-18 Q0-21 3-18 L13 11 Q0 16-13 11Z', fill:'#f79b4b', stroke:'#573823', 'stroke-width':2 }),
+        svg('path', { d:'M-7-5 Q0-2 7-5 L9 1 Q0 5-9 1Z', fill:'#fff2d9' }));
     } else if (kind === 'ball') {
       art.append(svg('circle', { r: 16, fill: '#fffdf7', stroke: '#334451', 'stroke-width': 2 }), svg('path', { d: 'M0-8 L8-2 L5 7 L-5 7 L-8-2Z M0-8 V-16 M8-2 L15-5 M5 7 L10 13 M-5 7 L-10 13 M-8-2 L-15-5', fill: '#334451', stroke: '#334451', 'stroke-width': 1.5 }), svg('path', { d: 'M-5-14 L0-11 L5-14 M13-8 L11-3 L15 0 M12 10 L6 10 L5 15 M-12 10 L-6 10 L-5 15 M-13-8 L-11-3 L-15 0', fill: 'none', stroke: '#334451', 'stroke-width': 2 }));
     } else if (kind === 'goal') {
@@ -616,7 +656,7 @@
     const { unitX, unitY } = pitchGeometry(view), width = item.zone.width * unitX, height = item.zone.height * unitY, color = { blue: '#426f9b', gold: '#956b20', green: '#397561' }[item.zone.color];
     const group = svg('g', { transform: 'translate(' + p.x * unitX + ' ' + p.y * unitY + ')', 'data-zone': item.id });
     if (!preview) { group.dataset.tacticsItem = item.id; group.setAttribute('role', 'button'); group.setAttribute('tabindex', editable() ? '0' : '-1'); group.setAttribute('aria-label', 'Zone ' + item.label); group.setAttribute('aria-pressed', String(selection().includes(item.id))); }
-    const attrs = { fill: color, 'fill-opacity': item.zone.outline ? 0 : .13, stroke: color, 'stroke-width': selectedItem === item.id && !preview ? 3 : 2, 'stroke-dasharray': item.zone.outline ? 'none' : '7 5', 'vector-effect': 'non-scaling-stroke' };
+    const attrs = { transform:'rotate(' + (p.rotation || 0) + ')', fill: color, 'fill-opacity': item.zone.outline ? 0 : .13, stroke: color, 'stroke-width': selectedItem === item.id && !preview ? 3 : 2, 'stroke-dasharray': item.zone.outline ? 'none' : '7 5', 'vector-effect': 'non-scaling-stroke' };
     group.append(['triangle', 'diamond'].includes(item.zone.shape) ? svg('polygon', { points: item.zone.shape === 'triangle' ? `0,${-height/2} ${width/2},${height/2} ${-width/2},${height/2}` : `0,${-height/2} ${width/2},0 0,${height/2} ${-width/2},0`, ...attrs }) : item.zone.shape === 'ellipse' ? svg('ellipse', { rx: width / 2, ry: height / 2, ...attrs }) : svg('rect', { x: -width / 2, y: -height / 2, width, height, rx: 5, ...attrs }));
     if (item.label && !preview) { const font = Math.max(15, 11 / Math.max(.01, board.getScreenCTM()?.a || 1)); group.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-family': 'Arial,sans-serif', 'font-size': font, 'font-weight': 700, fill: color, 'pointer-events': 'none' }, item.label)); }
     return group;
@@ -642,7 +682,7 @@
     const { width, height, unitX, unitY } = pitchGeometry(view), thumbnail = svg('svg', { viewBox: '0 0 ' + width + ' ' + height, 'aria-hidden': 'true' });
     thumbnail.append(fieldArtwork(view));
     for (const item of items) { const shadow = shadowArtwork(item, frame, items, view); if (shadow) thumbnail.append(shadow); const vision = visionArtwork(item, frame, view); if (vision) thumbnail.append(vision); }
-    for (const item of [...items].sort((a, b) => pieceLayer(a) - pieceLayer(b))) { const p = positionIn(frame, item.id), settings = frame.positions.find(v => v.id === item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, p, true, view)); else { const symbol = svg('g', { transform: 'translate(' + p.x * unitX + ' ' + p.y * unitY + ') scale(1)', 'data-preview-piece': item.id }); const graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ') scale(' + (item.scale || 1) + ')'); symbol.append(graphic); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: playerInk(item) }, item.label)); thumbnail.append(symbol); } }
+    for (const item of [...items].sort((a, b) => pieceLayer(a) - pieceLayer(b))) { const p = positionIn(frame, item.id), settings = frame.positions.find(v => v.id === item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, settings, true, view)); else { const symbol = svg('g', { transform: 'translate(' + p.x * unitX + ' ' + p.y * unitY + ') scale(1)', 'data-preview-piece': item.id }); symbol.append(orientedArtwork(item, settings)); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: playerInk(item) }, item.label)); thumbnail.append(symbol); } }
     for (const arrow of frame.arrows || []) thumbnail.append(arrowArtwork(arrow, false, view));
     return thumbnail;
   }
@@ -706,7 +746,11 @@
     arrowTool.setAttribute('aria-pressed', String(editMode === 'arrow')); board.style.cursor = editMode === 'arrow' ? 'crosshair' : '';
     modeHint.textContent = editMode === 'arrow' ? 'Draw on the field' : editMode === 'place' ? 'Moves every phase' : frameIndex ? 'Records this phase' : 'Set starting positions';
     modeHint.title = editMode === 'place' ? 'Moving a piece adjusts its position in every phase and preserves its route.' : 'Add a next phase, then drag players and balls to record their movement.';
-    currentColor.style.backgroundColor = currentPlayerColor ? playerColors[currentPlayerColor] : 'transparent'; currentColor.hidden = !currentPlayerColor;
+    const toolbarColor = currentPlayerColor || 'blue';
+    if (currentColor.dataset.color !== toolbarColor) {
+      currentColor.replaceChildren(pieceArtwork('home', toolbarColor));
+      currentColor.dataset.color = toolbarColor;
+    }
     newPlayer.hidden = !record.content.items.some(item => ['home', 'away'].includes(item.kind));
     selectionCount.textContent = selection().length > 1 ? selection().length + ' selected · drag or duplicate together' : 'Shift-click pieces to select a group';
     librarySelect.replaceChildren(); const unsaved = el('option', 'New unsaved setup'); unsaved.value = ''; librarySelect.append(unsaved);
@@ -719,7 +763,7 @@
     const position = currentFrame().positions.find(p => p.id === selectedItem);
     const selectedKind = record.content.items.find(i => i.id === selectedItem)?.kind;
     pieceLabel.firstChild.textContent = ['home', 'away'].includes(selectedKind) ? 'Shirt label' : 'Piece label';
-    rotationField.hidden = selectedKind !== 'goal'; rotation.value = String(position?.rotation || 0);
+    turnTools.hidden = !selectedKind || selection().length !== 1; rotation.value = String(position?.[angleKey(selectedKind)] || 0);
     bodyTools.hidden = !['home', 'away'].includes(selectedKind);
     visionEnabled.checked = !!position?.vision;
     bodyEnabled.checked = Number.isFinite(position?.facing);
@@ -753,6 +797,7 @@
     scrub.max = String(totalSeconds());
     $('tactics-retry').disabled = !active() || pending || context.busy;
     pathToggle.disabled = !active() || !loaded;
+    rotation.disabled = disabled || turnTools.hidden;
     labelInput.disabled = disabled || !selectedItem;
     for (const control of side.querySelectorAll('button')) control.disabled = disabled || (!selectedItem && !arrange.contains(control));
     $('tactics-select-players').disabled = disabled || !record.content.items.some(item => ['home','away'].includes(item.kind));
@@ -830,7 +875,7 @@
       scene.append(lanes);
     }
     if (showGrid) { const guides = svg('g', { 'data-tactics-grid': '', fill:'none', stroke:'#f8f3d6', 'stroke-width':1.5, 'stroke-dasharray':'9 7', opacity:.7, 'pointer-events':'none' }); for (const fraction of [1/3,2/3]) guides.append(svg('path',{d:'M'+(25+(width-50)*fraction)+' 25 V'+(height-25)+' M25 '+(25+(height-50)*fraction)+' H'+(width-25)})); scene.append(guides); }
-    for (const item of record.content.items.filter(i => i.kind === 'zone')) { const p = renderedPositions?.find(p => p.id === item.id) || positionIn(currentFrame(), item.id); scene.append(zoneArtwork(item, p)); }
+    for (const item of record.content.items.filter(i => i.kind === 'zone')) { const p = renderedPositions?.find(p => p.id === item.id) || currentFrame().positions.find(v => v.id === item.id); scene.append(zoneArtwork(item, p)); }
     const visibleFrame = renderedPositions ? { ...currentFrame(), positions: renderedPositions } : currentFrame();
     for (const item of record.content.items) { const shadow = shadowArtwork(item, visibleFrame, record.content.items); if (shadow) scene.append(shadow); const vision = visionArtwork(item, visibleFrame); if (vision) scene.append(vision); }
     const defs = svg('defs');
@@ -859,7 +904,8 @@
       const hitRadius = Math.max(26, 22 / screenScale / artScale);
       piece.append(art); art.append(svg('circle', { r: hitRadius, fill: 'transparent', class: 'tactics-hit' }));
       if (selection().includes(item.id)) art.append(svg('circle', { r: 28, fill: 'none', stroke: '#152d42', 'stroke-width': 3, 'stroke-dasharray': '4 3', 'pointer-events': 'none' }));
-      const settings = visibleFrame.positions.find(v => v.id === item.id), graphic = playerArtwork(item.kind, settings, item.color); if (item.kind === 'goal') graphic.setAttribute('transform', 'rotate(' + (settings.rotation || 0) + ') scale(' + (item.scale || 1) + ')'); else if (item.kind === 'cone' || ['home','away'].includes(item.kind) && !Number.isFinite(settings.facing)) graphic.setAttribute('transform','rotate('+(-geometry.angle)+')'); art.append(graphic);
+      const settings = visibleFrame.positions.find(v => v.id === item.id);
+      art.append(orientedArtwork(item, settings, geometry.angle));
       if (['home', 'away'].includes(item.kind) && currentFrame().positions.some(v => v.attachedTo === item.id)) art.append(svg('circle', { cx: 22, cy: -23, r: 7, fill: '#fffdf7', stroke: '#203742', 'stroke-width': 2, 'data-possession': item.id }));
       if (item.label) {
         const inside = ['home', 'away'].includes(item.kind) && item.label.length <= 3, width = Math.max(34, item.label.length * 8 + 12);
@@ -883,15 +929,19 @@
       if(p.shadow){const ball=nearestBall(p,visibleFrame,record.content.items);handle('shadow',p.shadow.width*unitX/2,p.shadow.length*unitX,ball?directionTo(p,ball):p.facing||0,'Cover shadow. Drag to resize width and depth; arrow keys adjust.');}
     }
 
-    if (editable() && !renderedPositions && selection().length === 1 && Number.isFinite(facingPosition?.facing)) {
-      const at = positionIn(visibleFrame, selectedItem), angle = facingPosition.facing * Math.PI / 180, scale = Math.max(.01, board.getScreenCTM()?.a || 1), radius = 48 / scale;
+    const turningItem = record.content.items.find(i => i.id === selectedItem);
+    if (editable() && !renderedPositions && selection().length === 1 && facingPosition && turningItem) {
+      const key = angleKey(turningItem.kind), degrees = facingPosition[key] || 0;
+      const at = positionIn(visibleFrame, selectedItem), angle = degrees * Math.PI / 180, scale = Math.max(.01, Math.hypot(board.getScreenCTM()?.a || 0, board.getScreenCTM()?.b || 0)), radius = 48 / scale;
       const x = Math.max(-40, Math.min(width+40, at.x * unitX + Math.sin(angle) * radius)), y = Math.max(-40, Math.min(height+40, at.y * unitY - Math.cos(angle) * radius));
-      const turn = svg('g', { 'data-facing-control': selectedItem }); turn.append(svg('line', { x1: at.x * unitX + Math.sin(angle) * 30 / scale, y1: at.y * unitY - Math.cos(angle) * 30 / scale, x2: x, y2: y, stroke: '#253b46', 'stroke-width': 1.5 / scale, 'pointer-events': 'none' }), svg('circle', { cx: x, cy: y, r: 22 / scale, fill: 'transparent', 'data-facing-handle': selectedItem }), svg('circle', { cx: x, cy: y, r: 8 / scale, fill: '#fffdf7', stroke: '#253b46', 'stroke-width': 2 / scale, 'data-facing-handle': selectedItem, role: 'slider', tabindex: 0, 'aria-label': 'Body direction. Drag to turn; arrow keys turn 15 degrees.', 'aria-valuemin': 0, 'aria-valuemax': 359, 'aria-valuenow': Math.round(facingPosition.facing) })); scene.append(turn);
+      const turn = svg('g', { 'data-facing-control': selectedItem }); turn.append(svg('line', { x1: at.x * unitX + Math.sin(angle) * 30 / scale, y1: at.y * unitY - Math.cos(angle) * 30 / scale, x2: x, y2: y, stroke: '#253b46', 'stroke-width': 1.5 / scale, 'pointer-events': 'none' }), svg('circle', { cx: x, cy: y, r: 22 / scale, fill: 'transparent', 'data-facing-handle': selectedItem }), svg('circle', { cx: x, cy: y, r: 10 / scale, fill: '#b8e6f5', stroke: '#234451', 'stroke-width': 2 / scale, 'data-facing-handle': selectedItem, role: 'slider', tabindex: 0, 'aria-label': 'Rotate ' + pieceName(turningItem) + '. Drag to turn; arrow keys turn 15 degrees.', 'aria-valuemin': 0, 'aria-valuemax': 359, 'aria-valuenow': Math.round(degrees) % 360 }));
+      turn.append(svg('path', { d:'M4-2 A4.5 4.5 0 1 0 4 2 M4-5 V-1 H0', transform:'translate('+x+' '+y+') scale('+(1/scale)+')', fill:'none', stroke:'#234451', 'stroke-width':1.7, 'stroke-linecap':'round', 'stroke-linejoin':'round', 'pointer-events':'none' }));
+      scene.append(turn);
     }
     const sizedItem = record.content.items.find(i => i.id === selectedItem);
     if (editable() && !renderedPositions && selection().length === 1 && (sizedItem?.zone || sizedItem?.kind === 'goal')) {
       const p = currentFrame().positions.find(p => p.id === sizedItem.id), field = pitchGeometry(), scale = Math.max(.01, Math.hypot(board.getScreenCTM()?.a || 0, board.getScreenCTM()?.b || 0) || 1);
-      const corner = sizedItem.zone ? { x: sizedItem.zone.width / 2 * field.unitX, y: sizedItem.zone.height / 2 * field.unitY } : goalCorner(sizedItem, p);
+      const corner = sizedItem.zone ? rotateOffset(sizedItem.zone.width / 2 * field.unitX, sizedItem.zone.height / 2 * field.unitY, p.rotation || 0) : goalCorner(sizedItem, p);
       const at = cameraPoint({ x: p.x * field.unitX + corner.x, y: p.y * field.unitY + corner.y }, false), view = board.viewBox.baseVal, margin = 22 / scale;
       const bound = point => ({ x: Math.max(view.x + margin, Math.min(view.x + view.width - margin, point.x)), y: Math.max(view.y + margin, Math.min(view.y + view.height - margin, point.y)) });
       let handlePoint = bound(at);
@@ -1001,7 +1051,9 @@
       const item = pointer.before.content.items.find(i => i.id === pointer.resizeItem), dx = destination.x - pointer.start.x, dy = destination.y - pointer.start.y;
       if (item.zone) {
         for (const [index, frame] of record.content.frames.entries()) Object.assign(frame.positions.find(p => p.id === item.id), pointer.before.content.frames[index].positions.find(p => p.id === item.id));
-        resizeShape(item.id, item.zone.width + dx * 2, item.zone.height + dy * 2);
+        const { unitX, unitY } = pitchGeometry(), p = currentFrame().positions.find(v => v.id === item.id);
+        const local = rotateOffset(dx * unitX, dy * unitY, -(p.rotation || 0));
+        resizeShape(item.id, item.zone.width + 2 * local.x / unitX, item.zone.height + 2 * local.y / unitY);
       } else {
         const p = pointer.before.content.frames[frameIndex].positions.find(p => p.id === item.id), corner = goalCorner({ ...item, scale: 1 }, p), field = pitchGeometry(), direction = pointer.resizeDirection;
         resizeGoal(item.id, (item.scale || 1) + (dx*field.unitX*direction.x + dy*field.unitY*direction.y) / Math.hypot(direction.x,direction.y) / Math.hypot(corner.x,corner.y));
@@ -1012,7 +1064,7 @@
       if(pointer.overlay==='vision')p.vision.length=clamp(Math.hypot(dx,dy)/unitX);
       else {const ball=nearestBall(p,currentFrame(),record.content.items),a=(ball?directionTo(p,ball):p.facing||0)*Math.PI/180;p.shadow={width:clamp(Math.abs(dx*Math.cos(a)+dy*Math.sin(a))/(unitX/2)),length:clamp((-dx*Math.sin(a)+dy*Math.cos(a))/unitX)};}
       draw();renderStatus();notifyDraft();return;}
-    if (pointer.facing) { const p = currentFrame().positions.find(p => p.id === pointer.facing); p.facing = Math.round(directionTo(p, destination)) % 360; draw(); renderStatus(); notifyDraft(); return; }
+    if (pointer.facing) { const p = currentFrame().positions.find(p => p.id === pointer.facing); const item = record.content.items.find(i => i.id === pointer.facing); p[angleKey(item.kind)] = Math.round(directionTo(positionIn(currentFrame(), item.id), destination)) % 360; draw(); renderStatus(); notifyDraft(); return; }
     if (pointer.arrowId) {
       const arrow = currentFrame().arrows.find(item=>item.id===pointer.arrowId); if (!arrow) return;
       if (pointer.arrowNew) {
@@ -1083,7 +1135,7 @@
     }
     if (event.key === 'Escape' && pointer?.resizeItem) { event.preventDefault(); event.stopPropagation(); const id = pointer.id; endPointer({ type: 'pointercancel' }); if (board.hasPointerCapture(id)) board.releasePointerCapture(id); board.querySelector('[data-size-resize][role="button"]')?.focus(); return; }
     const facingHandle = event.target.closest('[data-facing-handle]');
-    if (facingHandle && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); setFacing((playerPosition()?.facing || 0) + (['ArrowLeft', 'ArrowDown'].includes(event.key) ? -15 : 15)); board.querySelector('[data-facing-handle][role="slider"]')?.focus(); return; }
+    if (facingHandle && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); turnSelected(['ArrowLeft', 'ArrowDown'].includes(event.key) ? -15 : 15, true); board.querySelector('[data-facing-handle][role="slider"]')?.focus(); return; }
     const arrowTarget=event.target.closest('[data-tactics-arrow]'), arrowEnd=event.target.closest('[data-arrow-end]');
     if (arrowTarget && ['Enter',' '].includes(event.key)) { event.preventDefault(); selectPiece('');selectedArrow=arrowTarget.dataset.tacticsArrow;render();board.focus();return; }
     const arrowDirections={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};

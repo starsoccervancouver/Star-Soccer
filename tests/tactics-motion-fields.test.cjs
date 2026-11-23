@@ -126,15 +126,21 @@ test('optional goal rotation round trips exactly within schema version 1',async(
  }
 });
 
-test('rejects invalid goal rotations and rotation on every other item kind',async()=>{
+test('rejects invalid rotation values and uses facing for players',async()=>{
  for(const rotation of [-0.001,360,361,NaN,Infinity,-Infinity,null,undefined,'90',true,{},[]]){
   await reject(content=>{
    content.items[3].kind='goal';content.frames[0].positions[3].rotation=rotation;
   });
  }
- for(const index of [0,1,2,3])await reject(content=>{content.frames[0].positions[index].rotation=90;});
- await reject(content=>{
-  content.items[3]={id:'cone',kind:'zone',label:'',zone:{shape:'rect',width:25,height:25,color:'blue'}};
-  content.frames[0].positions[3].rotation=90;
- });
+ for(const index of [0,1])await reject(content=>{content.frames[0].positions[index].rotation=90;});
+});
+
+test('ball, cone and zone rotations survive validation for each phase', async()=>{
+ const {validateDiagram}=await validator, content=diagram();
+ content.items.push({id:'area',kind:'zone',label:'',zone:{shape:'triangle',width:25,height:25,color:'blue'}});
+ content.frames[0].positions.push({id:'area',x:40,y:30});
+ const next=structuredClone(content.frames[0]); next.id='turn';
+ for(const p of next.positions.slice(2))p.rotation=345;
+ content.frames.push(next);
+ assert.deepEqual(validateDiagram(content),content);
 });

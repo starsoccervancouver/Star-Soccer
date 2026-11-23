@@ -5,6 +5,8 @@ on:
     branches:
       - main
   workflow_dispatch:
+  schedule:
+    - cron: '23 */6 * * *'
 
 permissions:
   contents: read
@@ -51,6 +53,7 @@ jobs:
         run: |
           node scripts/check-form-endpoints.cjs
           node scripts/stage-site.cjs
+          python3 scripts/refresh-football-news.py --output _site/football-news.json --previous
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3

@@ -47,6 +47,8 @@
   // contains youth sessions only. Their place is checked by the coaching team.
   if(preview&&T.getSession(new URLSearchParams(location.search).get('sessionId'))?.audience==='women')return;
   let records=null,busy=false,checkedAt='';
+  const passNote=document.createElement('p');
+  passNote.className='quick-assurance';
   function renderCount(element,record,session,date) {
     element.replaceChildren();
     const message=describe(record);
@@ -79,15 +81,22 @@
       if(!record)missing=true;
       renderCount(row.querySelector('.session-capacity'),record,session,date);
     });
-    if(preview)preview.querySelectorAll('li[data-session-date]').forEach(li=>{
+    const dates=preview?.querySelectorAll('li[data-session-date]')||[];
+    let unknownDates=0;
+    dates.forEach(li=>{
       const session=T.getSession(li.dataset.sessionId),date=li.dataset.sessionDate;
       if(!session || !T.isoDate(date))return;
       let count=li.querySelector('.session-capacity');
       if(!count){count=document.createElement('span');count.className='session-capacity';li.append(count);}
       const record=records?.get(session.id+':'+date);
-      if(!record)missing=true;
+      if(!record){missing=true;unknownDates++;}
       renderCount(count,record,session,date);
     });
+    if(records && dates.length===4 && unknownDates){
+      const message=`Availability is unknown for ${unknownDates} of the 4 dates below.`;
+      if(passNote.textContent!==message)passNote.textContent=message;
+      if(!passNote.isConnected)preview.before(passNote);
+    }else passNote.remove();
     if(records)status.textContent='Availability checked at '+checkedAt+' (Vancouver).'+(missing?' Counts are not available for every displayed date.':'')+' Refreshes every minute.';
   }
   if(preview)new MutationObserver(render).observe(preview,{childList:true});

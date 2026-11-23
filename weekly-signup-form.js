@@ -54,7 +54,7 @@
   }
   if(choice.type==='pass4'){
     document.querySelector('#booking-title').textContent=s.day+' 4-week pass';
-    submit.textContent='Register for 4-week pass';
+    submit.textContent='Request 4-week pass';
     document.querySelector('.quick-assurance').textContent='We’ll check space for all four dates and email your pass confirmation with payment instructions. Submitting does not reserve a place.';
     passStart.disabled=false;
     passStart.addEventListener('input',()=>passStart.setCustomValidity(''));

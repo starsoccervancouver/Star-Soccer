@@ -1,3 +1,4 @@
+import {searchAutomationHistory} from './automation-history.mjs';
 import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypto';
 import {Buffer} from 'node:buffer';
 import {createFollowupJob} from './registration-followup-job.mjs';
@@ -240,6 +241,10 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
   }
   const completions=reportCompletions(storage,env.COOKIE_KEY);
   async function handle(op,payload){
+    if(op==='automation-history'){
+      if(config.baseId!=='appnaG94HQpEaRios')throw Error('WRONG_LEDGER');
+      return searchAutomationHistory(ledger,payload.query);
+    }
     if(op==='owner-workflows'){
       if(config.baseId!=='appnaG94HQpEaRios')throw Error('WRONG_LEDGER');
       const data={};for(const [name,columns] of Object.entries(reportFields))data[name]=await ledger.list(name,columns);

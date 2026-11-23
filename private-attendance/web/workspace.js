@@ -477,6 +477,7 @@
   $('home-registration-review').hidden=true;$('home-registration-review').textContent='Review registration follow-ups';$('roster-review-list').replaceChildren();$('roster-review-type').replaceChildren();
   reportKind='all';reportSaved='';$('report-search').value='';
   $('home-mail-summary').hidden=true;$('home-mail-summary').textContent='Review inbox';updateHomeAttention();
+  historySearch++;$('automation-history').open=false;$('automation-history').hidden=true;$('automation-history-query').value='';$('automation-history-results').replaceChildren();
   $('owner-workflow-panel').open=false;$('owner-workflow-panel').hidden=true;$('owner-workflow-content').replaceChildren();
   for(const id of ['attention-status','attention-groups','report-filters'])$(id).replaceChildren();
  }
@@ -654,7 +655,26 @@
   $('owner-family-followups').hidden=!registrations;
   if(!list.children.length&&!registrations)list.append(empty('No items to review here.'));
  }
+ let historySearch=0;
+ $('automation-history-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(profile?.role!=='owner')return;
+  const seq=++historySearch,identity=generation,out=$('automation-history-results');
+  out.textContent='Searching recorded activity…';
+  try{
+   const result=await api('automation-history',{query:$('automation-history-query').value.trim()});
+   if(seq!==historySearch||identity!==generation||profile?.role!=='owner')return;
+   out.textContent=result.total?('Showing '+result.results.length+' of '+result.total+' matches.'):'No matching activity recorded.';
+   for(const row of result.results){
+    const card=document.createElement('article'),heading=document.createElement('h3');heading.textContent=row.title;card.append(heading);
+    for(const line of row.lines){const p=document.createElement('p');p.textContent=line;card.append(p);}
+    for(const link of row.links){const p=document.createElement('p'),a=document.createElement('a');a.textContent=link.label;a.href='https://mail.google.com/mail/u/?authuser=romeo%40starsoccer.ca#all/'+encodeURIComponent(link.id);a.target='_blank';a.rel='noopener noreferrer';p.append(a);card.append(p);}
+    out.append(card);
+   }
+  }catch{if(seq===historySearch&&identity===generation)out.textContent='Could not read automation history. Try again.';}
+ });
  function renderReportPane(){
+  $('automation-history').hidden=profile.role!=='owner';
   const roster=reportView==='roster';
   $('report-open').hidden=$('report-completed').hidden=!profile.familyAccess;
   for(const [id,view] of [['report-open','open'],['report-completed','completed'],['report-roster','roster']])$(id).setAttribute('aria-pressed',String(reportView===view));

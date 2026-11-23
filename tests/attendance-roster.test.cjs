@@ -28,7 +28,7 @@ test('overview scopes supporting tables to linked rows and preserves complete va
   const t=names.find(k=>url.pathname.endsWith(tableMap[k]));
   const filter=url.searchParams.get('filterByFormula'),fields=url.searchParams.getAll('fields[]');
   const wanted=new Set(filter?.match(/rec[A-Za-z0-9]{14}/g));
-  const source=tables[t].filter(r=>!filter||wanted.has(r.id));
+  const source=(tables[t]||[]).filter(r=>!filter||wanted.has(r.id));
   const offset=Number(url.searchParams.get('offset')||0), records=source.slice(offset,offset+100).map(({id,fields:values})=>({
    id,fields:Object.fromEntries(Object.entries(values).filter(([name])=>fields.includes(name)))
   }));
@@ -44,6 +44,15 @@ test('overview scopes supporting tables to linked rows and preserves complete va
  assert.equal(calls.length,9);assert.equal(calls.filter(c=>c.table==='sessions').length,2);assert.equal(calls.filter(c=>c.table==='attendance').length,2);
  assert.deepEqual(calls.find(c=>c.table==='bookings').fields,['Booking type','Booking status']);
  assert.equal(JSON.stringify(snapshot).includes('fictional@example.com'),false);
+ calls.length=0;
+ await reader.sessionBooks({unpaid:true});
+ assert.equal(calls.some(c=>c.table==='sessions'),false,'A cold Overview reuses its verified session pages');
+ calls.length=0;
+ await reader.sessionBooks({unpaid:true});
+ assert.equal(calls.length,0,'A repeat Overview skips all ledger reads');
+ reader.sessionBooks.invalidate();
+ await reader.sessionBooks({unpaid:true});
+ assert(calls.some(c=>c.table==='sessions'),'Invalidation reloads session data too');
  tables.attendance[0].fields['Website Registrations']=[];calls.length=0;
  assert.deepEqual(await reader.overview(),buildOwnerOverview(tables,observedAt,{},source));
  assert(!calls.some(c=>c.table==='registrations'));

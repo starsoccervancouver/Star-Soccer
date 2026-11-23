@@ -303,3 +303,23 @@ export async function readSessionBooks(read, now, timeZone, source) {
   const today = new Intl.DateTimeFormat('en-CA', {timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit'}).format(now);
   return buildSessionBooks(Object.fromEntries(tables), today, source);
 }
+
+// Overview can reuse a recent display read. Books and payment validation always request fresh data.
+export function createBooksReader(load, clock = Date.now) {
+  let recent = null;
+  function read({unpaid = false} = {}) {
+    if (unpaid && recent && clock() < recent.expires) return recent.result;
+    const entry = {expires: Infinity};
+    recent = entry;
+    entry.result = Promise.resolve().then(() => load({unpaid})).then(report => {
+      entry.expires = clock() + 30_000;
+      return report;
+    }).catch(error => {
+      if (recent === entry) recent = null;
+      throw error;
+    });
+    return entry.result;
+  }
+  read.invalidate = () => { recent = null; };
+  return read;
+}

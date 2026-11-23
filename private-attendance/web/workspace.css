@@ -2681,3 +2681,23 @@ body #app #report-filters .report-filter[aria-pressed=false]:hover:not(:disabled
 #payment-submit { justify-self:start; }
 #payment-split,#payment-result { margin:0; }
 #pending-booking-payments button { display:block; margin-block:4px; }
+
+@media screen {
+  body :is(button, a.button):focus-visible {
+    outline: 2px solid var(--desk-accent);
+    outline-offset: 3px;
+  }
+  body #app .desk-main :is(button.secondary, button[type="submit"]), #login button {
+    border-radius: 10px;
+    font-weight: 650;
+    box-shadow: inset 0 1px 0 #ffffff36, 0 1px 3px #162e5018;
+  }
+  @media (hover: hover) {
+    body #app .desk-main :is(button.secondary, button[type="submit"]):hover:not(:disabled), #login button:hover:not(:disabled) {
+      box-shadow: inset 0 1px 0 #ffffff40, 0 2px 6px #162e5026;
+    }
+  }
+  body #app button:active:not(:disabled), #login button:active:not(:disabled) {
+    box-shadow: inset 0 2px 3px #162e5030;
+  }
+}

@@ -225,3 +225,17 @@ test('a due session links to its own booking and uses the ledger family name',as
   assert.equal(row.familyName,'Fixture household');assert.equal(row.familyId,'f');
   assert.equal(row.bookingUrl,'https://airtable.com/'+source.baseId+'/'+source.bookings+'/'+id);
 });
+
+test('Overview shares a pending read and refreshes on expiry, mutation or a direct Books read',async()=>{
+  const {createBooksReader}=await books;
+  let calls=0,now=0;
+  const read=createBooksReader(async()=>++calls,()=>now);
+  const overview=()=>read({unpaid:true});
+  assert.deepEqual(await Promise.all([overview(),overview()]),[1,1]);
+  assert.equal(await overview(),1);
+  now=30000;
+  assert.equal(await overview(),2);
+  assert.equal(await read(),3);
+  read.invalidate();
+  assert.equal(await overview(),4);
+});

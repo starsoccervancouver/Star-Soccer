@@ -1,4 +1,4 @@
-import {readSessionBooks} from './session-books.mjs';
+import {createBooksReader,readSessionBooks} from './session-books.mjs';
 import {createFamilyLedger} from './family-ledger.mjs';
 import {buildOwnerOverview} from './owner-overview.mjs';
 /* On-demand, fully paginated reads. No public counts, payments or bookings are written. */
@@ -117,7 +117,18 @@ export function createRosterReader({baseId,token,tableMap,verifiedContacts={},ti
   for(let i=0;i<linkedIds.length;i+=100)linked.push(...await read(name,fields,linkedIds.slice(i,i+100)));
   return linked;
  }
+ // A cold Overview has just verified every session, including all fields needed for Books.
+ let recentSessions=null, rosterGeneration=0;
+ const booksReader=createBooksReader(({unpaid})=>{
+  const snapshot=unpaid&&recentSessions&&clock().getTime()<recentSessions.expires?recentSessions:null;
+  const readForBooks=(name,fields)=>name==='sessions'&&snapshot&&fields.every(field=>readFields.sessions.includes(field))
+   ?snapshot.rows:read(name,fields);
+  return readSessionBooks(readForBooks,clock(),timeZone,{baseId,bookings:tableMap.bookings});
+ });
+ const sessionBooks=options=>booksReader(options);
+ sessionBooks.invalidate=()=>{rosterGeneration++;recentSessions=null;booksReader.invalidate();};
  async function collect(forOverview=false){
+  const generation=rosterGeneration;
   const observedAt=clock().toISOString(),tables={};
   tables.sessions=await read('sessions');
   tables.attendance=await read('attendance');
@@ -133,9 +144,10 @@ export function createRosterReader({baseId,token,tableMap,verifiedContacts={},ti
   // A second read rejects changes during collection, rather than blessing an incomplete roster.
   const second=await read('attendance'),sessions=await read('sessions');if(digest(second)!==digest(tables.attendance)||digest(sessions)!==digest(tables.sessions))throw new Error('ROSTER_CHANGED_DURING_READ');
   const allIds=new Set(tables.attendance.map(r=>r.id));for(const s of tables.sessions)if(links(s.fields.Attendance).some(id=>!allIds.has(id)))throw new Error('INCOMPLETE_AIRTABLE_READ');
+  if(forOverview&&generation===rosterGeneration)recentSessions={rows:sessions,expires:clock().getTime()+10000};
   return {tables,observedAt};
  }
- return {familyLedger:createFamilyLedger(read),sessionBooks:()=>readSessionBooks(read,clock(),timeZone,{baseId,bookings:tableMap.bookings}),async overview(){const {tables,observedAt}=await collect(true);return buildOwnerOverview(tables,observedAt,verifiedContacts,{baseId,tables:tableMap});},async read(revision,sessionId){if(!/^rec[A-Za-z0-9]{14}$/.test(sessionId||''))throw new Error('EXACT_SESSION_REQUIRED');const {tables,observedAt}=await collect();
+ return {familyLedger:createFamilyLedger(read),sessionBooks,async overview(){const {tables,observedAt}=await collect(true);return buildOwnerOverview(tables,observedAt,verifiedContacts,{baseId,tables:tableMap});},async read(revision,sessionId){if(!/^rec[A-Za-z0-9]{14}$/.test(sessionId||''))throw new Error('EXACT_SESSION_REQUIRED');const {tables,observedAt}=await collect();
   tables.sessions=tables.sessions.filter(r=>r.id===sessionId);if(tables.sessions.length!==1)throw new Error('SESSION_NOT_FOUND');tables.attendance=tables.attendance.filter(r=>links(r.fields.Session).includes(sessionId));
   return normalizeAirtableRoster({tables,observedAt,revision,verifiedContacts,timeZone});}};
 }

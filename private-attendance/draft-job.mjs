@@ -20,6 +20,8 @@ export async function runDraftJob({db,storage,mail,now}){
   if(open('Confirmation',r.id)||accepted(r.fields)&&!baseline.bookings.includes(r.id)&&!logs.has('Confirmation:'+r.id))candidates.push(['Confirmation',r]);
  }
  for(const r of data.payments){
+  // Cash receipts are prepared manually on request.
+  if(r.fields.Method==='Cash')continue;
   if(open('Receipt',r.id)||verified(r.fields)&&!baseline.payments.includes(r.id)&&!logs.has('Receipt:'+r.id))candidates.push(['Receipt',r]);
  }
  // Once a grandfathered record becomes ineligible, a later acceptance/verification is new activity.

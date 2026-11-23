@@ -99,34 +99,46 @@ async function checkFootballNews(page, base) {
   await page.clock.setFixedTime(new Date('2026-11-23T01:00:00Z'));
   const url='https://example.com/';
   const checkedAt='2026-11-23T00:00:00Z';
-  const match={away:'Visitor',goals:[2,0],competition:'League',source:'Test feed',url};
-  const award={name:'Player award',source:'Test feed',url};
+  const game={away:'Visitor',goals:[2,0],competition:'League',source:'Test feed',url};
+  const supplementary=['premier-league','champions-league','bundesliga'];
   await page.route('**/football-news.json', route=>route.fulfill({json:{version:1,sources:{
-    scores:{kind:'results',checkedAt,items:[
-      {...match,home:'Old result',date:'2026-11-15'},
-      {...match,home:'Recent result',date:'2026-11-16'},
-      {...match,home:'Future result',date:'2026-11-23'},
+    whitecaps:{kind:'results',checkedAt,items:[
+      {...game,home:'Vancouver Whitecaps',away:'Real Salt Lake',date:'2026-11-22'},
+      {...game,home:'Old result',date:'2026-11-15'},
+      {...game,home:'Future result',date:'2026-11-23'},
     ]},
-    honors:{kind:'awards',checkedAt,items:[
-      {...award,winner:'Old winner',date:'2026-11-15'},
-      {...award,winner:'Recent winner',date:'2026-11-16'},
-      {...award,winner:'Year only',year:2026},
-    ]}
+    'la-liga':{kind:'results',checkedAt,items:[
+      {...game,home:'Barcelona',away:'Villarreal',goals:[3,2],date:'2026-11-22',competition:'La Liga'},
+    ]},
+    'international-men':{kind:'results',checkedAt,items:[
+      {...game,home:'Canada',away:'Guatemala',goals:[4,1],date:'2026-11-16'},
+      {...game,home:'Other international',goals:[8,8],date:'2026-11-22'},
+    ]},
+    awards:{kind:'awards',checkedAt,items:[
+      {name:'Player award',winner:'Recent winner',date:'2026-11-16',url},
+      {name:'Player award',winner:'Old winner',date:'2026-11-15',url},
+      {name:'Player award',winner:'Year only',year:2026,url},
+    ]},
+    ...Object.fromEntries(supplementary.map(home=>[home,{kind:'results',checkedAt,items:[
+      {...game,home,date:'2026-11-16'},
+    ]}]))
   }}}));
   await page.goto(base+'/index.html');
   const section=page.getByRole('region',{name:'Football News'});
-  const results=section.getByRole('tabpanel',{name:'Results'});
-  await results.getByText('Recent result 2–0 Visitor',{exact:true}).waitFor();
-  assert.equal(await results.getByRole('link').count(),1,'Only the seven most recent Vancouver dates appear');
-  await section.getByRole('tab',{name:'Results'}).press('ArrowRight');
-  const awards=section.getByRole('tabpanel',{name:'Awards'});
-  assert(await awards.getByText('Recent winner',{exact:true}).isVisible());
-  assert.equal(await awards.getByRole('link').count(),1,'Expired and undated awards are hidden');
-  await section.getByRole('tab',{name:'Headlines'}).click();
-  const headlines=section.getByRole('tabpanel',{name:'Headlines'});
-  assert(await headlines.getByText('Recent result beat Visitor 2–0',{exact:true}).isVisible());
-  assert.equal(await headlines.getByRole('link').count(),1,'Headlines use only recent scores');
+  const cards=section.getByRole('article');
+  await cards.first().waitFor();
+  assert.equal(await cards.count(),5,'A single grid displays no more than five stories');
+  assert.equal(await section.getByRole('tab').count(),0,'The story grid does not create subtabs');
+  assert.equal(await cards.first().getByRole('heading').textContent(),'Barça come from two down to beat Villarreal 3–2');
+  assert(await cards.first().getByRole('img',{name:/Camp Nou, Barcelona/}).isVisible());
+  assert.equal(await cards.first().getByRole('link',{name:/Watch highlights/}).getAttribute('href'),
+    'https://www.fcbarcelona.com/en/videos/4612776/highlights-laliga-barca-v-villarreal');
+  const titles=await cards.getByRole('heading').allTextContents();
+  assert(titles.every(title=>/Barça come from two down|Whitecaps open the playoffs|champions-league beat|premier-league beat|Canada beat Guatemala/.test(title)),
+    'Champions League, Premier League, Whitecaps and Canada get priority alongside a major Barcelona result');
+  assert.equal(await section.getByText(/Old result|Old winner|Year only|Future result|Other international/).count(),0,'Expired, undated, future, and lower-priority items are hidden');
 }
+
 
 (async()=>{
   let browser;
@@ -150,7 +162,7 @@ async function checkFootballNews(page, base) {
       await checkPublicHover(browser,page,'http://127.0.0.1:'+server.address().port);
       console.log('Public hover, selection, keyboard and touch checks passed');
       await checkFootballNews(page,'http://127.0.0.1:'+server.address().port);
-      console.log('Football news tabs and seven-day Vancouver date window passed');
+      console.log('Football news cards, media links, and seven-day Vancouver date window passed');
       await require('./pro-d-camp.cjs')();console.log('Pro-D camp mocked submission checks passed');
     }
   } finally {if(browser)await browser.close();server.close();}

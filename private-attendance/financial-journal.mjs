@@ -11,6 +11,7 @@ export function auditFinancialWrites(db,storage,{source,actor,reason,clock}){
  const context={source,actor,reason};
  async function track(table,values,opts){
   if(!columns[table])return db.saveMany(table,values,opts);
+  if(values.every(f=>!columns[table].some(k=>Object.hasOwn(f,k))))return db.saveMany(table,values,opts);
   const intents=values.map(f=>{
    const key=opts.id||f[opts.key];if(!key)throw Error('FINANCIAL_SOURCE_KEY_REQUIRED');
    const facts=evidence(table,f);
@@ -22,7 +23,8 @@ export function auditFinancialWrites(db,storage,{source,actor,reason,clock}){
     await tx.put('finance:pending:'+i.ref,{...i,requestedAt:new Date(clock()).toISOString()});
   });
   const rows=await db.saveMany(table,values,opts);
-  if(rows.length!==intents.length||rows.some(r=>!r.id||!r.fields))throw Error('AIRTABLE_WRITE_UNCERTAIN');
+  if(rows.length!==intents.length||rows.some((r,n)=>!r.id||!r.fields||
+    (opts.id?r.id!==opts.id:r.fields[opts.key]!==intents[n].sourceKey)))throw Error('AIRTABLE_WRITE_UNCERTAIN');
   await storage.transaction(async tx=>{
    for(const [n,i] of intents.entries()){
     const eventKey='finance:event:'+i.ref;

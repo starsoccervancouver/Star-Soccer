@@ -8,7 +8,7 @@
     const sessionId = p.get('session'), section = p.get('section') || 'plan';
     if (p.has('balance')) {
       const bookTarget=p.get('balance');
-      if(view!=='books'||p.size!==2||!/^(family|booking)-rec[A-Za-z0-9]{14}$/.test(bookTarget))return null;
+      if(view!=='books'||p.size!==2||!/^(family|booking|player)-rec[A-Za-z0-9]{14}$/.test(bookTarget))return null;
       return {view,bookTarget};
     }
     if (view==='attention') {

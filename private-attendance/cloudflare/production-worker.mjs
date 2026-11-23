@@ -86,8 +86,11 @@ export class AttendanceCoordinator{
    this.coachOnly=origin!==STAR_SOCCER_ORIGIN||env.COACH_DESK_ONLY==='true';
    this.service=createService({store:this.store,origin,approvedOrigin:origin,mode:'live',activation:{ownerApproved:true,exclusiveWriter:config.exclusiveWriter===true,draftOnly:true,handoffEvidence:config.handoffEvidence}});
    const summaryStore={
-    read:()=>JSON.parse(this.store.get("SELECT value FROM runtime_state WHERE key='unpaid-overview'")?.value||'null'),
-    save:value=>this.store.run("INSERT OR REPLACE INTO runtime_state(key,value) VALUES('unpaid-overview',?)",JSON.stringify(value)),
+    read:()=>{
+     const saved=JSON.parse(this.store.get("SELECT value FROM runtime_state WHERE key='unpaid-overview'")?.value||'null');
+     return saved?.version===2?saved:null;
+    },
+    save:value=>this.store.run("INSERT OR REPLACE INTO runtime_state(key,value) VALUES('unpaid-overview',?)",JSON.stringify({...value,version:2})),
     clear:()=>this.store.run("DELETE FROM runtime_state WHERE key='unpaid-overview'")
    };
    const reader=createRosterReader({baseId:config.baseId,token:env.AIRTABLE_TOKEN,tableMap:config.tables,summaryStore,timeZone:clubConfig.timeZone,verifiedContacts:config.verifiedContacts||{},fetchFn:airtableFetch});

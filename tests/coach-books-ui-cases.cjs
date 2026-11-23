@@ -389,6 +389,17 @@ module.exports = async function checkBooks(fixture) {
     assert(await unnamed.page.locator('#payment-entry').isHidden());
   }finally{await unnamed.context.close();}
 
+  const walkIn={...due,familyId:null,familyName:null,amountDue:60,amountOutstanding:60};
+  const past={...walkIn,scope:'booking',bookingId:recordId(999),date:null,sessionLabel:'Earlier camp · date unrecorded',pastBookingBalance:true,amountDue:50,amountOutstanding:50};
+  const carryover=await fixture({...emptyHome,books:[walkIn,past]});
+  try{
+    const {page}=carryover;
+    await page.locator('#home-unpaid-label .unpaid-total').getByText('$110.00 owing').waitFor();
+    await page.locator('#home-unpaid-list a').getByText('$110.00').click();
+    await page.locator('#selected-balance').getByText('$110.00 owing').waitFor();
+    assert.equal(await page.locator('#unpaid-booking-list .books-entry').count(),2);
+  }finally{await carryover.context.close();}
+
   const accountingRows=[{...due},otherParent];
   const payment=await fixture({...emptyHome,books:accountingRows,paymentRecording:true});
   try{
@@ -415,6 +426,7 @@ module.exports = async function checkBooks(fixture) {
     await page.locator('#payment-method').selectOption('Cash');
     await page.locator('#payment-submit').click();
     await family.getByText('$21.50',{exact:true}).waitFor();
+    assert.equal(await page.locator('.unpaid-total').innerText(),'$46.00 owing');
     assert.equal(new URL(page.url()).hash,'#view=home');
     await family.click();
     await page.locator('#payment-entry summary').click();
@@ -423,6 +435,7 @@ module.exports = async function checkBooks(fixture) {
     await page.locator('#home-unpaid-list a').getByText('$24.50',{exact:true}).waitFor();
     assert.equal(new URL(page.url()).hash,'#view=home');
     assert.equal(await family.count(),0);
+    assert.equal(await page.locator('.unpaid-total').innerText(),'$24.50 owing');
     assert.equal(await page.locator('#home-unpaid-list a').count(),1);
     assert.equal(submissions,2);assert.deepEqual(payment.errors,[]);
   }finally{await payment.context.close();}

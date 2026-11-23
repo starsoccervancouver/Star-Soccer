@@ -59,7 +59,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         else if (path.endsWith('/session-books') && state.profile?.familyAccess && ['owner','admin'].includes(state.profile.role)) {
           assert.equal(request.method(),'POST');
           assert.deepEqual(payload,payload.view === 'unpaid' ? {view:'unpaid'} : {});
-          value = {rows:payload.view === 'unpaid' ? books.filter(row=>row.scope === 'session' && row.status === 'due' && row.amountDue > 0) : books};
+          value = {rows:payload.view === 'unpaid' ? books.filter(row=>(row.scope === 'session'||row.pastBookingBalance===true) && row.status === 'due' && row.amountDue > 0) : books};
         }
         else if (path.endsWith('/family-followups') && role==='owner' && followups) value = {state:'ready',enabled:true,eligibleBookings:1,checkedAt:now,items:[{label:'Sample booking',confirmationAt:'2026-10-28',bookingUrl:'https://airtable.com/app00000000000001/tbl00000000000002/'+rid(40)}]};
         else if (path.endsWith('/family-followups') && homeQueues && role==='owner') value={state:'ready',checkedAt:now,enabled:true,items:[],eligibleBookings:0};

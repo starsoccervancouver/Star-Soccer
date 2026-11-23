@@ -255,3 +255,18 @@ test('opening summaries persist only unpaid fields and an old read cannot undo i
  reopened.invalidate();finish(report);await request;
  assert.equal(reopened.lastUnpaid(),null);
 });
+
+test('agreed historical carryovers stay attached to the same player without a fabricated session date',async()=>{
+ const t=fixture(),origin='rec00000000000001',past='rec00000000000002';
+ t.bookings[0].id=origin;
+ t.attendance[0].fields.Booking=[origin];
+ t.players[0].fields.Bookings=[origin,past];t.families[0].fields.Bookings=[origin,past];
+ const record={...t.bookings[0].fields,Attendance:[],'First session':[],'Start date':null,'Covered dates':null,
+  'Source booking ID':'past-booking-balance:'+origin,'Charge CAD':50,'Attendance-adjusted charge CAD':50,'Verified applied CAD':0,'Balance CAD':50,'Due now CAD':50};
+ t.bookings.push({id:past,fields:record});
+ const {buildSessionBooks,unpaidSessionRows}=await books;
+ const read=()=>unpaidSessionRows(buildSessionBooks(t,today)).find(r=>r.bookingId===past);
+ assert.equal(read().amountDue,50);
+ record['Charge review']='Needs pricing confirmation';assert.equal(read(),undefined);
+ record['Charge review']='Agreed';t.bookings[0].fields.Player=['other'];assert.equal(read(),undefined);
+});

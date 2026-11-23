@@ -7,7 +7,7 @@
   const catalog = {
     version: '20261021-capacity', zone: 'America/Vancouver', currency: 'CAD', groupCapacity:20,
     email: 'starsoccervancouver@gmail.com',
-    coaches: {valentinos: 'Valentinos Dinglis', evan: 'Evan Lycos', romeo: 'Romeo Dinglis'},
+    coaches: {valentinos: 'Valentinos Dinglis', evan: 'Evan Lycos', romeo: 'Romeo Dinglis', owen: 'Owen Soroka'},
     locations: {
       connaught: {name: 'Connaught Park', mapQuery: 'Connaught Park Vancouver BC'},
       kits: {name: 'Kitsilano Turf', mapQuery: 'Kitsilano Secondary School Turf Vancouver BC'},
@@ -83,8 +83,8 @@
   }
   function coachId(value) {
     if(Object.hasOwn(catalog.coaches,value)) return value;
-    const alias={'Valentino Dinglis':'valentinos','Valentinos Dinglis':'valentinos','Evan Lycos':'evan','Romeo Dinglis':'romeo'};
-    return Object.hasOwn(alias,value) ? alias[value] : '';
+    if(value==='Valentino Dinglis') return 'valentinos';
+    return Object.keys(catalog.coaches).find(id=>catalog.coaches[id]===value)||'';
   }
   function accepted(response, body) { return Boolean(response.ok && body && (body.success===true || body.success==='true')); }
   const referralSources=Object.freeze({search:'Google Search / Maps',instagram:'Instagram',referral:'Family / friend',community:'School / community',returning:'Returning family',other:'Other'});

@@ -172,6 +172,29 @@ async function finishReadAfterExit({page,context}, exit) {
 
 module.exports = async function checkBooks(fixture) {
   const emptyHome = {homeQueues:true,roster:[],openInquiry:false};
+  for (const warm of [true,false]) {
+    let openRoster,openBooks;
+    const deskGate=new Promise(resolve=>{openRoster=resolve;}),booksGate=new Promise(resolve=>{openBooks=resolve;});
+    const f=await fixture({...emptyHome,books,priorityStart:true,openingUnpaid:warm,deskGate,booksGate});
+    try {
+      await f.page.setViewportSize({width:390,height:844});
+      const family=f.page.locator('#home-unpaid-list').getByRole('link',{name:/Avery Fictional.*31.50/});
+      if(!warm)openBooks();
+      await family.waitFor();
+      assert(await f.page.locator('#app').isHidden(),'Balances are visible while the roster is still pending');
+      if(warm){
+        await family.click();openRoster();
+        await f.page.locator('#selected-balance').getByText(/31.50/).first().waitFor();
+        openBooks();
+      }else{
+        openRoster();await f.page.locator('#app').waitFor();
+        await f.page.locator('#panel-home #home-unpaid-list').getByRole('link',{name:/Avery Fictional.*31.50/}).waitFor();
+      }
+      await f.page.waitForLoadState('networkidle');
+      assert.equal(reads(f).filter(r=>r.payload.view==='unpaid').length,warm?0:1);
+      assert.deepEqual(f.errors,[]);
+    }finally{openBooks();openRoster();await f.context.close();}
+  }
   const opening = await fixture({...emptyHome,books,openingUnpaid:true});
   try {
     await opening.page.locator('#home-unpaid-list').getByRole('link',{name:/Avery Fictional.*31.50/}).waitFor();

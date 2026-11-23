@@ -35,7 +35,7 @@
  async function api(path,body,includeDesk=false,openingOverview=false){
   const flow=generation;
   const headers=includeDesk?{'X-Coach-Desk':'full'}:{};
-  if(openingOverview)headers['X-Coach-Overview']='unpaid';
+  if(openingOverview){headers['X-Coach-Overview']='unpaid';headers['X-Coach-Start']='balances-first';}
   const options={credentials:'same-origin',headers};
   if(body!==undefined){
    headers['Content-Type']='application/json';
@@ -160,7 +160,7 @@
  function showSignedInRecovery(){$('app').hidden=true;$('login').hidden=false;$('boot').hidden=true;$('google-signin').hidden=true;$('passkey-options').hidden=true;$('signin-form').hidden=true;$('enroll-options').hidden=true;$('signin-recovery').hidden=false;$('passkey-security-copy').hidden=true;$('signin-title').textContent='Your sign-in worked';$('signin-copy').textContent='You are signed in. The roster could not load yet. Retry below to open Coach Desk.';}
  async function signInWithGoogle(){const button=$('google-signin-button');button.disabled=true;$('global-error').hidden=true;try{const b=await api('bootstrap');csrf=b.csrfToken;googleEnabled=!!b.googleEnabled;if(!googleEnabled)throw Error('Google sign-in is not available yet. Please try again shortly.');const result=await api('auth/google/start',{}),url=new URL(result.url);if(url.origin!=='https://accounts.google.com'||url.pathname!=='/o/oauth2/v2/auth'||url.username||url.password||url.hash)throw Error('The sign-in destination could not be verified. Please try again.');location.assign(url.href);}catch(e){notice(e.message||'Google sign-in could not start. Please try again.',true);button.disabled=false;}}
  function passkeyError(e,method){if(e.name==='NotAllowedError')return method==='phone'?'Your phone did not complete setup. Enable Bluetooth on your phone and computer, then try again in a normal Edge, Chrome or Safari browser. No USB security key is required.':'Your device did not complete sign-in. Try again with your device PIN, fingerprint or face, or choose Use my phone during setup. Open the page in a normal Edge, Chrome or Safari browser.';if(e.name==='NotSupportedError')return 'This browser or device cannot use that passkey option. Try Use my phone, or open the setup link in a normal Edge, Chrome or Safari browser. No USB security key is required.';if(e.name==='InvalidStateError')return 'A passkey may already be set up on this device. Choose Already set up? Sign in instead, or try your registered passkey.';return e.message;}
- async function authenticate(enroll,method='device'){$('global-error').hidden=true;const buttons=[$('enroll-button'),$('enroll-phone-button'),$('signin-button'),$('existing-signin-button')];buttons.forEach(b=>b.disabled=true);try{if(!window.PublicKeyCredential||!window.SimpleWebAuthnBrowser)throw Error('Passkeys need a supported browser. Open this setup link in a normal Edge, Chrome or Safari browser. You can use your device or phone; no USB security key is required.');const bootstrap=await api('bootstrap');csrf=bootstrap.csrfToken;let result;if(enroll){const challenge=await api('auth/register-options',{token:enrollment,method}),response=await SimpleWebAuthnBrowser.startRegistration({optionsJSON:challenge.options});result=await api('auth/register-finish',{challengeId:challenge.challengeId,response});enrollment=null;}else{const challenge=await api('auth/login-options',{email:$('signin-email').value.trim()}),response=await SimpleWebAuthnBrowser.startAuthentication({optionsJSON:challenge.options});result=await api('auth/login-finish',{challengeId:challenge.challengeId,response});}csrf=result.csrfToken;profile=result.profile;await loadDesk();}catch(e){notice(passkeyError(e,enroll?method:null),true);}finally{buttons.forEach(b=>b.disabled=false);}}
+ async function authenticate(enroll,method='device'){$('global-error').hidden=true;const buttons=[$('enroll-button'),$('enroll-phone-button'),$('signin-button'),$('existing-signin-button')];buttons.forEach(b=>b.disabled=true);try{if(!window.PublicKeyCredential||!window.SimpleWebAuthnBrowser)throw Error('Passkeys need a supported browser. Open this setup link in a normal Edge, Chrome or Safari browser. You can use your device or phone; no USB security key is required.');const bootstrap=await api('bootstrap');csrf=bootstrap.csrfToken;let result;if(enroll){const challenge=await api('auth/register-options',{token:enrollment,method}),response=await SimpleWebAuthnBrowser.startRegistration({optionsJSON:challenge.options});result=await api('auth/register-finish',{challengeId:challenge.challengeId,response},false,opensOverview());enrollment=null;}else{const challenge=await api('auth/login-options',{email:$('signin-email').value.trim()}),response=await SimpleWebAuthnBrowser.startAuthentication({optionsJSON:challenge.options});result=await api('auth/login-finish',{challengeId:challenge.challengeId,response},false,opensOverview());}csrf=result.csrfToken;profile=result.profile;await loadDesk(false,null,result.balanceSnapshot);}catch(e){notice(passkeyError(e,enroll?method:null),true);}finally{buttons.forEach(b=>b.disabled=false);}}
  function stat(label,value){const e=node('div','','desk-stat');e.append(node('span',label),node('strong',value));return e;}
  function playerName(id){return data?.sessions.flatMap(s=>s.players).find(p=>p.playerId===id)?.name||'Session observation';}
  function chosenSessions(){return (data?.sessions||[]).filter(s=>s.status!=='Cancelled'&&($('show-all').checked||s.date>=today()&&(s.capacityUsed>0||profile?.role==='coach')));}
@@ -684,6 +684,7 @@
  const bookStatuses={due:'Payment due',paid:'Paid',upcoming:'Upcoming','no-charge':'No charge',package:'Package',review:'Needs review'};
 
  function resetBooks(){
+  closeOpeningView();
   paymentFamily=null;paymentCommand=null;$('pending-booking-payments').replaceChildren();$('booking-payment-form').reset();$('payment-split').textContent='';$('payment-result').textContent='';$('payment-target').replaceChildren();$('payment-entry').hidden=true;
   unpaidFamilies=[];bookTarget='';expandPayment=false;$('unpaid-bookings').hidden=true;$('books-directory').hidden=false;$('selected-balance').textContent='';$('selected-balance-status').textContent='';$('selected-balance-retry').hidden=true;
   $('unpaid-booking-list').replaceChildren();$('unpaid-bookings-title').textContent='';
@@ -1009,6 +1010,49 @@
    b.addEventListener('click',()=>submitBookingPayment({id:pending.id},b));list.append(b);
   }
  }
+ // The same interactive balance card is shown before and after the roster arrives.
+ let openingView=null;
+ function closeOpeningView(){
+  if(!openingView)return;
+  openingView.marker.replaceWith($('home-attention'));
+  $('opening-overview').hidden=true;
+  openingView=null;
+ }
+ function startOpeningView(snapshot){
+  const marker=document.createComment('Overview attention'),card=$('home-attention');
+  card.before(marker);
+  const state={marker,snapshot,target:'',latest:null};
+  openingView=state;
+  $('opening-overview').append(card);
+  $('login').hidden=true;$('boot').hidden=true;$('opening-overview').hidden=false;
+  $('opening-roster-status').textContent='Loading roster…';
+  if(snapshot){
+   showUnpaid(snapshot);
+   $('home-unpaid-status').textContent='Last checked '+when(snapshot.checkedAt);
+   return state;
+  }
+  $('home-unpaid-label').textContent='Checking unpaid sessions…';$('home-unpaid').hidden=false;updateHomeAttention();
+  state.read=api('session-books',{view:'unpaid'}).then(result=>{
+   if(!Array.isArray(result.rows))throw Error('Books unavailable.');
+   state.latest=result;
+   if(openingView===state)showUnpaid(result);
+   return {result};
+  }).catch(error=>{
+   if(openingView===state){
+    if(error.code==='ACCESS_DENIED'){resetBooks();$('boot').hidden=false;}
+    else $('home-unpaid-status').textContent='Could not update balances.';
+   }
+   return {error};
+  });
+  return state;
+ }
+ $('home-unpaid-list').addEventListener('click',event=>{
+  const link=event.target.closest('a');
+  if(!openingView||!link||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();
+  openingView.target=new URLSearchParams(link.hash.slice(1)).get('balance');
+  $('opening-roster-status').textContent='Opening booking…';
+ });
  function renderUnpaidRows(){
   const list=$('home-unpaid-list');list.replaceChildren();
   if(!$('home-unpaid').open)return;
@@ -1055,7 +1099,11 @@
   status.textContent=previous?'Last checked '+new Date(previous.checkedAt).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' · Updating…':unpaid?'Loading unpaid sessions…':'Loading books…';
   if(!unpaid){clearBookTotals();$('books-refresh').disabled=true;$('books-more').hidden=true;booksLimit=booksPageSize;}
   try{
-   const result=await api('session-books',unpaid?{view:'unpaid'}:{});
+   const openingRead=unpaid&&data.openingBalanceRead;
+   if(openingRead)delete data.openingBalanceRead;
+   const response=openingRead?await openingRead:null;
+   if(response?.error)throw response.error;
+   const result=response?response.result:await api('session-books',unpaid?{view:'unpaid'}:{});
    if(ticket!==booksRequest||!canViewBooks())return;
    if(!Array.isArray(result.rows))throw Error('Books unavailable.');
    if(!unpaid){booksRows=result.rows;if(bookTarget)renderSelectedBalance();else{showBookTotals(booksRows);renderBooks();}return;}
@@ -1065,6 +1113,11 @@
    if(error.code==='ACCESS_DENIED'){
     booksDenied=true;resetBooks();$('nav-books').hidden=true;$('home-unpaid').hidden=true;
     if(tab==='books')go('home');
+    return;
+   }
+   if(unpaid&&previous&&previous.rows.length){
+    homeUnpaidState='failed';
+    status.textContent='Last checked '+when(previous.checkedAt)+' · Could not update. Reopen to retry.';
     return;
    }
    if(unpaid){
@@ -1240,7 +1293,7 @@
    workspaceView=requestedView;tab=next;renderSelector();$('session-toolbar').hidden=true;$('settings-navigation').hidden=!settingsTabs.includes(tab);$('refresh').hidden=settingsTabs.includes(tab)||['families','books','attention'].includes(tab);if(tab==='attendance')renderAttendance();document.querySelectorAll('.tab-panel').forEach(p=>{p.hidden=p.id!=='panel-'+tab;});document.querySelectorAll('#navigation button[data-tab]').forEach(b=>{const active=b.dataset.tab===(tab==='plan'?'plan':tab)||b.dataset.tab==='settings'&&settingsTabs.includes(tab);b.classList.toggle('nav-active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});document.querySelectorAll('[data-settings-tab]').forEach(b=>{if(b.dataset.settingsTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});const t=tab==='plan'&&workspaceView!=='plan'?[titles[workspaceView][0],titles[workspaceView][1],'Choose a training group to open '+(workspaceView==='attendance'?'its attendance.':'its group and player notes.')]:titles[tab];$('page-eyebrow').textContent=t[0];$('page-title').textContent=t[1];$('page-copy').textContent=t[2];if(tab==='home'){renderHome();if(canViewBooks())loadBooks(true);if(data.familyFollowupsAvailable)loadOwnerFollowups();}if(tab==='attention'){renderReportPane();if(reportView==='roster'&&profile.role==='owner'&&data.familyFollowupsAvailable&&['all','registrations'].includes(reviewFilter))loadOwnerFollowups();}if(profile.familyAccess && (tab==='attention'&&reportView!=='roster'||tab==='home'&&data.attentionAvailable))loadAttention();if(tab==='books')loadBooks();if(tab==='families')showFamilyView(familyId);if(tab==='notes')renderNotes();if(tab==='plan'){if(!preserveSession&&!reopenGroup)window.CoachPlanner?.exitFocus();if(preserveSession||reopenGroup||window.CoachPlanner?.isFocused())loadPlan();renderWorkspaceView();}if(tab==='tasks')renderTasks();if(tab==='settings')renderSettings();if(tab==='team')loadTeam();if(tab==='activity')loadActivity();publishCoachContext();if(reopenGroup){renderAttendance();renderNotes();window.CoachPlanner?.focusSession(selected);}renderWorkspaceView();}
  function render(){if(!data)return;renderSelector();renderHome();renderAttendance();renderNotes();if(tab==='plan'&&!planDirty())loadPlan();if(tab==='team')loadTeam();if(tab==='settings')renderSettings();publishCoachContext();}
  const opensOverview=()=>(fragment.get('view')||tab)==='home';
- async function loadDesk(refresh=false,initialDesk=null){
+ async function loadDesk(refresh=false,initialDesk=null,balanceSnapshot=undefined){
   if(saveBusy||paymentBusy||loadingDesk||tacticsBusy()||plannerBusy())return;
   stopDictation();
   if(refresh&&(noteDirty()||planDirty()||tacticsDirty()||plannerDirty()||taskDirty())){
@@ -1257,13 +1310,18 @@
   if(data&&tab==='plan'&&workspaceView==='attendance')renderAttendance();
   else for(const button of $('roster').querySelectorAll('.attendance-controls button'))button.disabled=true;
   try{
+   const opening=balanceSnapshot!==undefined&&!data&&opensOverview()?startOpeningView(balanceSnapshot):null;
    let fresh=initialDesk;
    if(refresh){
     fresh=await api('refresh',{},true);
     planSession=null;
    }
    // Older servers return only a scoped roster on refresh.
-   data=fresh?.profile&&Array.isArray(fresh.notes)&&Array.isArray(fresh.tasks)?fresh:await api('desk',undefined,false,!refresh&&opensOverview());
+   data=fresh?.profile&&Array.isArray(fresh.notes)&&Array.isArray(fresh.tasks)?fresh:await api('desk',undefined,false,(!opening||!!opening.snapshot)&&!refresh&&opensOverview());
+   if(opening?.read&&openingView===opening&&data.booksAvailable&&!opening.target){
+    if(opening.latest)data.unpaid=opening.latest;
+    else data.openingBalanceRead=opening.read;
+   }
    if(refresh)attendanceErrors.clear();
    if(selected&&!data.sessions.some(s=>s.id===selected)){
     selected='';noteFolder='';planSession=null;planPendingSession=null;planLoad++;resetNote();
@@ -1298,8 +1356,10 @@
     if(tab!=='home')renderHome();
     renderAttendance();renderNotes();
    }
-   if(!window.CoachNavigation?.openInitial())go(tab,false,null,{bookTarget:refreshedBookTarget});
+   const requested=opening?.target&&canViewBooks()?{view:'books',bookTarget:opening.target}:undefined;
+   if(!window.CoachNavigation?.openInitial(requested))go(requested?.view||tab,false,null,{bookTarget:requested?.bookTarget||refreshedBookTarget});
   }catch(e){
+   if(openingView)resetBooks();
    rosterLoadFailed=true;
    if(profile&&!data)showSignedInRecovery();
    notice(data?'The roster could not refresh. Showing the last loaded records. '+e.message:e.message,true);
@@ -1330,5 +1390,5 @@
  $('navigation').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;const buttons=[...$('navigation').querySelectorAll('button')].filter(button=>!button.hidden&&!button.disabled&&button.getClientRects().length),index=buttons.indexOf(document.activeElement);if(index<0)return;event.preventDefault();const target=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(['ArrowLeft','ArrowUp'].includes(event.key)?-1:1)+buttons.length)%buttons.length;buttons[target].focus();buttons[target].scrollIntoView({block:'nearest',inline:'nearest'});});
  const requestedView=fragment.get('view');if([...startViews,'settings'].includes(requestedView))tab=requestedView;
  $('attendance-past-day').replaceChildren(new Option('All days','all'),...trainingDays.map(d=>new Option(d.label,String(d.number))));
- (async()=>{try{const b=await api('bootstrap',undefined,!enrollment,!enrollment&&opensOverview());csrf=b.csrfToken;googleEnabled=!!b.googleEnabled;profile=b.profile;if(profile&&!enrollment)await loadDesk(false,b.desk);else showLogin();}catch(e){showLogin();notice(e.message,true);}})();
+ (async()=>{try{const b=await api('bootstrap',undefined,!enrollment,!enrollment&&opensOverview());csrf=b.csrfToken;googleEnabled=!!b.googleEnabled;profile=b.profile;if(profile&&!enrollment)await loadDesk(false,b.desk,b.balanceSnapshot);else showLogin();}catch(e){showLogin();notice(e.message,true);}})();
 })();

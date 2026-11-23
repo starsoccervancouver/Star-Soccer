@@ -309,3 +309,20 @@ test('Overview opens with verified balances for finance users and reuses the sav
  snapshot={rows:unpaid.rows,checkedAt:Date.now()-60000};
  assert.equal((await open(owner)).unpaid.refresh,true);assert.equal(calls,1);
 });
+
+test('finance sign-in can return balance snapshots before reading the roster',async t=>{
+ let reads=0;
+ const snapshot={rows:[],checkedAt:Date.now()};
+ const sessionBooks=Object.assign(async()=>({rows:[]}),{lastUnpaid:()=>snapshot});
+ const {owner,one,auth,handler}=await setup(t,{sessionBooks,overview:async()=>{reads++;return {sessions:[]};}});
+ async function open(actor){
+  const session=auth.createVerifiedSession(actor.email);
+  const res=await handler(new Request('https://attendance.starsoccer.ca/workspace/api/bootstrap',{headers:{
+   cookie:'__Host-ss_staff='+session.token,'X-Coach-Desk':'full','X-Coach-Overview':'unpaid','X-Coach-Start':'balances-first'
+  }}));
+  assert.equal(res.status,200);return res.json();
+ }
+ const finance=await open(owner);assert.deepEqual(finance.balanceSnapshot,snapshot);assert.equal(reads,0);
+ assert.equal(finance.desk,undefined);
+ const coach=await open(one);assert.equal(coach.balanceSnapshot,undefined);assert.ok(coach.desk);assert.equal(reads,1);
+});

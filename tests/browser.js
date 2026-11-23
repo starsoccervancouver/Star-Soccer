@@ -138,9 +138,13 @@
             ? historyRow.getBoundingClientRect().height+(parseFloat(frame.contentWindow.getComputedStyle(form).rowGap)||0)
             : 0;
           if(history)check(historyHeight>0 && historyHeight<=100,`${page} at ${width}px keeps the optional attendance-history row within 100px`);
-          const limit=baseLimit+Math.min(historyHeight,100)+Math.ceil(priceLineOffset);
+          // The coach credential adds two lines on narrow phones and one at the 430px test width.
+          const coachCopyAllowance=privateForm?(width<430?40:20):0;
+          const limit=baseLimit+Math.min(historyHeight,100)+Math.ceil(priceLineOffset)+coachCopyAllowance;
           check(Math.round(submit.getBoundingClientRect().bottom)<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
           if(privateForm){
+            const coachLink=doc.querySelector('#private-form a[href="index.html#coaching-team"]');
+            check(coachLink?.parentElement.textContent.includes('coached in Vancouver for 30+ years') && coachLink.getClientRects().length===1,`Private coaching at ${width}px shows the credential beside a single-line coach link`);
             doc.querySelector('[name="Training format"][value="smallgroup"]').click();
             check(Math.round(submit.getBoundingClientRect().bottom)<=limit && submit.getBoundingClientRect().height>=48,`Small group at ${width}px also keeps its inquiry button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
             doc.querySelector('[name="Training format"][value="private"]').click();

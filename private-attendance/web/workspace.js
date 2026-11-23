@@ -680,7 +680,7 @@
  const canRecordPayment=()=>canViewBooks()&&profile.role==='owner'&&data.paymentRecordingAvailable===true;
  let booksRequest=0,booksRows=null,booksDenied=false,booksLimit=booksPageSize,booksMode='family',homeUnpaidState='idle';
  const canViewBooks=()=>!booksDenied&&data?.booksAvailable===true&&(profile?.role==='owner'||(profile?.role==='admin'&&profile.familyAccess===true));
- const sessionDue=row=>row.scope==='session'&&row.status==='due'&&Number.isFinite(row.amountDue)&&row.amountDue>0;
+ const sessionDue=row=>(row.scope==='session'||row.scope==='booking'&&row.pastBookingBalance===true)&&row.status==='due'&&Number.isFinite(row.amountDue)&&row.amountDue>0;
  const bookStatuses={due:'Payment due',paid:'Paid',upcoming:'Upcoming','no-charge':'No charge',package:'Package',review:'Needs review'};
 
  function resetBooks(){
@@ -890,7 +890,7 @@
   for(const row of rows.filter(sessionDue)){
    if(row.bookingId&&bookings.has(row.bookingId))continue;
    if(row.bookingId)bookings.add(row.bookingId);
-   const key=row.familyId||row.bookingId||row;
+   const key=row.familyId||row.playerId||row.bookingId||row;
    if(!families.has(key))families.set(key,{id:row.familyId,name:'',cents:0,rows:[]});
    const family=families.get(key);
    family.cents+=Math.round(row.amountDue*100);family.rows.push(row);
@@ -904,7 +904,7 @@
  }
  function renderSelectedBalance(){
   const [kind,id]=bookTarget.split('-');
-  const selected=booksRows.filter(row=>(kind==='family'?row.familyId:row.bookingId)===id);
+  const selected=booksRows.filter(row=>kind==='player'?!row.familyId&&row.playerId===id:(kind==='family'?row.familyId:row.bookingId)===id);
   const [family]=unpaidByFamily(selected);
   const status=$('selected-balance-status');
   if(!family){
@@ -1013,7 +1013,7 @@
   const list=$('home-unpaid-list');list.replaceChildren();
   if(!$('home-unpaid').open)return;
   for(const family of unpaidFamilies){
-   const target=family.rows.length===1?'booking-'+family.rows[0].bookingId:'family-'+family.id;
+   const target=family.rows.length===1?'booking-'+family.rows[0].bookingId:family.id?'family-'+family.id:'player-'+family.rows[0].playerId;
    const action=node('a');action.href='#view=books&balance='+target;
    action.append(node('span',family.name),node('strong',familyMoney(family.cents/100)));
    const item=node('li');item.append(action);list.append(item);
@@ -1023,7 +1023,13 @@
    unpaidFamilies=unpaidByFamily(result.rows);homeUnpaidState='ready';
    renderPendingPayments(result.pendingPayments||[]);
    const pending=$('pending-booking-payments').childElementCount;
-   $('home-unpaid-label').textContent=unpaidFamilies.length?'Unpaid sessions ('+unpaidFamilies.length+(unpaidFamilies.length===1?' family)':' families)'):'Payment to finish';
+   const label=$('home-unpaid-label');
+   label.textContent='Payment to finish';
+   if(unpaidFamilies.length){
+    const count=unpaidFamilies.length,total=unpaidFamilies.reduce((sum,family)=>sum+family.cents,0);
+    label.replaceChildren(node('span','Unpaid sessions ('+count+(count===1?' family)':' families)')),
+     node('strong',familyMoney(total/100)+' owing','unpaid-total'));
+   }
    $('home-unpaid').hidden=!unpaidFamilies.length&&!pending;
    updateHomeAttention();renderUnpaidRows();$('home-unpaid-status').textContent='';
  }

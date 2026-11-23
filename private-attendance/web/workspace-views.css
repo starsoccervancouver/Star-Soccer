@@ -130,3 +130,5 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
   #home-unpaid-list a::after { content:''; width:6px; height:6px; border-block-start:1.5px solid var(--desk-accent); border-inline-end:1.5px solid var(--desk-accent); transform:rotate(45deg); }
   #home-attention #home-priorities .priority-action + .priority-action { border-block-start:1px solid var(--desk-line); border-radius:0; }
 }
+
+#home-unpaid-label .unpaid-total { display:inline-block; margin-inline-start:.65em; color:var(--desk-ink); font-variant-numeric:tabular-nums; white-space:nowrap; }

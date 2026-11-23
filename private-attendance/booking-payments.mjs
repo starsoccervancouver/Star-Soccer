@@ -1,3 +1,4 @@
+import {collectibleBooking} from './session-books.mjs';
 import {deny} from './coach-store.mjs';
 
 const recordId=/^rec[A-Za-z0-9]{14}$/;
@@ -43,7 +44,7 @@ export function createBookingPayments({store,db,books,today}){
   if(receipt)assertReceipt(receipt);
   if(retry&&!receipt){
    const {rows}=await books();
-   if(!items.every(i=>rows.some(r=>r.scope==='session'&&r.status==='due'&&r.familyId===familyId&&r.bookingId===i.bookingId&&cents(r.amountDue)===i.dueCents)))conflict();
+   if(!items.every(i=>rows.some(r=>collectibleBooking(r)&&r.status==='due'&&r.familyId===familyId&&r.bookingId===i.bookingId&&cents(r.amountDue)===i.dueCents)))conflict();
   }
   const allocations=await db.list('allocations',allocationFields,"LEFT({Allocation ID},"+(source.length+1)+")='"+source+"-'");
   const expected=new Set(items.map(i=>source+'-'+i.bookingId));
@@ -95,7 +96,7 @@ export function createBookingPayments({store,db,books,today}){
    const {rows}=await books(),items=[],references=new Set();
    let name;
    for(const item of p.items){
-    const row=rows.find(r=>r.scope==='session'&&r.status==='due'&&r.bookingId===item.bookingId&&r.familyId===p.familyId);
+    const row=rows.find(r=>collectibleBooking(r)&&r.status==='due'&&r.bookingId===item.bookingId&&r.familyId===p.familyId);
     if(!row||cents(row.amountDue)!==item.dueCents)conflict();
     const f=await booking(item.bookingId);
     if(!one(f.Family,p.familyId)||!one(f.Player,row.playerId)||(!f['Family reference']&&f['Payment Allocations']?.length))conflict();

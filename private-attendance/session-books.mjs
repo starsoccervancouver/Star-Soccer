@@ -6,7 +6,7 @@ const fields = {
   sessions: ['Session', 'Source session ID', 'Weekly program', 'Date', 'Time', 'Venue', 'Session status', 'Attendance'],
   attendance: ['Session', 'Session date', 'Player', 'Booking', 'Coverage state', 'Attendance status', 'Covered session key', 'Attended billing session', 'Preparation registration kind'],
   players: ['Player', 'Family', 'Attendance', 'Bookings'],
-  bookings: ['Player', 'Family', 'Attendance', 'First session', 'Start date', 'Covered dates', 'Booking status', 'Booking type',
+  bookings: ['Source booking ID', 'Player', 'Family', 'Attendance', 'First session', 'Start date', 'Covered dates', 'Booking status', 'Booking type',
     'Charge review', 'Charge CAD', 'Billing basis', 'Attendance-adjusted charge CAD', 'Payment Allocations', 'Verified applied CAD', 'Balance CAD', 'Due now CAD', 'Upcoming booked CAD', 'Unresolved price count', 'Fixed-price package'],
   families: ['Family', 'Players', 'Bookings', 'Guardian name', 'Email', 'Phone', 'Payments', 'Unverified payment claims CAD', 'Verified family receipts CAD', 'Verified applied CAD'],
   payments: ['Family','Method','Verification','Direction','Amount CAD','Training portion CAD','Thank-you gift CAD'],
@@ -260,7 +260,7 @@ export function buildSessionBooks(tables, today, source = {}) {
     }
   }
   // Books also includes approved bookings that have not been placed on a roster.
-  // An unplaced booking can never enter the per-session unpaid queue.
+  // An owner-confirmed carryover can be collectible even when the earlier camp date is unknown.
   for (const [bookingId, booking] of bookings) {
     if (processed.has(bookingId) || !recognizedBooking.has(booking['Booking status'])) continue;
     const linked = links(booking.Attendance);
@@ -280,7 +280,17 @@ export function buildSessionBooks(tables, today, source = {}) {
       ...household(single(player?.Family), identity ? family : null), ...(groups.get(single(first)) || wholeBookings),
       status: 'review', reviewReason:null, reviewBalance:null, ...emptyAmounts};
     let reason = 'Check the booking’s player and roster links.';
-    if (voided || cancelled) reason = 'Check the recorded balance on this cancelled session or void roster place.';
+    const sourceMatch=/^past-booking-balance:(rec[A-Za-z0-9]{14})$/.exec(booking['Source booking ID']||'');
+    const sourceBooking=sourceMatch&&bookings.get(sourceMatch[1]);
+    if (identity && !linked.length && !first.length && !date && !booking['Covered dates'] &&
+      booking['Booking status']==='Completed' && booking['Billing basis']==='Historical' && !isPackage(booking) &&
+      sourceBooking && sourceMatch[1]!==bookingId && single(sourceBooking.Player)===playerId) {
+      row.sessionLabel='Earlier camp · date unrecorded';
+      const {amounts,issue}=reconciledAmounts(booking,single(player.Family),family,false,receipts);
+      if(amounts && amounts.amountUpcoming===0){
+        Object.assign(row,amounts,{pastBookingBalance:true,status:amounts.amountDue>0?'due':amounts.amountPaid>0?'paid':'no-charge'});
+      }else reason=issue||reason;
+    } else if (voided || cancelled) reason = 'Check the recorded balance on this cancelled session or void roster place.';
     else if (identity && !linked.length && validDate(date) && dates[0] === date && (!first.length ||
       first.length === 1 && recognizedSession.has(firstSession?.['Session status']) && firstSession.Date === date)) {
       const {amounts,issue} = reconciledAmounts(booking, single(player?.Family), family, date > today, receipts);
@@ -305,9 +315,11 @@ export async function readSessionBooks(read, now, timeZone, source) {
 }
 
 // Overview can reuse a recent display read. Books and payment validation always request fresh data.
+export const collectibleBooking = row => row.scope==='session' || (row.scope==='booking' && row.pastBookingBalance===true);
+
 export function unpaidSessionRows(report) {
-  return report.rows.filter(row=>row.scope==='session' && row.status==='due' && Number.isFinite(row.amountDue) && row.amountDue>0)
-    .map(({scope,status,amountDue,bookingId,familyId,familyName,playerName})=>({scope,status,amountDue,bookingId,familyId,familyName,playerName}));
+  return report.rows.filter(row=>collectibleBooking(row) && row.status==='due' && Number.isFinite(row.amountDue) && row.amountDue>0)
+    .map(({scope,status,amountDue,bookingId,familyId,familyName,playerId,playerName,pastBookingBalance})=>({scope,status,amountDue,bookingId,familyId,familyName,playerId,playerName,pastBookingBalance}));
 }
 
 export function createBooksReader(load, clock = Date.now, summaryStore) {

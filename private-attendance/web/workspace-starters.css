@@ -1,1 +1,1 @@
-.library-card[data-source="starter"] .library-source-tag{background:#f3ece0;color:#73592f}
+.library-card[data-source="starter"] .library-source-tag{background:var(--desk-warning-soft);color:var(--desk-amber)}

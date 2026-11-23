@@ -1,13 +1,13 @@
 /* Large, calm controls for the touchline. All data remains in the signed-in page. */
 .field-entry-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 6px; }
 .field-entry-actions button { min-height: 46px; }
-.field-unsaved-warning { padding: 16px; margin: 12px 0 18px; border: 1px solid #d4b57c; border-radius: 16px; background: #fff5df; color: #624b24; }
+.field-unsaved-warning { padding: 16px; margin: 12px 0 18px; border: 1px solid var(--desk-control-line); border-radius: 16px; background: var(--desk-warning-soft); color: var(--desk-amber); }
 .field-unsaved-warning[hidden] { display: none; }
 .field-unsaved-warning strong { font-size: 15px; }
 .field-unsaved-warning p { margin: 7px 0 12px; font-size: 13px; line-height: 1.65; }
 .field-unsaved-warning button { min-height: 44px; border-radius: 999px; }
-.field-time-budget { margin: 14px 0; padding: 12px 15px; border: 1px solid var(--desk-line, #d9e2e7); border-radius: 14px; background: #fff; color: var(--desk-ink, #162a3b); font-size: 13px; font-weight: 650; line-height: 1.65; overflow-wrap: anywhere; }
-.field-time-budget.is-over-budget { border-color: #d4b57c; background: #fff5df; color: #624b24; }
+.field-time-budget { margin: 14px 0; padding: 12px 15px; border: 1px solid var(--desk-line, #d9e2e7); border-radius: 14px; background: var(--desk-surface); color: var(--desk-ink, #162a3b); font-size: 13px; font-weight: 650; line-height: 1.65; overflow-wrap: anywhere; }
+.field-time-budget.is-over-budget { border-color: var(--desk-control-line); background: var(--desk-warning-soft); color: var(--desk-amber); }
 body.field-view-open { overflow: hidden; }
 .field-view { width: min(1120px, calc(100% - 40px)); max-height: calc(100dvh - 40px); box-sizing: border-box; padding: 30px; margin: auto; border: 1px solid var(--desk-line, #d9e2e7); border-radius: 20px; color: var(--desk-ink, #162a3b); background: var(--desk-canvas, #f7f7f3); box-shadow: 0 24px 80px #0c1c3455; overscroll-behavior: contain; }
 .field-view::backdrop { background: #0c1c34b8; }
@@ -20,11 +20,11 @@ body.field-view-open { overflow: hidden; }
 .field-view-heading > div { min-width: 0; }
 .field-view-heading > button { flex: 0 0 auto; }
 .field-view-heading .small { margin: 0; }
-.field-saved-notice { margin: 20px 0; padding: 11px 14px; border: 1px solid #d5e3eb; border-radius: 9px; background: #f0f7fa; color: #365568; font-size: 12px; line-height: 1.55; }
+.field-saved-notice { margin: 20px 0; padding: 11px 14px; border: 1px solid var(--desk-line); border-radius: 9px; background: var(--desk-accent-soft); color: var(--desk-accent); font-size: 12px; line-height: 1.55; }
 .field-focus { border-left: 4px solid var(--desk-accent, #bb9553); padding: 5px 0 5px 17px; margin: 22px 0 26px; }
 .field-focus p { font-size: 20px; line-height: 1.55; font-weight: 650; margin: 4px 0; white-space: pre-wrap; }
 .field-stage-grid { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; }
-.field-activity { min-width: 0; padding: 21px; border: 1px solid var(--desk-line, #d9e2e7); border-radius: 14px; background: #fff; }
+.field-activity { min-width: 0; padding: 21px; border: 1px solid var(--desk-line, #d9e2e7); border-radius: 14px; background: var(--desk-surface); }
 .field-stages { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 24px; }
 .field-stages button { flex: 1 1 120px; min-width: 0; padding: 10px; font-size: 12px; }
 .field-stages button.is-active { background: var(--desk-ink, #162a3b); border-color: var(--desk-ink, #162a3b); color: #fff; }
@@ -36,20 +36,20 @@ body.field-view-open { overflow: hidden; }
 .field-timer .small { font-size: 12px; margin: 14px 0 0; }
 .field-timer output { display: block; font-size: 54px; font-weight: 750; line-height: 1.2; letter-spacing: -.05em; font-variant-numeric: tabular-nums; margin: 12px 0 18px; }
 .field-timer label { display: block; color: #edf3f8; font-size: 12px; margin-bottom: 16px; }
-.field-timer input { width: 100%; padding: 11px 13px; min-height: 44px; border: 1px solid #becedb; border-radius: 8px; background: #fff; color: #172d40; margin-top: 6px; }
+.field-timer input { width: 100%; padding: 11px 13px; min-height: 44px; border: 1px solid var(--desk-control-line); border-radius: 8px; background: var(--desk-surface); color: var(--desk-accent); margin-top: 6px; }
 .field-timer-actions { display: flex; flex-wrap: wrap; gap: 9px; }
 .field-timer-actions button { flex: 1 1 85px; padding: 11px; font-size: 13px; }
-.field-timer-actions .button { background: #e9ce98; border-color: #e9ce98; color: #132535; }
-.field-timer-actions .secondary { color: #fff; background: transparent; border: 1px solid #8195a8; }
+.field-timer-actions .button { background: var(--desk-warning-soft); border-color: var(--desk-control-line); color: var(--desk-accent); }
+.field-timer-actions .secondary { color: #fff; background: transparent; border: 1px solid var(--desk-control-line); }
 .field-equipment { margin: 24px 0; }
 .field-equipment h3 { font-size: 17px; margin: 0 0 10px; }
 .field-equipment p { white-space: pre-wrap; font-size: 15px; line-height: 1.7; }
-.field-roster { margin-bottom: 22px; border: 1px solid var(--desk-line, #d9e2e7); background: #fff; border-radius: 12px; padding: 0 16px 16px; }
+.field-roster { margin-bottom: 22px; border: 1px solid var(--desk-line, #d9e2e7); background: var(--desk-surface); border-radius: 12px; padding: 0 16px 16px; }
 .field-roster:not([open]) { padding-bottom: 0; }
 .field-roster summary { min-height: 50px; padding: 14px 0; font-size: 14px; font-weight: 750; cursor: pointer; }
 .field-roster-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; }
 .field-roster-table th, .field-roster-table td { padding: 11px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--desk-line, #d9e2e7); overflow-wrap: anywhere; }
-.field-roster-table th { color: #536b7e; font-size: 12px; font-weight: 650; }
+.field-roster-table th { color: var(--desk-muted); font-size: 12px; font-weight: 650; }
 .session-print-sheet { display: none; }
 /* Match the focused workspace without stacking extra panels before its actions. */
 #session-field-tools > .small { margin: 10px 0; line-height: 1.5; }

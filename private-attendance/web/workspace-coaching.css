@@ -2,14 +2,14 @@
 .coaching-hub, .player-development, .practice-toolbox { min-width: 0; }
 .coaching-hub h2, .player-development h2, .practice-toolbox h2 { margin-top: 0; }
 .coaching-agenda { display: grid; gap: 10px; margin-top: 20px; }
-.coaching-agenda-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 17px; border: 1px solid var(--desk-line); border-radius: 12px; background: #fcfcfa; }
-.coaching-agenda-row.is-current { border-color: #88adc3; background: #f0f8fc; }
+.coaching-agenda-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 17px; border: 1px solid var(--desk-line); border-radius: 12px; background: var(--desk-surface); }
+.coaching-agenda-row.is-current { border-color: var(--desk-control-line); background: var(--desk-accent-soft); }
 .coaching-agenda-details { min-width: 0; flex: 1 1 200px; }
 .coaching-agenda-details h3 { margin: 0 0 5px; font-size: 16px; }
 .coaching-agenda-details p { margin: 0 0 7px; overflow-wrap: anywhere; }
 .coaching-inline-actions { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .coaching-inline-actions button { min-height: 44px; max-width: 100%; }
-.coaching-review-alert { margin-top: 18px; padding: 16px; background: #fff6e6; border: 1px solid #e6d5b7; border-radius: 12px; }
+.coaching-review-alert { margin-top: 18px; padding: 16px; background: var(--desk-warning-soft); border: 1px solid var(--desk-control-line); border-radius: 12px; }
 .coaching-review-alert p { margin: 6px 0 12px; }
 .player-development > button { max-width: 100%; overflow-wrap: anywhere; }
 .player-development > select { margin: -10px 0 20px; max-width: 650px; }
@@ -29,10 +29,10 @@
 .practice-toolbox-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin-top: 20px; }
 .practice-toolbox-filters label { margin-bottom: 4px; min-width: 0; }
 .practice-activities { display: grid; gap: 10px; }
-.practice-activity { padding: 0 17px 16px; border: 1px solid var(--desk-line); border-radius: 12px; background: #fcfcfa; min-width: 0; }
+.practice-activity { padding: 0 17px 16px; border: 1px solid var(--desk-line); border-radius: 12px; background: var(--desk-surface); min-width: 0; }
 .practice-activity:not([open]) { padding-bottom: 0; }
 .practice-activity summary { display: flex; flex-direction: column; justify-content: center; gap: 3px; min-height: 68px; padding: 13px 26px 13px 0; cursor: pointer; font-size: 15px; position: relative; }
-.practice-activity summary::after { content: '+'; position: absolute; right: 2px; top: 20px; font-size: 22px; color: #6a7a87; line-height: 1; }
+.practice-activity summary::after { content: '+'; position: absolute; right: 2px; top: 20px; font-size: 22px; color: var(--desk-muted); line-height: 1; }
 .practice-activity[open] summary::after { content: '−'; }
 .practice-activity summary .small { font-size: 13px; }
 .practice-activity p { font-size: 14px; margin: 8px 0 13px; }

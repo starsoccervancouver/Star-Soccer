@@ -1,2 +1,2 @@
-.library-card[data-source="preset"] .library-source-tag{background:#edf1e7;color:#365443}
+.library-card[data-source="preset"] .library-source-tag{background:var(--desk-success-soft);color:var(--desk-ink)}
 .preset-source a{color:inherit;text-underline-offset:3px}.preset-source span{display:block;margin-top:.3rem;font-size:.75rem}

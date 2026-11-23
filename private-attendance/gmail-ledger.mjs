@@ -55,7 +55,7 @@ export function airtableClient(config, token, fetchFn=fetch) {
     }
   };
 }
-export async function syncLedgerEvent(db,event,{campPlacementSince,confirmedDraftFlow=false,trackConfirmation=false,now=new Date()}={}) {
+export async function syncLedgerEvent(db,event,{campPlacementSince,confirmedDraftFlow=false,readPublished,trackConfirmation=false,now=new Date()}={}) {
   if(!event)return;
   const e=event;
   if(['camp-confirmation','registration-confirmation'].includes(e.type)){
@@ -97,7 +97,7 @@ export async function syncLedgerEvent(db,event,{campPlacementSince,confirmedDraf
   if(matches.length>1||matches.some(r=>(r.fields.Child&&normalize(r.fields.Child)!==normalize(e.child))||(r.fields['Parent email']&&r.fields['Parent email'].toLowerCase()!==e.contact)))return intake('Registration candidate','Needs clarification','Conflicting registration reference or identity. Review the existing entries.',summary);
   let registration=matches[0], children=[];
   if(registration&&registration.fields['Source Gmail ID']===e.id&&e.playerHistory&&!registration.fields['Player history at registration'])await db.save('registrations',{'Player history at registration':e.playerHistory},{id:registration.id});
-  const weekly=confirmedDraftFlow?weeklyRequest(e):null;
+  const weekly=confirmedDraftFlow && ['SS-WEEKLY-V2','SS-PASS-V1'].includes(e.version)?weeklyRequest(e,await readPublished?.()):null;
   const campFlow=afterCutover(e.received,campPlacementSince)&&(campVersions.includes(e.version)||!!weekly);
   const request=weekly||(campFlow?campRequest(e,new Date(e.received)):null);
   const awaitingPlacement=!registration||['Needs review','Processing'].includes(registration.fields.Status)&&!registration.fields.Booking?.length;

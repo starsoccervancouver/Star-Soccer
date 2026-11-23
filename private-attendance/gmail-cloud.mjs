@@ -11,6 +11,7 @@ import {attentionPage,filterReportItems} from './attention-inbox.mjs';
 import {classifyMessage,depositLabel} from './gmail-message.mjs';
 import {airtableClient,syncLedgerEvent} from './gmail-ledger.mjs';
 import {createAirtableTransport} from './airtable-transport.mjs';
+import {publishedReader} from './weekly-publication.mjs';
 import {STAR_SOCCER_OWNER} from './deployment-config.mjs';
 
 const scope='https://www.googleapis.com/auth/gmail.readonly';
@@ -36,6 +37,7 @@ function open(value,secret) {
 }
 export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
   const config=JSON.parse(env.AIRTABLE_CONFIG);
+  const readPublished=publishedReader(fetchFn,clock);
   const ledger=airtableClient(config,env.AIRTABLE_TOKEN,createAirtableTransport({fetchFn}));
   const campPlacementSince=config.exclusiveWriter===true&&config.tables.sessions&&config.tables.attendance
     ? env.CAMP_AUTO_PLACE_SINCE?.trim() : undefined;
@@ -170,7 +172,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
             const event=classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox,followupEnabled||!!campPlacementSince);
             const confirmedDraftFlow=!!filing&&Date.parse(event?.received)>=Date.parse('2026-11-22T07:30:00Z');
             const writer=event?auditFinancialWrites(ledger,storage,{source:'gmail:'+message.id,actor:'Star Soccer Gmail intake',reason:event.type,clock}):ledger;
-            await syncLedgerEvent(writer,event,{campPlacementSince,confirmedDraftFlow,trackConfirmation:followupEnabled||confirmedDraftFlow,now:new Date(clock())});
+            await syncLedgerEvent(writer,event,{campPlacementSince,confirmedDraftFlow,readPublished,trackConfirmation:followupEnabled||confirmedDraftFlow,now:new Date(clock())});
             processedDeposit=event?.type==='payment'&&event.verified;
         }
         }catch(err){
@@ -255,7 +257,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
        }catch{/* Surface unavailable reads in the report. */}
       }
       const drafts=await storage.list({prefix:'confirmation:booking:'});
-      const result=ownerWorkflows(data,{now:clock(),notices,desk:payload.desk,calendar,calendarReason,draftStates:[...drafts.values()],draftError:await storage.get('confirmation:error')});
+      const result=ownerWorkflows(data,{published:await readPublished().catch(()=>null),now:clock(),notices,desk:payload.desk,calendar,calendarReason,draftStates:[...drafts.values()],draftError:await storage.get('confirmation:error')});
       for(const entry of (await storage.list({prefix:'finance:pending:'})).values()){
         if(clock()-Date.parse(entry.requestedAt)>=3600000)result.items.push({group:'Payments',title:'Financial write needs verification',
           action:'Compare the original message and ledger record before resolving this unfinished operation.',

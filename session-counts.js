@@ -20,7 +20,7 @@
       if(!cells || cells.every(v=>v===null || v===''))continue;
       const [date,group,players,capacity,remaining,status]=cells;
       const session=T.getSession(group),day=T.isoDate(date);
-      if(cells.length!==6 || !session || !day || day.getUTCDay()!==session.weekday || !Number.isSafeInteger(players) || players<0 || capacity!==T.catalog.groupCapacity || !Number.isSafeInteger(remaining) || remaining!==(status==='Cancelled'?0:Math.max(0,capacity-players)) || !['Planning','Scheduled','Cancelled','Completed'].includes(status))throw new Error('Invalid session count');
+      if(cells.length!==6 || !session || !day || day.getUTCDay()!==session.weekday || !Number.isSafeInteger(players) || players<0 || (!Number.isSafeInteger(capacity)||capacity<1||capacity>(session.capacity??T.catalog.groupCapacity)) || !Number.isSafeInteger(remaining) || remaining!==(status==='Cancelled'?0:Math.max(0,capacity-players)) || !['Planning','Scheduled','Cancelled','Completed'].includes(status))throw new Error('Invalid session count');
       const key=group+':'+date;
       if(records.has(key))throw new Error('Duplicate dated session');
       records.set(key,Object.freeze({date,group,players,capacity,remaining,status}));

@@ -17,10 +17,12 @@ const googleTag = `
 `;
 
 const cssVersion = require('node:crypto').createHash('sha256').update(fs.readFileSync('site.min.css')).digest('hex').slice(0,12);
+const trainingVersion = require('node:crypto').createHash('sha256').update(fs.readFileSync('training.js')).digest('hex').slice(0,12);
 
 // Keep tracking off staff sign-in, booking receipts and legacy redirects.
 function stageHtml(name) {
-  const html = fs.readFileSync(name, 'utf8').replace(/(href="(?:\/)?site\.min\.css)(?:\?v=[a-f0-9]+)?"/g, '$1?v='+cssVersion+'"');
+  const html = fs.readFileSync(name, 'utf8').replace(/(href="(?:\/)?site\.min\.css)(?:\?v=[a-f0-9]+)?"/g, '$1?v='+cssVersion+'"')
+    .replace(/(src="(?:\/)?training\.js)(?:\?[^"]*)?"/g, '$1?v='+trainingVersion+'"');
   const destination = path.join('_site', name);
   if (['coach.html', 'registration-thank-you.html'].includes(name) || /<body\b[^>]*\bdata-redirect\s*=/i.test(html)) {
     fs.writeFileSync(destination, html);

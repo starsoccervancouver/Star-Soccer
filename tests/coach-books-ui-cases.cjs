@@ -164,7 +164,7 @@ async function finishReadAfterExit({page,context}, exit) {
   await (await finished).finished();
   await page.waitForLoadState('networkidle');
   await context.unroute(endpoint,delayed);
-  for(const selector of ['#home-unpaid-list','#books-list']) assert.equal((await page.locator(selector).textContent()).trim(),'');
+  for(const selector of await page.locator('#panel-home').isVisible()?['#books-list']:['#home-unpaid-list','#books-list']) assert.equal((await page.locator(selector).textContent()).trim(),'');
   for(const id of ['books-outstanding','books-due','books-upcoming','books-review-count'])
     assert.equal(await page.locator('#'+id).textContent(),'','No private balance or count survives leaving Books');
   assert(!(await page.locator('body').textContent()).includes(due.contact.email));
@@ -172,6 +172,12 @@ async function finishReadAfterExit({page,context}, exit) {
 
 module.exports = async function checkBooks(fixture) {
   const emptyHome = {homeQueues:true,roster:[],openInquiry:false};
+  const opening = await fixture({...emptyHome,books,openingUnpaid:true});
+  try {
+    await opening.page.locator('#home-unpaid-list').getByRole('link',{name:/Avery Fictional.*31.50/}).waitFor();
+    await opening.page.waitForLoadState('networkidle');
+    assert.equal(reads(opening).length,0,'Opening balances render without a second lookup');
+  } finally { await opening.context.close(); }
   const empty = await fixture({...emptyHome,books:[]});
   try {
     await empty.page.waitForLoadState('networkidle');
@@ -190,10 +196,9 @@ module.exports = async function checkBooks(fixture) {
     assert(await page.locator('#home-mail-summary').isHidden());
     assert(await page.locator('#home-registration-review').isHidden());
     assert.equal(await page.locator('#home-priorities').evaluate(el=>el.childElementCount),0);
-    assert.equal(await unpaid.evaluate(el=>el.open),false);
-    assert.equal(await unpaid.locator('#home-unpaid-list > li').count(),0,'Only a count is rendered while collapsed');
+    assert.equal(await unpaid.evaluate(el=>el.open),true);
+    assert.equal(await unpaid.locator('#home-unpaid-list > li').count(),1,'The outstanding amount is visible on opening');
     assert.deepEqual(reads(f).map(r=>r.payload),[{view:'unpaid'}]);
-    await unpaid.locator(':scope > summary').click();
     const homeRow=unpaid.locator('#home-unpaid-list li');
     const booking=homeRow.getByRole('link');
     await booking.waitFor();
@@ -356,7 +361,7 @@ module.exports = async function checkBooks(fixture) {
   try{
     const {page}=homeFamilies;
     const unpaid=page.locator('#home-unpaid');
-    await unpaid.getByText('Unpaid sessions (2 families)',{exact:true}).click();
+    await unpaid.getByText('Unpaid sessions (2 families)',{exact:true}).waitFor();
     const rows=unpaid.locator('#home-unpaid-list > li');
     await rows.nth(1).waitFor();
     assert.equal(await rows.count(),2,'Same-name households remain separate');
@@ -367,7 +372,7 @@ module.exports = async function checkBooks(fixture) {
     assert.deepEqual(await chooser.locator('.books-session strong').allTextContents(),[due.playerName,second.playerName]);
     assert.deepEqual(await chooser.locator('.books-amount').allTextContents(),['$31.50 owing','$12.25 owing']);
     assert.equal(await chooser.locator('a[href^="http"]').count(),0);
-    await page.goBack();await unpaid.locator('summary').click();
+    await page.goBack();
     await rows.getByRole('link',{name:/31\.50/}).click();await chooser.locator('.books-entry').first().waitFor();
     assert.equal(await chooser.locator('.books-entry').count(),1);
     assert.equal(await page.context().pages().length,1);
@@ -376,7 +381,7 @@ module.exports = async function checkBooks(fixture) {
 
   const unnamed=await fixture({...emptyHome,books:[{...due,familyName:null,familyId:null}]});
   try{
-    await unnamed.page.locator('#home-unpaid-label').click();
+
     const link=unnamed.page.locator('#home-unpaid-list').getByRole('link',{name:/Taylor Fictional/});
     await link.click();
     await unnamed.page.locator('#unpaid-bookings-title').getByText(due.playerName,{exact:true}).waitFor();
@@ -402,7 +407,7 @@ module.exports = async function checkBooks(fixture) {
       }
       await route.fulfill({json:{saved:true}});
     });
-    await page.getByText('Unpaid sessions (2 families)',{exact:true}).click();
+    await page.getByText('Unpaid sessions (2 families)',{exact:true}).waitFor();
     const family=page.locator('#home-unpaid-list a[href$="'+due.bookingId+'"]');
     await family.click();
     await page.locator('#payment-entry summary').click();
@@ -433,6 +438,7 @@ module.exports = async function checkBooks(fixture) {
     const unpaid=page.locator('#home-unpaid');
     await unpaid.getByText('Check unpaid sessions',{exact:true}).waitFor();
     assert(await page.locator('#home-attention').isVisible(),'A failed lookup cannot mark an otherwise empty Overview as clear');
+    if(await unpaid.evaluate(el=>el.open))await unpaid.locator(':scope > summary').click();
     await unpaid.locator(':scope > summary').click();
     await unpaid.getByText(due.familyName,{exact:true}).waitFor();
     assert.deepEqual(reads(retry).map(r=>r.payload),[{view:'unpaid'}],'After a failed lookup, expanding retries the due-only read');

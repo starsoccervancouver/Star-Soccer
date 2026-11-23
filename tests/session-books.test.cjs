@@ -239,3 +239,19 @@ test('Overview shares a pending read and refreshes on expiry, mutation or a dire
   read.invalidate();
   assert.equal(await overview(),4);
 });
+
+test('opening summaries persist only unpaid fields and an old read cannot undo invalidation',async()=>{
+ const {createBooksReader}=await books;
+ let value=null,finish;
+ const store={save:entry=>{value=entry;},read:()=>value,clear:()=>{value=null;}};
+ const report={rows:[{scope:'session',status:'due',amountDue:12,playerName:'Example',contact:{email:'private'}}]};
+ const reader=createBooksReader(async()=>report,()=>100,store);
+ await reader();
+ assert.equal(value.checkedAt,100);assert.equal(value.rows[0].contact,undefined);
+ const reopened=createBooksReader(()=>new Promise(resolve=>{finish=resolve;}),()=>105,store);
+ assert.equal(reopened.lastUnpaid().rows[0].amountDue,12);
+ const request=reopened();
+ await Promise.resolve();
+ reopened.invalidate();finish(report);await request;
+ assert.equal(reopened.lastUnpaid(),null);
+});

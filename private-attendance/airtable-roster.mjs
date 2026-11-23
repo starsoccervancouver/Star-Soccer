@@ -77,7 +77,7 @@ export const readFields={
  enrollments:['Enrollment status','Billing approval','Player','Family','Effective from','Effective until','Billing schedule','Weekly program','Weekly attendance email preference'],
  registrations:['Registration kind']
 };
-export function createRosterReader({baseId,token,tableMap,verifiedContacts={},timeZone='America/Vancouver',fetchFn=fetch,clock=()=>new Date()}={}){
+export function createRosterReader({baseId,token,tableMap,summaryStore,verifiedContacts={},timeZone='America/Vancouver',fetchFn=fetch,clock=()=>new Date()}={}){
  if(!/^app[A-Za-z0-9]{14}$/.test(baseId)||!token||!tableMap||Object.keys(readFields).some(name=>!/^tbl[A-Za-z0-9]{14}$/.test(tableMap[name]||'')))throw new Error('PRIVATE_AIRTABLE_CONFIGURATION_REQUIRED');
  async function read(name, fields = readFields[name], ids = null) {
   const rows = [], seen = new Set(), offsets = new Set();
@@ -124,8 +124,9 @@ export function createRosterReader({baseId,token,tableMap,verifiedContacts={},ti
   const readForBooks=(name,fields)=>name==='sessions'&&snapshot&&fields.every(field=>readFields.sessions.includes(field))
    ?snapshot.rows:read(name,fields);
   return readSessionBooks(readForBooks,clock(),timeZone,{baseId,bookings:tableMap.bookings});
- });
+ },()=>clock().getTime(),summaryStore);
  const sessionBooks=options=>booksReader(options);
+ sessionBooks.lastUnpaid=booksReader.lastUnpaid;
  sessionBooks.invalidate=()=>{rosterGeneration++;recentSessions=null;booksReader.invalidate();};
  async function collect(forOverview=false){
   const generation=rosterGeneration;

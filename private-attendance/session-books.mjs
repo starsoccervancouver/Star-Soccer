@@ -305,14 +305,21 @@ export async function readSessionBooks(read, now, timeZone, source) {
 }
 
 // Overview can reuse a recent display read. Books and payment validation always request fresh data.
-export function createBooksReader(load, clock = Date.now) {
+export function unpaidSessionRows(report) {
+  return report.rows.filter(row=>row.scope==='session' && row.status==='due' && Number.isFinite(row.amountDue) && row.amountDue>0)
+    .map(({scope,status,amountDue,bookingId,familyId,familyName,playerName})=>({scope,status,amountDue,bookingId,familyId,familyName,playerName}));
+}
+
+export function createBooksReader(load, clock = Date.now, summaryStore) {
   let recent = null;
   function read({unpaid = false} = {}) {
     if (unpaid && recent && clock() < recent.expires) return recent.result;
     const entry = {expires: Infinity};
     recent = entry;
     entry.result = Promise.resolve().then(() => load({unpaid})).then(report => {
-      entry.expires = clock() + 30_000;
+      const checkedAt=clock();
+      entry.expires = checkedAt + 30_000;
+      if (summaryStore && recent===entry) summaryStore.save({checkedAt,rows:unpaidSessionRows(report)});
       return report;
     }).catch(error => {
       if (recent === entry) recent = null;
@@ -320,6 +327,7 @@ export function createBooksReader(load, clock = Date.now) {
     });
     return entry.result;
   }
-  read.invalidate = () => { recent = null; };
+  read.invalidate = () => { recent = null; summaryStore?.clear(); };
+  read.lastUnpaid = () => summaryStore?.read();
   return read;
 }

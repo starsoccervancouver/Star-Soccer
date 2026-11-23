@@ -1,3 +1,4 @@
+import {unpaidSessionRows} from './session-books.mjs';
 import {randomBytes,createHmac,timingSafeEqual} from 'node:crypto';
 import {Buffer} from 'node:buffer';
 import {deny} from './coach-store.mjs';
@@ -35,6 +36,25 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    ...(attention&&data.profile.familyAccess?{attentionAvailable:true}:{}),
    ...(gmailSync&&data.profile.role==='owner'?{gmailSyncAvailable:true}:{}),
    notes:coaches.notes(data.profile),tasks:coaches.tasks(data.profile)};
+ }
+
+ async function openingDesk(request,raw,signed){
+  const actor=signed.actor;
+  if(request.headers.get('X-Coach-Overview')!=='unpaid'||!sessionBooks||
+    !(actor.role==='owner'||actor.role==='admin'&&actor.familyAccess))return readDesk(raw,signed);
+  coaches.requireFamilyAccess(actor);
+  async function balances(){
+   const summary=sessionBooks.lastUnpaid?.();
+   const [result,pendingPayments]=await Promise.all([
+    summary||sessionBooks({unpaid:true}).then(report=>({rows:unpaidSessionRows(report),checkedAt:clock()})),
+    actor.role==='owner'&&bookingPayments?bookingPayments('pending-booking-payments'):[]
+   ]);
+   return {...result,pendingPayments,refresh:clock()-result.checkedAt>=30000};
+  }
+  const [desk,unpaid]=await Promise.all([readDesk(raw,signed),balances().catch(()=>null)]);
+  const current=currentSession(raw,signed).actor;
+  coaches.requireFamilyAccess(current);
+  return unpaid&&desk.booksAvailable?{...desk,unpaid}:desk;
  }
 
  function anon(request){const raw=cookie(request,'__Host-ss_coach_browser');if(!raw)return null;const p=raw.split('.');if(p.length!==3||!/^\d{13}$/.test(p[1])||+p[1]<=clock()||+p[1]>clock()+1800000||!/^[A-Za-z0-9_-]{43}$/.test(p[0])||!same(p[2],sign('staff-browser:'+p[0]+'.'+p[1])))return null;return {browser:p[0],csrf:sign('staff-csrf:'+raw)};}
@@ -87,7 +107,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    let browser=a,extra={};if(!browser){const payload=random()+'.'+(clock()+1800000),value=payload+'.'+sign('staff-browser:'+payload);browser={browser:payload.split('.')[0],csrf:sign('staff-csrf:'+value)};extra={'Set-Cookie':'__Host-ss_coach_browser='+value+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=1800'};}
    let session=signed,desk;
    if(signed && fullDesk){
-    try{desk=await readDesk(raw,signed);}
+    try{desk=await openingDesk(request,raw,signed);}
     catch(error){
      // A usable sign-in can recover a temporary roster failure with the ordinary desk request.
      session=currentSession(raw,signed);
@@ -141,9 +161,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    }
    if(!Array.isArray(report?.rows))deny('SESSION_BOOKS_UNAVAILABLE',503);
    if(unpaid){
-    const rows=report.rows.filter(row=>row.scope==='session' && row.status==='due' &&
-     Number.isFinite(row.amountDue) && row.amountDue>0).map(({scope,status,amountDue,bookingId,familyId,familyName,playerName})=>
-     ({scope,status,amountDue,bookingId,familyId,familyName,playerName}));
+    const rows=unpaidSessionRows(report);
     checkAccess();return json(200,{rows,...(pendingPayments.length?{pendingPayments}:{})});
    }
    return json(200,{rows:report.rows});
@@ -227,7 +245,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    }
    return json(200,{family});
   }
-  if(path==='/workspace/api/desk'&&request.method==='GET')return json(200,await readDesk(raw,signed));
+  if(path==='/workspace/api/desk'&&request.method==='GET')return json(200,await openingDesk(request,raw,signed));
   if(path==='/workspace/api/audit'&&request.method==='GET')return json(200,{events:coaches.audit(actor)});
   if(path==='/workspace/api/users'&&request.method==='GET')return json(200,{users:coaches.users(actor),credentials:auth.credentialSummary(actor)});
   if(path==='/workspace/api/coaching-team'&&request.method==='GET')return json(200,{coaches:coaches.coachingTeam(actor)});

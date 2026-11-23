@@ -85,7 +85,12 @@ export class AttendanceCoordinator{
    // payment/program copy need their own club review before those routes can be reused.
    this.coachOnly=origin!==STAR_SOCCER_ORIGIN||env.COACH_DESK_ONLY==='true';
    this.service=createService({store:this.store,origin,approvedOrigin:origin,mode:'live',activation:{ownerApproved:true,exclusiveWriter:config.exclusiveWriter===true,draftOnly:true,handoffEvidence:config.handoffEvidence}});
-   const reader=createRosterReader({baseId:config.baseId,token:env.AIRTABLE_TOKEN,tableMap:config.tables,timeZone:clubConfig.timeZone,verifiedContacts:config.verifiedContacts||{},fetchFn:airtableFetch});
+   const summaryStore={
+    read:()=>JSON.parse(this.store.get("SELECT value FROM runtime_state WHERE key='unpaid-overview'")?.value||'null'),
+    save:value=>this.store.run("INSERT OR REPLACE INTO runtime_state(key,value) VALUES('unpaid-overview',?)",JSON.stringify(value)),
+    clear:()=>this.store.run("DELETE FROM runtime_state WHERE key='unpaid-overview'")
+   };
+   const reader=createRosterReader({baseId:config.baseId,token:env.AIRTABLE_TOKEN,tableMap:config.tables,summaryStore,timeZone:clubConfig.timeZone,verifiedContacts:config.verifiedContacts||{},fetchFn:airtableFetch});
    const adapter=createAirtableAdapter({baseId:config.baseId,tableId:config.tables.attendance,fields:config.rsvpFields,token:env.AIRTABLE_TOKEN,fetchFn:airtableFetch,dryRun:env.LIVE_AIRTABLE_WRITES!=='true',exclusiveWriter:config.exclusiveWriter,approval:config.approval});
    const preference=createPreferenceAdapter({baseId:config.baseId,tableId:config.tables.enrollments,fields:config.preferenceFields,token:env.AIRTABLE_TOKEN,fetchFn:airtableFetch,enabled:env.LIVE_AIRTABLE_WRITES==='true'&&config.approval?.ownerApproved===true&&config.approval?.scope==='attendance-rsvp-only'&&config.approval?.baseId===config.baseId&&config.approval?.tableId===config.tables.attendance&&Date.parse(config.approval?.approvedAt)<=Date.now()&&Date.parse(config.approval?.expiresAt)>Date.now()});
    const refreshRoster=async(sessionId)=>{const revision=Number(this.store.get("SELECT value FROM runtime_state WHERE key='revision'")?.value||0)+1;const data=await reader.read(revision,sessionId);this.service.importRoster(data.snapshot);this.service.seedHistory(data.history);this.store.run("INSERT INTO runtime_state VALUES('revision',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",String(revision));this.store.run("INSERT INTO runtime_state VALUES('preferenceTargets',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",JSON.stringify([...new Map([...JSON.parse(this.store.get("SELECT value FROM runtime_state WHERE key='preferenceTargets'")?.value||'[]'),...data.preferences].map(t=>[t.enrollmentId,t])).values()]));};

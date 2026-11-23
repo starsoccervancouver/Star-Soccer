@@ -66,7 +66,9 @@
   });
   const note=document.createElement('div');note.className='count-feed-note';
   const status=document.createElement('p');status.setAttribute('role','status');
-  const help=document.createElement('p');help.textContent='20 players maximum per youth session. Counts may take time to update; the coaching team confirms your place.';
+  const capacities=T.catalog.sessions.filter(s=>s.active&&s.audience!=='women').map(s=>s.capacity??T.catalog.groupCapacity);
+  const lower=Math.min(...capacities),upper=Math.max(...capacities);
+  const help=document.createElement('p');help.textContent=(lower===upper?upper+' players maximum per youth session.':'Youth session capacities range from '+lower+' to '+upper+' players.')+' Counts may take time to update; the coaching team confirms your place.';
   note.append(status,help);
   if(rows.length)rows[0].closest('.schedule-list')?.after(note);
   else (document.querySelector('#training-registration .quick-assurance')||preview).after(note);

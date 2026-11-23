@@ -1,0 +1,56 @@
+{
+  "version": "860c9fc3ec76b5d73e21dd4a1c5e5a00966e10ae75a3019e69e42e6ad11f2c79",
+  "zone": "America/Vancouver",
+  "sessions": [
+    {
+      "id": "tuesday",
+      "program": "Tuesday adult women's soccer",
+      "day": "Tuesday",
+      "time": "9:30–11:00 AM",
+      "venue": "Fen Burdett Stadium",
+      "capacity": 20,
+      "dropin": 20,
+      "pass4": null
+    },
+    {
+      "id": "wednesday",
+      "program": "Wednesday weekly training",
+      "day": "Wednesday",
+      "time": "3:45–5:15 PM",
+      "venue": "Connaught Park",
+      "capacity": 20,
+      "dropin": 30,
+      "pass4": 95
+    },
+    {
+      "id": "thursday",
+      "program": "Thursday weekly training",
+      "day": "Thursday",
+      "time": "4:30–5:30 PM",
+      "venue": "Connaught Park",
+      "capacity": 20,
+      "dropin": 25,
+      "pass4": 80
+    },
+    {
+      "id": "friday",
+      "program": "Friday weekly training",
+      "day": "Friday",
+      "time": "3:45–5:00 PM",
+      "venue": "Connaught Park",
+      "capacity": 20,
+      "dropin": 25,
+      "pass4": 80
+    },
+    {
+      "id": "sunday",
+      "program": "Sunday weekly training",
+      "day": "Sunday",
+      "time": "9:00–10:30 AM",
+      "venue": "Kitsilano Turf",
+      "capacity": 20,
+      "dropin": 30,
+      "pass4": 95
+    }
+  ]
+}

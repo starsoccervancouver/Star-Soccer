@@ -461,6 +461,16 @@ const { chromium } = require('playwright');
     await page.locator('#tactics-undo').click(); assert.deepEqual(await draft(), beforeResize, 'Box corner resize is one undo');
     await page.locator('[data-box-resize="' + boxId + '"][role="button"]').focus(); await page.keyboard.press('ArrowRight');
     assert.equal((await draft()).items.find(item => item.id === boxId).zone.width, box.zone.width + 2, 'Keyboard handle resizes the box');
+    await page.getByRole('button', {name:'Rotate right 15 degrees'}).click();
+    assert.equal((await draft()).frames[4].positions.find(p=>p.id===boxId).rotation,15);
+    assert.equal(await page.locator('[data-zone="'+boxId+'"] rect').first().getAttribute('transform'),'rotate(15)');
+    const previewAngle=await page.evaluate(id=>{
+      const drill=CoachTactics.libraryDiagram();
+      const end=drill.frames.slice(0,4).reduce((n,f)=>n+f.duration,0);
+      const time=end-drill.frames[3].duration/2;
+      return CoachTactics.previewAt(drill,time).image.querySelector('[data-zone="'+id+'"] rect').getAttribute('transform');
+    },boxId);
+    assert.equal(previewAngle,'rotate(7.5)','The viewer turns the zone between saved phases');
     const playerBeforeTools = (await draft()).frames[4].positions.find(p => p.id === firstPlayer), countBeforeTools = (await draft()).items.length;
     await page.locator('#tactics-item').selectOption(firstPlayer);
     for (const control of ['#tactics-body-direction','#tactics-cover-shadow']) { await reveal(control); await page.locator(control).check(); }

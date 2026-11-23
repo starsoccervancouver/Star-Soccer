@@ -282,3 +282,11 @@ body.drill-creator-focus #library-form .tactics-written .library-editor-grid { g
 }
 @media (prefers-reduced-motion: reduce) { #tactics-board-tools.tactics-studio * { scroll-behavior: auto; } }
 @media print { #tactics-board-tools { display: none !important; } }
+
+#tactics-board-tools .tactics-turn-tools {
+  display:flex; align-items:end; flex-wrap:wrap; gap:6px; margin-block:8px;
+}
+#tactics-board-tools .tactics-turn-tools[hidden] { display:none; }
+#tactics-board-tools .tactics-turn-tools label { flex:1 1 7rem; margin:0; }
+#tactics-board-tools .tactics-turn-tools input { width:100%; }
+#tactics-board-tools .tactics-turn-tools button { min-width:44px; min-height:44px; color:var(--desk-accent); }

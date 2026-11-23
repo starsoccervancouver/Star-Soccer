@@ -9,7 +9,7 @@ const fields = {
   bookings: ['Source booking ID', 'Player', 'Family', 'Attendance', 'First session', 'Start date', 'Covered dates', 'Booking status', 'Booking type',
     'Charge review', 'Charge CAD', 'Billing basis', 'Attendance-adjusted charge CAD', 'Payment Allocations', 'Verified applied CAD', 'Balance CAD', 'Due now CAD', 'Upcoming booked CAD', 'Unresolved price count', 'Fixed-price package'],
   families: ['Family', 'Players', 'Bookings', 'Guardian name', 'Email', 'Phone', 'Payments', 'Unverified payment claims CAD', 'Verified family receipts CAD', 'Verified applied CAD'],
-  payments: ['Family','Method','Verification','Direction','Amount CAD','Training portion CAD','Thank-you gift CAD'],
+  payments: ['Family','Family reference','Players associated (not allocation)','Method','Verification','Direction','Amount CAD','Training portion CAD','Thank-you gift CAD'],
   allocations: ['Payment','Booking','Review status','Applied CAD']
 };
 
@@ -59,15 +59,18 @@ function cents(amount) {
     Math.abs(Math.round(amount * 100) - amount * 100) < 0.000001 ? Math.round(amount * 100) : null;
 }
 
+export const playerPaymentReference=id=>'player:'+id;
+
 // A family can carry an unapplied receipt and a claim for the same transfer.
 // Surface both signals together; only verified training money has an amount.
 function receiptReviews(tables, families, bookings) {
-  const applied = new Map(), reviews = new Map(), familyIssues = new Set();
+  const applied = new Map(), reviews = new Map(), familyIssues = new Set(), playerIssues = new Set();
   for (const {fields:a} of tables.allocations) {
     const pid = single(a.Payment);
     if (!pid || a['Review status'] !== 'Verified allocation') continue;
     const entries = applied.get(pid) || [];
-    entries.push({family:single(bookings.get(single(a.Booking))?.Family), amount:cents(a['Applied CAD'])});
+    const booking=bookings.get(single(a.Booking));
+    entries.push({family:single(booking?.Family),player:single(booking?.Player), amount:cents(a['Applied CAD'])});
     applied.set(pid,entries);
   }
   function item(fid,pid) {
@@ -82,9 +85,13 @@ function receiptReviews(tables, families, bookings) {
     const gross = cents(p['Amount CAD']), gift = cents(p['Thank-you gift CAD'] ?? 0);
     const training = p['Training portion CAD'] == null && gross !== null && gift !== null ? gross - gift : cents(p['Training portion CAD']);
     const entries = applied.get(id) || [];
-    if (!linked || !['E-transfer','Cash'].includes(p.Method) || training === null || training < 0 ||
-      gross !== null && training > gross || entries.some(a => a.family !== linked || a.amount === null)) {
+    const player=single(p['Players associated (not allocation)']);
+    const playerReceipt=!links(p.Family).length && player && p['Family reference']===playerPaymentReference(player) &&
+      entries.length && entries.every(a=>a.player===player && a.amount>0) && entries.reduce((sum,a)=>sum+a.amount,0)===training;
+    if ((!linked && !playerReceipt) || !['E-transfer','Cash'].includes(p.Method) || training === null || training < 0 ||
+      gross !== null && training > gross || entries.some(a => (!playerReceipt && a.family !== linked) || a.amount === null)) {
       item(linked,id).check = true;
+      if(!links(p.Family).length && player)playerIssues.add(player);
       // A one-sided receipt link can affect collection without identifying a parent for display.
       if (fid && families.has(fid)) familyIssues.add(fid);
       continue;
@@ -106,7 +113,7 @@ function receiptReviews(tables, families, bookings) {
       playerId:null, playerName:null, sessionId:null, sessionLabel:null, date:null, time:null, location:null,
       sessionGroupKey:'payment-review',sessionGroupLabel:'Family payment reviews'};
   });
-  return {rows, familyIssues, paymentFamilies:new Map(tables.payments.map(p=>[p.id,single(p.fields.Family)]))};
+  return {rows, familyIssues, playerIssues, paymentFamilies:new Map(tables.payments.map(p=>[p.id,single(p.fields.Family)]))};
 }
 
 function reconciledAmounts(booking, familyId, family, upcoming, receipts) {
@@ -119,6 +126,9 @@ function reconciledAmounts(booking, familyId, family, upcoming, receipts) {
     return {issue:'Check the booking charge, applied payments and due date.'};
   }
   // A family-level unapplied receipt or claim cannot be assigned to this booking.
+  if (balance > 0 && !family && receipts.playerIssues.has(single(booking.Player))) {
+    return {issue:'Reconcile the player’s receipt before collection.'};
+  }
   if (balance > 0 && family) {
     const claims = family['Unverified payment claims CAD'], received = family['Verified family receipts CAD'], applied = family['Verified applied CAD'];
     const payments = links(family.Payments), noReceipts = !payments.length;

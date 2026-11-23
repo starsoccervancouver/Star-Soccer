@@ -22,14 +22,15 @@ async function fixture(t){
   if(!r){r={id:rid(seq++),fields:{}};tables[table].push(r);}
   Object.assign(r.fields,fields);
   if(table==='allocations'){
-   r.fields['Applied CAD']=fields['Amount CAD'];
+   const booking=tables.bookings.find(b=>b.id===fields.Booking[0]),payment=tables.payments.find(p=>p.id===fields.Payment[0]);
+   r.fields['Applied CAD']=booking.fields['Family reference']&&booking.fields['Family reference']===payment.fields['Family reference']?fields['Amount CAD']:0;
    const receipt=tables.payments.find(p=>p.id===fields.Payment[0]);receipt.fields['Payment Allocations']=tables.allocations.filter(a=>a.fields.Payment[0]===receipt.id).map(a=>a.id);
-   for(const [i,b] of tables.bookings.entries())b.fields['Due now CAD']=original[i]-tables.allocations.filter(a=>a.fields.Booking[0]===b.id).reduce((v,a)=>v+a.fields['Amount CAD'],0);
+   for(const [i,b] of tables.bookings.entries())b.fields['Due now CAD']=original[i]-tables.allocations.filter(a=>a.fields.Booking[0]===b.id).reduce((v,a)=>v+a.fields['Applied CAD'],0);
    if(fault){fault=false;throw Error('response lost');}
   }
   return structuredClone(r);
  }};
- const books=async()=>({rows:tables.bookings.map(b=>({status:'due',scope:'session',bookingId:b.id,playerId:b.fields.Player[0],familyId,familyName:'Fixture household',amountDue:b.fields['Due now CAD']}))});
+ const books=async()=>({rows:tables.bookings.map(b=>({status:'due',scope:'session',bookingId:b.id,playerId:b.fields.Player[0],familyId:b.fields.Family?.[0]||null,playerName:'Fixture player',familyName:b.fields.Family?'Fixture household':null,amountDue:b.fields['Due now CAD']}))});
  const service=createBookingPayments({store,db,books,today:()=>'2026-11-22'});
  const input={id:randomUUID(),familyId,date:'2026-11-21',method:'Cash',reference:'',items:[{bookingId:rid(10),dueCents:3250,applyCents:3250},{bookingId:rid(11),dueCents:2800,applyCents:750}]};
  return {service,tables,input,fail:()=>{fault=true;},save:v=>service.save('owner@example.test',v)};
@@ -55,4 +56,21 @@ test('stale balances, wrong families, invalid amounts/dates and reused transfer 
  tables.payments.push({id:rid(88),fields:{'Evidence reference':'Interac ABC123456',Method:'E-transfer'}});
  await assert.rejects(save(wire),/PAYMENT_ALREADY_EXISTS/);assert.equal(tables.allocations.length,0);assert.equal(service.pending().length,0);
  tables.payments.pop();await save(wire);assert.equal(tables.payments[0].fields['Source payment ID'],'INTERAC-ABC123456');
+});
+
+test('a player-only receipt applies across the exact player’s bookings and resumes after interruption',async t=>{
+ const {input,tables,save,fail}=await fixture(t),playerId=rid(20);
+ delete input.familyId;input.playerId=playerId;
+ for(const b of tables.bookings){delete b.fields.Family;delete b.fields['Family reference'];}
+ await assert.rejects(save(input),/PAYMENT_LEDGER_CHANGED/);
+ await assert.rejects(save({...input,familyId:rid(1)}),/INVALID_PAYMENT/);
+ assert.equal(tables.payments.length,0);
+ tables.bookings[1].fields.Player=[playerId];
+ fail();await assert.rejects(save(input),/response lost/);
+ await Promise.all([save({id:input.id}),save(input)]);
+ const [receipt]=tables.payments;
+ assert.equal(tables.payments.length,1);assert.equal(tables.allocations.length,2);
+ assert.deepEqual(receipt.fields['Players associated (not allocation)'],[playerId]);
+ assert.equal(receipt.fields.Family,undefined);assert.equal(receipt.fields['Family reference'],'player:'+playerId);
+ assert.deepEqual(tables.bookings.map(b=>b.fields['Due now CAD']),[0,20.5]);
 });

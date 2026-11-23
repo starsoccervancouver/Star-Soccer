@@ -270,3 +270,16 @@ test('agreed historical carryovers stay attached to the same player without a fa
  record['Charge review']='Needs pricing confirmation';assert.equal(read(),undefined);
  record['Charge review']='Agreed';t.bookings[0].fields.Player=['other'];assert.equal(read(),undefined);
 });
+
+test('a player-linked receipt fully allocated to that player clears the receipt review',async()=>{
+ const t=fixture(),{buildSessionBooks}=await books;
+ delete t.players[0].fields.Family;delete t.bookings[0].fields.Family;
+ t.payments=[{id:'receipt',fields:{Verification:'Verified',Direction:'Incoming',Method:'Cash','Amount CAD':20,
+  'Players associated (not allocation)':['child'],'Family reference':'player:child'}}];
+ t.allocations=[{id:'allocation',fields:{Payment:['receipt'],Booking:['b'],'Applied CAD':20,'Review status':'Verified allocation'}}];
+ const reviews=()=>buildSessionBooks(t,today).rows.filter(r=>r.scope==='family');
+ assert.equal(reviews().length,0);
+ t.allocations[0].fields['Applied CAD']=10;assert.equal(reviews().length,1);
+ assert.equal(buildSessionBooks(t,today).rows.find(r=>r.scope==='session').status,'review');
+ t.allocations[0].fields['Applied CAD']=20;t.bookings[0].fields.Player=['different child'];assert.equal(reviews().length,1);
+});

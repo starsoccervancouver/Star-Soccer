@@ -142,12 +142,18 @@
             ? historyRow.getBoundingClientRect().height+(parseFloat(frame.contentWindow.getComputedStyle(form).rowGap)||0)
             : 0;
           if(history)check(historyHeight>0 && historyHeight<=100,`${page} at ${width}px keeps the optional attendance-history row within 100px`);
-          // The coach credential adds two lines on narrow phones and one at the 430px test width.
-          const coachCopyAllowance=privateForm?(width<430?40:20):0;
+          // The coach credential adds up to two lines, depending on the available space and font metrics.
+          const coachLink=privateForm?doc.querySelector('#private-form a[href="index.html#coaching-team"]'):null;
+          let coachCopyAllowance=0;
+          if(coachLink){
+            const paragraph=coachLink.parentElement;
+            const lineHeight=parseFloat(frame.contentWindow.getComputedStyle(paragraph).lineHeight);
+            coachCopyAllowance=Math.ceil(paragraph.getBoundingClientRect().height-lineHeight);
+            check(coachCopyAllowance>0 && coachCopyAllowance<=40,`Coach credential at ${width}px adds at most two lines`);
+          }
           const limit=baseLimit+Math.min(historyHeight,100)+Math.ceil(priceLineOffset)+coachCopyAllowance;
           check(Math.round(submit.getBoundingClientRect().bottom)<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
           if(privateForm){
-            const coachLink=doc.querySelector('#private-form a[href="index.html#coaching-team"]');
             check(coachLink?.parentElement.textContent.includes('coached in Vancouver for 30+ years') && coachLink.getClientRects().length===1,`Private coaching at ${width}px shows the credential beside a single-line coach link`);
             doc.querySelector('[name="Training format"][value="smallgroup"]').click();
             check(Math.round(submit.getBoundingClientRect().bottom)<=limit && submit.getBoundingClientRect().height>=48,`Small group at ${width}px also keeps its inquiry button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);

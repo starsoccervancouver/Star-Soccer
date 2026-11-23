@@ -983,7 +983,10 @@
     button.disabled=false;
     if(tab==='home'&&(saved||!inBooks||paymentCommand)){
      homeUnpaidState='idle';await loadBooks(true);
-    }else if(saved&&tab==='books')await loadBooks();
+    }else if(saved&&tab==='books'){
+     go('home');
+     $('home-unpaid').open=true;
+    }
    }
   }
  }

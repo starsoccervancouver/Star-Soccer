@@ -153,6 +153,8 @@ body.private-registration .private-goals-grid p { font-size: .9rem; }
   body.private-registration #private-inquiry:has(#private-player-help:not([hidden])) { row-gap: 5px; }
   body.private-registration .quick-panel h1 { font-size: 1.55rem; }
   body.private-registration .quick-context { margin-bottom: 12px; font-size: .82rem; }
+  body.private-registration .quick-context + .quick-context { margin-bottom: 4px; }
+  body.private-registration .quick-context .flow-text-link { white-space: nowrap; }
   body.private-registration .registration-info-content { padding: 18px; }
 }
 @media (max-width: 360px) {

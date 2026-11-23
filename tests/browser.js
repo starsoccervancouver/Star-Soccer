@@ -68,9 +68,11 @@
           const heroImage=doc.querySelector('.home-training-photo img');
           check(heroPhotos.length===1 && heroPhotos[0].name===heroImage.currentSrc && heroImage.currentSrc.includes(width<=700?'home-mobile-':'home-wide-') && heroImage.currentSrc.endsWith('.avif'),`Homepage at ${width}px downloads one responsive autumn hero`);
           const camps=doc.querySelector('.hero-action-camps');
+          const lessons=doc.querySelector('.hero-action-panel .hero-action[href="programs.html?age=youth#sessions"]');
+          check(lessons?.querySelector('.hero-action-title').textContent==='Soccer Lessons Vancouver' && lessons.getClientRects().length, `Homepage at ${width}px shows the weekly soccer lessons action`);
           check(camps && camps.getAttribute('href')==='camps.html' && /Dec 21–25 and Dec 28–Jan 1/.test(camps.textContent) && !doc.querySelector('a[href="pro-d-camp-registration.html"]'),`Homepage at ${width}px promotes both December weeks and omits the expired Pro-D signup`);
           check(camps && camps.getClientRects().length && camps.getBoundingClientRect().height>=48,`Homepage at ${width}px shows a large camp action`);
-          check(camps && camps.textContent.includes('Compare Vancouver winter soccer camps') && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with a descriptive winter soccer camp action`);
+          check(camps && camps.querySelector('.hero-action-title').textContent.trim()==='Vancouver winter soccer camps →' && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with a descriptive winter soccer camp action`);
           check(doc.querySelector('h1').textContent.includes('Weekly soccer coaching.') && doc.querySelector('h1').textContent.includes('Ages 6–14 in Kitsilano.'),`Homepage at ${width}px describes the weekly service, ages and location`);
           const profiles=[...doc.querySelectorAll('#coaching-team .home-coach-card')];
           for(const [coach,preference] of [['Valentinos Dinglis','valentinos'],['Evan Lycos','evan'],['Romeo Dinglis','romeo'],['Owen Soroka','owen']]){
@@ -114,7 +116,7 @@
           const adultLinks=adultCard?[...adultCard.querySelectorAll('.schedule-direct-actions a')]:[];
           const adultUrl=adultLinks.length===1?new URL(adultLinks[0].href):null;
           check(!!adultCard && adultCard.textContent.includes('9:30–11:00 AM') && adultCard.textContent.includes('Fen Burdett Stadium') && adultCard.textContent.includes('$20 drop-in') && adultCard.textContent.includes('Up to 8 players expected this week') && !/18\+|\$0|4 consecutive sessions/.test(adultCard.textContent) && adultUrl?.pathname.endsWith('/registration.html') && adultUrl.searchParams.get('sessionId')==='tuesday' && adultUrl.searchParams.get('type')==='dropin' && adultLinks[0].getClientRects().length && adultLinks[0].getBoundingClientRect().height>=48 && !adultCard.querySelector('.session-capacity,a[href*="type=pass4"]'),`Training at ${width}px gives Tuesday women direct $20 drop-in registration without an 18+ restriction or an invented pass`);
-          check([...doc.querySelectorAll('#sessions .schedule-entry')].length===5 && doc.querySelector('#sessions .schedule-entry')===adultCard && !doc.querySelector('[data-filter-panel],#schedule-results,#schedule-empty'),`Training at ${width}px shows all five sessions without filters`);
+          check([...doc.querySelectorAll('#sessions .schedule-entry')].length===5 && doc.querySelector('#sessions .schedule-entry:last-child')===adultCard && !doc.querySelector('[data-filter-panel],#schedule-results,#schedule-empty'),`Training at ${width}px shows all five sessions with women’s training last`);
           const cards=[...doc.querySelectorAll('#sessions .schedule-list > article')].map(el=>el.getBoundingClientRect());
           check(width>700 ? Math.abs(cards[0].top-cards[1].top)<2 && cards[1].left>cards[0].right && cards[2].top>=cards[0].bottom : cards[1].top>=cards[0].bottom,`Training at ${width}px uses two cards per desktop row and readable single cards on phones`);
           check(!doc.querySelector('details.schedule-entry,.session-share'),`Training at ${width}px has no registration disclosure or copy-link step`);

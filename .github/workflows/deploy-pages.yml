@@ -15,7 +15,8 @@ permissions:
 
 concurrency:
   group: github-pages
-  cancel-in-progress: true
+  # Finish the current checked release. GitHub retains the newest pending release.
+  cancel-in-progress: false
 
 jobs:
   checks:

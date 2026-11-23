@@ -746,7 +746,11 @@
     arrowTool.setAttribute('aria-pressed', String(editMode === 'arrow')); board.style.cursor = editMode === 'arrow' ? 'crosshair' : '';
     modeHint.textContent = editMode === 'arrow' ? 'Draw on the field' : editMode === 'place' ? 'Moves every phase' : frameIndex ? 'Records this phase' : 'Set starting positions';
     modeHint.title = editMode === 'place' ? 'Moving a piece adjusts its position in every phase and preserves its route.' : 'Add a next phase, then drag players and balls to record their movement.';
-    currentColor.replaceChildren(pieceArtwork('home', currentPlayerColor || 'blue'));
+    const toolbarColor = currentPlayerColor || 'blue';
+    if (currentColor.dataset.color !== toolbarColor) {
+      currentColor.replaceChildren(pieceArtwork('home', toolbarColor));
+      currentColor.dataset.color = toolbarColor;
+    }
     newPlayer.hidden = !record.content.items.some(item => ['home', 'away'].includes(item.kind));
     selectionCount.textContent = selection().length > 1 ? selection().length + ' selected · drag or duplicate together' : 'Shift-click pieces to select a group';
     librarySelect.replaceChildren(); const unsaved = el('option', 'New unsaved setup'); unsaved.value = ''; librarySelect.append(unsaved);

@@ -509,7 +509,7 @@ body.home-landing .football-news-header h2 {
   background: #10243a;
 }
 .football-story-photo {
-  aspect-ratio: 2.3 / 1;
+  aspect-ratio: 16 / 9;
   margin: 0;
   overflow: hidden;
   background: #152c45;
@@ -570,16 +570,6 @@ body.home-landing .football-story h3 {
   }
   .football-news-grid:has(.football-story:nth-child(4)) .football-story:first-child { grid-row: span 2; }
   .football-news-grid:has(.football-story:nth-child(4):last-child) .football-story:last-child { grid-column: span 2; }
-  .football-news-grid:has(.football-story:nth-child(4)) .football-story:first-child .football-story-photo {
-    position: absolute;
-    inset: 0;
-    aspect-ratio: auto;
-  }
-  .football-news-grid:has(.football-story:nth-child(4)) .football-story:first-child .football-story-body {
-    justify-content: flex-end;
-    padding: 22px;
-    background: linear-gradient(0deg, #041225 6%, #041225e8 24%, #04122500 72%);
-  }
   body.home-landing .football-news-grid:has(.football-story:nth-child(4)) .football-story:first-child h3 {
     font-size: clamp(1.55rem, 2.4vw, 2.3rem);
   }
@@ -590,7 +580,7 @@ body.home-landing .football-story h3 {
   .football-news-grid { grid-template-columns: minmax(0, 1fr); }
   .football-story:first-child .football-story-photo { aspect-ratio: 16 / 9; }
   body.home-landing .football-story:first-child h3 { font-size: 1.4rem; }
-  .football-story:not(:first-child) { display: grid; grid-template-columns: minmax(90px, 29%) minmax(0, 1fr); }
-  .football-story:not(:first-child) .football-story-photo { height: 100%; aspect-ratio: auto; }
+  .football-story:not(:first-child):has(.football-story-photo) { display: grid; grid-template-columns: minmax(90px, 29%) minmax(0, 1fr); }
+  .football-story:not(:first-child) .football-story-photo { align-self: center; width: 100%; aspect-ratio: 16 / 9; }
   .football-story:not(:first-child) .football-story-body { padding: 10px 12px; }
 }

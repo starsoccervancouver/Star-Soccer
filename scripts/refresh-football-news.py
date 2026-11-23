@@ -3,6 +3,7 @@ import argparse
 import csv
 import io
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -73,6 +74,17 @@ def european(shortcut, competition, results_url):
                         competition, "OpenLigaDB", results_url)
 
 
+def match_media(match):
+    media = {}
+    video = re.fullmatch(r"https://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([A-Za-z0-9_-]{11})(?:[&?][^#]*)?", match.get("strVideo") or "")
+    if video:
+        media["youtubeId"] = video[1]
+    photo = match.get("strThumb") or ""
+    if re.match(r"https://(?:www\.)?thesportsdb\.com/images/media/event/", photo):
+        media["eventPhoto"] = photo
+    return media
+
+
 def sportsdb_league(identifier, provider_name, competition, results_url):
     latest = sportsdb(f"eventspastleague.php?id={identifier}").get("events") or []
     rounds = {(match["intRound"], match["strSeason"]) for match in latest
@@ -86,9 +98,11 @@ def sportsdb_league(identifier, provider_name, competition, results_url):
             print(f"{competition} round unavailable: {error}. Using the latest match feed.")
     for match in matches:
         if match["strStatus"] == "FT" and match["strLeague"] == provider_name:
-            yield score(match["strHomeTeam"], match["strAwayTeam"], match["intHomeScore"],
+            item = score(match["strHomeTeam"], match["strAwayTeam"], match["intHomeScore"],
                         match["intAwayScore"], match["dateEvent"], competition,
                         "TheSportsDB", results_url)
+            if item:
+                yield {**item, **match_media(match)}
 
 
 def whitecaps():
@@ -103,9 +117,11 @@ def whitecaps():
             if timestamp.tzinfo is None:
                 timestamp = timestamp.replace(tzinfo=UTC)
             day = timestamp.astimezone(ZoneInfo("America/Vancouver")).date().isoformat()
-            yield score(match["strHomeTeam"], match["strAwayTeam"], match["intHomeScore"],
+            item = score(match["strHomeTeam"], match["strAwayTeam"], match["intHomeScore"],
                         match["intAwayScore"], day, match["strLeague"], "TheSportsDB",
                         "https://www.whitecapsfc.com/schedule/")
+            if item:
+                yield {**item, **match_media(match)}
 
 
 def international(dataset, group):

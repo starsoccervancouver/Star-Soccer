@@ -82,7 +82,7 @@ body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-main-toolb
 #tactics-board-tools.tactics-studio .tactics-canvas-wrap { position: relative; width: min(100%,var(--pitch-max-width,100%)); justify-self: start; min-width: 0; overflow: hidden; border: 1px solid #34473c; border-radius: 10px; background: #30483a; box-shadow: 0 2px 8px #26382d18; }
 #tactics-board-tools.tactics-studio #tactics-pitch-board { display: block; width: 100%; height: auto; max-height: none; aspect-ratio: var(--field-ratio,1000 / 650); background: #30483a; touch-action: none; user-select: none; -webkit-user-select: none; }
 #tactics-board-tools.tactics-studio .tactics-board-layout[data-upright=true] .tactics-canvas-wrap { width: min(100%,var(--pitch-max-width,100%)); }
-#tactics-board-tools.tactics-studio #tactics-pitch-board:focus-visible { outline: 3px solid #d3e6c1; outline-offset: -4px; }
+#tactics-board-tools.tactics-studio #tactics-pitch-board:focus-visible { outline: 3px solid var(--desk-line); outline-offset: -4px; }
 #tactics-board-tools.tactics-studio #tactics-pitch-board [data-tactics-item] { cursor: grab; }
 #tactics-board-tools.tactics-studio #tactics-pitch-board [data-tactics-item]:active { cursor: grabbing; }
 #tactics-board-tools.tactics-studio #tactics-pitch-board [data-tactics-item]:focus-visible .tactics-hit { stroke: #172d41; stroke-width: 3; stroke-dasharray: 5 4; }
@@ -91,7 +91,7 @@ body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-main-toolb
 #tactics-board-tools.tactics-studio [data-facing-handle]:focus { outline: none; stroke: #161f27; stroke-width: 4px; }
 #tactics-board-tools.tactics-studio :is([data-box-resize],[data-size-resize]) { cursor: nwse-resize; }
 #tactics-board-tools.tactics-studio :is([data-box-resize],[data-size-resize]):focus-visible { outline: 3px solid #263b2d; outline-offset: 3px; }
-#tactics-board-tools.tactics-studio .tactics-empty-hint { position: absolute; top: 50%; left: 12%; right: 12%; transform: translateY(-50%); pointer-events: none; padding: 15px; border-radius: 10px; background: #f8faf4ed; color: #395440; text-align: center; font-size: 14px; font-weight: 600; }
+#tactics-board-tools.tactics-studio .tactics-empty-hint { position: absolute; top: 50%; left: 12%; right: 12%; transform: translateY(-50%); pointer-events: none; padding: 15px; border-radius: 10px; background: #f8faf4ed; color: var(--desk-ink); text-align: center; font-size: 14px; font-weight: 600; }
 
 /* Rectangular, named tools have a stable place in the palette. */
 #tactics-board-tools.tactics-studio .tactics-pieces { display: flex; flex-wrap: wrap; gap: 7px; align-items: start; }
@@ -118,7 +118,7 @@ body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-main-toolb
 
 /* Editing modes and playback belong directly to the field. */
 #tactics-board-tools.tactics-studio .tactics-edit-tools { grid-area: modes; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; }
-#tactics-board-tools.tactics-studio .tactics-edit-modes { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px; border: 1px solid var(--studio-line); border-radius: 11px; background: #d7d3c8; }
+#tactics-board-tools.tactics-studio .tactics-edit-modes { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px; border: 1px solid var(--studio-line); border-radius: 11px; background: var(--desk-inset); }
 #tactics-board-tools.tactics-studio .tactics-edit-modes button { padding: 8px 14px; border-color: transparent; background: transparent; border-radius: 7px; }
 #tactics-board-tools.tactics-studio .tactics-edit-modes button[aria-pressed=true] { background: var(--studio-dark); border-color: var(--studio-dark); color: #f4f3e9; }
 #tactics-board-tools.tactics-studio .tactics-edit-history { display: flex; gap: 4px; }
@@ -175,10 +175,10 @@ body.tactics-field-focus #tactics-board-tools.tactics-studio .tactics-main-toolb
 #tactics-board-tools.tactics-studio .tactics-workbar { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-bottom: 12px; padding: 12px; border-radius: 10px; background: var(--studio-dark); }
 #tactics-board-tools.tactics-studio .tactics-workbar > label { flex: 1 1 260px; color: #eceee4; }
 #tactics-board-tools.tactics-studio .tactics-workbar .tactics-status { flex: 1 1 100%; color: #e2e7d9; }
-#tactics-board-tools.tactics-studio .tactics-workbar #tactics-save { background: #d5e2c7; border-color: #a7b997; }
+#tactics-board-tools.tactics-studio .tactics-workbar #tactics-save { background: var(--desk-success-soft); border-color: var(--desk-control-line); }
 #tactics-board-tools.tactics-studio :is(.tactics-status,.tactics-selection-count):empty { display: none; }
 #tactics-board-tools.tactics-studio .tactics-status { margin: 0; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
-#tactics-board-tools.tactics-studio .tactics-status.tactics-error { color: #a03a2d; }
+#tactics-board-tools.tactics-studio .tactics-status.tactics-error { color: var(--desk-red); }
 #tactics-board-tools.tactics-studio .tactics-workbar .tactics-status.tactics-error { color: #ffd4bc; }
 #tactics-board-tools.tactics-studio :is(.tactics-library,.tactics-reuse) { margin-top: 14px; padding: 12px; border: 1px solid var(--studio-line); border-radius: 10px; background: var(--studio-card); }
 #tactics-board-tools.tactics-studio .tactics-library { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 10px; }
@@ -208,8 +208,8 @@ body.drill-creator-focus #library-form #tactics-board-tools .tactics-workbar { m
 body.drill-creator-focus #library-form #tactics-board-tools .tactics-workbar .tactics-status { color: var(--studio-muted); }
 body.drill-creator-focus #library-form #tactics-board-tools .tactics-workbar:has(.tactics-status:not(.tactics-error)) { margin: 0; }
 body.drill-creator-focus #library-form #tactics-board-tools .tactics-workbar .tactics-status:not(.tactics-error) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-body.drill-creator-focus #library-form #tactics-board-tools .tactics-workbar .tactics-error { color: #a03a2d; }
-body.drill-creator-focus #library-form .tactics-written .library-drill-details { grid-area: auto; min-height: 0; max-height: none; overflow: visible; align-self: start; margin: 0; padding: 0 14px 4px; border: 1px solid #bdb6a7; border-radius: 11px; background: var(--studio-card); scroll-margin-top: 88px; }
+body.drill-creator-focus #library-form #tactics-board-tools .tactics-workbar .tactics-error { color: var(--desk-red); }
+body.drill-creator-focus #library-form .tactics-written .library-drill-details { grid-area: auto; min-height: 0; max-height: none; overflow: visible; align-self: start; margin: 0; padding: 0 14px 4px; border: 1px solid var(--desk-control-line); border-radius: 11px; background: var(--studio-card); scroll-margin-top: 88px; }
 body.drill-creator-focus #library-form .tactics-written .library-drill-details > summary { position: static; min-height: 44px; padding: 12px 0; background: transparent; }
 body.drill-creator-focus #library-form .tactics-written .library-details-body { padding: 0 0 10px; gap: 12px; }
 body.drill-creator-focus #library-form .tactics-written .library-editor-grid { grid-template-columns: minmax(0,2fr) minmax(80px,.6fr) minmax(0,1fr); gap: 12px; }

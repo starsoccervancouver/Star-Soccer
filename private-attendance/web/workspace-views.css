@@ -1,6 +1,6 @@
 .coach-view-switch{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:20px 0 18px}.coach-view-label{font-size:12px;font-weight:650;margin-right:8px;color:var(--desk-muted)}
 #app .coach-view-switch button{min-height:44px;border-radius:12px;padding:9px 16px;font-size:13px}
-body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var(--desk-accent);border-color:var(--desk-accent);color:#fff}
+body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var(--desk-accent-fill);border-color:var(--desk-accent);color:#fff}
 #coaching-hub[data-coach-view=list] .coaching-agenda,#planner-session-browser[data-coach-view=list] #planner-days{grid-template-columns:minmax(0,1fr)}
 #coaching-hub[data-coach-view=list] .coaching-agenda-row{flex-direction:row;align-items:center;padding:17px 20px;gap:20px}
 #coaching-hub[data-coach-view=list] .coaching-inline-actions{flex:0 0 auto}
@@ -11,7 +11,7 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
 .coach-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.coach-calendar-weekday{text-align:center;font-size:12px;color:var(--desk-muted);padding:8px 0}
 #app button.coach-calendar-day{display:flex;min-width:0;min-height:74px;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:6px;padding:10px;border-radius:13px;border:1px solid var(--desk-line);background:var(--desk-surface);color:var(--desk-ink);font-size:14px}
 #app button.coach-calendar-day[aria-current=date]{box-shadow:inset 0 0 0 2px var(--desk-accent)}
-#app button.coach-calendar-day[aria-pressed=true]{background:var(--desk-accent);color:#fff;border-color:var(--desk-accent)}
+#app button.coach-calendar-day[aria-pressed=true]{background:var(--desk-accent-fill);color:#fff;border-color:var(--desk-accent)}
 .coach-calendar-count{color:var(--desk-accent);font-size:11px;line-height:1.4;border-radius:6px;padding:1px 6px;background:var(--desk-accent-soft)}
 .coach-calendar-detail{margin-top:22px;display:grid;gap:10px}.coach-calendar-detail>h3{margin:0 0 4px;font-size:16px}
 .coach-calendar-session{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:16px;border-radius:16px;background:var(--desk-surface);border:1px solid var(--desk-line)}.coach-calendar-session>div{min-width:0}.coach-calendar-session strong{font-size:14px;overflow-wrap:anywhere}.coach-calendar-session p{margin:5px 0 0}
@@ -108,7 +108,7 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
 }
 @media screen and (max-width:600px) {
   #home-stats { padding:8px 0; }
-  #panel-home > .home-command-row { order:2; }
+  #panel-home > .home-command-row { order:0; }
   #coaching-hub { order:1; margin-bottom:14px; }
   #app #home-stats .desk-stat { flex-direction:column-reverse; align-items:flex-start; justify-content:flex-end; gap:2px; }
   #home-stats .desk-stat span { font-size:12px; }
@@ -132,3 +132,40 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
 }
 
 #home-unpaid-label .unpaid-total { display:inline-block; margin-inline-start:.65em; color:var(--desk-accent-hover); font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+
+/* One workspace canvas, with the active destination and actionable records on distinct levels. */
+@media screen {
+  body #app .desk-layout { background:var(--desk-canvas); }
+  body #app .desk-main { width:100%; margin:0; border:0; border-radius:0; background:var(--desk-canvas); }
+  body #app .desk-header { border-bottom:1px solid var(--desk-line); }
+  body #app .desk-nav { background:var(--desk-navy); }
+  #app .page-heading h1 { margin-block:0 4px; font-size:clamp(26px,2.3vw,36px); font-weight:650; letter-spacing:-.04em; }
+  #app .page-heading { padding-block-end:16px; border-block-end:1px solid var(--desk-line); }
+  body #app .desk-nav #navigation button.nav-active {
+    background:var(--desk-accent-soft); color:var(--desk-accent); border-color:transparent;
+    box-shadow:inset 3px 0 0 var(--desk-gold);
+  }
+  #app #home-stats { background:transparent; border:0; padding-block:4px 12px; }
+  #app #home-stats .desk-stat strong { color:var(--desk-ink); font-weight:650; font-variant-numeric:tabular-nums; }
+  #app #panel-home :is(#home-attention,#coaching-hub) { border-radius:12px; box-shadow:none; }
+  #app #panel-home #home-attention { border-inline-start:1px solid var(--desk-line); }
+  #app #home-attention #home-unpaid[open] > summary { background:var(--desk-accent-soft); }
+  #app #home-unpaid-label .unpaid-total { color:var(--desk-accent); }
+  #app #coaching-hub .coach-next-group { background:var(--desk-accent-soft); color:var(--desk-ink); border-color:var(--desk-line); }
+  #app #coaching-hub .coach-next-group strong { color:var(--desk-accent); }
+  #app .desk-main :is(input,textarea)::placeholder { color:var(--desk-muted); opacity:1; }
+  #app .desk-main :is(a,button,input,select,textarea,summary):focus-visible { outline:2px solid var(--desk-accent); outline-offset:2px; }
+}
+@media screen and (min-width:901px) {
+  #app .desk-nav { border-inline-end:1px solid var(--desk-line); }
+  #app .desk-main { padding:clamp(22px,3vw,46px); }
+}
+@media screen and (min-width:1200px) {
+  #app #panel-home:not([hidden]):has(#home-attention:not([hidden])) {
+    display:grid; grid-template-columns:minmax(280px,.85fr) minmax(0,1.4fr); align-items:start; gap:0 18px;
+  }
+  #app #panel-home #home-stats { grid-column:1 / -1; }
+  #app #panel-home .home-command-row { grid-column:1; min-width:0; }
+  #app #panel-home #coaching-hub { min-width:0; }
+}

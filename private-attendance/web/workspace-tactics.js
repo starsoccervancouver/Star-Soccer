@@ -15,7 +15,6 @@
   const kinds = { home: 'Blue player', away: 'Gold player', cone: 'Cone', ball: 'Ball', goal: 'Goal', zone: 'Zone' };
   const playerColors = { blue: '#326887', gold: '#d9ae63', red: '#b64d49', green: '#397561', purple: '#79549d', white: '#f5f2e9' };
   const playerColor = item => item.color || (item.kind === 'away' ? 'gold' : 'blue');
-  const playerInk = item => ['gold', 'white'].includes(playerColor(item)) ? '#203039' : '#fff';
   const pieceName = item => ['home', 'away'].includes(item.kind) ? playerColor(item)[0].toUpperCase() + playerColor(item).slice(1) + ' player' : kinds[item.kind];
   const el = (tag, text = '', className = '') => { const n = document.createElement(tag); n.textContent = text; if (className) n.className = className; return n; };
   const svg = (tag, attributes = {}, text = '') => { const n = document.createElementNS(ns, tag); for (const [key, value] of Object.entries(attributes)) n.setAttribute(key, String(value)); if (text) n.textContent = text; return n; };
@@ -582,33 +581,34 @@
     if (!p) return null;
     return items.filter(i => i.kind === 'ball').map(i => positionIn(frame, i.id)).filter(ball => routeDistance(p, ball, view) > .1).sort((a, b) => routeDistance(p, a, view) - routeDistance(p, b, view))[0] || null;
   }
+  // Adapted from Kenney's CC0 Sports Pack: https://kenney.nl/assets/sports-pack
+  // The outline faces up in pitch coordinates. Team colour is shared with the player's route.
   function playerArtwork(kind, color, facing) {
     const kit = playerColors[color || (kind === 'away' ? 'gold' : 'blue')];
-    const ink = '#233139', skin = '#e4b68f';
-    const art = svg('g', {
-      'data-symbol':kind, 'aria-hidden':'true', 'stroke-linecap':'round', 'stroke-linejoin':'round'
-    });
-    // A staggered stance and bent arms distinguish front and back even at toolbar size.
+    const kitShadow = 'color-mix(in srgb, ' + kit + ' 68%, #111b20)';
+    const art = svg('g', { 'data-symbol':kind, 'aria-hidden':'true' });
     art.append(
-      svg('path', { d:'M-11-9 Q0-14 12-8 L17-3 L13 5 L10 4 L9 11 Q0 15-9 11 L-11 3 L-15 5 L-19-1Z', fill:kit, stroke:ink, 'stroke-width':2.3 }),
-      svg('path', { d:'M-9 10 Q0 13 9 10 L11 16 L4 19 L0 15 L-5 19 L-12 16Z', fill:'#30404a', stroke:ink, 'stroke-width':1.4 }),
-      svg('path', { d:'M-8 16 L-12 20 L-15 16 M7 17 L11 24', fill:'none', stroke:ink, 'stroke-width':7 }),
-      svg('path', { d:'M-8 16 L-12 20 L-15 16 M7 17 L11 24', fill:'none', stroke:'#ebe9de', 'stroke-width':4.5 }),
-      svg('path', { d:'M-15 17 L-16 12 M11 25 L14 23', fill:'none', stroke:ink, 'stroke-width':6 }),
-      svg('path', { d:'M-16 1 L-21-3 L-21-10 M16 0 L21 5 L20 10', fill:'none', stroke:ink, 'stroke-width':6.5 }),
-      svg('path', { d:'M-16 1 L-21-3 L-21-10 M16 0 L21 5 L20 10', fill:'none', stroke:skin, 'stroke-width':4 }),
-      svg('path', { d:'M-13-6 L-17-2 M12-5 L15-2', fill:'none', stroke:'#faf5e9', 'stroke-width':2 }),
-      svg('path', { d:'M-8-13 Q-8-21-2-22 L0-26 Q1-27 3-23 Q9-22 9-14 Q9-6 1-6 Q-6-6-8-13Z', fill:skin, stroke:ink, 'stroke-width':1.8, 'data-player-front':'' }),
-      svg('path', { d:'M-7-16 Q-3-14 1-16 Q6-18 8-16 Q10-7 2-5 Q-6-4-7-11Z', fill:'#463831' })
+      svg('path', { d:'M14.5 -4.7 Q14.6 -4.4 14.7 -4 15.7 -3 15.7 -0.1 15.7 5.5 12.4 9.6 L13.8 9.6 Q18.2 9.6 21.3 6.5 24.3 3.4 24.3 -1 24.3 -3 23.7 -4.7 22.9 -6.8 21.3 -8.5 18.2 -11.6 13.8 -11.6 L10 -11.6 Q10.5 -11.1 10.9 -10.7 13.6 -8.1 14.5 -4.7 M-23.7 -4.7 Q-24.3 -3 -24.3 -1 -24.3 3.4 -21.3 6.5 -18.2 9.6 -13.8 9.6 L-12.3 9.6 Q-15.7 5.5 -15.7 -0.1 -15.7 -2.9 -14.7 -3.9 -14.6 -4.4 -14.5 -4.7 -13.6 -8.1 -10.9 -10.7 -10.5 -11.1 -10 -11.6 L-13.8 -11.6 Q-18.2 -11.6 -21.3 -8.5 -22.9 -6.8 -23.7 -4.7 Z', fill:kit }),
+      svg('path', { d:'M10 -15.3 L10 -11.6 13.8 -11.6 Q18.2 -11.6 21.3 -8.5 22.9 -6.8 23.7 -4.7 24.3 -3 24.3 -1 24.3 3.4 21.3 6.5 18.2 9.6 13.8 9.6 L12.4 9.6 14 13.2 Q19.7 13.1 23.9 9 27.9 4.8 27.9 -1 27.9 -3 27.5 -4.7 26.6 -8.2 23.9 -11 L23.9 -11.1 Q19.7 -15.2 13.8 -15.2 L10.5 -15.2 Q10.2 -15.2 10 -15.3 M-27.9 -1 Q-27.9 4.8 -23.8 9 -19.7 13.2 -13.9 13.2 L-13.8 13.3 -12.3 9.6 -13.8 9.6 Q-18.2 9.6 -21.3 6.5 -24.3 3.4 -24.3 -1 -24.3 -3 -23.7 -4.7 -22.9 -6.8 -21.3 -8.5 -18.2 -11.6 -13.8 -11.6 L-10 -11.6 -10 -15.3 Q-10.2 -15.2 -10.4 -15.2 L-13.8 -15.2 Q-19.7 -15.2 -23.8 -11.1 L-23.8 -11 Q-26.6 -8.2 -27.5 -4.7 -27.9 -3 -27.9 -1 Z', fill:kitShadow }),
+      svg('path', { d:'M-12.3 9.6 L-13.8 13.3 -13.7 13.3 Q-10.4 16.7 -6 18 -3.4 18.9 -0.3 18.9 -0.1 18.9 0 18.9 0.2 18.9 0.4 18.9 3.5 18.9 6.3 18 10.5 16.7 13.9 13.3 L14 13.2 12.4 9.6 Q11.8 10.2 11.3 10.7 8.6 13.5 5.2 14.6 2.9 15.3 0.4 15.3 0.2 15.3 0 15.3 -0.1 15.3 -0.3 15.3 -2.7 15.3 -4.9 14.6 -8.4 13.5 -11.2 10.7 -11.7 10.2 -12.3 9.6 Z', fill:'#44342b' }),
+      svg('path', { d:'M-7.5 -16.3 Q-8.6 -15.5 -10 -15.3 L-10 -11.6 Q-7.5 -11.8 -5.4 -13.3 -3.4 -14.7 0 -14.7 3.4 -14.7 5.4 -13.3 7.5 -11.8 10 -11.6 L10 -15.3 Q8.6 -15.5 7.5 -16.3 4.7 -18.3 0.1 -18.4 0 -18.4 -0.1 -18.4 -4.7 -18.3 -7.4 -16.3 L-7.5 -16.3 Z', fill:'#c99a74' }),
+      svg('path', { d:'M-6.8 -8.6 Q-8.6 -6.8 -9.2 -4.7 -9.5 -3.8 -9.6 -2.9 -9.9 -3.1 -10.3 -3.4 -13.4 -5.2 -14.7 -3.9 -15.7 -2.9 -15.7 -0.1 -15.7 5.5 -12.3 9.6 -11.7 10.2 -11.2 10.7 -8.4 13.5 -4.9 14.6 -2.7 15.3 -0.3 15.3 -0.1 15.3 0 15.3 0.2 15.3 0.4 15.3 2.9 15.3 5.2 14.6 8.6 13.5 11.3 10.7 11.8 10.2 12.4 9.6 15.7 5.5 15.7 -0.1 15.7 -3 14.7 -4 13.3 -5.1 10.4 -3.4 10 -3.1 9.7 -3 9.6 -3.9 9.4 -4.7 8.6 -6.8 6.9 -8.6 4 -11.5 0 -11.5 -3.9 -11.5 -6.8 -8.6 Z', fill:'#594237' }),
+      svg('path', { d:'M-14.5 -4.7 Q-14.6 -4.4 -14.7 -3.9 -13.4 -5.2 -10.3 -3.4 -9.9 -3.1 -9.6 -2.9 -9.5 -3.8 -9.2 -4.7 -8.6 -6.8 -6.8 -8.6 -3.9 -11.5 0 -11.5 4 -11.5 6.9 -8.6 8.6 -6.8 9.4 -4.7 9.6 -3.9 9.7 -3 10 -3.1 10.4 -3.4 13.3 -5.1 14.7 -4 14.6 -4.4 14.5 -4.7 13.6 -8.1 10.9 -10.7 10.5 -11.1 10 -11.6 7.5 -11.8 5.4 -13.3 3.4 -14.7 0 -14.7 -3.4 -14.7 -5.4 -13.3 -7.5 -11.8 -10 -11.6 -10.5 -11.1 -10.9 -10.7 -13.6 -8.1 -14.5 -4.7 Z', fill:'#e6c4a0', 'data-player-front':'' })
     );
     if (Number.isFinite(facing)) {
       art.dataset.facing = String(facing);
       art.setAttribute('transform', 'rotate(' + facing + ')');
-      const chevron = 'M-8-31 L0-37 L8-31';
-      art.append(svg('path', { d:chevron, fill:'none', stroke:ink, 'stroke-width':5.5 }),
-        svg('path', { d:chevron, fill:'none', stroke:'#b8e6f5', 'stroke-width':2.6, 'data-body-direction':'' }));
+      art.append(svg('path', { d:'M-7-24 L0-30 L7-24', fill:'none', stroke:'#154052', 'stroke-width':5, 'stroke-linejoin':'round', 'stroke-linecap':'round' }),
+        svg('path', { d:'M-7-24 L0-30 L7-24', fill:'none', stroke:'#b8e6f5', 'stroke-width':2.5, 'stroke-linejoin':'round', 'stroke-linecap':'round', 'data-body-direction':'' }));
     }
     return art;
+  }
+  function playerCaption(item, x, y) {
+    const caption = svg('g', { 'pointer-events':'none', transform:'translate('+x+' '+y+')' });
+    const width = Math.max(18, item.label.length * 8 + 7);
+    caption.append(svg('rect', { x:-width/2, y:-8, width, height:17, rx:6, fill:'#19292f' }),
+      svg('text', { y:4.8, 'text-anchor':'middle', 'font-family':'Arial,sans-serif', 'font-size':14, 'font-weight':700, fill:'#f7f4e9' }, item.label));
+    return caption;
   }
   function orientedArtwork(item, position, cameraAngle = 0) {
     if (angleKey(item.kind) === 'facing') return playerArtwork(item.kind, item.color, position.facing);
@@ -694,7 +694,21 @@
     const { width, height, unitX, unitY } = pitchGeometry(view), thumbnail = svg('svg', { viewBox: '0 0 ' + width + ' ' + height, 'aria-hidden': 'true' });
     thumbnail.append(fieldArtwork(view));
     for (const item of items) { const shadow = shadowArtwork(item, frame, items, view); if (shadow) thumbnail.append(shadow); const vision = visionArtwork(item, frame, view); if (vision) thumbnail.append(vision); }
-    for (const item of [...items].sort((a, b) => pieceLayer(a) - pieceLayer(b))) { const p = positionIn(frame, item.id), settings = frame.positions.find(v => v.id === item.id); if (item.kind === 'zone') thumbnail.append(zoneArtwork(item, settings, true, view)); else { const symbol = svg('g', { transform: 'translate(' + p.x * unitX + ' ' + p.y * unitY + ') scale(1)', 'data-preview-piece': item.id }); symbol.append(orientedArtwork(item, settings)); if (labelled && item.label && ['home', 'away'].includes(item.kind)) symbol.append(svg('text', { x: 0, y: 5, 'text-anchor': 'middle', 'font-size': 16, 'font-family': 'Arial,sans-serif', 'font-weight': 700, fill: playerInk(item) }, item.label)); thumbnail.append(symbol); } }
+    for (const item of [...items].sort((a, b) => pieceLayer(a) - pieceLayer(b))) {
+      const p = positionIn(frame, item.id), settings = frame.positions.find(v => v.id === item.id);
+      if (item.kind === 'zone') {
+        thumbnail.append(zoneArtwork(item, settings, true, view));
+        continue;
+      }
+      const x = p.x * unitX, y = p.y * unitY;
+      const symbol = svg('g', { transform:'translate(' + x + ' ' + y + ') scale(1)', 'data-preview-piece':item.id });
+      symbol.append(orientedArtwork(item, settings));
+      if (labelled && item.label && angleKey(item.kind) === 'facing') {
+        const half = Math.max(9, (item.label.length * 8 + 7) / 2);
+        symbol.append(playerCaption(item, Math.max(half - x, Math.min(0, width - half - x)), y + 50 <= height ? 40 : -40));
+      }
+      thumbnail.append(symbol);
+    }
     for (const arrow of frame.arrows || []) thumbnail.append(arrowArtwork(arrow, false, view));
     return thumbnail;
   }
@@ -920,13 +934,17 @@
       art.append(orientedArtwork(item, settings, geometry.angle));
       if (['home', 'away'].includes(item.kind) && currentFrame().positions.some(v => v.attachedTo === item.id)) art.append(svg('circle', { cx: 22, cy: -23, r: 7, fill: '#fffdf7', stroke: '#203742', 'stroke-width': 2, 'data-possession': item.id }));
       if (item.label) {
-        const inside = ['home', 'away'].includes(item.kind) && item.label.length <= 3, width = Math.max(34, item.label.length * 8 + 12);
+        const player = angleKey(item.kind) === 'facing', width = Math.max(34, item.label.length * 8 + 12);
         const at = cameraPoint({ x:p.x*unitX, y:p.y*unitY }, false), view = board.viewBox.baseVal;
-        const labelX = inside ? 0 : Math.max((view.x+4-at.x)/artScale+width/2, Math.min(0,(view.x+view.width-4-at.x)/artScale-width/2));
-        const labelY = at.y + 47 * artScale > view.y+view.height-4 ? -47 : 27;
+        const labelX = Math.max((view.x+4-at.x)/artScale+width/2, Math.min(0,(view.x+view.width-4-at.x)/artScale-width/2));
+        const below = at.y + (player ? 50 : 47) * artScale <= view.y+view.height-4;
         const caption = svg('g', { transform:'rotate('+(-geometry.angle)+')', 'pointer-events':'none' });
-        if (!inside) caption.append(svg('rect', { x: labelX - width / 2, y: labelY, width, height: 20, rx: 5, fill: '#f6f4ec' }));
-        caption.append(svg('text', { x: labelX, y: inside ? 5 : labelY + 14, 'text-anchor': 'middle', 'font-family': 'Arial,sans-serif', 'font-size': inside ? 16 : 12, 'font-weight': 700, fill: inside ? playerInk(item) : '#173044' }, item.label));
+        if (player) caption.append(playerCaption(item, labelX, below ? 40 : -40));
+        else {
+          const labelY = below ? 27 : -47;
+          caption.append(svg('rect', { x:labelX-width/2, y:labelY, width, height:20, rx:5, fill:'#f6f4ec' }),
+            svg('text', { x:labelX, y:labelY+14, 'text-anchor':'middle', 'font-family':'Arial,sans-serif', 'font-size':12, 'font-weight':700, fill:'#173044' }, item.label));
+        }
         if (at.x >= view.x && at.x <= view.x+view.width && at.y >= view.y && at.y <= view.y+view.height) art.append(caption);
       }
       scene.append(piece);

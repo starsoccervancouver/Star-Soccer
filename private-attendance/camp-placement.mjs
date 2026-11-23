@@ -1,6 +1,8 @@
 import training from '../training.js';
+import reviewedPrograms from './weekly-programs.json' with {type:'json'};
 import winterCamps from '../winter-camps.js';
 import {sessionTimes, vancouverInstant} from './airtable-roster.mjs';
+import {assignmentConflict} from './schedule-conflicts.mjs';
 
 const dayCamp = 'SS-DAY-CAMP-V1';
 export const campVersions = [dayCamp, 'SS-CAMP-V2', 'SS-CAMP-DROPIN-V1'];
@@ -40,7 +42,10 @@ export function weeklyRequest(event) {
     const q=training.booking(event.sessionId,type,dates[0],event.age,new Date(event.received));
     if(!sameSet(dates,q.dates)||q.price!==Number(event.quotedPrice)||q.label!==event.option)return;
     const time=q.session.time.replaceAll('.','');
-    return {weekly:true,venue:q.location,pass:type==='pass4',price:q.price,dates,slots:dates.map(date=>({date,time,key:'SS-'+date.replaceAll('-','')+'-'+q.session.day.slice(0,2).toUpperCase()}))};
+    const offer=reviewedPrograms.sessions.find(s=>s.id===event.sessionId);
+    if(!offer || offer[type]!==q.price || offer.time!==q.session.time || offer.venue!==q.location)return;
+    return {weekly:true,venue:q.location,pass:type==='pass4',price:q.price,dates,capacity:offer.capacity,
+      termsVersion:reviewedPrograms.version,slots:dates.map(date=>({date,time,key:'SS-'+date.replaceAll('-','')+'-'+q.session.day.slice(0,2).toUpperCase()}))};
   }catch{return;}
 }
 export async function placeCampRegistration(db, {event, registration, family, player, now, confirmationId, weekly}) {
@@ -65,7 +70,7 @@ export async function placeCampRegistration(db, {event, registration, family, pl
     return review('Check a potentially overlapping camp booking before placing.');
   }
 
-  const sessions = await db.list('sessions', ['Source session ID', 'Session', 'Date', 'Time', 'Venue', 'Session status', 'Weekly program', 'Capacity', 'Attendance', 'Expected headcount (owner reported)']);
+  const sessions = await db.list('sessions', ['Source session ID', 'Session', 'Date', 'Time', 'Venue', 'Coach', 'Session status', 'Weekly program', 'Capacity', 'Attendance', 'Expected headcount (owner reported)']);
   const attendance = await db.list('attendance', ['Source coverage key', 'Player', 'Session', 'Booking', 'Coverage state', 'Session date', 'Website Registrations']);
   const coverage = [];
   for (const slot of request.slots) {
@@ -74,10 +79,11 @@ export async function placeCampRegistration(db, {event, registration, family, pl
     const s = session?.fields;
     if (matches.length !== 1 || s.Date !== slot.date || s.Venue !== (weekly?request.venue:'Kitsilano Turf') ||
         !open.has(s['Session status']) || (weekly?s['Weekly program']?.length!==1:s['Weekly program']?.length) ||
-        !Number.isInteger(s.Capacity) || s.Capacity < 1 || s.Capacity > 20) {
+        !Number.isInteger(s.Capacity) || s.Capacity < 1 || s.Capacity > 20 || weekly?.capacity && s.Capacity>weekly.capacity) {
       return review('Check the dated camp session and its capacity before placing.');
     }
     let startsAt;
+    if(assignmentConflict(session,sessions))return review('Resolve a conflicting dated coach assignment before placing.');
     try {
       const [start, end] = sessionTimes(s.Time).map(time => vancouverInstant(slot.date, time));
       const expected = sessionTimes(slot.time).map(time => vancouverInstant(slot.date, time));
@@ -114,6 +120,7 @@ export async function placeCampRegistration(db, {event, registration, family, pl
   // The mail coordinator serializes placement. Stable keys let it resume after
   // an uncertain API response without rewriting attendance already on the roster.
   const booking = existing || await db.save('bookings', {
+    ...(weekly?.termsVersion?{Notes:'Weekly catalog '+weekly.termsVersion+'. '+(request.pass?'Four consecutive dates':'Single date')+'. Agreed CAD '+request.price+'. '+request.venue+'.'}:{}),
     'Source booking ID': source, 'Booking reference': event.reference, Player: [player.id], Family: [family.id],
     'Booking type': request.pass?'Four consecutive sessions':'Drop-in', 'Booking status': 'Accepted', 'Charge review': 'Agreed', 'Charge CAD': request.price,
     ...((event.version === 'SS-CAMP-V2'||request.pass) ? {'Fixed-price package': true} : {}),

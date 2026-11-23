@@ -18,6 +18,26 @@ async function setup(){
  await runDraftJob({...context,now:context.now-86400000,db:{...db,list:async n=>initial[n]}});
  return {d,map,drafts,delivered,mail,run:()=>runDraftJob(context),get count(){return count;}};
 }
+test('Gmail accepted a draft but lost its response; recovery adopts the same draft',async()=>{
+ const s=await setup(),create=s.mail.create;
+ let interrupted=false;
+ s.mail.create=async c=>{
+  const draft=await create(c);
+  if(!interrupted){interrupted=true;throw Error('lost Gmail response');}
+  return draft;
+ };
+ s.mail.findManagedDraft=async(key,to)=>[...s.drafts.values()].find(d=>d.c.key===key&&d.c.to===to);
+ await assert.rejects(s.run(),/lost Gmail response/);
+ const original=[...s.drafts.values()][0];
+ await s.run();await s.run();
+ const log=s.d.draftLog.find(r=>r.fields['Email key']===original.c.key).fields;
+ assert.equal(log.Status,'Draft');assert.equal(log['Gmail draft ID'],original.id);assert.equal(s.count,6);
+});
+test('explicit Gmail throttling retries the unfinished create once',async()=>{
+ const s=await setup(),create=s.mail.create;let throttled=false;
+ s.mail.create=async c=>{if(!throttled){throttled=true;throw Error('GMAIL_429');}return create(c);};
+ await assert.rejects(s.run(),/GMAIL_429/);await s.run();await s.run();assert.equal(s.count,6);
+});
 test('all three rules run twice without duplicates, and never send',async()=>{
  const s=await setup();await s.run();await s.run();assert.equal(s.count,6);
  const byKey=new Map([...s.drafts.values()].map(x=>[x.c.key,x.c]));

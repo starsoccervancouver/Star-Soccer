@@ -2,6 +2,7 @@ import {randomBytes,createHash,createCipheriv,createDecipheriv} from 'node:crypt
 import {Buffer} from 'node:buffer';
 import {createFollowupJob} from './registration-followup-job.mjs';
 import {ownerWorkflows,fields as reportFields} from './owner-workflows.mjs';
+import {auditFinancialWrites} from './financial-journal.mjs';
 import {runDraftJob,observeDraftSend} from './draft-job.mjs';
 import {draftMailbox} from './draft-mailbox.mjs';
 import {outcomeFiling} from './gmail-outcome-labels.mjs';
@@ -154,32 +155,38 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
         pending=await storage.list({prefix:'q:',limit:1});
       }
       for(const key of pending.keys()){
+        const id=key.slice(2),previous=await storage.get('retry:'+id);
+        if(previous?.after>clock()){await storage.delete(key);continue;}
+        try{
         let message;
         try{message=await gmail(access,'messages/'+key.slice(2),[['format','full']]);}
         catch(err){if(err.message!=='GMAIL_404')throw err;}
         if(message){
           if(filing?.isReceipt(message))await storage.put('filing:receipt:'+message.id,message.id);
-          try{
             if(filing&&await observeDraftSend({message,db:ledger,storage,mail,owner})){
               await storage.put('mail-drafts:recent-send',message.id);
             }
             const mailbox=campPlacementSince||followupEnabled?(await storage.get('ownerAddress')||STAR_SOCCER_OWNER):undefined;
             const event=classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox,followupEnabled||!!campPlacementSince);
             const confirmedDraftFlow=!!filing&&Date.parse(event?.received)>=Date.parse('2026-11-22T07:30:00Z');
-            await syncLedgerEvent(ledger,event,{campPlacementSince,confirmedDraftFlow,trackConfirmation:followupEnabled||confirmedDraftFlow,now:new Date(clock())});
+            const writer=event?auditFinancialWrites(ledger,storage,{source:'gmail:'+message.id,actor:'Star Soccer Gmail intake',reason:event.type,clock}):ledger;
+            await syncLedgerEvent(writer,event,{campPlacementSince,confirmedDraftFlow,trackConfirmation:followupEnabled||confirmedDraftFlow,now:new Date(clock())});
             processedDeposit=event?.type==='payment'&&event.verified;
-          }
-          catch(err){
-            if(!/^AIRTABLE_/.test(err.message))throw err;
-            const id=key.slice(2);
-            await storage.transaction(async tx=>{
-              await tx.put('retry:'+id,{after:clock()+retryDelay,error:/^AIRTABLE_\d{3}$/.test(err.message)?err.message:'AIRTABLE_RETRY'});
-              await tx.delete(key);
-            });
-            continue;
-          }
         }
-        await storage.delete([key,'retry:'+key.slice(2)]);
+        }catch(err){
+          const attempts=(previous?.attempts||0)+1,at=clock();
+          const error=/^(?:AIRTABLE|GMAIL)_\d{3}$/.test(err.message)?err.message:'MESSAGE_RETRY';
+          await storage.transaction(async tx=>{
+            await tx.put('retry:'+id,{attempts,firstFailure:previous?.firstFailure||at,lastFailure:at,error,
+              after:at+Math.min(86400000,retryDelay*2**Math.min(attempts-1,9))});
+            await tx.delete(key);
+          });
+          continue;
+        }
+        await storage.transaction(async tx=>{
+          if(previous)await tx.put('recovered:'+id,{attempts:(previous.attempts||0)+1,firstFailure:previous.firstFailure||null,completed:clock()});
+          await tx.delete(key);await tx.delete('retry:'+id);
+        });
       }
       const state=await storage.get('scan');
       const retries=await storage.list({prefix:'retry:'});
@@ -248,7 +255,18 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
        }catch{/* Surface unavailable reads in the report. */}
       }
       const drafts=await storage.list({prefix:'confirmation:booking:'});
-      return ownerWorkflows(data,{now:clock(),notices,desk:payload.desk,calendar,calendarReason,draftStates:[...drafts.values()],draftError:await storage.get('confirmation:error')});
+      const result=ownerWorkflows(data,{now:clock(),notices,desk:payload.desk,calendar,calendarReason,draftStates:[...drafts.values()],draftError:await storage.get('confirmation:error')});
+      for(const entry of (await storage.list({prefix:'finance:pending:'})).values()){
+        if(clock()-Date.parse(entry.requestedAt)>=3600000)result.items.push({group:'Payments',title:'Financial write needs verification',
+          action:'Compare the original message and ledger record before resolving this unfinished operation.',
+          link:'https://mail.google.com/mail/u/'+encodeURIComponent(await storage.get('ownerAddress')||STAR_SOCCER_OWNER)+'/#all/'+encodeURIComponent(entry.source.slice(6))});
+      }
+      for(const [key,retry] of await storage.list({prefix:'retry:'})){
+        if(retry.attempts>=3)result.items.push({group:'Gmail intake',title:'Message processing needs review',
+          action:retry.error+' after '+retry.attempts+' attempts. Check the linked message and ledger before making changes.',
+          link:'https://mail.google.com/mail/u/'+encodeURIComponent(await storage.get('ownerAddress')||STAR_SOCCER_OWNER)+'/#all/'+encodeURIComponent(key.slice(6))});
+      }
+      return result;
     }
     if(op==='family-followups'||op==='preview-family-followups'){
       const encrypted=await storage.get('refresh');

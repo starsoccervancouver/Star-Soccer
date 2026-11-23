@@ -384,7 +384,7 @@ module.exports = async function checkBooks(fixture) {
     assert(await unnamed.page.locator('#payment-entry').isHidden());
   }finally{await unnamed.context.close();}
 
-  const accountingRows=[{...due}];
+  const accountingRows=[{...due},otherParent];
   const payment=await fixture({...emptyHome,books:accountingRows,paymentRecording:true});
   try{
     const {page}=payment;let submissions=0;
@@ -402,21 +402,23 @@ module.exports = async function checkBooks(fixture) {
       }
       await route.fulfill({json:{saved:true}});
     });
-    await page.getByText('Unpaid sessions (1 family)',{exact:true}).click();
-    await page.locator('#home-unpaid-list a').click();
+    await page.getByText('Unpaid sessions (2 families)',{exact:true}).click();
+    const family=page.locator('#home-unpaid-list a[href$="'+due.bookingId+'"]');
+    await family.click();
     await page.locator('#payment-entry summary').click();
     await page.locator('#payment-amount').fill('10');
     await page.locator('#payment-method').selectOption('Cash');
     await page.locator('#payment-submit').click();
-    await page.locator('#selected-balance').getByText('$21.50 owing').waitFor();
-    await page.getByRole('link',{name:/All Books/}).click();
-    await page.locator('#books-list .books-group > details > summary').first().click();
-    await page.locator('#books-list').getByRole('button',{name:'Record a payment'}).click();
+    await family.getByText('$21.50',{exact:true}).waitFor();
+    assert.equal(new URL(page.url()).hash,'#view=home');
+    await family.click();
+    await page.locator('#payment-entry summary').click();
     await page.locator('#payment-amount').fill('21.50');await page.locator('#payment-method').selectOption('E-transfer');
     await page.locator('#payment-reference').fill('example123');await page.locator('#payment-submit').click();
-    await page.getByText('No unpaid sessions remain in this selection.').waitFor();
-    await page.getByRole('link',{name:/All Books/}).click();await page.waitForLoadState('networkidle');
-    assert.equal(await page.locator('#books-list .books-group').count(),0);
+    await page.locator('#home-unpaid-list a').getByText('$24.50',{exact:true}).waitFor();
+    assert.equal(new URL(page.url()).hash,'#view=home');
+    assert.equal(await family.count(),0);
+    assert.equal(await page.locator('#home-unpaid-list a').count(),1);
     assert.equal(submissions,2);assert.deepEqual(payment.errors,[]);
   }finally{await payment.context.close();}
 

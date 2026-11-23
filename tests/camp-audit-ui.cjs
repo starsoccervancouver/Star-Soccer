@@ -59,8 +59,8 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg
       assert.match(await section.textContent(),/Kitsilano Turf in Vancouver for ages 5–14/);
       const weeks=['christmas','boxing'].map(camps.getWeek);
       const prices=['price','fullDayPrice'].flatMap(field=>weeks.map(week=>'$'+week[field]));
-      assert.deepEqual(await section.locator('tbody td').allTextContents(),prices);
-      assert.match(await section.locator('.camp-comparison-dropin').textContent(),/\$60 per 3-hour session in either week\. Christmas Day is free\./);
+      assert.deepEqual(await section.locator('tbody td').allTextContents(),[...prices,'$60','$60']);
+      assert.match(await section.locator('.camp-comparison-dropin').textContent(),/Christmas Day is free\./);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),320);
       await section.getByRole('link',{name:/Week 2 Dec/}).click();
       assert.equal(new URL(page.url()).hash,'#winter-week-2');

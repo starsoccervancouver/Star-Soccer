@@ -1,0 +1,94 @@
+/* Match the homepage program cards on the two booking pages. */
+body:is(.winter-camps-page, .training-compact) {
+  --lineup-background: #081523;
+  --lineup-surface: #10253a;
+  --lineup-raised: #173755;
+  --lineup-border: #45617a;
+  --lineup-text: #e6eef5;
+  --lineup-accent: #97d2ff;
+  background: var(--lineup-background);
+}
+
+body.training-compact .fall-program-hero,
+body.winter-camps-page .winter-camp-hero {
+  color: var(--lineup-text);
+  background: var(--lineup-surface);
+  border: 1px solid var(--lineup-border);
+  border-radius: 16px;
+}
+
+body.winter-camps-page .winter-camp-hero::before,
+body.winter-camps-page .winter-camp-hero::after { display: none; }
+
+body.training-compact .fall-hero-copy h1 span,
+body.winter-camps-page .winter-camp-hero .eyebrow { color: var(--lineup-accent); }
+
+body.training-compact .training-intro { color: #bdcddd; }
+
+body.winter-camps-page .camp-comparison,
+body.winter-camps-page .camp-week-card {
+  background: var(--lineup-surface);
+  border-color: var(--lineup-border);
+  border-radius: 16px;
+}
+
+.winter-camps-page .camp-comparison-table th { color: var(--lineup-text); }
+.winter-camps-page .camp-comparison-table thead a { color: var(--lineup-accent); }
+.winter-camps-page .camp-comparison-table :is(th, td) { border-color: var(--lineup-border); }
+.winter-camps-page .camp-comparison-table :is(th, td):nth-child(2) { background: var(--lineup-raised); }
+.winter-camps-page .camp-comparison-table tbody td { font-variant-numeric: tabular-nums; }
+.winter-camps-page .camp-comparison-table thead a { min-height: 44px; }
+
+body.training-compact #sessions .schedule-entry {
+  background: var(--lineup-surface);
+  border-color: var(--lineup-border);
+}
+body.training-compact #sessions .schedule-entry-target { border-color: var(--lineup-accent); }
+
+body.training-compact #sessions .schedule-entry-main {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+body.training-compact #sessions .schedule-entry-main > span { grid-area: auto; }
+body.training-compact #sessions .schedule-day strong {
+  color: var(--lineup-text);
+  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+}
+body.training-compact #sessions :is(.schedule-detail, .schedule-price) {
+  border: 0;
+  padding: 0;
+}
+body.training-compact #sessions .schedule-price {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: baseline;
+  border-top: 1px solid var(--lineup-border);
+  padding-top: 10px;
+}
+body.training-compact #sessions .schedule-price [data-pass-value] { grid-column: 2; }
+body.training-compact #sessions #adult-women .schedule-price { grid-template-columns: 1fr; }
+
+body.winter-camps-page .camp-comparison .winter-camp-cta,
+body.training-compact #sessions .schedule-direct-actions .button:not(.button-ghost) {
+  min-height: 48px;
+  border-color: var(--lineup-accent);
+  background: var(--lineup-accent);
+  color: var(--lineup-background);
+}
+body.winter-camps-page .camp-comparison .winter-camp-cta:hover,
+body.training-compact #sessions .schedule-direct-actions .button:not(.button-ghost):hover {
+  background: #c9e9ff;
+}
+
+body.winter-camps-page::before { display: none; }
+body.winter-camps-page .winter-camp-hero {
+  width: min(1040px, calc(100% - 32px));
+  margin: 14px auto;
+}
+body.winter-camps-page :is(#winter-camp-title, #camp-comparison-title) {
+  font-family: Manrope, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  text-transform: none;
+}
+body.winter-camps-page #winter-camp-title { font-size: clamp(1.65rem, 4vw, 2.75rem); }
+body.winter-camps-page #camp-comparison-title { font-size: clamp(1.3rem, 2.6vw, 1.8rem); }

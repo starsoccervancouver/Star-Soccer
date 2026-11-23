@@ -38,6 +38,19 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    notes:coaches.notes(data.profile),tasks:coaches.tasks(data.profile)};
  }
 
+ // Opt-in lets older clients keep receiving their complete bundled workspace.
+ function balanceOpening(request,actor){
+  if(!actor||!sessionBooks||request.headers.get('X-Coach-Overview')!=='unpaid'||
+     request.headers.get('X-Coach-Start')!=='balances-first'||
+     !(actor.role==='owner'||actor.role==='admin'&&actor.familyAccess))return null;
+  coaches.requireFamilyAccess(actor);
+  // A missing or unreadable saved summary falls back to a fresh Books read.
+  try{
+   const snapshot=sessionBooks.lastUnpaid?.();
+   if(Array.isArray(snapshot?.rows)&&Number.isFinite(snapshot.checkedAt))return {balanceSnapshot:snapshot};
+  }catch{}
+  return {balanceSnapshot:null};
+ }
  async function openingDesk(request,raw,signed){
   const actor=signed.actor;
   if(request.headers.get('X-Coach-Overview')!=='unpaid'||!sessionBooks||
@@ -106,7 +119,8 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
   if(path==='/workspace/api/bootstrap'&&request.method==='GET'){
    let browser=a,extra={};if(!browser){const payload=random()+'.'+(clock()+1800000),value=payload+'.'+sign('staff-browser:'+payload);browser={browser:payload.split('.')[0],csrf:sign('staff-csrf:'+value)};extra={'Set-Cookie':'__Host-ss_coach_browser='+value+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=1800'};}
    let session=signed,desk;
-   if(signed && fullDesk){
+   const opening=fullDesk?balanceOpening(request,signed?.actor):null;
+   if(signed && fullDesk && !opening){
     try{desk=await openingDesk(request,raw,signed);}
     catch(error){
      // A usable sign-in can recover a temporary roster failure with the ordinary desk request.
@@ -114,7 +128,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
      logFailure(error,id,'desk-prefetch');
     }
    }
-   return json(200,{profile:desk?.profile||session?.actor||null,csrfToken:session?.csrf||browser.csrf,googleEnabled:!!googleAuth,draftOnly:true,...(desk?{desk}:{})},extra);
+   return json(200,{profile:desk?.profile||session?.actor||null,csrfToken:session?.csrf||browser.csrf,googleEnabled:!!googleAuth,draftOnly:true,...opening,...(desk?{desk}:{})},extra);
   }
   if(request.method==='POST'){
    if(request.headers.get('origin')!==origin||request.headers.get('sec-fetch-site')&&request.headers.get('sec-fetch-site')!=='same-origin'||!signed&&!a||!same(request.headers.get('x-csrf-token'),signed?.csrf||a?.csrf))deny('CSRF_FAILED',403);
@@ -128,7 +142,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    else if(path.endsWith('/login-options')){const v=await body(request,['email']);return json(200,await auth.loginOptions({address:v.email,browser:a.browser}));}
    else if(path.endsWith('/login-finish')){const v=await body(request,['challengeId','response']);result=await auth.verifyLogin({...v,browser:a.browser});}
    else deny('NOT_FOUND',404);
-   return json(200,{profile:result.profile,csrfToken:result.csrf},{'Set-Cookie':'__Host-ss_staff='+result.token+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=43200'});
+   return json(200,{profile:result.profile,csrfToken:result.csrf,...balanceOpening(request,result.profile)},{'Set-Cookie':'__Host-ss_staff='+result.token+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=43200'});
   }
   if(!signed)deny('SIGN_IN_REQUIRED',401);const actor=signed.actor;
   if(path==='/workspace/api/booking-payment'){

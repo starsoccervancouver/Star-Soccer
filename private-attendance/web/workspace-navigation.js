@@ -49,8 +49,7 @@
     return opened;
   }
   window.CoachNavigation = {
-    openInitial() {
-      const route = pending;
+    openInitial(route = pending) {
       pending = null;
       return apply(route, true);
     }

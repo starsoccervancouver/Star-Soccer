@@ -29,7 +29,7 @@ require('./coach-fixture-fonts.cjs')(assets);
 (async () => {
   const browser = await chromium.launch(); let checks = 0;
   try {
-    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail, homeQueues = false, bundleDesk = homeQueues, openingUnpaid=false,
+    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail, homeQueues = false, bundleDesk = homeQueues, openingUnpaid=false, priorityStart=false, deskGate, booksGate,
       paymentRecording = false, followups = false, roster = sessions, refreshRoster, books = [], openInquiry = true, booksAvailable = role==='owner'||(role==='admin'&&familyAccess),
       families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
@@ -54,9 +54,13 @@ require('./coach-fixture-fonts.cjs')(assets);
           attentionAvailable: homeQueues && familyAccess, familyFollowupsAvailable: (followups || homeQueues) && role==='owner' };
         if(openingUnpaid&&booksAvailable&&request.headers()['x-coach-overview']==='unpaid')desk.unpaid={rows:books,checkedAt:Date.now(),refresh:false};
         const includeDesk = bundleDesk && state.profile && request.headers()['x-coach-desk'] === 'full';
-        if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true, ...(includeDesk ? {desk} : {}) };
-        else if (path.endsWith('/desk')) value = desk;
+        if(priorityStart && includeDesk && path.endsWith('/bootstrap') && request.headers()['x-coach-start']==='balances-first'){
+          value={profile:state.profile,csrfToken:'fictional-settings-csrf',balanceSnapshot:openingUnpaid?{rows:books,checkedAt:Date.now()}:null};
+        }
+        else if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true, ...(includeDesk ? {desk} : {}) };
+        else if (path.endsWith('/desk')) { await deskGate; value = desk; }
         else if (path.endsWith('/session-books') && state.profile?.familyAccess && ['owner','admin'].includes(state.profile.role)) {
+          if(payload.view==='unpaid')await booksGate;
           assert.equal(request.method(),'POST');
           assert.deepEqual(payload,payload.view === 'unpaid' ? {view:'unpaid'} : {});
           value = {rows:payload.view === 'unpaid' ? books.filter(row=>(row.scope === 'session'||row.pastBookingBalance===true) && row.status === 'due' && row.amountDue > 0) : books};
@@ -87,7 +91,7 @@ require('./coach-fixture-fonts.cjs')(assets);
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
       });
       const page = await context.newPage(); page.setDefaultTimeout(6000); page.on('pageerror', error => errors.push(error.message));
-      await page.goto(origin + '/workspace' + hash); await page.locator('#app').waitFor({ state: 'visible' });
+      await page.goto(origin + '/workspace' + hash); await page.locator(priorityStart?'#opening-overview':'#app').waitFor({ state: 'visible' });
       return { page, context, state, requests, errors, answer: value => page.evaluate(value => fixtureAnswers.push(value), value) };
     }
     {

@@ -10,7 +10,7 @@ const random=()=>randomBytes(32).toString('base64url');
 const same=(a,b)=>{const x=Buffer.from(a||''),y=Buffer.from(b||'');return x.length===y.length&&timingSafeEqual(x,y);};
 const cookie=(request,name)=>request.headers.get('cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith(name+'='))?.slice(name.length+1);
 const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow','Strict-Transport-Security':'max-age=31536000','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'",'Permissions-Policy':'publickey-credentials-create=(self), publickey-credentials-get=(self), camera=(), microphone=(self), geolocation=()'};
-export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger,sessionBooks=null,bookingPayments=null,gmailSync=null,attention=null,familyFollowups=null,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',timeZone='America/Vancouver',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
+export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger,sessionBooks=null,bookingPayments=null,automationHistory=null,gmailSync=null,attention=null,familyFollowups=null,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',timeZone='America/Vancouver',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
  origin=validateWorkspaceOrigin(origin);basePath=validateCoachPath(basePath);
  const preview = origin==='https://starsoccer.ca' && basePath==='/coachdesk' && googleAuth
    ? createOperationsPreview({cookieKey,origin,coaches,overview,familyLedger,clock}) : null;
@@ -181,10 +181,10 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    return json(200,{rows:report.rows});
   }
   if(path==='/workspace/api/automation-history'&&request.method==='POST'){
-   coaches.owner(actor);if(!gmailSync)deny('NOT_FOUND',404);
+   coaches.owner(actor);if(!automationHistory)deny('NOT_FOUND',404);
    const {query}=await body(request,['query']);
    if(typeof query!=='string'||query.trim().length<3||query.length>200)deny('INVALID_SEARCH',400);
-   return json(200,await gmailSync('automation-history',{query}));
+   return json(200,await automationHistory(query));
   }
   if(path==='/workspace/api/owner-workflows'&&request.method==='GET'){
    coaches.owner(actor);if(!gmailSync)deny('NOT_FOUND',404);

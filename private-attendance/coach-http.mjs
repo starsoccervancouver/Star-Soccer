@@ -116,7 +116,9 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    coaches.owner(actor);if(!bookingPayments)deny('PAYMENT_DISABLED',403);
    const input=await body(request,['id','familyId','date','method','reference','items']);
    const current=currentSession(raw,signed).actor;coaches.owner(current);
-   const saved=await bookingPayments('record-booking-payment',{actor:current.email,input});
+   let saved;
+   try{saved=await bookingPayments('record-booking-payment',{actor:current.email,input});}
+   finally{sessionBooks?.invalidate?.();}
    coaches.owner(currentSession(raw,signed).actor);return json(200,saved);
   }
   if(path==='/workspace/api/session-books'){
@@ -127,17 +129,21 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    const checkAccess=()=>coaches.requireFamilyAccess(currentSession(raw,signed).actor);
    checkAccess();
    if(!sessionBooks)deny('SESSION_BOOKS_UNAVAILABLE',503);
-   let report;
+   const unpaid=input.view==='unpaid';
+   let report,pendingPayments;
    try{
-    report=await sessionBooks();
+    [report,pendingPayments]=await Promise.all([
+     sessionBooks({unpaid}),
+     unpaid&&bookingPayments&&actor.role==='owner'?bookingPayments('pending-booking-payments'):[]
+    ]);
    }finally{
     checkAccess();
    }
    if(!Array.isArray(report?.rows))deny('SESSION_BOOKS_UNAVAILABLE',503);
-   if(input.view==='unpaid'){
+   if(unpaid){
     const rows=report.rows.filter(row=>row.scope==='session' && row.status==='due' &&
-     Number.isFinite(row.amountDue) && row.amountDue>0);
-    const pendingPayments=bookingPayments&&actor.role==='owner'?await bookingPayments('pending-booking-payments'):[];
+     Number.isFinite(row.amountDue) && row.amountDue>0).map(({scope,status,amountDue,bookingId,familyId,familyName,playerName})=>
+     ({scope,status,amountDue,bookingId,familyId,familyName,playerName}));
     checkAccess();return json(200,{rows,...(pendingPayments.length?{pendingPayments}:{})});
    }
    return json(200,{rows:report.rows});
@@ -229,7 +235,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
   if(path==='/workspace/api/logout'){await body(request,[]);auth.logout(raw);return json(200,{signedOut:true},{'Set-Cookie':'__Host-ss_staff=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'});}
   if(path==='/workspace/api/coaching-team/notes'){const v=await body(request,['email']);return json(200,{notes:coaches.coachingNotes(actor,v.email)});}
   if(path==='/workspace/api/refresh'){
-   await body(request,[]);familyLedger?.invalidateDirectory?.();
+   await body(request,[]);familyLedger?.invalidateDirectory?.();sessionBooks?.invalidate?.();
    return json(200,await readDesk(raw,signed,{refresh:true,full:fullDesk}));
   }
   if(path==='/workspace/api/session'){const v=await body(request,['sessionId']);coaches.requireSession(actor,v.sessionId);return json(200,{plan:coaches.plan(actor,v.sessionId),notes:coaches.notes(actor,{sessionId:v.sessionId})});}
@@ -260,7 +266,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
   if(path==='/workspace/api/assign'){const v=await body(request,['email','sessionId','assigned']);coaches.requireSession(actor,v.sessionId);const data=await overview({});if(!data.sessions.some(s=>s.id===v.sessionId))deny('SESSION_NOT_FOUND',404);return json(200,coaches.assign(actor,v));}
   if(path==='/workspace/api/legacy-notes'){await body(request,[]);if(!coaches.full(actor))deny();return json(200,{notes:await legacyNotes()});}
   if(path==='/workspace/api/attendance'){
-   const v=await body(request,['commandId','sessionId','attendanceId','playerId','status','expectedStatus']);coaches.requireSession(actor,v.sessionId);attendance.assertWritable?.();const data=await overview({}),s=data.sessions.find(s=>s.id===v.sessionId);const result=await attendance.save(actor,v,s);updateAttendance({attendanceId:v.attendanceId,status:result.status});return json(200,result);
+   const v=await body(request,['commandId','sessionId','attendanceId','playerId','status','expectedStatus']);coaches.requireSession(actor,v.sessionId);attendance.assertWritable?.();const data=await overview({}),s=data.sessions.find(s=>s.id===v.sessionId);let result;try{result=await attendance.save(actor,v,s);}finally{sessionBooks?.invalidate?.();}updateAttendance({attendanceId:v.attendanceId,status:result.status});return json(200,result);
   }
   deny('NOT_FOUND',404);
  }catch(e){const {code,status,retryable}=logFailure(e,id);return json(status,{error:code,requestId:id,retryable,message:({INVALID_PAYMENT:'Enter a valid payment amount, method and received date. E-transfers also need the bank reference.',PAYMENT_ALREADY_EXISTS:'This transfer reference already exists in Airtable. Check the existing receipt.',PAYMENT_LEDGER_CHANGED:'The booking balance or family link changed. Refresh and review the ledger.',PAYMENT_PENDING:'The payment could not be confirmed. Use Finish recording to check the same payment again.',PAYMENT_CONFLICT:'This receipt request has changed. Refresh the balance before continuing.',PAYMENT_DISABLED:'Payment recording is unavailable.',SIGN_IN_REQUIRED:'Sign in to open your coach workspace.',ACCESS_DENIED:'Your account does not have permission for this record.',OWNER_ONLY:'Only the owner can manage account access.',INVALID_GOAL:'Check the goal status, success measure and practice evidence.',INVALID_GOAL_DRILL:'Choose an available drill from your archive.',NOTE_CHANGED:'This note changed. Reload it before saving.',PLAN_CHANGED:'Another coach updated this plan. Reload before saving.',DIAGRAM_CHANGED:'Another coach updated this diagram. Reload it before saving.',DIAGRAM_ARCHIVED:'This diagram was archived. Reload the session diagrams.',DIAGRAM_LIMIT:'This session already has 20 diagrams. Archive an unused diagram before adding another.',INVALID_DIAGRAM:'Check the diagram title, pieces and phases before saving.',INVALID_RESOURCE_URL:'Use a full HTTPS link without a username or password.',INVALID_RESOURCE:'Check the title, link and resource details.',RESOURCE_CHANGED:'This link changed. Refresh before editing.',RESOURCE_ARCHIVED:'This link was archived. Refresh your collection.',RESOURCE_REQUEST_REUSED:'This save could not be repeated. Refresh to review the saved link.',RESOURCE_URL_EXISTS:'You already saved this link. Find it in your collection to edit it.',RESOURCE_LIMIT:'Your collection has 300 links. Archive an unused link first.',DRILL_CHANGED:'This saved drill changed. Reload your archive before saving.',DRILL_ARCHIVED:'This drill was archived. Reload your archive.',DRILL_REQUEST_REUSED:'This save reference was already used for a different drill draft. Reload the archive before continuing.',DRILL_LIMIT:'Your archive has 200 active drills. Archive an unused drill before adding another.',INVALID_DRILL:'Check the title, setup, stage and a whole-number duration from 1 to 120 minutes.',ATTENDANCE_WRITES_DISABLED:'Attendance saving is currently paused. You can still view the roster.',ATTENDANCE_CHANGED:'Attendance changed. Refresh the roster before marking it again.',ATTENDANCE_SYNC_PENDING:'The attendance update is pending verification. Refresh before retrying.',INVITE_EXPIRED:'This setup link has expired or was already used. Ask the owner for a new link.',SESSION_NOT_STARTED:'Actual attendance can be marked on the session day.',SIGN_IN_FAILED:'Sign-in could not be verified. Use your registered passkey and approved email.',PASSKEY_VERIFICATION_FAILED:'Your device did not verify the passkey. Try again.',ACCOUNT_ALREADY_ENROLLED:'This account already has a passkey. Please sign in.'})[code]||'We could not complete that action. Refresh and try again.'});}};

@@ -106,7 +106,7 @@ test('Books and Home unpaid require the stored finance grant and select exact-se
   assert.equal(full.headers.get('cache-control'),'no-store');
   assert.deepEqual(await full.json(),{rows});
   const home=await request(actor,'session-books',{view:'unpaid'});assert.equal(home.status,200);
-  assert.deepEqual(await home.json(),{rows:[due]});
+  assert.deepEqual(await home.json(),{rows:[{scope:'session',status:'due',amountDue:25}]});
  }
  assert.equal(reads,4);
 });

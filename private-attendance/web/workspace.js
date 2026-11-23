@@ -1020,7 +1020,9 @@
  }
  async function loadBooks(unpaid=false){
   if(!canViewBooks()||tab!==(unpaid?'home':'books'))return;
-  if(unpaid){if(homeUnpaidState==='loading'||homeUnpaidState==='ready')return;homeUnpaidState='loading';}
+  if(unpaid){if(homeUnpaidState==='loading'||homeUnpaidState==='ready')return;homeUnpaidState='loading';
+   $('home-unpaid-label').textContent='Checking unpaid sessions…';$('home-unpaid').hidden=false;updateHomeAttention();
+  }
   const ticket=++booksRequest,list=$(unpaid?'home-unpaid-list':'books-list'),status=$(unpaid?'home-unpaid-status':bookTarget?'selected-balance-status':'books-status');
   list.replaceChildren();booksRows=null;
   if(!unpaid){
@@ -1221,6 +1223,7 @@
   $('refresh').disabled=true;
   $('global-error').hidden=true;
   if(data&&tab==='plan'&&workspaceView==='attendance')renderAttendance();
+  else for(const button of $('roster').querySelectorAll('.attendance-controls button'))button.disabled=true;
   try{
    let fresh=initialDesk;
    if(refresh){

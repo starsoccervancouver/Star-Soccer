@@ -110,3 +110,28 @@ body:is(.home-landing,.training-compact) .skip-link{background:#10253a;color:#e6
     box-shadow: inset 0 0 0 100vmax var(--ss-hover-fill);
   }
 }
+
+/* Shared controls retain each program's palette and hit area. */
+@media screen {
+  body :is(.button, .home-camps-cta-button, .home-coach-book-link, button[type="submit"]) {
+    border-radius: 12px;
+    font-weight: 700;
+    letter-spacing: .005em;
+    box-shadow: inset 0 1px 0 #ffffff30, 0 2px 5px #09192b22;
+  }
+  body :is(.button-ghost, .button-outline) {
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+  body :is(button, .button, .home-camps-cta-button, .home-coach-book-link):focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+  @media (hover: hover) {
+    body :is(.button, .home-camps-cta-button, .home-coach-book-link, button[type="submit"]):hover:not(:disabled) {
+      box-shadow: inset 0 1px 0 #ffffff45, 0 3px 9px #09192b32;
+    }
+  }
+  body :is(button, .button, .home-camps-cta-button, .home-coach-book-link):active:not(:disabled) {
+    box-shadow: inset 0 2px 3px #09192b30;
+  }
+}

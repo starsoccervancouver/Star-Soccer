@@ -16,9 +16,11 @@ const googleTag = `
 </script>
 `;
 
+const cssVersion = require('node:crypto').createHash('sha256').update(fs.readFileSync('site.min.css')).digest('hex').slice(0,12);
+
 // Keep tracking off staff sign-in, booking receipts and legacy redirects.
 function stageHtml(name) {
-  const html = fs.readFileSync(name, 'utf8');
+  const html = fs.readFileSync(name, 'utf8').replace(/(href="(?:\/)?site\.min\.css)(?:\?v=[a-f0-9]+)?"/g, '$1?v='+cssVersion+'"');
   const destination = path.join('_site', name);
   if (['coach.html', 'registration-thank-you.html'].includes(name) || /<body\b[^>]*\bdata-redirect\s*=/i.test(html)) {
     fs.writeFileSync(destination, html);

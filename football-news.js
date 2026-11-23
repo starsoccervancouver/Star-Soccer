@@ -13,62 +13,45 @@
   const timeFormat = new Intl.DateTimeFormat('en-CA', {
     dateStyle: 'medium', timeStyle: 'short', timeZone: vancouver
   });
-  const photos = {
-    'Vancouver Whitecaps': ['bc-place', 'Archive photo of a Whitecaps match at BC Place'],
-    Liverpool: ['anfield', 'Archive photo of the Kop at Anfield'],
-    Barcelona: ['camp-nou', 'Archive photo of Camp Nou, Barcelona'],
-    Atalanta: ['bergamo', 'Archive photo of Atalanta’s stadium in Bergamo'],
-    'SV Werder Bremen': ['bremen', 'Aerial photo of the Weserstadion in Bremen'],
-    Canada: ['canada', 'Archive photo of Canada at BMO Field'],
-    Wales: ['cardiff', 'Archive photo of Wales playing in Cardiff']
-  };
-
   const featuredMatches = {
+    '2026-11-21|1. FC Union Berlin|RB Leipzig': {
+      youtubeId: 'TIeusIZuHr4'
+    },
     '2026-11-22|Barcelona|Villarreal': {
       title: 'Barça come from two down to beat Villarreal 3–2',
       summary: 'Barcelona trailed 2–0 at half-time, then scored three after the break at Camp Nou.',
       report: 'https://www.fcbarcelona.com/en/football/first-team/news/4612696/bara-32-villarreal-heroic-response',
-      video: 'https://www.fcbarcelona.com/en/videos/4612776/highlights-laliga-barca-v-villarreal',
+      youtubeId: 'ldXZdhBLMKk',
       lead: true
     },
     '2026-11-22|Vancouver Whitecaps|Real Salt Lake': {
       title: 'Whitecaps open the playoffs with a 2–0 win',
       summary: 'Vancouver beat Real Salt Lake at BC Place in Game 1 of the first round.',
       report: 'https://www.mlssoccer.com/playoffs/2026/news/vancouver-whitecaps-open-playoffs-in-style-with-victory-over-real-salt-lake',
-      video: 'https://www.whitecapsfc.com/video/highlights-vancouver-whitecaps-fc-vs-real-salt-lake-november-22-2026'
+      youtubeId: '3EdK_3n6eGE'
     },
     '2026-11-22|Atalanta|Inter Milan': {
       title: 'Atalanta rescue a 4–4 draw against Inter',
       report: 'https://en.atalanta.it/news/never-say-die-atalanta-fight-back-to-draw-4-4-with-inter',
-      video: 'https://en.legaseriea.it/videos/serie-a-enilive-2026-2027-atalanta-inter'
+      youtubeId: '91CeztXQwPM'
     },
     '2026-11-22|Liverpool|Manchester United': {
       title: 'Liverpool put four past Manchester United',
-      video: 'https://www.liverpoolfc.com/news/liverpool-4-0-manchester-united-premier-league-highlights-watch'
+      youtubeId: '9bLh_lq4SrI'
     },
     '2026-11-22|SV Werder Bremen|Hamburger SV': {
       title: 'Werder Bremen win the Nordderby 4–0',
-      video: 'https://www.bundesliga.com/en/bundesliga/news/werder-bremen-hamburg-match-report-highlights-matchday-10-40103'
+      youtubeId: 'AjoE-9Br7bk'
     },
     '2026-11-16|Canada|Guatemala': {
       title: 'Canada beat Guatemala 4–1 to reach the finals',
       report: 'https://canadasoccer.com/match/6748/',
-      video: 'https://www.concacaf.com/competitions/nations-league/videos/canada-vs-guatemala-highlights'
+      youtubeId: '9uiaqoX0Pys'
     },
     '2026-11-17|Wales|Portugal': {
       title: 'Portugal edge Wales 3–2 in Cardiff',
-      video: 'https://www.uefa.com/uefanationsleague/news/02ab-22146db70e40-12d581ab82a9-1000--uefa-nations-league-matchday-6-highlights-erling-haaland-tak/'
+      youtubeId: 'LStoYhX0z5k'
     }
-  };
-
-  const videoHubs = {
-    whitecaps: 'https://www.whitecapsfc.com/video/',
-    'premier-league': 'https://www.premierleague.com/en/video',
-    'champions-league': 'https://www.uefa.com/uefachampionsleague/video/',
-    bundesliga: 'https://www.bundesliga.com/en/bundesliga/videos',
-    'la-liga': 'https://www.laliga.com/en-GB/videos?competitionslug=laliga-easports',
-    'serie-a': 'https://en.legaseriea.it/videos',
-    'ligue-1': 'https://ligue1.com/en/videos'
   };
 
   const priorityCategories = ['premier-league', 'champions-league', 'canada', 'whitecaps'];
@@ -92,13 +75,7 @@
     const canada = key.startsWith('international-') && [game.home, game.away].includes('Canada');
     const category = key.startsWith('international-') ? (canada ? 'canada' : 'international') : key;
     const known = featuredMatches[[game.date, game.home, game.away].join('|')];
-    let videoHub = videoHubs[key];
-    if (game.competition.startsWith('UEFA Nations League')) {
-      videoHub = 'https://www.uefa.com/uefanationsleague/video/';
-    }
-    if (game.competition.startsWith('CONCACAF Nations League')) {
-      videoHub = 'https://www.concacaf.com/competitions/nations-league/videos';
-    }
+    const youtubeId = known?.youtubeId ?? game.youtubeId;
 
     const teams = [game.home, game.away];
     const majorClubs = topFlight[key] ?? [];
@@ -112,9 +89,8 @@
       title: known?.title ?? matchHeadline(game),
       summary: known?.summary,
       report: known?.report ?? game.url,
-      photo: photos[game.home],
-      video: known?.video ?? videoHub,
-      exactVideo: Boolean(known?.video),
+      youtubeId: /^[A-Za-z0-9_-]{11}$/.test(youtubeId ?? '') ? youtubeId : null,
+      eventPhoto: game.eventPhoto,
       lead: Boolean(known?.lead),
       interest: known?.lead ? interest + 10 : interest,
       eligible: priorityCategories.includes(category) || category === 'international' ||
@@ -141,16 +117,20 @@
     card.querySelector('[data-story-competition]').textContent = story.competition;
     time.dateTime = story.date;
     time.textContent = dayFormat.format(new Date(story.date + 'T00:00:00Z'));
-    photo.src = story.photo ? 'site-photos/football-news/' + story.photo[0] + '.webp' : 'winter-field-800.webp';
-    photo.alt = story.photo?.[1] ?? 'Soccer pitch at Kitsilano Turf';
+    const figure = photo.closest('figure');
+    if (story.youtubeId || /^https:\/\/(?:www\.)?thesportsdb\.com\/images\/media\/event\//.test(story.eventPhoto ?? '')) {
+      photo.addEventListener('error', () => figure.remove(), { once: true });
+      photo.src = story.youtubeId ? 'https://i.ytimg.com/vi/' + story.youtubeId + '/hqdefault.jpg' : story.eventPhoto;
+      photo.alt = story.youtubeId ? 'Highlight video preview: ' + story.title : story.title;
+    } else figure.remove();
     if (story.summary) {
       summary.textContent = story.summary;
       summary.hidden = false;
     }
-    if (story.video) {
-      video.href = story.video;
-      video.querySelector('[data-story-video-label]').textContent = story.exactVideo ? 'Watch highlights' : 'Browse highlights';
-      video.setAttribute('aria-label', (story.exactVideo ? 'Watch highlights for ' : 'Browse highlights for ') + story.title);
+    if (story.youtubeId) {
+      video.href = 'https://www.youtube.com/watch?v=' + story.youtubeId;
+      video.querySelector('[data-story-video-label]').textContent = 'Watch on YouTube';
+      video.setAttribute('aria-label', 'Watch highlights on YouTube: ' + story.title);
       video.hidden = false;
     }
     return card;

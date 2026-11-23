@@ -123,6 +123,7 @@ async function checkFootballNews(page, base) {
       {...game,home,date:'2026-11-16'},
     ]}]))
   }}}));
+  await page.route('https://i.ytimg.com/**', route => route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"/>'}));
   await page.goto(base+'/index.html');
   const section=page.getByRole('region',{name:'Football News'});
   const cards=section.getByRole('article');
@@ -130,9 +131,9 @@ async function checkFootballNews(page, base) {
   assert.equal(await cards.count(),5,'A single grid displays no more than five stories');
   assert.equal(await section.getByRole('tab').count(),0,'The story grid does not create subtabs');
   assert.equal(await cards.first().getByRole('heading').textContent(),'Barça come from two down to beat Villarreal 3–2');
-  assert(await cards.first().getByRole('img',{name:/Camp Nou, Barcelona/}).isVisible());
+  assert.equal(await cards.first().locator('img').getAttribute('src'), 'https://i.ytimg.com/vi/ldXZdhBLMKk/hqdefault.jpg');
   assert.equal(await cards.first().getByRole('link',{name:/Watch highlights/}).getAttribute('href'),
-    'https://www.fcbarcelona.com/en/videos/4612776/highlights-laliga-barca-v-villarreal');
+    'https://www.youtube.com/watch?v=ldXZdhBLMKk');
   const titles=await cards.getByRole('heading').allTextContents();
   assert(titles.every(title=>/Barça come from two down|Whitecaps open the playoffs|champions-league beat|premier-league beat|Canada beat Guatemala/.test(title)),
     'Champions League, Premier League, Whitecaps and Canada get priority alongside a major Barcelona result');

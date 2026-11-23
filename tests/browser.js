@@ -72,7 +72,7 @@
           check(lessons?.querySelector('.hero-action-title').textContent==='Soccer Lessons Vancouver' && lessons.getClientRects().length, `Homepage at ${width}px shows the weekly soccer lessons action`);
           check(camps && camps.getAttribute('href')==='camps.html' && /Dec 21–25 and Dec 28–Jan 1/.test(camps.textContent) && !doc.querySelector('a[href="pro-d-camp-registration.html"]'),`Homepage at ${width}px promotes both December weeks and omits the expired Pro-D signup`);
           check(camps && camps.getClientRects().length && camps.getBoundingClientRect().height>=48,`Homepage at ${width}px shows a large camp action`);
-          check(camps && camps.querySelector('.hero-action-title').textContent.trim()==='Vancouver winter soccer camps →' && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with a descriptive winter soccer camp action`);
+          check(camps && camps.querySelector('.hero-action-title').textContent.trim()==='Soccer Camps Vancouver →' && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with a descriptive winter soccer camp action`);
           check(doc.querySelector('h1').textContent.includes('Weekly soccer coaching.') && doc.querySelector('h1').textContent.includes('Ages 6–14 in Kitsilano.'),`Homepage at ${width}px describes the weekly service, ages and location`);
           const profiles=[...doc.querySelectorAll('#coaching-team .home-coach-card')];
           for(const [coach,preference] of [['Valentinos Dinglis','valentinos'],['Evan Lycos','evan'],['Romeo Dinglis','romeo'],['Owen Soroka','owen']]){

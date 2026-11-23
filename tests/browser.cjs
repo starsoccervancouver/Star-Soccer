@@ -94,6 +94,40 @@ async function checkPublicHover(browser,desktop,base){
     await link.hover();assert.deepEqual(await surface(link),rest,'Touch-only devices do not get sticky pointer highlighting');
   }finally{await touch.close();}
 }
+async function checkFootballNews(page, base) {
+  // At 01:00 UTC it is still November 22 in Vancouver.
+  await page.clock.setFixedTime(new Date('2026-11-23T01:00:00Z'));
+  const url='https://example.com/';
+  const checkedAt='2026-11-23T00:00:00Z';
+  const match={away:'Visitor',goals:[2,0],competition:'League',source:'Test feed',url};
+  const award={name:'Player award',source:'Test feed',url};
+  await page.route('**/football-news.json', route=>route.fulfill({json:{version:1,sources:{
+    scores:{kind:'results',checkedAt,items:[
+      {...match,home:'Old result',date:'2026-11-15'},
+      {...match,home:'Recent result',date:'2026-11-16'},
+      {...match,home:'Future result',date:'2026-11-23'},
+    ]},
+    honors:{kind:'awards',checkedAt,items:[
+      {...award,winner:'Old winner',date:'2026-11-15'},
+      {...award,winner:'Recent winner',date:'2026-11-16'},
+      {...award,winner:'Year only',year:2026},
+    ]}
+  }}}));
+  await page.goto(base+'/index.html');
+  const section=page.getByRole('region',{name:'Football News'});
+  const results=section.getByRole('tabpanel',{name:'Results'});
+  await results.getByText('Recent result 2–0 Visitor',{exact:true}).waitFor();
+  assert.equal(await results.getByRole('link').count(),1,'Only the seven most recent Vancouver dates appear');
+  await section.getByRole('tab',{name:'Results'}).press('ArrowRight');
+  const awards=section.getByRole('tabpanel',{name:'Awards'});
+  assert(await awards.getByText('Recent winner',{exact:true}).isVisible());
+  assert.equal(await awards.getByRole('link').count(),1,'Expired and undated awards are hidden');
+  await section.getByRole('tab',{name:'Headlines'}).click();
+  const headlines=section.getByRole('tabpanel',{name:'Headlines'});
+  assert(await headlines.getByText('Recent result beat Visitor 2–0',{exact:true}).isVisible());
+  assert.equal(await headlines.getByRole('link').count(),1,'Headlines use only recent scores');
+}
+
 (async()=>{
   let browser;
   try {
@@ -115,6 +149,8 @@ async function checkPublicHover(browser,desktop,base){
     else {
       await checkPublicHover(browser,page,'http://127.0.0.1:'+server.address().port);
       console.log('Public hover, selection, keyboard and touch checks passed');
+      await checkFootballNews(page,'http://127.0.0.1:'+server.address().port);
+      console.log('Football news tabs and seven-day Vancouver date window passed');
       await require('./pro-d-camp.cjs')();console.log('Pro-D camp mocked submission checks passed');
     }
   } finally {if(browser)await browser.close();server.close();}

@@ -3,7 +3,7 @@
   "sources": {
     "premier-league": {
       "kind": "results",
-      "checkedAt": "2026-11-23T05:44:56+00:00",
+      "checkedAt": "2026-11-23T05:47:52+00:00",
       "items": [
         {
           "home": "Liverpool",
@@ -21,37 +21,12 @@
     },
     "champions-league": {
       "kind": "results",
-      "checkedAt": "2026-11-23T05:44:56+00:00",
-      "items": [
-        {
-          "home": "AEK Athen",
-          "away": "Real Madrid",
-          "goals": [
-            2,
-            3
-          ],
-          "date": "2026-11-04",
-          "competition": "Champions League",
-          "source": "OpenLigaDB",
-          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/"
-        },
-        {
-          "home": "Fenerbahçe SK",
-          "away": "FC Liverpool",
-          "goals": [
-            3,
-            2
-          ],
-          "date": "2026-11-04",
-          "competition": "Champions League",
-          "source": "OpenLigaDB",
-          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/"
-        }
-      ]
+      "checkedAt": "2026-11-23T05:47:52+00:00",
+      "items": []
     },
     "bundesliga": {
       "kind": "results",
-      "checkedAt": "2026-11-23T05:44:56+00:00",
+      "checkedAt": "2026-11-23T05:47:52+00:00",
       "items": [
         {
           "home": "FC Augsburg",
@@ -81,7 +56,7 @@
     },
     "whitecaps": {
       "kind": "results",
-      "checkedAt": "2026-11-23T05:44:56+00:00",
+      "checkedAt": "2026-11-23T05:47:52+00:00",
       "items": [
         {
           "home": "Vancouver Whitecaps",
@@ -94,24 +69,12 @@
           "competition": "American Major League Soccer",
           "source": "TheSportsDB",
           "url": "https://www.whitecapsfc.com/schedule/"
-        },
-        {
-          "home": "Vancouver Whitecaps",
-          "away": "Seattle Sounders",
-          "goals": [
-            5,
-            1
-          ],
-          "date": "2026-11-01",
-          "competition": "American Major League Soccer",
-          "source": "TheSportsDB",
-          "url": "https://www.whitecapsfc.com/schedule/"
         }
       ]
     },
     "international-men": {
       "kind": "results",
-      "checkedAt": "2026-11-23T05:44:56+00:00",
+      "checkedAt": "2026-11-23T05:47:52+00:00",
       "items": [
         {
           "home": "Canada",
@@ -121,18 +84,6 @@
             1
           ],
           "date": "2026-11-16",
-          "competition": "CONCACAF Nations League · Men",
-          "source": "International Football Results",
-          "url": "https://github.com/martj42/international_results"
-        },
-        {
-          "home": "Guatemala",
-          "away": "Canada",
-          "goals": [
-            2,
-            3
-          ],
-          "date": "2026-11-13",
           "competition": "CONCACAF Nations League · Men",
           "source": "International Football Results",
           "url": "https://github.com/martj42/international_results"
@@ -148,64 +99,35 @@
           "competition": "UEFA Nations League · Men",
           "source": "International Football Results",
           "url": "https://github.com/martj42/international_results"
+        },
+        {
+          "home": "Denmark",
+          "away": "Norway",
+          "goals": [
+            2,
+            3
+          ],
+          "date": "2026-11-17",
+          "competition": "UEFA Nations League · Men",
+          "source": "International Football Results",
+          "url": "https://github.com/martj42/international_results"
         }
       ]
     },
     "international-women": {
       "kind": "results",
-      "checkedAt": "2026-11-23T05:44:56+00:00",
-      "items": [
-        {
-          "home": "Canada",
-          "away": "Denmark",
-          "goals": [
-            3,
-            4
-          ],
-          "date": "2026-10-12",
-          "competition": "Friendly · Women",
-          "source": "International Football Results",
-          "url": "https://github.com/martj42/womens-international-results"
-        },
-        {
-          "home": "Canada",
-          "away": "Denmark",
-          "goals": [
-            1,
-            1
-          ],
-          "date": "2026-10-09",
-          "competition": "Friendly · Women",
-          "source": "International Football Results",
-          "url": "https://github.com/martj42/womens-international-results"
-        }
-      ]
+      "checkedAt": "2026-11-23T05:47:52+00:00",
+      "items": []
     },
     "ballon-dor-men": {
       "kind": "awards",
-      "checkedAt": "2026-11-23T05:44:56+00:00",
-      "items": [
-        {
-          "name": "Men’s Ballon d’Or",
-          "winner": "Harry Kane",
-          "year": 2026,
-          "source": "Wikidata",
-          "url": "https://www.uefa.com/ballondor/"
-        }
-      ]
+      "checkedAt": "2026-11-23T05:47:52+00:00",
+      "items": []
     },
     "ballon-dor-women": {
       "kind": "awards",
-      "checkedAt": "2026-11-23T05:44:56+00:00",
-      "items": [
-        {
-          "name": "Women’s Ballon d’Or",
-          "winner": "Alexia Putellas",
-          "year": 2026,
-          "source": "Wikidata",
-          "url": "https://www.uefa.com/ballondor/"
-        }
-      ]
+      "checkedAt": "2026-11-23T05:47:52+00:00",
+      "items": []
     }
   }
 }

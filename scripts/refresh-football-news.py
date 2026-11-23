@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 TODAY = datetime.now(ZoneInfo("America/Vancouver")).date()
+FIRST_DAY = (TODAY - timedelta(days=6)).isoformat()
 AGENT = "StarSoccer.ca football news (https://starsoccer.ca/contact.html)"
 DATA = "https://raw.githubusercontent.com/martj42/"
 SPORTSDB = "https://www.thesportsdb.com/api/v1/json/123/"
@@ -91,20 +92,27 @@ def entity(identifier):
     return json.loads(download(f"{WIKIDATA}{identifier}.json"))["entities"][identifier]
 
 
+def is_recent(item):
+    return FIRST_DAY <= item.get("date", "") <= TODAY.isoformat()
+
+
 def award(identifier, name):
     winners = {}
     for claim in entity(identifier)["claims"]["P1346"]:
-        value = claim["mainsnak"].get("datavalue", {}).get("value", {})
+        winner = claim["mainsnak"].get("datavalue", {}).get("value", {}).get("id")
+        if claim["rank"] == "deprecated" or not winner:
+            continue
         for when in claim.get("qualifiers", {}).get("P585", []):
-            stamp = when.get("datavalue", {}).get("value", {}).get("time", "")
-            year = stamp[1:5]
-            if claim["rank"] != "deprecated" and value.get("id") and year.isdecimal() and int(year) <= TODAY.year:
-                winners.setdefault(int(year), set()).add(value["id"])
-    year = max(winners)
-    if len(winners[year]) != 1:
-        raise ValueError(f"Conflicting {year} award winners")
-    winner = entity(next(iter(winners[year])))["labels"]["en"]["value"]
-    yield dict(name=name, winner=winner, year=year, source="Wikidata", url=AWARD_ARCHIVE)
+            value = when.get("datavalue", {}).get("value", {})
+            day = value.get("time", "")[1:11]
+            # Year-only and month-only entries cannot establish when news was announced.
+            if value.get("precision", 0) >= 11 and is_recent({"date": day}):
+                winners.setdefault(day, set()).add(winner)
+    for day, identifiers in sorted(winners.items(), reverse=True)[:1]:
+        if len(identifiers) != 1:
+            raise ValueError(f"Conflicting award winners on {day}")
+        winner = entity(next(iter(identifiers)))["labels"]["en"]["value"]
+        yield dict(name=name, winner=winner, date=day, source="Wikidata", url=AWARD_ARCHIVE)
 
 
 SOURCES = {
@@ -132,11 +140,9 @@ def refresh(source, now):
     if kind == "results":
         unique = {}
         for match in items:
-            if match and match["date"] >= (TODAY - timedelta(days=45)).isoformat():
+            if match and is_recent(match):
                 unique[(match["date"], match["home"], match["away"])] = match
         items = sort_matches(source, unique.values())
-    if not items:
-        raise ValueError("No eligible recent entries")
     return dict(kind=kind, checkedAt=now, items=items[:limit])
 
 
@@ -173,7 +179,7 @@ def main():
                     matches = {
                         (row["date"], row["home"], row["away"]): row
                         for row in [*snapshot.get(key, {}).get("items", []), *fresh["items"]]
-                        if row["date"] >= (TODAY - timedelta(days=45)).isoformat()
+                        if is_recent(row)
                     }
                     fresh["items"] = sort_matches(key, matches.values())[:SOURCES[key][2]]
                 snapshot[key] = fresh
@@ -183,6 +189,8 @@ def main():
                 print(f"{key}: {error}. Keeping the last successful fetch.")
     if args.strict and failures:
         raise SystemExit(f"Feed verification failed: {', '.join(failures)}")
+    for source in snapshot.values():
+        source["items"] = [item for item in source["items"] if is_recent(item)]
     args.output.write_text(json.dumps({"version": 1, "sources": snapshot}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 

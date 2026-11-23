@@ -43,20 +43,22 @@
   function render(payload) {
     if (payload.version !== 1) throw new Error('Unsupported football news feed');
     const sources = Object.values(payload.sources);
-    const cutoff = new Date(Date.now() - 45 * 86400000).toISOString().slice(0, 10);
-    const games = sources.filter(source => source.kind === 'results')
-      .flatMap(source => source.items.filter(game => game.date >= cutoff))
-      .sort((left, right) => right.date.localeCompare(left.date));
-    const awards = sources.filter(source => source.kind === 'awards').flatMap(source => source.items);
-    const highlighted = sources.filter(source => source.kind === 'results' && source.items.length)
-      .map(source => source.items[0]).filter(game => game.date >= cutoff)
-      .sort((left, right) => right.date.localeCompare(left.date)).slice(0, 6);
+    const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Vancouver' }).format(new Date());
+    const firstDay = new Date(Date.parse(today) - 6 * 86400000).toISOString().slice(0, 10);
+    const recent = item => item.date >= firstDay && item.date <= today;
+    const newestFirst = (left, right) => right.date.localeCompare(left.date);
+    const resultSources = sources.filter(source => source.kind === 'results');
+    const games = resultSources.flatMap(source => source.items.filter(recent)).sort(newestFirst);
+    const awards = sources.filter(source => source.kind === 'awards')
+      .flatMap(source => source.items.filter(recent)).sort(newestFirst);
+    const highlighted = resultSources.map(source => source.items.filter(recent).sort(newestFirst)[0])
+      .filter(Boolean).sort(newestFirst).slice(0, 6);
 
     show(section.querySelector('#football-results'), games.map(game =>
       makeItem(game.home + ' ' + scoreText(...game.goals) + ' ' + game.away,
         scoreDetails(game), game.source, game.url)));
     show(section.querySelector('#football-awards'), awards.map(award =>
-      makeItem(award.winner, award.year + ' ' + award.name, award.source + ' · UEFA award archive', award.url)));
+      makeItem(award.winner, award.name + ' · ' + dayFormat.format(new Date(award.date + 'T00:00:00Z')), award.source + ' · UEFA award archive', award.url)));
     show(section.querySelector('#football-headlines'), highlighted.map(game => {
       const [home, away] = game.goals;
       const title = home === away

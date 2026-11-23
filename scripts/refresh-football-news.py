@@ -6,6 +6,9 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from threading import Lock
+from time import monotonic, sleep
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
@@ -14,6 +17,8 @@ FIRST_DAY = (TODAY - timedelta(days=6)).isoformat()
 AGENT = "StarSoccer.ca football news (https://starsoccer.ca/contact.html)"
 DATA = "https://raw.githubusercontent.com/martj42/"
 SPORTSDB = "https://www.thesportsdb.com/api/v1/json/123/"
+SPORTSDB_LOCK = Lock()
+sportsdb_next_request = 0.0
 WIKIDATA = "https://www.wikidata.org/wiki/Special:EntityData/"
 AWARD_ARCHIVE = "https://www.uefa.com/ballondor/"
 
@@ -24,6 +29,24 @@ def download(url):
     if len(data) > 5_000_000:
         raise ValueError("Feed exceeded the expected size")
     return data.decode("utf-8-sig")
+
+
+def sportsdb(endpoint):
+    global sportsdb_next_request
+    with SPORTSDB_LOCK:
+        sleep(max(0, sportsdb_next_request - monotonic()))
+        for attempt in range(2):
+            try:
+                return json.loads(download(SPORTSDB + endpoint))
+            except HTTPError as error:
+                if error.code != 429 or attempt:
+                    raise
+                retry_after = error.headers.get("Retry-After", "")
+                if retry_after.isdecimal() and int(retry_after) > 20:
+                    raise
+                sleep(int(retry_after) if retry_after.isdecimal() else 8)
+            finally:
+                sportsdb_next_request = monotonic() + 2.2
 
 
 def score(home, away, home_goals, away_goals, day, competition, source, url):
@@ -50,18 +73,27 @@ def european(shortcut, competition, results_url):
                         competition, "OpenLigaDB", results_url)
 
 
-def premier_league():
-    data = json.loads(download(f"{SPORTSDB}eventspastleague.php?id=4328"))
-    for match in data.get("events") or []:
-        if match["strStatus"] == "FT" and match["strLeague"] == "English Premier League":
+def sportsdb_league(identifier, provider_name, competition, results_url):
+    latest = sportsdb(f"eventspastleague.php?id={identifier}").get("events") or []
+    rounds = {(match["intRound"], match["strSeason"]) for match in latest
+              if str(match.get("intRound", "")).isdigit() and match.get("strSeason")}
+    matches = list(latest)
+    for round_number, season in rounds:
+        endpoint = f"eventsround.php?id={identifier}&r={round_number}&s={season}"
+        try:
+            matches.extend(sportsdb(endpoint).get("events") or [])
+        except (OSError, ValueError) as error:
+            print(f"{competition} round unavailable: {error}. Using the latest match feed.")
+    for match in matches:
+        if match["strStatus"] == "FT" and match["strLeague"] == provider_name:
             yield score(match["strHomeTeam"], match["strAwayTeam"], match["intHomeScore"],
-                        match["intAwayScore"], match["dateEvent"], "Premier League",
-                        "TheSportsDB", "https://www.premierleague.com/en/results")
+                        match["intAwayScore"], match["dateEvent"], competition,
+                        "TheSportsDB", results_url)
 
 
 def whitecaps():
     for endpoint, field in (("eventslast", "results"), ("eventsnext", "events")):
-        data = json.loads(download(f"{SPORTSDB}{endpoint}.php?id=134147"))
+        data = sportsdb(f"{endpoint}.php?id=134147")
         for match in data.get(field) or []:
             if match["strStatus"] not in {"FT", "AET", "PEN", "Match Finished"}:
                 continue
@@ -116,9 +148,16 @@ def award(identifier, name):
 
 
 SOURCES = {
-    "premier-league": ("results", premier_league, 2),
-    "champions-league": ("results", lambda: european("ucl", "Champions League", "https://www.uefa.com/uefachampionsleague/fixtures-results/"), 2),
-    "bundesliga": ("results", lambda: european("bl1", "Bundesliga", "https://www.bundesliga.com/en/bundesliga/matchday"), 2),
+    "premier-league": ("results", lambda: sportsdb_league(
+        4328, "English Premier League", "Premier League", "https://www.premierleague.com/en/results"), 10),
+    "la-liga": ("results", lambda: sportsdb_league(
+        4335, "Spanish La Liga", "La Liga", "https://www.laliga.com/en-GB/laliga-easports/results"), 10),
+    "serie-a": ("results", lambda: sportsdb_league(
+        4332, "Italian Serie A", "Serie A", "https://en.legaseriea.it/"), 10),
+    "ligue-1": ("results", lambda: sportsdb_league(
+        4334, "French Ligue 1", "Ligue 1", "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"), 10),
+    "champions-league": ("results", lambda: european("ucl", "Champions League", "https://www.uefa.com/uefachampionsleague/fixtures-results/"), 12),
+    "bundesliga": ("results", lambda: european("bl1", "Bundesliga", "https://www.bundesliga.com/en/bundesliga/matchday"), 10),
     "whitecaps": ("results", whitecaps, 3),
     "international-men": ("results", lambda: international("international_results", "Men"), 3),
     "international-women": ("results", lambda: international("womens-international-results", "Women"), 2),

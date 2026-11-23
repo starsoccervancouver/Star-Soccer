@@ -195,6 +195,44 @@ module.exports = async function checkBooks(fixture) {
       assert.deepEqual(f.errors,[]);
     }finally{openBooks();openRoster();await f.context.close();}
   }
+  for(const handoff of ['after-payment','during-entry','during-payment']){
+    let openRoster,openDetails;
+    const deskGate=new Promise(resolve=>{openRoster=resolve;}),detailGate=new Promise(resolve=>{openDetails=resolve;});
+    const rows=[{...due}],f=await fixture({...emptyHome,books:rows,priorityStart:true,openingUnpaid:true,paymentRecording:true,deskGate,detailGate});
+    try{
+      const {page}=f;await page.setViewportSize({width:390,height:844});
+      let writes=0,finishPayment;
+      const paymentGate=new Promise(resolve=>{finishPayment=resolve;});
+      await f.context.route('**/workspace/api/booking-payment',async route=>{
+        const payment=route.request().postDataJSON();writes++;
+        assert.equal(payment.familyId,due.familyId);assert.equal(payment.items[0].bookingId,due.bookingId);
+        assert.equal(payment.items[0].applyCents,3150);if(handoff==='during-payment')await paymentGate;rows.splice(0);
+        await route.fulfill({json:{ok:true}});
+      });
+      await page.locator('#home-unpaid-list a').first().click();
+      await page.locator('#unpaid-booking-list').getByText(due.playerName).waitFor();
+      assert((await page.locator('#unpaid-booking-list').innerText()).includes(due.sessionLabel));
+      await page.locator('#payment-entry summary').click();
+      await page.locator('#payment-amount').fill('31.50');await page.locator('#payment-method').selectOption('Cash');
+      assert(await page.locator('#app').isHidden());
+      if(handoff==='during-entry'){
+        openRoster();await page.locator('#app').waitFor();openDetails();await page.waitForLoadState('networkidle');
+        assert.equal(await page.locator('#payment-amount').inputValue(),'31.50');
+        assert.equal(await page.locator('#payment-method').inputValue(),'Cash');
+      }
+      await page.locator('#payment-submit').click();
+      if(handoff==='during-payment'){
+        await page.locator('#payment-result').getByText('Recording payment…').waitFor();
+        openRoster();await page.locator('#app').waitFor();
+        assert(await page.locator('#panel-books #payment-submit').isDisabled());
+        finishPayment();
+      }
+      await page.waitForFunction(()=>document.querySelector('#home-unpaid').hidden&&!document.querySelector('#opening-overview #unpaid-bookings'));
+      openDetails();openRoster();await page.locator('#app').waitFor();await page.waitForLoadState('networkidle');
+      assert.equal(writes,1);assert(await page.locator('#home-unpaid').isHidden());assert.equal(new URL(page.url()).hash,'#view=home');
+      assert.deepEqual(f.errors,[]);
+    }finally{openRoster();openDetails();await f.context.close();}
+  }
   const opening = await fixture({...emptyHome,books,openingUnpaid:true});
   try {
     await opening.page.locator('#home-unpaid-list').getByRole('link',{name:/Avery Fictional.*31.50/}).waitFor();

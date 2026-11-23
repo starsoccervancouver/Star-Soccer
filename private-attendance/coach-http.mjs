@@ -44,12 +44,13 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
      request.headers.get('X-Coach-Start')!=='balances-first'||
      !(actor.role==='owner'||actor.role==='admin'&&actor.familyAccess))return null;
   coaches.requireFamilyAccess(actor);
+  const paymentRecordingAvailable=!!bookingPayments&&actor.role==='owner';
   // A missing or unreadable saved summary falls back to a fresh Books read.
   try{
    const snapshot=sessionBooks.lastUnpaid?.();
-   if(Array.isArray(snapshot?.rows)&&Number.isFinite(snapshot.checkedAt))return {balanceSnapshot:snapshot};
+   if(Array.isArray(snapshot?.rows)&&Number.isFinite(snapshot.checkedAt))return {balanceSnapshot:snapshot,paymentRecordingAvailable};
   }catch{}
-  return {balanceSnapshot:null};
+  return {balanceSnapshot:null,paymentRecordingAvailable};
  }
  async function openingDesk(request,raw,signed){
   const actor=signed.actor;

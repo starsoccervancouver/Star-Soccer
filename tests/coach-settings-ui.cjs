@@ -29,7 +29,7 @@ require('./coach-fixture-fonts.cjs')(assets);
 (async () => {
   const browser = await chromium.launch(); let checks = 0;
   try {
-    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail, homeQueues = false, bundleDesk = homeQueues, openingUnpaid=false, priorityStart=false, deskGate, booksGate,
+    async function fixture({ role = 'owner', familyAccess = role === 'owner', stored, hash = '', deniedStorage = false, displayEmail, homeQueues = false, bundleDesk = homeQueues, openingUnpaid=false, priorityStart=false, deskGate, booksGate, detailGate,
       paymentRecording = false, followups = false, roster = sessions, refreshRoster, books = [], openInquiry = true, booksAvailable = role==='owner'||(role==='admin'&&familyAccess),
       families = [{...sampleFamilies[0],playerIds:[rid(101)]}] } = {}) {
       const context = await browser.newContext({ viewport: { width: 1365, height: 950 } });
@@ -55,12 +55,12 @@ require('./coach-fixture-fonts.cjs')(assets);
         if(openingUnpaid&&booksAvailable&&request.headers()['x-coach-overview']==='unpaid')desk.unpaid={rows:books,checkedAt:Date.now(),refresh:false};
         const includeDesk = bundleDesk && state.profile && request.headers()['x-coach-desk'] === 'full';
         if(priorityStart && includeDesk && path.endsWith('/bootstrap') && request.headers()['x-coach-start']==='balances-first'){
-          value={profile:state.profile,csrfToken:'fictional-settings-csrf',balanceSnapshot:openingUnpaid?{rows:books,checkedAt:Date.now()}:null};
+          value={profile:state.profile,csrfToken:'fictional-settings-csrf',paymentRecordingAvailable:paymentRecording&&role==='owner',balanceSnapshot:openingUnpaid?{rows:books,checkedAt:Date.now()}:null};
         }
         else if (path.endsWith('/bootstrap')) value = { profile: state.profile, csrfToken: 'fictional-settings-csrf', googleEnabled: true, ...(includeDesk ? {desk} : {}) };
         else if (path.endsWith('/desk')) { await deskGate; value = desk; }
         else if (path.endsWith('/session-books') && state.profile?.familyAccess && ['owner','admin'].includes(state.profile.role)) {
-          if(payload.view==='unpaid')await booksGate;
+          await (payload.view==='unpaid'?booksGate:detailGate);
           assert.equal(request.method(),'POST');
           assert.deepEqual(payload,payload.view === 'unpaid' ? {view:'unpaid'} : {});
           value = {rows:payload.view === 'unpaid' ? books.filter(row=>(row.scope === 'session'||row.pastBookingBalance===true) && row.status === 'due' && row.amountDue > 0) : books};

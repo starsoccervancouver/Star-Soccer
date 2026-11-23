@@ -289,7 +289,7 @@ test('only a signed-in owner can submit a booking payment',async t=>{
 });
 
 test('Overview opens with verified balances for finance users and reuses the saved summary',async t=>{
- const row={scope:'session',status:'due',amountDue:25,familyName:'Example',contact:{phone:'private'}};
+ const row={scope:'session',status:'due',amountDue:25,familyName:'Example',date:'2026-11-20',sessionLabel:'Friday training',contact:{phone:'private'}};
  let calls=0,snapshot=null;
  const sessionBooks=Object.assign(async()=>{calls++;return {rows:[row]};},{lastUnpaid:()=>snapshot});
  const {owner,one,auth,handler}=await setup(t,{sessionBooks,overview:async()=>({sessions:[]})});
@@ -305,6 +305,7 @@ test('Overview opens with verified balances for finance users and reuses the sav
  assert.equal(calls,0);
  const {unpaid}=await open(owner);
  assert.equal(unpaid.rows[0].amountDue,25);assert.equal(unpaid.rows[0].contact,undefined);
+ assert.equal(unpaid.rows[0].date,'2026-11-20');assert.equal(unpaid.rows[0].sessionLabel,'Friday training');
  assert.equal(unpaid.refresh,false);assert.equal(calls,1);
  snapshot={rows:unpaid.rows,checkedAt:Date.now()-60000};
  assert.equal((await open(owner)).unpaid.refresh,true);assert.equal(calls,1);
@@ -322,7 +323,7 @@ test('finance sign-in can return balance snapshots before reading the roster',as
   }}));
   assert.equal(res.status,200);return res.json();
  }
- const finance=await open(owner);assert.deepEqual(finance.balanceSnapshot,snapshot);assert.equal(reads,0);
+ const finance=await open(owner);assert.equal(finance.paymentRecordingAvailable,false);assert.deepEqual(finance.balanceSnapshot,snapshot);assert.equal(reads,0);
  assert.equal(finance.desk,undefined);
  const coach=await open(one);assert.equal(coach.balanceSnapshot,undefined);assert.ok(coach.desk);assert.equal(reads,1);
 });

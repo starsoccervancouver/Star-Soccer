@@ -5,9 +5,9 @@ const familyFields = ['Family', 'Guardian name', 'Email', 'Phone', 'Players', 'W
   'Balance CAD', 'Balance status', 'Due now total CAD', 'Verified family receipts CAD', 'Unpriced bookings'];
 const linkedFields = {
   players: ['Player','Verified applied total CAD','Outstanding CAD','Payment status'],
-  registrations: ['Reference', 'Child', 'Weekday', 'Requested option', 'Next session date', 'Status', 'Registration kind', 'Processing notes'],
+  registrations: ['Received at','Booking','Source Gmail ID','Reference', 'Child', 'Weekday', 'Requested option', 'Next session date', 'Status', 'Registration kind', 'Processing notes'],
   bookings: ['Booking reference', 'Booking type', 'Booking status', 'Start date', 'Covered dates', 'Agreed booked CAD', 'Verified applied CAD', 'Balance CAD', 'Payment attention', 'Player'],
-  payments: ['Payment reference', 'Payment date', 'Method', 'Direction', 'Verification', 'Amount CAD']
+  payments: ['Payment Allocations','Evidence reference','Payment reference', 'Payment date', 'Method', 'Direction', 'Verification', 'Amount CAD']
 };
 const money = value => Number.isFinite(value) ? value : null;
 const balanceFields = ['Balance CAD','Due now total CAD','Verified family receipts CAD'];
@@ -98,7 +98,44 @@ export function createFamilyLedger(read, {clock = Date.now} = {}) {
       const registrations = await related('registrations', f['Website Registrations'], id);
       const bookings = await related('bookings', f.Bookings, id);
       const payments = await related('payments', f.Payments, id);
+      const timeline=[];
+      const messageId=value=>/^[0-9a-f]{12,32}$/i.test(value||'')?value:null;
+      const byBooking=new Map();
+      for(const {fields:r} of registrations){
+        timeline.push({kind:'Registration',date:r['Received at'],title:[r.Child,r['Requested option']||r['Registration kind']].filter(Boolean).join(' · '),details:[r.Status],message:messageId(r['Source Gmail ID'])});
+      }
+      for(const {id:key,fields:b} of bookings){
+        const regs=registrations.filter(({fields:r})=>r.Booking?.includes(key));
+        const players=(b.Player||[]).map(k=>names.get(k)?.Player).filter(Boolean).join(', ')||'Player not linked';
+        const program=[...new Set(regs.map(({fields:r})=>r['Requested option']).filter(Boolean))].join(', ')||b['Booking type'];
+        const title=[players,program,b['Booking reference']].filter(Boolean).join(' · ');
+        byBooking.set(key,title);
+        timeline.push({kind:'Booking',date:b['Start date'],title,details:[b['Covered dates'],b['Booking status']],message:regs.length===1?messageId(regs[0].fields['Source Gmail ID']):null});
+      }
+      const allocationIds=[...new Set(payments.flatMap(p=>p.fields['Payment Allocations']||[]))];
+      if(allocationIds.some(key=>!recordId.test(key)))throw Error('INVALID_ALLOCATION_LINK');
+      const allocations=new Map();
+      for(let i=0;i<allocationIds.length;i+=100){
+        for(const row of await read('allocations',['Payment','Booking','Applied CAD','Review status'],allocationIds.slice(i,i+100)))allocations.set(row.id,row.fields);
+      }
+      const cad=n=>Number.isFinite(n)?new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD'}).format(n):'Amount unavailable';
+      for(const {id:key,fields:p} of payments){
+        const details=[p.Direction,p.Verification];
+        const links=p['Payment Allocations']||[];
+        if(!links.length)details.push('No booking allocation recorded');
+        for(const link of links){
+          const a=allocations.get(link);
+          if(a?.Payment?.length!==1||a.Payment[0]!==key||a.Booking?.length!==1||!byBooking.has(a.Booking[0])||a['Review status']!=='Verified allocation'){
+            details.push('Allocation needs review');continue;
+          }
+          details.push(cad(a['Applied CAD'])+' applied to '+byBooking.get(a.Booking[0]));
+        }
+        const ids=[...new Set(Array.from((p['Evidence reference']||'').matchAll(/\bGmail ([0-9a-f]{12,32})\b/gi),m=>m[1]))];
+        timeline.push({kind:'Payment',date:p['Payment date'],title:[cad(p['Amount CAD']),p.Method,p['Payment reference']].filter(Boolean).join(' · '),details,message:ids.length===1?ids[0]:null});
+      }
+      timeline.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
       return {
+        timeline,
         name: familyName(f, playerProfiles), guardian: f['Guardian name'], email: f.Email, phone: f.Phone,
         players: playerProfiles.map(player => player.name), playerProfiles, ...balancesOf(f), balanceStatus: f['Balance status'], unpricedBookings: f['Unpriced bookings'],
         registrations: registrations.map(({fields: r}) => ({reference: r.Reference, child: r.Child, program: r['Requested option'] || r['Registration kind'], weekday: r.Weekday, date: r['Next session date'], status: r.Status==='Processing'&&r['Processing notes']?.startsWith('Pending owner confirmation.')?'Pending confirmation':r.Status})),

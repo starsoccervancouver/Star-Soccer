@@ -1116,6 +1116,19 @@
  }
  function renderFamilyRecord(family) {
   $('page-title').textContent=family.name;
+  const timeline=familySection('Family timeline');
+  if(!family.timeline?.length)timeline.append(node('p','No timeline entries available.','muted'));
+  for(const event of family.timeline||[]){
+   const entry=node('article','','family-player');
+   entry.append(node('p',[event.date?.slice(0,10)||'Date unavailable',event.kind].join(' · '),'family-note-date'),node('h3',event.title||event.kind));
+   for(const detail of event.details.filter(Boolean))entry.append(node('p',detail));
+   if(event.message){
+    const link=node('a','Open original email in Gmail');
+    link.href='https://mail.google.com/mail/u/?authuser=romeo%40starsoccer.ca#all/'+encodeURIComponent(event.message);
+    link.target='_blank';link.rel='noopener noreferrer';entry.append(link);
+   }
+   timeline.append(entry);
+  }
   const players=familySection('Players');
   const profiles=family.playerProfiles??(family.players||[]).map(name=>({name}));
   if(!profiles.length)players.append(node('p','No linked players.','muted'));

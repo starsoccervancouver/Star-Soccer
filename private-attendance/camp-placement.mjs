@@ -35,17 +35,20 @@ export function campRequest(event, now) {
   }
 }
 
-export function weeklyRequest(event) {
+export function weeklyRequest(event, published) {
   if(!['SS-WEEKLY-V2','SS-PASS-V1'].includes(event.version))return;
   const dates=split(event.dates,','),type=event.version==='SS-PASS-V1'?'pass4':'dropin';
   try{
-    const q=training.booking(event.sessionId,type,dates[0],event.age,new Date(event.received));
+    const s=published?.sessions.find(row=>row.id===event.sessionId);
+    if(published && (!s||!s.active||!Number.isFinite(s[type])||s[type]<=0))return;
+    const q=s ? training.bookChoice({session:s,type,price:s[type],label:type==='pass4'?'Four-session pass':'Drop-in'},dates[0],event.age,new Date(event.received))
+      : training.booking(event.sessionId,type,dates[0],event.age,new Date(event.received));
     if(!sameSet(dates,q.dates)||q.price!==Number(event.quotedPrice)||q.label!==event.option)return;
     const time=q.session.time.replaceAll('.','');
-    const offer=reviewedPrograms.sessions.find(s=>s.id===event.sessionId);
+    const offer=s?{...s,venue:q.location}:reviewedPrograms.sessions.find(s=>s.id===event.sessionId);
     if(!offer || offer[type]!==q.price || offer.time!==q.session.time || offer.venue!==q.location)return;
     return {weekly:true,venue:q.location,pass:type==='pass4',price:q.price,dates,capacity:offer.capacity,
-      termsVersion:reviewedPrograms.version,slots:dates.map(date=>({date,time,key:'SS-'+date.replaceAll('-','')+'-'+q.session.day.slice(0,2).toUpperCase()}))};
+      termsVersion:published?.version||reviewedPrograms.version,slots:dates.map(date=>({date,time,key:'SS-'+date.replaceAll('-','')+'-'+q.session.day.slice(0,2).toUpperCase()}))};
   }catch{return;}
 }
 export async function placeCampRegistration(db, {event, registration, family, player, now, confirmationId, weekly}) {

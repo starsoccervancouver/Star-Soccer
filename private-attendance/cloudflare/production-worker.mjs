@@ -1,4 +1,5 @@
 import {durableSqliteStore} from './storage.mjs';
+import {preview,catalogPath} from '../weekly-publication.mjs';
 import {createCloudMail,gmailHost} from '../gmail-cloud.mjs';
 import {serveCoachAssets} from './coach-assets.mjs';
 import {initializeStore} from '../schema.mjs';
@@ -39,6 +40,7 @@ export default {async fetch(request,env){
  if(url.origin!==legacyOrigin&&(!main||url.origin!==env.COACH_MAIN_ORIGIN))return new Response(null,{status:404});
  if(url.origin===env.COACH_MAIN_ORIGIN&&url.pathname!=='/coachdesk'&&!url.pathname.startsWith('/coachdesk/'))return new Response(null,{status:404});
  if(url.origin===legacyOrigin&&(url.pathname==='/coachdesk'||url.pathname.startsWith('/coachdesk/')))return new Response(null,{status:404});
+ if(main&&url.origin===env.COACH_MAIN_ORIGIN&&url.pathname===catalogPath)return preview(request,env);
  // Keep the new entry usable until Google has the exact new callback registered.
  if(url.origin===env.COACH_MAIN_ORIGIN&&env.COACH_MAIN_SIGNIN_READY!=='true'){
   if(['GET','HEAD'].includes(request.method)&&['/coachdesk','/coachdesk/'].includes(url.pathname)&&!url.search)return new Response(null,{status:302,headers:{Location:legacyOrigin+'/workspace','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex'}});

@@ -1,0 +1,31 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const training=require('../training.js');
+const offers=require('../private-attendance/weekly-offers.cjs');
+const published=require('../program-catalog.json');
+test('published terms change the quote without modifying existing terms',async()=>{
+  const {weeklyRequest}=await import('../private-attendance/camp-placement.mjs');
+  const rows=structuredClone(published.sessions),wed=rows.find(s=>s.id==='wednesday');
+  Object.assign(wed,{dropin:31,time:'4:00–5:30 PM',capacity:14,venue:'Kitsilano Turf'});
+  const next=offers.applyOffers(training.catalog,rows);
+  const event={version:'SS-WEEKLY-V2',sessionId:'wednesday',age:'10',dates:'2026-11-25',received:'2026-11-23T17:00:00Z',option:'Drop-in',quotedPrice:'31'};
+  const quote=weeklyRequest(event,next);
+  assert.equal(quote.price,31);assert.equal(quote.capacity,14);assert.equal(quote.venue,'Kitsilano Turf');assert.equal(quote.slots[0].time,'4:00–5:30 PM');
+  assert.equal(weeklyRequest({...event,quotedPrice:'30'},next),undefined);
+  assert.equal(training.getSession('wednesday').dropin,30);
+  assert.throws(()=>offers.applyOffers(training.catalog,rows.slice(1)));
+  assert.throws(()=>offers.applyOffers(training.catalog,rows.map(s=>({...s,venue:'Unreviewed venue'}))));
+  assert.equal(offers.applyOffers(training.catalog,published.sessions).version,published.version);
+});
+test('only the release workflow can read the validated projection',async()=>{
+  const {preview,catalogPath}=await import('../private-attendance/weekly-publication.mjs');
+  const request=new Request('https://starsoccer.ca'+catalogPath,{headers:{Authorization:'Bearer demo'}});
+  const repo='starsoccervancouver/Star-Soccer';
+  const identity={repository:repo,repository_id:'1212934215',ref:'refs/heads/main',workflow_ref:repo+'/.github/workflows/deploy-pages.yml@refs/heads/main',event_name:'schedule'};
+  let reads=0;
+  const read=async()=>{reads++;return Response.json({records:[]})};
+  assert.equal((await preview(request,{},async()=>({payload:{...identity,ref:'refs/heads/other'}}),read)).status,403);
+  assert.equal(reads,0);
+  assert.equal((await preview(request,{},async()=>({payload:identity}),read)).status,422);
+  assert.equal(reads,1);
+});

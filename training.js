@@ -263,7 +263,10 @@
     return /^\d{1,3}$/.test(String(age)) && Number.isInteger(Number(age)) && Number(age)>=(session.minAge??1) && Number(age)<=(session.maxAge??120);
   }
   function booking(id,type,date,age,now = new Date()) {
-    const result=choice(id,type), s=result.session;
+    return bookChoice(choice(id,type),date,age,now);
+  }
+  function bookChoice(result,date,age,now) {
+    const {session:s,type}=result;
     if(!eligibleDate(s,date,now)) throw new Error(`Choose an upcoming ${s.day} before the session starts; cancelled dates cannot be booked.`);
     if (!validAge(s,age)) throw new Error(s.minAge===null?'Enter the player’s age as a whole number.':`This session is for ages ${s.minAge}–${s.maxAge}. Please enter a whole-number age in that range.`);
     const dates=[date];
@@ -329,7 +332,7 @@
       'Keep these details before and after training. Contact '+catalog.email+' about payment or session changes.'
     ].join('\n');
   }
-  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,ageDescription,validAge,prettyDate,money,paymentInstructions,privateQuote,coachId,accepted,receiptText,referralSources,referralSource,sessionLink,registrationHelp});
+  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,bookChoice,ageDescription,validAge,prettyDate,money,paymentInstructions,privateQuote,coachId,accepted,receiptText,referralSources,referralSource,sessionLink,registrationHelp});
   root.StarTraining=api;
   if(typeof module!=='undefined' && module.exports) module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

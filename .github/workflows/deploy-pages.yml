@@ -51,6 +51,10 @@ jobs:
 
       - name: Stage public website files
         run: |
+          node scripts/publish-weekly-catalog.cjs
+          node scripts/build-search-data.cjs
+          python3 tests/check_site.py
+          node scripts/check-published-weekly.cjs
           node scripts/check-form-endpoints.cjs
           node scripts/stage-site.cjs
           python3 scripts/refresh-football-news.py --output _site/football-news.json --previous

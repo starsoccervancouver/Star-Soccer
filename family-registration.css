@@ -1,10 +1,10 @@
 body.quick-flow .family-players{display:grid;gap:14px;min-width:0}
-body.quick-flow .family-player{display:grid;gap:12px;min-width:0;margin:0;padding:14px;border:1px solid #617d95;border-radius:10px}
-body.quick-flow .family-player legend{padding:0 5px;font-size:.85rem;font-weight:700;color:#f0cb80}
+body.quick-flow .family-player{display:grid;gap:12px;min-width:0;margin:0;padding:14px;border:1px solid #7c7a75;border-radius:10px}
+body.quick-flow .family-player legend{padding:0 5px;font-size:.85rem;font-weight:700;color:var(--brand-glacier)}
 body.quick-flow .family-add-player{width:100%;min-height:46px;margin:0}
-body.quick-flow .family-remove-player{justify-self:start;min-height:44px;padding:8px 0;border:0;background:transparent;color:#c0d3e4;font:inherit;cursor:pointer}
-body.quick-flow .family-help{margin:0;font-size:.76rem;line-height:1.5;color:#c0d3e4}
-body.quick-flow .booking-submit-dates{display:grid;gap:6px;margin:0;padding:12px 14px;border:1px solid #617d95;border-radius:9px;list-style:none;font-size:.85rem;line-height:1.5}
+body.quick-flow .family-remove-player{justify-self:start;min-height:44px;padding:8px 0;border:0;background:transparent;color:#cecac2;font:inherit;cursor:pointer}
+body.quick-flow .family-help{margin:0;font-size:.76rem;line-height:1.5;color:#cecac2}
+body.quick-flow .booking-submit-dates{display:grid;gap:6px;margin:0;padding:12px 14px;border:1px solid #7c7a75;border-radius:9px;list-style:none;font-size:.85rem;line-height:1.5}
 body.quick-flow .family-result{margin:10px 0;padding-left:20px;font-size:.85rem;line-height:1.6}
 body.quick-flow .family-player :disabled{opacity:.7}
 /* Keep the single-player path concise; sibling details appear when needed. */

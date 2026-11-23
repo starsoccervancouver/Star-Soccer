@@ -21,7 +21,7 @@ const server=http.createServer((req,res)=>{
 });
 
 async function checkPublicHover(browser,desktop,base){
-  const fill='rgba(121, 191, 255, 0.12)';
+  const fill='rgba(156, 219, 239, 0.12)';
   const surface=locator=>locator.evaluate(el=>{
     const style=getComputedStyle(el);
     return {shadow:style.boxShadow,fill:style.backgroundColor,image:style.backgroundImage,color:style.color};
@@ -44,14 +44,14 @@ async function checkPublicHover(browser,desktop,base){
   assert.equal((await underline(navLink)).opacity,'0','Inactive navigation starts without an underline');
   await navLink.hover();
   assert.deepEqual(await surface(navLink),navSurface,'Hovering navigation does not tint the background');
-  assert.deepEqual(await underline(navLink),{color:'rgb(0, 157, 255)',opacity:'1',name:'nav-underline-pulse',iterations:'1'},'The blue underline pulses once per hover');
+  assert.deepEqual(await underline(navLink),{color:'rgb(156, 219, 239)',opacity:'1',name:'nav-underline-pulse',iterations:'1'},'The blue underline pulses once per hover');
   assert(await navLink.evaluate(el=>{
     const pulse=el.getAnimations({subtree:true}).find(animation=>animation.animationName==='nav-underline-pulse');
     const frames=pulse?.effect.getKeyframes();
     const line=getComputedStyle(el,'::after');
     return frames?.[0].transform==='scaleX(0)' && frames.at(-1).transform==='scaleX(1)' &&
       Math.abs(parseFloat(line.transformOrigin)-parseFloat(line.width)/2)<1;
-  }),'The electric-blue underline grows from the center to full width');
+  }),'The glacier-blue underline grows from the center to full width');
   const hero=desktop.locator('.hero-action-camps');
   await hero.hover();
   await desktop.waitForFunction(fill=>getComputedStyle(document.querySelector('.hero-action-camps')).boxShadow.includes(fill),fill);

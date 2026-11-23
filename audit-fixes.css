@@ -1,5 +1,5 @@
 /* Correction release: component-scoped pairs, not another global whitening override. */
-:root { --flow-bg:#152b42; --flow-raised:#203b56; --flow-text:#c5cfdb; --flow-muted:#b2c3d2; --flow-border:#577693; }
+:root { --flow-bg:var(--brand-basalt); --flow-raised:#383e40; --flow-text:#cecac2; --flow-muted:#c5c2ba; --flow-border:#74736e; }
 [hidden] { display:none !important; }
 .sr-only,.honeypot { position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important; }
 body .home-contact-inner { width:min(1180px,calc(100% - 40px));margin:auto;gap:24px;grid-template-columns:1.2fr 1fr 1.25fr .9fr; }
@@ -12,7 +12,7 @@ body .hero-placeholder-card::before {clip-path:none;}
 body .programs-hero-accent::before,body .programs-hero-accent::after {clip-path:none;}
 body .home-page .home-site-nav,body .home-site-nav {gap:clamp(12px,2vw,24px);}
 body .home-site-nav a {letter-spacing:.035em;}
-body .header-program-cta {background:#2d5e90!important;color:#e1e8ef!important;min-height:44px;padding:10px 14px!important;}
+body .header-program-cta {background:#24647a!important;color:#ede9df!important;min-height:44px;padding:10px 14px!important;}
 body :is(.button,button,select,option,.hero-placeholder-card a,.home-coach-book-link,.home-camps-cta-button) {font-family:'Manrope',system-ui,sans-serif;font-size:1rem;font-weight:700;line-height:1.5;letter-spacing:0;text-transform:none;}
 body .flow-hero {padding:40px 0 24px;max-width:1040px;margin:auto;}
 body .flow-hero h1 {font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,5vw,4.2rem);font-weight:400;line-height:1.08;margin:8px 0;color:var(--flow-text);}
@@ -29,45 +29,45 @@ body .session-share-manual {display:grid;gap:8px;max-width:100%;margin:12px 0;}
 body .session-share-manual input {width:100%;min-width:0;box-sizing:border-box;font-size:16px;}
 body .registration-recovery {padding:16px 0;margin-bottom:20px;line-height:1.65;}
 body .registration-recovery .button {white-space:normal;max-width:100%;box-sizing:border-box;}
-body .flow-text-link {color:#bad4ed;text-decoration:underline;text-underline-offset:4px;overflow-wrap:anywhere;}
-body .flow-surface :is(a:not(.button)) {color:#bad4ed;text-decoration:underline;text-underline-offset:4px;}
-body .flow-surface .button {background:#2d5e90;color:#e1e8ef;border:1px solid #7196b8;border-radius:12px;line-height:1.4;padding:12px 18px;white-space:normal;max-width:100%;box-shadow:none;}
-body .flow-surface .button-ghost {background:#203b56;color:#d3dce5;}
+body .flow-text-link {color:#82bbcd;text-decoration:underline;text-underline-offset:4px;overflow-wrap:anywhere;}
+body .flow-surface :is(a:not(.button)) {color:#82bbcd;text-decoration:underline;text-underline-offset:4px;}
+body .flow-surface .button {background:#24647a;color:#ede9df;border:1px solid #94928c;border-radius:12px;line-height:1.4;padding:12px 18px;white-space:normal;max-width:100%;box-shadow:none;}
+body .flow-surface .button-ghost {background:#383e40;color:#e0ddd3;}
 body .flow-surface button:disabled {opacity:.65;cursor:wait;}
 body .flow-layout {max-width:1120px;margin:auto;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);gap:24px;align-items:start;}
 body .flow-layout .flow-surface {width:100%;min-width:0;margin:0;}
 body .flow-layout {margin-bottom:28px;}
 body .flow-surface form {display:grid;gap:18px;}
 body .flow-surface label {display:grid;gap:7px;font-size:.94rem;min-width:0;font-weight:700;line-height:1.45;}
-body .flow-surface :is(input,select,textarea) {box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:46px;padding:10px 12px;background:#0d2137;color:#d1d9e2;border:1px solid #7894ad;border-radius:9px;font:inherit;color-scheme:dark;}
-body .flow-surface input::placeholder,body .flow-surface textarea::placeholder {color:#a9b8c8;opacity:1;}
-body .flow-surface input:focus-visible,body .flow-surface select:focus-visible,body .flow-surface textarea:focus-visible {outline:3px solid #82c8ff;outline-offset:3px;}
+body .flow-surface :is(input,select,textarea) {box-sizing:border-box;width:100%;min-width:0;max-width:100%;min-height:46px;padding:10px 12px;background:#191c1d;color:#dddad0;border:1px solid #82bbcd;border-radius:9px;font:inherit;color-scheme:dark;}
+body .flow-surface input::placeholder,body .flow-surface textarea::placeholder {color:#bbb8b0;opacity:1;}
+body .flow-surface input:focus-visible,body .flow-surface select:focus-visible,body .flow-surface textarea:focus-visible {outline:3px solid #82c8db;outline-offset:3px;}
 body .flow-surface .flow-form-row {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
 body .flow-surface .form-privacy,body .flow-surface small {font-size:.84rem;font-weight:400;line-height:1.6;}
-body .flow-surface .flow-notice {background:#203b56;border:1px solid #7493af;border-radius:10px;padding:14px;color:#d1dce7;line-height:1.65;}
+body .flow-surface .flow-notice {background:#383e40;border:1px solid #929089;border-radius:10px;padding:14px;color:#e0ddd3;line-height:1.65;}
 body .flow-surface .flow-notice.is-error {background:#432d38;border-color:#bd8b9a;color:#f0dce3;}
 body .flow-summary {margin:16px 0 24px;}
-body .flow-summary > div {border-bottom:1px solid #45617b;padding:10px 0;display:grid;gap:3px;}
-body .flow-summary dt {color:#b2c3d2;font-size:.84rem;}
+body .flow-summary > div {border-bottom:1px solid #586163;padding:10px 0;display:grid;gap:3px;}
+body .flow-summary dt {color:#c5c2ba;font-size:.84rem;}
 body .flow-summary dd {margin:0;font-weight:700;line-height:1.5;}
 body .flow-surface :is(.date-list,.venue-sessions) {padding-left:20px;line-height:1.75;}
 body .flow-surface .private-rate-grid {margin:20px 0;max-width:none;}
-body .flow-surface .private-rate-item {border-color:#577693;background:#203b56;}
-body .flow-surface .private-rate-item :is(strong,span) {color:#c5cfdb;}
+body .flow-surface .private-rate-item {border-color:#74736e;background:#383e40;}
+body .flow-surface .private-rate-item :is(strong,span) {color:#cecac2;}
 body .schedule-controls {max-width:none;margin:0 0 12px;}
 body .schedule-controls label {max-width:none;}
 body .schedule-controls :is(label,select) {color:var(--flow-text);}
 body .schedule-results {max-width:none;margin:12px 0;color:var(--flow-text);}
 body .schedule-list {max-width:none;}
-body details.schedule-entry {display:block;background:#203b56;border:1px solid #577693;border-radius:12px;min-width:0;overflow:visible;}
+body details.schedule-entry {display:block;background:#383e40;border:1px solid #74736e;border-radius:12px;min-width:0;overflow:visible;}
 body .session-capacity {display:block;font-size:.9rem;font-weight:700;line-height:1.6;overflow-wrap:anywhere;}
-body .count-feed-note {margin:14px 0 22px;padding:14px 16px;border:1px solid #71869b;border-radius:10px;}
+body .count-feed-note {margin:14px 0 22px;padding:14px 16px;border:1px solid #86847e;border-radius:10px;}
 body .count-feed-note p {font-size:.9rem;line-height:1.65;margin:0 0 10px;}
 body .count-feed-note p:last-child {margin:10px 0 0;}
 body .booking-next-date {min-height:48px;max-width:100%;margin:0 0 18px;white-space:normal;}
 body .camp-status-panel .flow-actions {justify-content:center;margin-top:22px;}
 body .camp-status-panel .button {text-decoration:none;}
-body .camp-status-panel .button:not(.button-ghost) {color:#07111f;}
+body .camp-status-panel .button:not(.button-ghost) {color:var(--brand-black);}
 body #contact-inquiry {scroll-margin-top:116px;}
 /* Approved autumn programs design; session data remains in the shared catalog. */
 body.fall-programs-page .page-shell {width:100%;}
@@ -75,35 +75,35 @@ body.fall-programs-page .subpage-main {padding-top:0;}
 body.fall-programs-page {--seasonal-art:url('autumn-field-1600.webp');}
 body.winter-camps-page {--seasonal-art:url('winter-field-1600.webp');}
 /* One stationary photo across the page; foreground cards stay opaque. */
-body:is(.fall-programs-page,.winter-camps-page,.seasonal-registration) {position:relative;isolation:isolate;background:#061326;}
-body:is(.fall-programs-page,.winter-camps-page,.seasonal-registration)::before {content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,#061326d9,#0613264d 65%,#06132680),linear-gradient(0deg,#061326b3,transparent 75%),var(--seasonal-art) center/cover no-repeat;}
+body:is(.fall-programs-page,.winter-camps-page,.seasonal-registration) {position:relative;isolation:isolate;background:var(--brand-black);}
+body:is(.fall-programs-page,.winter-camps-page,.seasonal-registration)::before {content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,#101213d9,#1012134d 65%,#10121380),linear-gradient(0deg,#101213b3,transparent 75%),var(--seasonal-art) center/cover no-repeat;}
 body:is(.fall-programs-page,.winter-camps-page) .subpage-main {background:transparent;}
 body .fall-program-hero {min-height:240px;display:flex;align-items:center;background:transparent;}
 body .fall-hero-copy {width:min(1040px,calc(100% - 48px));margin:0 auto;padding:24px 0 32px;}
-body .fall-hero-copy .eyebrow {color:#f1c29e;font-weight:700;letter-spacing:.12em;margin:0 0 14px;}
-body .fall-hero-copy h1 {font-family:'Bebas Neue',sans-serif;font-size:clamp(2.8rem,5vw,4rem);font-weight:400;line-height:.92;max-width:none;margin:0 0 14px;color:#fff2df;}
-body .fall-hero-copy h1 span {display:inline;color:#efa977;}
-body .fall-hero-tagline {font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:clamp(1.7rem,3vw,2.3rem);line-height:1.15;color:#fff2df;margin:0 0 10px;}
-body .fall-hero-lead {color:#f4e9df;font-size:1rem;line-height:1.6;margin:0 0 22px;}
+body .fall-hero-copy .eyebrow {color:#8bd5ea;font-weight:700;letter-spacing:.12em;margin:0 0 14px;}
+body .fall-hero-copy h1 {font-family:'Bebas Neue',sans-serif;font-size:clamp(2.8rem,5vw,4rem);font-weight:400;line-height:.92;max-width:none;margin:0 0 14px;color:#f9f6eb;}
+body .fall-hero-copy h1 span {display:inline;color:#7cbfd1;}
+body .fall-hero-tagline {font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:clamp(1.7rem,3vw,2.3rem);line-height:1.15;color:#f9f6eb;margin:0 0 10px;}
+body .fall-hero-lead {color:#f0ede2;font-size:1rem;line-height:1.6;margin:0 0 22px;}
 body.fall-programs-page .flow-surface {width:min(1040px,calc(100% - 32px));}
-body.fall-programs-page #sessions {position:relative;z-index:1;margin-top:-12px;border-color:#6f6259;background:#102438;}
+body.fall-programs-page #sessions {position:relative;z-index:1;margin-top:-12px;border-color:#616668;background:#191c1d;}
 body.fall-programs-page #session-finder-title {font-size:2rem;margin-bottom:12px;}
 body.fall-programs-page .schedule-entry {border-color:#6e777d;}
-body.fall-programs-page .schedule-entry[open] {border-color:#c49370;}
+body.fall-programs-page .schedule-entry[open] {border-color:#6ba4b4;}
 /* Winter camps share the approved site navigation and accessible booking surfaces. */
 body.winter-camps-page .page-shell {width:100%;}
 body .winter-camp-hero {min-height:150px;display:flex;align-items:center;background:transparent;}
 body .winter-hero-copy {width:min(1040px,calc(100% - 48px));margin:auto;padding:24px 0 32px;}
-body .winter-hero-copy .eyebrow {color:#b2e3f6;font-weight:700;margin:0;}
-body .winter-hero-copy h1 {font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:clamp(2.2rem,4vw,3.5rem);line-height:1;margin:8px 0 0;color:#edf7ff;}
-body .winter-hero-copy h1 span {color:#b2e3f6;}
-.camp-date-links {display:flex;flex-wrap:wrap;gap:0 14px;width:fit-content;max-width:100%;margin-top:4px;padding-inline:6px;border-radius:6px;background:#102438;}
-.camp-date-links a {color:#d3ecff;font-size:.82rem;font-weight:700;line-height:26px;text-decoration:underline;text-underline-offset:3px;}
+body .winter-hero-copy .eyebrow {color:var(--brand-glacier);font-weight:700;margin:0;}
+body .winter-hero-copy h1 {font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:clamp(2.2rem,4vw,3.5rem);line-height:1;margin:8px 0 0;color:#fcf8ed;}
+body .winter-hero-copy h1 span {color:var(--brand-glacier);}
+.camp-date-links {display:flex;flex-wrap:wrap;gap:0 14px;width:fit-content;max-width:100%;margin-top:4px;padding-inline:6px;border-radius:6px;background:#191c1d;}
+.camp-date-links a {color:#eeeae0;font-size:.82rem;font-weight:700;line-height:26px;text-decoration:underline;text-underline-offset:3px;}
 .camp-date-links #pro-d-date-link {font-weight:500;}
-body .winter-hero-copy>p:not(.eyebrow) {max-width:40ch;font-size:1.05rem;line-height:1.6;color:#edf7ff;}
-body .winter-camp-cta,body .flow-surface .winter-camp-cta {min-height:48px;background:#f0cb80;color:#102031;border-color:#f0cb80;box-shadow:none;gap:12px;}
+body .winter-hero-copy>p:not(.eyebrow) {max-width:40ch;font-size:1.05rem;line-height:1.6;color:#fcf8ed;}
+body .winter-camp-cta,body .flow-surface .winter-camp-cta {min-height:48px;background:var(--brand-glacier);color:#1d1e1f;border-color:var(--brand-glacier);box-shadow:none;gap:12px;}
 body.winter-camps-page .flow-surface {width:min(1040px,calc(100% - 32px));}
-body .camp-comparison {padding:clamp(16px,2.4vw,26px);background:#102438;}
+body .camp-comparison {padding:clamp(16px,2.4vw,26px);background:#191c1d;}
 body .camp-comparison h2 {margin:0 0 6px;}
 body .camp-comparison p {margin:0;}
 .camp-comparison-table {width:100%;table-layout:fixed;border-collapse:collapse;margin:10px 0;}
@@ -120,22 +120,22 @@ body .camp-week-grid {width:min(1040px,calc(100% - 32px));margin:0 auto 24px;dis
 body.winter-camps-page .camp-week-grid .flow-surface {width:100%;margin:0;display:flex;flex-direction:column;}
 body .camp-week-card .flow-actions {margin:12px 0 4px;}
 body .camp-drop-in-price {display:block;text-align:right;}
-body .camp-week-card {padding:20px;position:relative;isolation:isolate;overflow:hidden;border-color:#486878;background:#102438;}
-body .camp-week-sale {border-color:#c49d59;background:#132c3c;}
-body .camp-sale-label {display:inline-flex;align-self:flex-start;padding:7px 12px;margin:0 0 18px!important;border:1px solid #d5b16c;border-radius:6px;background:#f0cb80;color:#102031!important;font-size:.76rem;font-weight:800;letter-spacing:.09em;line-height:1.4;text-transform:uppercase;}
-body .camp-week-sale .camp-package-price {color:#f3d699;}
-body .seasonal-feature {position:relative;isolation:isolate;overflow:hidden;background:#102438;border-color:#597687;}
-body.fall-programs-page .seasonal-feature {border-color:#8f7765;background:#14283a;}
+body .camp-week-card {padding:20px;position:relative;isolation:isolate;overflow:hidden;border-color:#5f6466;background:#191c1d;}
+body .camp-week-sale {border-color:#6faaba;background:#272929;}
+body .camp-sale-label {display:inline-flex;align-self:flex-start;padding:7px 12px;margin:0 0 18px!important;border:1px solid #7cbed0;border-radius:6px;background:var(--brand-glacier);color:#1d1e1f!important;font-size:.76rem;font-weight:800;letter-spacing:.09em;line-height:1.4;text-transform:uppercase;}
+body .camp-week-sale .camp-package-price {color:#95e5fa;}
+body .seasonal-feature {position:relative;isolation:isolate;overflow:hidden;background:#191c1d;border-color:#74726d;}
+body.fall-programs-page .seasonal-feature {border-color:#7e7c77;background:#242627;}
 body .camp-week-card h2,body .hero-placeholder-card h2 {font:700 1.5rem/1.3 'Manrope',sans-serif;}
 body .camp-package-price {font-size:2rem;font-weight:800;line-height:1.1;text-align:right;white-space:nowrap;}
 body .camp-package-price span {display:block;font-size:.84rem;font-weight:500;}
 body .camp-week-card ul {padding-left:20px;line-height:1.6;margin:12px 0;}
 body .camp-practical-grid,body .camp-booking-grid {display:grid;grid-template-columns:1fr 1fr;gap:28px;}
 body .camp-booking-grid {grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);align-items:start;}
-body .camp-quote {border:1px solid #7894ad;border-radius:12px;padding:22px;background:#10243a;min-width:0;}
+body .camp-quote {border:1px solid #82bbcd;border-radius:12px;padding:22px;background:#191c1d;min-width:0;}
 body .camp-quote-price {font-size:1.8rem;font-weight:800;}
-body .camp-inline-total {padding:12px 14px;border:1px solid #e0be7b;border-radius:9px;background:#10243a;}
-body .camp-capacity-note {border-top:1px solid #7894ad;padding-top:16px;}
+body .camp-inline-total {padding:12px 14px;border:1px solid #85ccdf;border-radius:9px;background:#191c1d;}
+body .camp-capacity-note {border-top:1px solid #82bbcd;padding-top:16px;}
 body #camp-booking {scroll-margin-top:110px;}
 body .camp-receipt-details {white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.75;}
 @media(min-width:901px) {body.home-page .home-site-nav {gap:clamp(4px,.8vw,16px);padding-inline:clamp(12px,2vw,32px);}}
@@ -161,17 +161,17 @@ body .camp-receipt-details {white-space:pre-wrap;overflow-wrap:anywhere;font:inh
 }
 body summary.schedule-entry-main {list-style:none;cursor:pointer;grid-template-columns:minmax(125px,.9fr) minmax(210px,1.6fr) minmax(125px,.9fr) auto;padding:18px;gap:14px;}
 body summary.schedule-entry-main::-webkit-details-marker {display:none;}
-body summary.schedule-entry-main :is(strong,span) {color:#c5cfdb;line-height:1.5;}
+body summary.schedule-entry-main :is(strong,span) {color:#cecac2;line-height:1.5;}
 body summary.schedule-entry-main > span {display:grid;gap:4px;}
-body .schedule-expand {padding:8px 12px;border:1px solid #7894ad;border-radius:8px;font-weight:700;display:flex!important;gap:8px!important;}
+body .schedule-expand {padding:8px 12px;border:1px solid #82bbcd;border-radius:8px;font-weight:700;display:flex!important;gap:8px!important;}
 body .schedule-expand span {display:inline-block;}
 body details[open].schedule-entry .schedule-expand span {transform:rotate(45deg);}
-body .schedule-booking-options {position:static;width:auto;max-width:none;padding:16px 18px;margin:0;border:0;border-top:1px solid #577693;border-radius:0 0 12px 12px;background:#162c43;box-shadow:none;display:block;}
+body .schedule-booking-options {position:static;width:auto;max-width:none;padding:16px 18px;margin:0;border:0;border-top:1px solid #74736e;border-radius:0 0 12px 12px;background:#282a2b;box-shadow:none;display:block;}
 body .schedule-booking-options .button {width:auto;font-size:.9rem;}
 body .schedule-booking-options p {margin:0;}
-body .pass-note {margin:24px 0 18px;padding-top:24px;border-top:1px solid #577693;}
+body .pass-note {margin:24px 0 18px;padding-top:24px;border-top:1px solid #74736e;}
 body .pass-note h2 {font-size:1.7rem;}
-body .programs-listing-shell {background:#152b42;color:#c5cfdb;}
+body .programs-listing-shell {background:var(--brand-basalt);color:#cecac2;}
 body .method-chapter-nav {position:static;}
 body .section,.section-cta {scroll-margin-top:110px;}
 body .flow-surface,[id="private-form"],[id="sessions"] {scroll-margin-top:110px;}
@@ -189,7 +189,7 @@ body .flow-surface,[id="private-form"],[id="sessions"] {scroll-margin-top:110px;
  body .flow-layout {grid-template-columns:1fr;}
  body summary.schedule-entry-main {grid-template-columns:1fr 1fr;}
  body .home-page .site-header,body .site-header {width:100%;margin-left:0;}
- body .site-header {background:#071529;-webkit-backdrop-filter:none;backdrop-filter:none;}
+ body .site-header {background:#131414;-webkit-backdrop-filter:none;backdrop-filter:none;}
  body header[data-nav-ready] .site-nav.mobile-nav-open {overscroll-behavior:contain;}
  body :is(button,.button,summary) {touch-action:manipulation;}
 }
@@ -229,13 +229,13 @@ body.home-landing .hero-placeholder-cards {width:100%;align-self:center;}
 body.home-landing .hero-placeholder-card {min-width:0;padding:24px 20px;}
 body.home-landing .hero-placeholder-card h2 {max-width:none;line-height:1.1;}
 body.home-landing .hero-placeholder-card a {min-height:44px;display:inline-flex;align-items:center;}
-body .schedule-next {font-size:.85rem;color:#bad4ed!important;}
+body .schedule-next {font-size:.85rem;color:#82bbcd!important;}
 .mobile-hero-actions,.booking-form-jump {display:none;}
 @media(max-width:900px) {
  body.home-landing .immersive-hero-stage {grid-template-columns:1fr;gap:24px;min-height:0;}
  body.home-landing .hero-placeholder-cards {max-width:520px;justify-self:start;}
- body.home-landing .immersive-hero {background-image:linear-gradient(180deg,rgba(8,18,33,.18),rgba(8,18,33,.78)),linear-gradient(90deg,rgba(8,24,58,.28),rgba(119,16,28,.14)),url("site-photos/home-800.webp");
-background-image:linear-gradient(180deg,rgba(8,18,33,.18),rgba(8,18,33,.78)),linear-gradient(90deg,rgba(8,24,58,.28),rgba(119,16,28,.14)),image-set(url("site-photos/home-800.avif") type("image/avif"),url("site-photos/home-800.webp") type("image/webp"));}
+ body.home-landing .immersive-hero {background-image:linear-gradient(180deg,rgba(16,17,18,.18),rgba(16,17,18,.78)),linear-gradient(90deg,rgba(22,24,24,.28),rgba(119,16,28,.14)),url("site-photos/home-800.webp");
+background-image:linear-gradient(180deg,rgba(16,17,18,.18),rgba(16,17,18,.78)),linear-gradient(90deg,rgba(22,24,24,.28),rgba(119,16,28,.14)),image-set(url("site-photos/home-800.avif") type("image/avif"),url("site-photos/home-800.webp") type("image/webp"));}
  body header .site-nav.mobile-nav-open a {min-height:44px;display:flex;align-items:center;}
  body .schedule-reset {min-height:44px;}
 }
@@ -276,9 +276,9 @@ background-image:linear-gradient(180deg,rgba(8,18,33,.18),rgba(8,18,33,.78)),lin
  body .schedule-controls {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;}
  body .schedule-controls label:nth-child(3),body .schedule-reset {grid-column:1/-1;}
 }
-body.home-landing .hero-placeholder-card {background:#203b56;color:#c5cfdb;border:1px solid #577693;}
-body.home-landing .hero-placeholder-card h2 {color:#c5cfdb;}
-body.home-landing .hero-placeholder-card :is(.hero-placeholder-kicker,a) {color:#bad4ed;}
+body.home-landing .hero-placeholder-card {background:#383e40;color:#cecac2;border:1px solid #74736e;}
+body.home-landing .hero-placeholder-card h2 {color:#cecac2;}
+body.home-landing .hero-placeholder-card :is(.hero-placeholder-kicker,a) {color:#82bbcd;}
 body.home-landing .hero-placeholder-card::before {opacity:.18;}
 @media (min-width:901px) {body .home-site-nav a {white-space:nowrap;font-size:clamp(.76rem,1vw,.92rem);} }
 @media (max-width:900px) {body.home-page .home-utility-cell {display:none;} body.home-page .home-utility-logo {grid-column:1;grid-row:1;}}
@@ -295,32 +295,32 @@ body .camp-card-heading .camp-package-price {margin:0;line-height:1.1;}
 body .camp-card-heading .camp-package-price span {font-size:.72rem;margin-top:4px;}
 body .camp-week-card .camp-card-dates {margin:10px 0 6px;font-size:.88rem;}
 body .camp-week-card .camp-card-times {margin:0;font-size:.88rem;font-weight:700;}
-body .camp-card-times span {font-weight:400;color:#c1d3df;}
-body .camp-week-card .camp-card-highlight {margin:6px 0 0;font-size:.84rem;color:#f3d699;}
-body .camp-week-card .camp-full-day-option {margin:12px 0 0;padding:10px 12px;border-left:2px solid #f3d699;background:#192f44;font-size:.88rem;line-height:1.5;}
+body .camp-card-times span {font-weight:400;color:#d5d2c9;}
+body .camp-week-card .camp-card-highlight {margin:6px 0 0;font-size:.84rem;color:#95e5fa;}
+body .camp-week-card .camp-full-day-option {margin:12px 0 0;padding:10px 12px;border-left:2px solid #95e5fa;background:#2b2d2e;font-size:.88rem;line-height:1.5;}
 @media (max-width:350px) {
  body .camp-week-card .camp-full-day-option {margin-top:8px;padding-block:8px;}
 }
 body .camp-full-day-option strong,body .camp-full-day-option span,body .camp-full-day-option small {display:block;}
-body .camp-full-day-option span {margin-top:3px;color:#d5e2eb;}
-body .camp-full-day-option small {margin-top:4px;font-size:.75rem;color:#b9cbd9;}
+body .camp-full-day-option span {margin-top:3px;color:#e5e2d8;}
+body .camp-full-day-option small {margin-top:4px;font-size:.75rem;color:#cdcac1;}
 body .camp-card-heading h2 span {display:block;font:inherit;color:inherit;}
-body .camp-card-heading .camp-package-price .camp-price-saving {font-size:.7rem;font-weight:500;color:#b9cbd9;line-height:1.4;}
-body .camp-price-saving s {color:#9fb4c6;text-decoration-thickness:1px;}
+body .camp-card-heading .camp-package-price .camp-price-saving {font-size:.7rem;font-weight:500;color:#cdcac1;line-height:1.4;}
+body .camp-price-saving s {color:#b5b3ab;text-decoration-thickness:1px;}
 @media(max-width:350px) {
  body .camp-week-card {padding:12px;}
  body .camp-week-card .camp-card-dates {margin-top:8px;}
  body .camp-week-card .flow-actions {margin-top:10px;}
 }
-body .camp-card-details {border-top:1px solid #61788a;margin-top:8px;font-size:.9rem;}
+body .camp-card-details {border-top:1px solid #777670;margin-top:8px;font-size:.9rem;}
 body .camp-card-details summary,body .schedule-filter-panel summary {cursor:pointer;min-height:44px;align-content:center;font-weight:700;}
 body .camp-card-details p {font-size:.9rem;line-height:1.6;}
 body .camp-week-card .flow-actions {display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 body .camp-week-card .flow-actions .button {width:100%;min-width:0;min-height:48px;padding:10px 8px;white-space:normal;text-align:center;font-size:.82rem;}
-body .schedule-filter-panel {margin:12px 0;border-block:1px solid #61788a;}
+body .schedule-filter-panel {margin:12px 0;border-block:1px solid #777670;}
 body .schedule-filter-panel .schedule-controls {margin:8px 0 16px;}
 body .home-camp-shortcuts {display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-body .home-camp-shortcuts a {display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px;border:1px solid #f0cb80;border-radius:6px;color:#f3d699;font:700 .85rem/1.4 'Manrope',sans-serif;text-align:center;}
+body .home-camp-shortcuts a {display:flex;align-items:center;justify-content:center;min-height:48px;padding:8px;border:1px solid var(--brand-glacier);border-radius:6px;color:#95e5fa;font:700 .85rem/1.4 'Manrope',sans-serif;text-align:center;}
 @media(max-width:700px) {
  body .camp-week-grid {gap:12px;}
  body .camp-week-card {padding:12px;}
@@ -335,7 +335,7 @@ body .home-camp-shortcuts a {display:flex;align-items:center;justify-content:cen
 }
 
 /* Weekly registration is available directly on every card, without a disclosure. */
-body article.schedule-entry {display:block;background:#203b56;border:1px solid #6e777d;border-radius:12px;min-width:0;overflow:hidden;}
+body article.schedule-entry {display:block;background:#383e40;border:1px solid #6e777d;border-radius:12px;min-width:0;overflow:hidden;}
 body article.schedule-entry[hidden] {display:none!important;}
 body article.schedule-entry .schedule-entry-main {grid-template-columns:minmax(130px,1fr) minmax(210px,1.5fr) minmax(140px,1fr);padding:16px 18px;gap:12px;}
 body .schedule-direct-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:0 18px 16px;}
@@ -350,7 +350,7 @@ body .schedule-direct-actions .button {display:flex;align-items:center;justify-c
 }
 
 body.home-page .home-site-nav a{font-family:'Manrope',system-ui,sans-serif;font-size:clamp(.75rem,.9vw,.88rem);font-weight:700;letter-spacing:.005em;line-height:1.3;text-transform:none}
-body .training-questions details{border-top:1px solid #49657c}
+body .training-questions details{border-top:1px solid #5e6365}
 body .training-questions summary{min-height:48px;padding:14px 0;font-size:.95rem;font-weight:700;line-height:1.5;cursor:pointer}
 body .training-questions details p{font-size:.9rem;padding-bottom:10px}
 @media(max-width:900px){body.home-page .home-site-nav a{font-size:.95rem}}

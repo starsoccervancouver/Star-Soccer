@@ -182,7 +182,7 @@
           if(width<=430)check(info.top>=panel.bottom,`${page} at ${width}px keeps the form before the information card`);
           const theme=frame.contentWindow.getComputedStyle(doc.body).getPropertyValue('--registration-art');
           check(theme.includes(page.includes('private-small-group') || page.startsWith('registration.html') || page.startsWith('pro-d-camp')?'autumn-field':'winter-field'),`${page} at ${width}px uses its matching seasonal artwork`);
-          check(!doc.querySelector('.registration-info img') && frame.contentWindow.getComputedStyle(doc.querySelector('.registration-info')).backgroundColor==='rgb(16, 38, 61)',`${page} at ${width}px keeps imagery outside the opaque information card`);
+          check(!doc.querySelector('.registration-info img') && frame.contentWindow.getComputedStyle(doc.querySelector('.registration-info')).backgroundColor==='rgb(40, 44, 46)',`${page} at ${width}px keeps imagery outside the opaque information card`);
           if(page.startsWith('registration.html') && page.includes('type=pass4')){
             const trigger=doc.querySelector('#pass-calendar-trigger'),picker=doc.querySelector('#pass-calendar');
             trigger.click();const r=picker.getBoundingClientRect();

@@ -3,10 +3,10 @@
    Photos decorate only the background; foreground content stays fully opaque. */
 body.star-themed-page {
   --theme-photo: none;
-  --theme-shade: rgba(4, 15, 29, .82);
+  --theme-shade: rgba(13, 14, 14, .82);
   position: relative;
   isolation: isolate;
-  background: #061326;
+  background: var(--brand-black);
 }
 body.star-themed-page::before {
   content: "";
@@ -15,8 +15,8 @@ body.star-themed-page::before {
   z-index: -1;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(4, 14, 29, .9) 0%, rgba(4, 14, 29, .64) 55%, rgba(4, 14, 29, .78) 100%),
-    linear-gradient(0deg, rgba(4, 14, 29, .83), transparent 58%),
+    linear-gradient(90deg, rgba(13, 13, 13, .9) 0%, rgba(13, 13, 13, .64) 55%, rgba(13, 13, 13, .78) 100%),
+    linear-gradient(0deg, rgba(13, 13, 13, .83), transparent 58%),
     var(--theme-photo) center / cover no-repeat;
 }
 body.star-themed-page .page-shell,
@@ -24,27 +24,27 @@ body.star-themed-page .subpage-main {
   background: transparent;
 }
 body.star-themed-page .flow-surface {
-  background: #10263d;
-  border-color: #607a90;
-  box-shadow: 0 16px 40px rgba(2, 10, 24, .33);
+  background: var(--brand-basalt);
+  border-color: #797772;
+  box-shadow: 0 16px 40px rgba(9, 9, 10, .33);
 }
 body.star-themed-page .flow-hero {
   background: transparent;
   border-color: transparent;
 }
-body.star-themed-page .flow-hero h1 { color: #f4f7fc; }
-body.star-themed-page .flow-hero > p { color: #e8eff8; }
-body.star-themed-page .flow-intro { color: #e2edf7; }
+body.star-themed-page .flow-hero h1 { color: var(--brand-bone); }
+body.star-themed-page .flow-hero > p { color: #f4f1e6; }
+body.star-themed-page .flow-intro { color: #f1eee3; }
 
 /* A warm, quiet coaching-office backdrop for conversations with families. */
 body.contact-themed-page {
   --theme-photo: url("site-photos/contact-1600.webp");
-  --registration-accent: #e7c59a;
+  --registration-accent: var(--brand-glacier);
 }
 body.contact-themed-page::before {
   background:
-    linear-gradient(90deg, rgba(5, 15, 28, .91), rgba(10, 20, 31, .68) 56%, rgba(8, 17, 28, .82)),
-    linear-gradient(0deg, rgba(5, 16, 30, .88), transparent 65%),
+    linear-gradient(90deg, rgba(13, 14, 14, .91), rgba(18, 19, 19, .68) 56%, rgba(15, 16, 17, .82)),
+    linear-gradient(0deg, rgba(14, 15, 15, .88), transparent 65%),
     var(--theme-photo) center 46% / cover no-repeat;
 }
 body.contact-themed-page.quick-flow .quick-shell.registration-layout {
@@ -61,18 +61,18 @@ body.contact-themed-page.quick-flow .quick-panel {
   min-width: 0;
   margin: 0;
   padding: 28px;
-  border: 1px solid #857868;
+  border: 1px solid #7d7b75;
   border-radius: 14px;
-  background: #122a40;
-  box-shadow: 0 18px 44px rgba(1, 9, 22, .4);
+  background: var(--brand-basalt);
+  box-shadow: 0 18px 44px rgba(8, 8, 9, .4);
 }
 body.contact-themed-page .quick-panel .eyebrow,
-body.contact-themed-page .registration-info .eyebrow { color: #e7c59a; }
+body.contact-themed-page .registration-info .eyebrow { color: var(--brand-glacier); }
 body.contact-themed-page .quick-panel h1 {
   font-size: clamp(1.7rem, 3vw, 2.25rem);
   max-width: 22ch;
 }
-body.contact-themed-page .quick-context { max-width: 62ch; color: #ccdae7; }
+body.contact-themed-page .quick-context { max-width: 62ch; color: #cecac2; }
 body.contact-themed-page.quick-flow #contact-inquiry > .button[type="submit"] {
   min-height: 54px;
   font-weight: 800;
@@ -80,20 +80,20 @@ body.contact-themed-page.quick-flow #contact-inquiry > .button[type="submit"] {
 body.contact-themed-page .registration-info {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #857868;
+  border: 1px solid #7d7b75;
   border-radius: 14px;
-  background: #10263d;
-  box-shadow: 0 16px 40px rgba(2, 10, 24, .36);
+  background: var(--brand-basalt);
+  box-shadow: 0 16px 40px rgba(9, 9, 10, .36);
 }
 body.contact-themed-page .registration-info-content { padding: clamp(22px, 2.3vw, 28px); }
 body.contact-themed-page .registration-info h2 {
   margin: 6px 0 14px;
   font: 800 clamp(1.22rem, 1.9vw, 1.55rem)/1.28 "Manrope", system-ui, sans-serif;
-  color: #f1f4f9;
+  color: #faf6eb;
 }
 body.contact-themed-page .contact-response-lead {
   margin: 0 0 18px;
-  color: #c7d9e8;
+  color: #dcd8cf;
   font-size: .9rem;
   line-height: 1.65;
 }
@@ -107,7 +107,7 @@ body.contact-themed-page .registration-facts > div {
   gap: 4px;
 }
 body.contact-themed-page .registration-facts dt {
-  color: #e7c59a;
+  color: var(--brand-glacier);
   font-size: .72rem;
   font-weight: 800;
   letter-spacing: .08em;
@@ -115,28 +115,28 @@ body.contact-themed-page .registration-facts dt {
 }
 body.contact-themed-page .registration-facts dd {
   margin: 0;
-  color: #d5e4ef;
+  color: #9cefff;
   font-size: .86rem;
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
 body.contact-themed-page .registration-info a {
-  color: #a8dfff;
+  color: #93e2f8;
   text-underline-offset: 3px;
 }
 body.contact-themed-page .registration-info-note {
   margin-top: 22px;
   padding-top: 18px;
-  border-top: 1px solid #50677c;
+  border-top: 1px solid #616668;
 }
 body.contact-themed-page .registration-info-note h3 {
   margin: 0 0 8px;
-  color: #f0f4fa;
+  color: #faf6eb;
   font-size: .88rem;
 }
 body.contact-themed-page .registration-info-note p {
   margin: 0;
-  color: #b8ccdc;
+  color: #cecbc2;
   font-size: .82rem;
   line-height: 1.65;
 }
@@ -161,11 +161,11 @@ body.locations-themed-page {
 }
 body.locations-themed-page::before {
   background:
-    linear-gradient(90deg, rgba(4, 20, 28, .87), rgba(6, 28, 33, .63) 62%, rgba(4, 20, 28, .82)),
-    linear-gradient(0deg, rgba(3, 18, 27, .87), transparent 70%),
+    linear-gradient(90deg, rgba(17, 18, 18, .87), rgba(23, 24, 25, .63) 62%, rgba(17, 18, 18, .82)),
+    linear-gradient(0deg, rgba(15, 16, 16, .87), transparent 70%),
     var(--theme-photo) center / cover no-repeat;
 }
-body.locations-themed-page .flow-surface { border-color: #597e78; }
+body.locations-themed-page .flow-surface { border-color: #797772; }
 body.locations-themed-page .flow-hero .eyebrow { color: #b9e3d7; }
 
 /* Approach: soccer coaching and in-game decision making.
@@ -173,13 +173,13 @@ body.locations-themed-page .flow-hero .eyebrow { color: #b9e3d7; }
 body.approach-themed-page { --theme-photo: url("site-photos/approach-1600.webp"); }
 body.approach-themed-page::before {
   background:
-    radial-gradient(circle at 80% 12%, rgba(241, 174, 108, .12), transparent 35%),
-    linear-gradient(90deg, rgba(7, 20, 34, .89), rgba(16, 29, 39, .65) 62%, rgba(6, 18, 31, .78)),
-    linear-gradient(0deg, rgba(5, 17, 30, .87), transparent 70%),
+    radial-gradient(circle at 80% 12%, rgba(127, 194, 213, .12), transparent 35%),
+    linear-gradient(90deg, rgba(18, 19, 19, .89), rgba(26, 27, 28, .65) 62%, rgba(16, 17, 17, .78)),
+    linear-gradient(0deg, rgba(15, 16, 16, .87), transparent 70%),
     var(--theme-photo) center / cover no-repeat;
 }
-body.approach-themed-page .flow-hero .eyebrow { color: #f0bc94; }
-body.approach-themed-page .flow-surface { border-color: #8a776b; }
+body.approach-themed-page .flow-hero .eyebrow { color: #87d0e4; }
+body.approach-themed-page .flow-surface { border-color: #7d7b76; }
 /* The section shortcuts sit on the photo, not on a solid horizontal bar. */
 body.approach-themed-page .method-restored-nav {
   background: transparent;
@@ -189,7 +189,7 @@ body.approach-themed-page .method-restored-nav {
   padding: 10px 0 20px;
 }
 body.approach-themed-page .method-restored-nav a {
-  color: #f3f7fb;
+  color: #fdf9ee;
   font-weight: 800;
   min-height: 44px;
   text-shadow: 0 2px 10px rgba(0, 0, 0, .75);
@@ -197,7 +197,7 @@ body.approach-themed-page .method-restored-nav a {
   text-underline-offset: 6px;
 }
 body.approach-themed-page .method-restored-nav a:focus-visible {
-  color: #f5d29d;
+  color: #93e2f8;
 }
 
 /* Preserve the same form-first mobile order as the approved registration pages. */

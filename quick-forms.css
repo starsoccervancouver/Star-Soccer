@@ -5,7 +5,7 @@ body.quick-flow h1{font:700 clamp(1.5rem,3vw,2rem)/1.2 'Manrope',sans-serif;marg
 body.quick-flow .eyebrow{margin:0 0 6px;font-size:.7rem}
 body.quick-flow .quick-context{margin:0 0 10px;font-size:.9rem;line-height:1.5}
 body.quick-flow .quick-total{margin:0 0 12px;font-size:1rem;line-height:1.4}
-body.quick-flow .quick-total strong{font-size:1.2rem;color:#f0cb80}
+body.quick-flow .quick-total strong{font-size:1.2rem;color:var(--brand-glacier)}
 body.quick-flow .quick-total small{display:block;font-size:.75rem;font-weight:400}
 body.quick-flow form{gap:12px}
 body.quick-flow label{gap:5px;font-size:.85rem}
@@ -13,10 +13,10 @@ body.quick-flow :is(input,select,textarea){font-size:16px;min-height:46px;paddin
 body.quick-flow textarea{min-height:84px;resize:vertical}
 body.quick-flow .quick-player-row{display:grid;grid-template-columns:minmax(0,1fr) 94px;gap:12px}
 body.quick-flow :is(#training-registration,#camp-registration) .quick-player-row{grid-template-columns:minmax(0,1fr) 146px;gap:8px;align-items:start}
-body.quick-flow .quick-dropin-summary{display:grid;gap:2px;margin:0 0 12px;padding:8px 12px;border:1px solid #617d95;border-radius:8px;background:#0d2137;font-size:.85rem;line-height:1.5}
+body.quick-flow .quick-dropin-summary{display:grid;gap:2px;margin:0 0 12px;padding:8px 12px;border:1px solid #7c7a75;border-radius:8px;background:#191c1d;font-size:.85rem;line-height:1.5}
 body.quick-flow .quick-dropin-summary[hidden]{display:none}
-body.quick-flow .quick-dropin-summary strong{color:#f0cb80}
-body.quick-flow .quick-dropin-summary span{font-size:.76rem;color:#c0d3e4}
+body.quick-flow .quick-dropin-summary strong{color:var(--brand-glacier)}
+body.quick-flow .quick-dropin-summary span{font-size:.76rem;color:#cecac2}
 body.quick-flow .quick-date-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
 body.quick-flow .quick-date-row .booking-next-date{margin:0;min-height:48px;padding:9px 12px}
 body.quick-flow .quick-session-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
@@ -26,89 +26,89 @@ body.quick-flow [data-quick-camp-time]{margin:-6px 0 0;font-size:.8rem;line-heig
 body.quick-flow form>[type=submit]{width:100%;min-height:48px;margin:0}
 body.quick-flow .quick-assurance{margin:0;text-align:center;font-size:.8rem;line-height:1.4}
 body.quick-flow .form-privacy{margin:0;font-size:.72rem;line-height:1.45}
-body.quick-flow .quick-details{border-top:1px solid #45617a;margin:0;padding-top:0}
-body.quick-flow .quick-details summary{padding:10px 0;min-height:44px;cursor:pointer;line-height:1.5;font-size:.8rem;color:#c0d3e4}
+body.quick-flow .quick-details{border-top:1px solid #586163;margin:0;padding-top:0}
+body.quick-flow .quick-details summary{padding:10px 0;min-height:44px;cursor:pointer;line-height:1.5;font-size:.8rem;color:#cecac2}
 body.quick-flow .quick-extras{display:grid;gap:12px;padding:4px 0 14px}
 body.quick-flow .quick-extras :is(p,h2){margin:0;font-size:.9rem;line-height:1.6}
 body.quick-flow .quick-back{margin:8px 0 0;font-size:.8rem;line-height:1.5}
 body.quick-flow .quick-back a{display:inline-flex;align-items:center;min-height:44px}
 body.quick-flow .quick-extras .date-list{margin:0}
-body.quick-flow .contact-more{border-bottom:1px solid #45617a}
+body.quick-flow .contact-more{border-bottom:1px solid #586163}
 body.quick-flow .contact-more summary{font-size:.85rem;font-weight:700}
-body.quick-flow .contact-more .quick-extras>p{font-size:.8rem;color:#adc2d3}
+body.quick-flow .contact-more .quick-extras>p{font-size:.8rem;color:#c4c1b8}
 @media(max-width:540px){body.quick-flow .quick-shell{width:calc(100% - 24px);margin:12px auto 24px}body.quick-flow .quick-panel{padding:16px}body.quick-flow .quick-context{font-size:.82rem}body.quick-flow .quick-session-row{grid-template-columns:minmax(0,1fr) 95px}body.quick-flow .quick-total strong{font-size:1.05rem}body.quick-flow .quick-date-row{gap:8px}body.quick-flow .quick-date-row .booking-next-date{padding-inline:10px;font-size:.82rem}}
 @media(max-width:350px){body.quick-flow .quick-session-row{grid-template-columns:1fr}body.quick-flow .quick-session-row .quick-total small{display:inline;margin-left:6px}body.quick-flow .quick-session-row .quick-total{padding:0}body.quick-flow .quick-player-row{grid-template-columns:minmax(0,1fr) 76px;gap:8px}}
 
-body.quick-flow .quick-pass-summary{margin:0 0 12px;padding:10px 12px;border:1px solid #617d95;border-radius:8px;background:#0d2137;font-size:.85rem;line-height:1.5}
-body.quick-flow .quick-pass-summary>strong{color:#f0cb80}
+body.quick-flow .quick-pass-summary{margin:0 0 12px;padding:10px 12px;border:1px solid #7c7a75;border-radius:8px;background:#191c1d;font-size:.85rem;line-height:1.5}
+body.quick-flow .quick-pass-summary>strong{color:var(--brand-glacier)}
 body.quick-flow .quick-pass-summary p{margin:4px 0 0;font-size:.8rem;line-height:1.5}
 
 body.quick-flow .pass-start-label{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 10px;margin-top:6px}
 body.quick-flow .pass-start-label small{font-size:.72rem}
 body.quick-flow .pass-start-label input{grid-column:1/-1;margin:0;min-height:44px;color-scheme:dark}
-body.quick-flow .pass-calendar-trigger{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:10px 12px;margin:0;border:1px solid #9a7c65;border-radius:9px;background:#0d2137;color:#e0e8ef;font:700 .9rem/1.4 'Manrope',sans-serif;text-align:left;cursor:pointer}
-body.quick-flow .pass-calendar-icon{display:flex;flex:none;color:#efbc98}
-body.quick-flow .pass-calendar{width:min(420px,calc(100% - 24px));max-width:none;max-height:calc(100dvh - 24px);margin:auto;padding:22px;border:1px solid #9a7c65;border-radius:18px;background:#10263d;color:#dce6ee;box-shadow:0 24px 90px #020913b3;overflow:auto;color-scheme:dark}
-body.quick-flow .pass-calendar::backdrop{background:#020b1bbd;backdrop-filter:blur(5px)}
+body.quick-flow .pass-calendar-trigger{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:10px 12px;margin:0;border:1px solid #84827c;border-radius:9px;background:#191c1d;color:#ede9df;font:700 .9rem/1.4 'Manrope',sans-serif;text-align:left;cursor:pointer}
+body.quick-flow .pass-calendar-icon{display:flex;flex:none;color:var(--brand-glacier)}
+body.quick-flow .pass-calendar{width:min(420px,calc(100% - 24px));max-width:none;max-height:calc(100dvh - 24px);margin:auto;padding:22px;border:1px solid #84827c;border-radius:18px;background:var(--brand-basalt);color:#eae7dc;box-shadow:0 24px 90px #080809b3;overflow:auto;color-scheme:dark}
+body.quick-flow .pass-calendar::backdrop{background:#0a0a0bbd;backdrop-filter:blur(5px)}
 body.quick-flow .pass-calendar-head{display:flex;justify-content:space-between;align-items:start;gap:12px}
-body.quick-flow .pass-calendar-eyebrow{margin:0 0 6px;color:#efbc98;font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-body.quick-flow .pass-calendar h2{margin:0;font:700 1.25rem/1.35 'Manrope',sans-serif;color:#e8eef4}
-body.quick-flow .pass-calendar-help{margin:14px 0 18px;font-size:.8rem;line-height:1.6;color:#acc1d3}
+body.quick-flow .pass-calendar-eyebrow{margin:0 0 6px;color:var(--brand-glacier);font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+body.quick-flow .pass-calendar h2{margin:0;font:700 1.25rem/1.35 'Manrope',sans-serif;color:var(--brand-bone)}
+body.quick-flow .pass-calendar-help{margin:14px 0 18px;font-size:.8rem;line-height:1.6;color:#c3c0b7}
 body.quick-flow .pass-calendar button{font-family:'Manrope',sans-serif;cursor:pointer;box-sizing:border-box}
-body.quick-flow :is(.pass-calendar-close,.pass-calendar-arrow){display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;padding:0;border:1px solid #526d83;border-radius:10px;background:#163149;color:#dce6ee;font-size:1.7rem;line-height:1}
+body.quick-flow :is(.pass-calendar-close,.pass-calendar-arrow){display:grid;place-items:center;flex:none;min-width:44px;min-height:44px;padding:0;border:1px solid #666b6d;border-radius:10px;background:#2c2e2f;color:#eae7dc;font-size:1.7rem;line-height:1}
 body.quick-flow .pass-calendar-close{margin:-6px -6px 0 0;font-size:1.5rem}
 body.quick-flow .pass-calendar-nav{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;margin-bottom:12px}
-body.quick-flow .pass-calendar-nav h3{margin:0;text-align:center;font:700 1rem/1.4 'Manrope',sans-serif;color:#e8eef4}
+body.quick-flow .pass-calendar-nav h3{margin:0;text-align:center;font:700 1rem/1.4 'Manrope',sans-serif;color:var(--brand-bone)}
 body.quick-flow .pass-calendar-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:4px}
-body.quick-flow .pass-calendar-week [role=columnheader]{padding:6px 0;text-align:center;font-size:.68rem;font-weight:700;color:#acc1d3}
+body.quick-flow .pass-calendar-week [role=columnheader]{padding:6px 0;text-align:center;font-size:.68rem;font-weight:700;color:#c3c0b7}
 body.quick-flow .pass-calendar-cell{display:block;min-width:0}
-body.quick-flow .pass-calendar-day{display:block;width:100%;min-width:0;height:42px;padding:0;border:1px solid #927763;border-radius:9px;background:#243b4c;color:#f0c8a9;font-size:.9rem;font-weight:800;line-height:1}
-body.quick-flow .pass-calendar-day:disabled{border-color:transparent;background:transparent;color:#71899e;cursor:default;font-weight:400}
-body.quick-flow .pass-calendar-day.is-selected{border-color:#efbc98;background:#efbc98;color:#112638}
-body.quick-flow .pass-calendar-day[aria-current=date]:not(.is-selected){box-shadow:inset 0 0 0 1px #85acc9}
+body.quick-flow .pass-calendar-day{display:block;width:100%;min-width:0;height:42px;padding:0;border:1px solid #7e7d77;border-radius:9px;background:#36383a;color:#8edbef;font-size:.9rem;font-weight:800;line-height:1}
+body.quick-flow .pass-calendar-day:disabled{border-color:transparent;background:transparent;color:#898781;cursor:default;font-weight:400}
+body.quick-flow .pass-calendar-day.is-selected{border-color:var(--brand-glacier);background:var(--brand-glacier);color:#222424}
+body.quick-flow .pass-calendar-day[aria-current=date]:not(.is-selected){box-shadow:inset 0 0 0 1px #aaa7a0}
 body.quick-flow .pass-calendar-arrow:disabled{opacity:.35;cursor:default}
-body.quick-flow :is(.pass-calendar button,.pass-calendar-trigger):focus-visible{outline:3px solid #b7e0fb;outline-offset:3px}
-body.quick-flow .pass-calendar-footer{display:grid;grid-template-columns:1.5fr 1fr;gap:10px;border-top:1px solid #486378;margin-top:16px;padding-top:16px}
-body.quick-flow :is(.pass-calendar-upcoming,.pass-calendar-cancel){min-height:44px;padding:10px 8px;border:1px solid #617d95;border-radius:10px;background:#19374f;color:#dce6ee;font-size:.8rem;font-weight:700}
-body.quick-flow .pass-calendar-upcoming{border-color:#efbc98;background:#efbc98;color:#112638}
+body.quick-flow :is(.pass-calendar button,.pass-calendar-trigger):focus-visible{outline:3px solid #96e6fc;outline-offset:3px}
+body.quick-flow .pass-calendar-footer{display:grid;grid-template-columns:1.5fr 1fr;gap:10px;border-top:1px solid #5c6163;margin-top:16px;padding-top:16px}
+body.quick-flow :is(.pass-calendar-upcoming,.pass-calendar-cancel){min-height:44px;padding:10px 8px;border:1px solid #7c7a75;border-radius:10px;background:#313334;color:#eae7dc;font-size:.8rem;font-weight:700}
+body.quick-flow .pass-calendar-upcoming{border-color:var(--brand-glacier);background:var(--brand-glacier);color:#222424}
 @media(max-width:380px){body.quick-flow .pass-calendar{padding:16px}body.quick-flow .pass-calendar h2{font-size:1.1rem}body.quick-flow .pass-calendar-week{gap:3px}}
 
-body.camp-registration-page .camp-gift-note{margin:0 0 8px;font-size:.8rem;line-height:1.45;color:#f3d699}
-body.quick-flow .quick-total [data-camp-discount]{display:block;margin:3px 0 0;font-size:.68rem;line-height:1.35;white-space:normal;color:#b9cbd9}
+body.camp-registration-page .camp-gift-note{margin:0 0 8px;font-size:.8rem;line-height:1.45;color:#95e5fa}
+body.quick-flow .quick-total [data-camp-discount]{display:block;margin:3px 0 0;font-size:.68rem;line-height:1.35;white-space:normal;color:#cdcac1}
 body.quick-flow .quick-total [data-camp-discount][hidden]{display:none}
-body.quick-flow [data-camp-discount] s{color:#9fb4c6;text-decoration-thickness:1px}
+body.quick-flow [data-camp-discount] s{color:#b5b3ab;text-decoration-thickness:1px}
 @media(max-width:540px){body.camp-registration-page.quick-flow h1{font-size:1.3rem}}
 
 /* A larger form beside the seasonal information; phones keep the form first. */
-body.seasonal-registration{--seasonal-art:var(--seasonal-photo,url('winter-field-1600.webp'));--registration-art:var(--seasonal-art);--registration-accent:#b2e3f6}
-body.fall-registration-page{--seasonal-art:var(--seasonal-photo,url('autumn-field-1600.webp'));--registration-accent:#efbc98}
+body.seasonal-registration{--seasonal-art:var(--seasonal-photo,url('winter-field-1600.webp'));--registration-art:var(--seasonal-art);--registration-accent:var(--brand-glacier)}
+body.fall-registration-page{--seasonal-art:var(--seasonal-photo,url('autumn-field-1600.webp'));--registration-accent:var(--brand-glacier)}
 body.seasonal-registration .registration-layout{display:grid;grid-template-columns:minmax(0,1.85fr) minmax(280px,1fr);align-items:start;gap:24px;width:min(1120px,100%);margin:24px auto 40px}
-body.seasonal-registration .quick-panel{padding:28px;background:#122a40;border-color:#667e91;box-shadow:0 16px 42px #020b1933}
-body.fall-registration-page .quick-panel{border-color:#9a7c65}
-body.seasonal-registration .registration-info{min-width:0;border:1px solid #667e91;border-radius:14px;background:#10263d;overflow:hidden;box-shadow:0 12px 32px #020b1926}
+body.seasonal-registration .quick-panel{padding:28px;background:var(--brand-basalt);border-color:#7d7b76;box-shadow:0 16px 42px #0a0a0b33}
+body.fall-registration-page .quick-panel{border-color:#84827c}
+body.seasonal-registration .registration-info{min-width:0;border:1px solid #7d7b76;border-radius:14px;background:var(--brand-basalt);overflow:hidden;box-shadow:0 12px 32px #0a0a0b26}
 body.seasonal-registration .registration-info[hidden]{display:none}
-body.fall-registration-page .registration-info{border-color:#9a7c65}
+body.fall-registration-page .registration-info{border-color:#84827c}
 
 body.seasonal-registration .registration-info-content{padding:22px}
-body.seasonal-registration .registration-info h2{margin:5px 0 12px;font:700 1.2rem/1.35 'Manrope',sans-serif;color:#e3ebf2}
+body.seasonal-registration .registration-info h2{margin:5px 0 12px;font:700 1.2rem/1.35 'Manrope',sans-serif;color:#f0ece2}
 body.seasonal-registration .registration-info .eyebrow{color:var(--registration-accent)}
 body.seasonal-registration .registration-info :is(p,dd,dt){font-size:.84rem;line-height:1.6}
 body.seasonal-registration .registration-info-option{margin:0 0 16px;color:var(--registration-accent);font-weight:700}
-body.seasonal-registration .registration-info-promo{margin:0 0 16px;color:#f3d699}
+body.seasonal-registration .registration-info-promo{margin:0 0 16px;color:#95e5fa}
 body.seasonal-registration .registration-facts{display:grid;gap:12px;margin:0}
 body.seasonal-registration .registration-facts>div{display:grid;gap:2px}
 body.seasonal-registration .registration-facts>div[hidden]{display:none}
-body.seasonal-registration .registration-facts dt{color:#9fb7ca;font-size:.72rem;font-weight:700}
-body.seasonal-registration .registration-facts dd{margin:0;color:#d2dfe9}
+body.seasonal-registration .registration-facts dt{color:#b8b5ad;font-size:.72rem;font-weight:700}
+body.seasonal-registration .registration-facts dd{margin:0;color:#e2dfd5}
 body.seasonal-registration .registration-facts .date-list{margin:0;padding-left:16px;font-size:.8rem;line-height:1.65}
 body.seasonal-registration .registration-info-price{display:grid;gap:3px;margin:20px 0 4px}
 body.seasonal-registration .registration-info-price strong{font-size:1.4rem;color:var(--registration-accent)}
-body.seasonal-registration .registration-info-price span{color:#b4c8d8;font-size:.78rem}
-body.seasonal-registration .registration-info-savings{margin:4px 0 0;color:#b4c8d8;font-size:.75rem}
-body.seasonal-registration .registration-info-note{border-top:1px solid #526b7f;margin-top:20px;padding-top:16px}
-body.seasonal-registration .registration-info h3{font:700 .84rem/1.5 'Manrope',sans-serif;margin:0 0 6px;color:#d9e5ee}
-body.seasonal-registration .registration-info-note p{margin:0 0 10px;color:#b9cddd}
-body.seasonal-registration .registration-info-bring{margin:14px 0 0;color:#a6bdcf;font-size:.76rem}
+body.seasonal-registration .registration-info-price span{color:#cac7be;font-size:.78rem}
+body.seasonal-registration .registration-info-savings{margin:4px 0 0;color:#cac7be;font-size:.75rem}
+body.seasonal-registration .registration-info-note{border-top:1px solid #64696b;margin-top:20px;padding-top:16px}
+body.seasonal-registration .registration-info h3{font:700 .84rem/1.5 'Manrope',sans-serif;margin:0 0 6px;color:#e9e5db}
+body.seasonal-registration .registration-info-note p{margin:0 0 10px;color:#cfccc3}
+body.seasonal-registration .registration-info-bring{margin:14px 0 0;color:#bebbb3;font-size:.76rem}
 @media(max-width:850px){body.seasonal-registration .registration-layout{grid-template-columns:minmax(0,1fr);width:min(720px,100%);gap:18px;margin-top:20px}body.seasonal-registration .quick-panel{padding:24px}}
 @media(max-width:700px){body.seasonal-registration{--seasonal-art:var(--seasonal-photo,url('winter-field-800.webp'))}body.fall-registration-page{--seasonal-art:var(--seasonal-photo,url('autumn-field-800.webp'))}}
 @media(max-width:540px){body.seasonal-registration .registration-layout{width:100%;margin:12px auto 24px;gap:14px}body.seasonal-registration .quick-panel{padding:16px}body.seasonal-registration .registration-info-content{padding:18px}}
@@ -116,24 +116,24 @@ body.seasonal-registration .registration-info-bring{margin:14px 0 0;color:#a6bdc
 
 /* Camp options and individual days share the site's quiet winter palette. */
 body.quick-flow :is(.camp-booking-options,.camp-day-picker){min-width:0;margin:0;padding:0;border:0}
-body.quick-flow :is(.camp-booking-options,.camp-day-picker) legend{margin-bottom:8px;padding:0;font:700 .85rem/1.4 'Manrope',sans-serif;color:#d2dfe9}
+body.quick-flow :is(.camp-booking-options,.camp-day-picker) legend{margin-bottom:8px;padding:0;font:700 .85rem/1.4 'Manrope',sans-serif;color:#e2dfd5}
 body.quick-flow .camp-booking-options{display:flex;gap:8px}
-body.quick-flow .camp-booking-options label{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1px solid #667e91;border-radius:9px;color:#d2dfe9;cursor:pointer}
-body.quick-flow .camp-booking-options label:has(:checked){background:#b2e3f6;border-color:#b2e3f6;color:#10263d}
-body.quick-flow :is(.camp-booking-options,.camp-day-picker) input{accent-color:#285c77;min-height:18px;width:18px;height:18px;margin:0;padding:0;flex:none}
+body.quick-flow .camp-booking-options label{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1px solid #7d7b76;border-radius:9px;color:#e2dfd5;cursor:pointer}
+body.quick-flow .camp-booking-options label:has(:checked){background:var(--brand-glacier);border-color:var(--brand-glacier);color:var(--brand-basalt)}
+body.quick-flow :is(.camp-booking-options,.camp-day-picker) input{accent-color:#505556;min-height:18px;width:18px;height:18px;margin:0;padding:0;flex:none}
 body.quick-flow .camp-day-picker[hidden]{display:none}
 body.camp-dropin-mode .camp-gift-note{display:none}
 body.camp-dropin-mode .quick-session-row .quick-total{min-width:0;white-space:normal}
 body.quick-flow.camp-dropin-mode .quick-session-row{grid-template-columns:minmax(0,1fr) 95px}
-body.quick-flow .camp-day-picker>p{margin:0 0 8px;font-size:.76rem;line-height:1.5;color:#b9cddd}
+body.quick-flow .camp-day-picker>p{margin:0 0 8px;font-size:.76rem;line-height:1.5;color:#cfccc3}
 body.quick-flow .camp-day-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
-body.quick-flow .camp-day{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-content:center;gap:4px;min-height:94px;padding:8px 2px;border:1px solid #667e91;border-radius:9px;cursor:pointer;text-align:center}
+body.quick-flow .camp-day{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-content:center;gap:4px;min-height:94px;padding:8px 2px;border:1px solid #7d7b76;border-radius:9px;cursor:pointer;text-align:center}
 body.quick-flow .camp-day span{display:grid;font-size:.8rem;line-height:1.35}
 body.quick-flow .camp-day b{font-size:.72rem;font-weight:600}
-body.quick-flow .camp-day small{font-size:.72rem;line-height:1.4;color:#c5d7e5}
-body.quick-flow .camp-day:has(:checked){border-color:#b2e3f6;background:#1b4058}
+body.quick-flow .camp-day small{font-size:.72rem;line-height:1.4;color:#d9d6cd}
+body.quick-flow .camp-day:has(:checked){border-color:var(--brand-glacier);background:#383b3c}
 body.quick-flow .camp-day:has(:disabled){opacity:.5;cursor:default}
-body.quick-flow :is(.camp-day,.camp-booking-options label):focus-within{outline:2px solid #b2e3f6;outline-offset:2px}
+body.quick-flow :is(.camp-day,.camp-booking-options label):focus-within{outline:2px solid var(--brand-glacier);outline-offset:2px}
 @media (hover: hover) {
   body.quick-flow .flow-surface :is(select,textarea,input:not([type=radio],[type=checkbox],[type=hidden],[type=number])):enabled:not([readonly]):hover,
   body.quick-flow :is(.camp-day,.camp-booking-options label):has(input:enabled):hover {
@@ -146,9 +146,9 @@ body.quick-flow :is(.camp-day,.camp-booking-options label):focus-within{outline:
     body.quick-flow .flow-surface select,
     body.quick-flow .flow-surface select::picker(select) { appearance:base-select; }
     body.quick-flow .flow-surface select::picker(select) {
-      background:#0d2137;
-      color:#d1d9e2;
-      border:1px solid #7894ad;
+      background:#191c1d;
+      color:#dddad0;
+      border:1px solid #82bbcd;
       border-radius:9px;
     }
     body.quick-flow .flow-surface select option {
@@ -161,7 +161,7 @@ body.quick-flow :is(.camp-day,.camp-booking-options label):focus-within{outline:
       background-image:linear-gradient(var(--ss-hover-fill),var(--ss-hover-fill));
     }
     body.quick-flow .flow-surface select option:focus-visible {
-      outline:2px solid #82c8ff;
+      outline:2px solid #82c8db;
       outline-offset:-2px;
     }
   }
@@ -169,7 +169,7 @@ body.quick-flow :is(.camp-day,.camp-booking-options label):focus-within{outline:
 @media(max-width:540px){body.quick-flow .camp-day-grid{gap:4px}body.quick-flow .camp-booking-options label{padding:10px 6px;font-size:.76rem}}
 
 /* Give families a clear, optional switch when a package costs less. */
-body.quick-flow .camp-package-saving{padding:14px;border:1px solid #b2e3f6;border-radius:10px;background:#1b4058;color:#e2f3fb}
+body.quick-flow .camp-package-saving{padding:14px;border:1px solid var(--brand-glacier);border-radius:10px;background:#383b3c;color:#f6f2e8}
 body.quick-flow .camp-package-saving[hidden]{display:none}
 body.quick-flow .camp-package-saving p{margin:0 0 10px;font-size:.85rem;line-height:1.6}
 body.quick-flow .camp-package-saving button{white-space:normal;min-height:44px}

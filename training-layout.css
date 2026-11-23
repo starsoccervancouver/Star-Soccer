@@ -1,72 +1,72 @@
 /* Clear dark surfaces and a compact autumn introduction keep registration near the top. */
 body.training-compact {
-  --flow-bg:#10253a;
-  --flow-raised:#18364f;
-  --flow-text:#e6eef5;
-  --flow-muted:#b4c5d4;
-  --flow-border:#314b61;
-  color:#e6eef5;
-  background:#081523;
+  --flow-bg:var(--brand-basalt);
+  --flow-raised:var(--brand-basalt);
+  --flow-text:var(--brand-bone);
+  --flow-muted:#c7c4bc;
+  --flow-border:#383e40;
+  color:var(--brand-bone);
+  background:var(--brand-black);
 }
 body.training-compact::before {display:none}
 body.training-compact .fall-program-hero {
   display:block;min-height:0;width:min(1040px,calc(100% - 48px));
-  margin:20px auto 18px;padding:22px 24px;border:1px solid #705442;border-radius:16px;
-  background:linear-gradient(100deg,#172b3aef,#2d302cde 58%,#684a2db3),url(autumn-field-1600.avif) center 60%/cover;
+  margin:20px auto 18px;padding:22px 24px;border:1px solid #565a5c;border-radius:16px;
+  background:linear-gradient(100deg,#272929ef,#2d302cde 58%,#4c5051b3),url(autumn-field-1600.avif) center 60%/cover;
 }
 body.training-compact .fall-hero-copy {width:auto;margin:0;padding:0}
 body.training-compact .fall-hero-copy h1 {
   font:800 clamp(1.65rem,3vw,2.25rem)/1.15 'Manrope',system-ui,sans-serif;
-  letter-spacing:-.04em;margin:0;color:#e6eef5;
+  letter-spacing:-.04em;margin:0;color:var(--brand-bone);
 }
-body.training-compact .fall-hero-copy h1 span {color:#efc59d}
-body.training-compact .training-intro {font-size:.92rem;line-height:1.5;margin:8px 0 0;color:#eee1d4}
-body.training-compact .flow-surface {width:min(1040px,calc(100% - 48px));border-color:#314b61;background:#10253a;box-shadow:0 4px 16px #00000012}
+body.training-compact .fall-hero-copy h1 span {color:#82bbcd}
+body.training-compact .training-intro {font-size:.92rem;line-height:1.5;margin:8px 0 0;color:#9df0ff}
+body.training-compact .flow-surface {width:min(1040px,calc(100% - 48px));border-color:#383e40;background:var(--brand-basalt);box-shadow:0 4px 16px #00000012}
 body.training-compact .flow-surface h2 {font:800 clamp(1.25rem,2.3vw,1.65rem)/1.3 'Manrope',system-ui,sans-serif;letter-spacing:-.025em}
-body.training-compact .flow-surface p {color:#b4c5d4}
-body.training-compact .flow-surface :is(a:not(.button)) {color:#bad4ed}
+body.training-compact .flow-surface p {color:#c7c4bc}
+body.training-compact .flow-surface :is(a:not(.button)) {color:#82bbcd}
 body.training-compact #sessions {margin:0 auto 28px;padding:0;border:0;background:transparent;box-shadow:none}
 body.training-compact .schedule-list {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:0 0 24px}
 body.training-compact article:is(.schedule-entry,.training-event-card) {
   display:flex;flex-direction:column;min-width:0;overflow:hidden;scroll-margin-top:116px;
-  background:#10253a;border:1px solid #314b61;border-radius:16px;box-shadow:0 4px 14px #00000014;
+  background:var(--brand-basalt);border:1px solid #383e40;border-radius:16px;box-shadow:0 4px 14px #00000014;
 }
 body.training-compact #session-tuesday-title {margin:16px 18px 0;font-size:1.15rem;line-height:1.4}
-body.training-compact article.training-event-card {border-color:#7c654e;background:linear-gradient(135deg,#202d38,#10253a 70%)}
+body.training-compact article.training-event-card {border-color:#656a6c;background:linear-gradient(135deg,#2a2c2d,var(--brand-basalt) 70%)}
 body.training-compact article:is(.schedule-entry,.training-event-card) .schedule-entry-main {
   display:grid;flex:1;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:14px;padding:18px;
 }
 body.training-compact .schedule-entry-main>span {display:grid;min-width:0;gap:4px}
 body.training-compact .schedule-day {grid-column:1;grid-row:1}
-body.training-compact .schedule-price {grid-column:2;grid-row:1;padding-left:14px;border-left:1px solid #314b61}
-body.training-compact .schedule-detail {grid-column:1/-1;padding-top:12px;border-top:1px solid #314b61}
-body.training-compact .schedule-entry-main span {font-size:.83rem;line-height:1.5;color:#b4c5d4}
-body.training-compact .schedule-entry-main strong {color:#e6eef5;font-size:.95rem;line-height:1.4}
+body.training-compact .schedule-price {grid-column:2;grid-row:1;padding-left:14px;border-left:1px solid #383e40}
+body.training-compact .schedule-detail {grid-column:1/-1;padding-top:12px;border-top:1px solid #383e40}
+body.training-compact .schedule-entry-main span {font-size:.83rem;line-height:1.5;color:#c7c4bc}
+body.training-compact .schedule-entry-main strong {color:var(--brand-bone);font-size:.95rem;line-height:1.4}
 body.training-compact .schedule-day strong {font-size:1.15rem;letter-spacing:-.025em}
-body.training-compact .schedule-day>span:first-of-type {font-size:.9rem;font-weight:600;color:#d5e2ed}
-body.training-compact .schedule-price strong {font-size:1.04rem;color:#bad4ed}
-body.training-compact .schedule-price [data-pass-value] {font-size:.78rem;font-weight:700;color:#bad4ed}
-body.training-compact .schedule-next {color:#b4c5d4!important}
+body.training-compact .schedule-day>span:first-of-type {font-size:.9rem;font-weight:600;color:#e6e2d8}
+body.training-compact .schedule-price strong {font-size:1.04rem;color:#82bbcd}
+body.training-compact .schedule-price [data-pass-value] {font-size:.78rem;font-weight:700;color:#82bbcd}
+body.training-compact .schedule-next {color:#c7c4bc!important}
 body.training-compact .schedule-direct-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:0 18px 18px;gap:8px}
 body.training-compact .schedule-direct-actions a:only-child {grid-column:1/-1}
 body.training-compact .flow-surface .button {
   display:inline-flex;align-items:center;justify-content:center;min-height:48px;
-  padding:10px 14px;border:1px solid #7196b8;border-radius:10px;
-  background:#2d5e90;color:#f4f8fc;font:700 .88rem/1.4 'Manrope',system-ui,sans-serif;
+  padding:10px 14px;border:1px solid #94928c;border-radius:10px;
+  background:#24647a;color:#fefaef;font:700 .88rem/1.4 'Manrope',system-ui,sans-serif;
   text-decoration:none;box-shadow:none;
 }
 body.training-compact .schedule-direct-actions .button {width:100%;margin:0;padding-inline:10px}
-body.training-compact .flow-surface .button-ghost {background:#18364f;color:#bad4ed;border-color:#526f88}
-body.training-compact .subpage-main :is(a,summary):focus-visible {outline:3px solid #90caff;outline-offset:4px}
-body.training-compact article.schedule-entry-target {border-color:#90caff;box-shadow:0 0 0 2px #90caff}
-body.training-compact .pass-note {margin:24px 0 18px;padding:22px;border:1px solid #314b61;border-radius:16px;background:#10253a}
+body.training-compact .flow-surface .button-ghost {background:var(--brand-basalt);color:#82bbcd;border-color:#6d6c67}
+body.training-compact .subpage-main :is(a,summary):focus-visible {outline:3px solid var(--brand-glacier);outline-offset:4px}
+body.training-compact article.schedule-entry-target {border-color:var(--brand-glacier);box-shadow:0 0 0 2px var(--brand-glacier)}
+body.training-compact .pass-note {margin:24px 0 18px;padding:22px;border:1px solid #383e40;border-radius:16px;background:var(--brand-basalt)}
 body.training-compact .pass-note p {font-size:.9rem}
 body.training-compact .pass-note p:last-child {margin-bottom:0}
-body.training-compact .owner-photo-pair figcaption {color:#b4c5d4}
-body.training-compact .session-steps li,body.training-compact .training-questions details {border-color:#314b61}
-body.training-compact .session-steps li::before {color:#bad4ed}
-body.training-compact .training-questions summary {color:#e6eef5}
-body.training-compact .count-feed-note {border-color:#314b61;background:#10253a}
+body.training-compact .owner-photo-pair figcaption {color:#c7c4bc}
+body.training-compact .session-steps li,body.training-compact .training-questions details {border-color:#383e40}
+body.training-compact .session-steps li::before {color:#82bbcd}
+body.training-compact .training-questions summary {color:var(--brand-bone)}
+body.training-compact .count-feed-note {border-color:#383e40;background:var(--brand-basalt)}
 @media(max-width:900px) {
   body.training-compact article:is(.schedule-entry,.training-event-card) {scroll-margin-top:84px}
 }
@@ -74,7 +74,7 @@ body.training-compact .count-feed-note {border-color:#314b61;background:#10253a}
   body.training-compact .fall-program-hero,body.training-compact .flow-surface {width:calc(100% - 32px)}
   body.training-compact .fall-program-hero {
     margin-top:14px;margin-bottom:14px;padding:18px 16px;
-    background-image:linear-gradient(100deg,#172b3aef,#2d302cde 58%,#684a2db3),url(autumn-field-800.avif);
+    background-image:linear-gradient(100deg,#272929ef,#2d302cde 58%,#4c5051b3),url(autumn-field-800.avif);
   }
   body.training-compact .training-intro {font-size:.85rem}
   body.training-compact .schedule-list {grid-template-columns:minmax(0,1fr);gap:12px}

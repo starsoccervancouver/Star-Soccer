@@ -1,9 +1,9 @@
 /* Owner's finished edits: stable frames and device-specific crops. */
-body.home-landing .immersive-hero{position:relative;isolation:isolate;background:#091727;min-height:600px}
+body.home-landing .immersive-hero{position:relative;isolation:isolate;background:#191c1d;min-height:600px}
 .home-training-photo{position:absolute;inset:0;z-index:-2;display:block}
 .home-training-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:62% 50%}
 body.home-landing .immersive-hero::before{display:none}
-body.home-landing .immersive-hero::after{content:"";position:absolute;inset:0;height:auto;z-index:-1;background:linear-gradient(90deg,rgba(6,18,30,.97),rgba(6,18,30,.9) 30%,rgba(6,18,30,.5) 47%,rgba(6,18,30,.05) 65%),linear-gradient(0deg,rgba(6,18,30,.35),transparent 45%);pointer-events:none}
+body.home-landing .immersive-hero::after{content:"";position:absolute;inset:0;height:auto;z-index:-1;background:linear-gradient(90deg,rgba(16,17,17,.97),rgba(16,17,17,.9) 30%,rgba(16,17,17,.5) 47%,rgba(16,17,17,.05) 65%),linear-gradient(0deg,rgba(16,17,17,.35),transparent 45%);pointer-events:none}
 body.home-landing .immersive-hero-stage{display:block}
 body.home-landing .immersive-hero-copy{width:47%;max-width:570px}
 body.home-landing .immersive-hero h1{font-size:clamp(2.8rem,3.6vw,4rem);max-width:17ch}
@@ -13,13 +13,13 @@ body.home-landing a.hero-action{min-height:0;padding:15px 20px}
 body.home-landing .hero-action-title{font-size:1.3rem}
 body.home-landing .hero-action-label{display:none}
 .coaching-story-photo,.weekly-training-photo{display:block;overflow:hidden;border-radius:18px;background:#243b32}
-.home-coach-portrait{display:block;width:100%;aspect-ratio:1;overflow:hidden;border:1px solid #45617a;border-radius:10px;background:#10263d}
+.home-coach-portrait{display:block;width:100%;aspect-ratio:1;overflow:hidden;border:1px solid #586163;border-radius:10px;background:var(--brand-basalt)}
 .home-coach-portrait img{display:block;width:100%;height:100%;object-fit:cover}
 .home-coach-portrait-photo img{object-position:50% 65%}
-.home-coach-initials{display:grid;place-items:center;background:#18334a;color:#c5dcec;font:700 1.06rem/1 Manrope,system-ui,sans-serif;letter-spacing:.03em}
+.home-coach-initials{display:grid;place-items:center;background:var(--brand-basalt);color:#95e5fb;font:700 1.06rem/1 Manrope,system-ui,sans-serif;letter-spacing:.03em}
 .coaching-story-photo img,.weekly-training-photo img{display:block;width:100%;height:100%;object-fit:cover}
 .photo-story-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(20px,3vw,40px);align-items:center;margin-top:24px}
-.coaching-story-photo{aspect-ratio:4/3;box-shadow:0 12px 30px rgba(3,16,24,.15)}
+.coaching-story-photo{aspect-ratio:4/3;box-shadow:0 12px 30px rgba(13,14,14,.15)}
 .photo-story-grid .session-steps{display:grid;grid-template-columns:1fr;margin:0;gap:16px}
 .private-registration .private-photo-story .private-goals-grid{display:grid;grid-template-columns:1fr;gap:16px;margin:0}
 .private-photo-story{margin-bottom:24px}
@@ -29,7 +29,7 @@ body.home-landing .hero-action-label{display:none}
 .contact-coach-photo{margin-top:24px}
 .owner-photo-pair{display:grid;grid-template-columns:3fr 2fr;gap:24px;align-items:start;margin-top:22px}
 .owner-photo-pair figure{min-width:0;margin:0}
-.owner-photo-pair figcaption{color:#ccd6dc;font-size:.88rem;margin-top:10px}
+.owner-photo-pair figcaption{color:#dad6cd;font-size:.88rem;margin-top:10px}
 .methodology-story-main .owner-principles-story .method-principles{display:grid;grid-template-columns:1fr;gap:16px;margin:0}
 body .fall-program-hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;width:min(1040px,calc(100% - 48px));margin-inline:auto;padding-block:18px;align-items:center}
 body .fall-hero-copy{width:auto;margin:0;padding:0}

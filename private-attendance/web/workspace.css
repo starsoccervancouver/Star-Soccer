@@ -16,23 +16,23 @@
 
 :root {
   color-scheme: light;
-  --desk-navy: #142332;
-  --desk-navy-soft: #233d50;
-  --desk-gold: #79bfff;
-  --desk-blue: #dae8ef;
-  --desk-ink: #1e3040;
-  --desk-muted: #566878;
-  --desk-line: #dbe3e8;
-  --desk-canvas: #f3f6f8;
-  --desk-surface: #ffffff;
-  --desk-inset: #f6f8fa;
-  --desk-field: #ffffff;
-  --desk-accent: #1455eb;
-  --desk-accent-hover: #103fb9;
+  --desk-navy: #101213;
+  --desk-navy-soft: #282c2e;
+  --desk-gold: #9cdbef;
+  --desk-blue: #d8edf2;
+  --desk-ink: #202426;
+  --desk-muted: #505958;
+  --desk-line: #d7d4ca;
+  --desk-canvas: #ece8de;
+  --desk-surface: #fffdf8;
+  --desk-inset: #f3efe5;
+  --desk-field: #fffdf8;
+  --desk-accent: #24647a;
+  --desk-accent-hover: #194d60;
   --desk-green: #21664e;
   --desk-red: #923f35;
-  --desk-accent-soft: #eaf1ff;
-  --desk-control-line: #b9c8d0;
+  --desk-accent-soft: #dfedf0;
+  --desk-control-line: #abaea8;
   --desk-header-height: 88px;
   --navy: var(--desk-navy);
   --ink: var(--desk-ink);
@@ -2111,7 +2111,7 @@ body.planner-drawer-open .global-error { z-index: 90; }
 }
 
 /* Dedicated session workspace: a quiet canvas with deliberate exits. */
-:root { --desk-canvas: #f3f6f8; }
+:root { --desk-canvas: #ece8de; }
 #app .card { box-shadow: 0 3px 14px #10263d05; }
 #app .page-heading h1 { letter-spacing: -.035em; }
 #app .desk-nav #navigation button { font-weight: 650; }
@@ -2143,7 +2143,7 @@ body.planner-focus-mode #app .desk-main { width: 100%; max-width: none; min-heig
 body.planner-focus-mode .planner-workspace-actions { padding: 22px 0; margin: 0; gap: 12px; }
 body.planner-focus-mode #app .planner-workspace-actions button { min-height: 48px; padding: 12px 20px; border-radius: 16px; background: #fff; font-size: 13px; box-shadow: none; }
 body.planner-focus-mode #app .planner-workspace-actions #planner-open-notes { background: #fffaf2; }
-body.planner-focus-mode .planner-plan-card { padding: clamp(22px, 3vw, 38px); border-color: #dbe3e8; border-radius: 22px; box-shadow: 0 6px 24px #10263d06; }
+body.planner-focus-mode .planner-plan-card { padding: clamp(22px, 3vw, 38px); border-color: #d7d4ca; border-radius: 22px; box-shadow: 0 6px 24px #10263d06; }
 body.planner-focus-mode .planner-plan-heading h2 { font-size: 23px; letter-spacing: -.025em; }
 body.planner-focus-mode .planner-plan-card .privacy-message { margin-top: 16px; background: #faf7f0; }
 body.planner-focus-mode .plan-grid { column-gap: 26px; row-gap: 6px; }
@@ -2265,7 +2265,7 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
   #app .audit-row::before { left:16px; top:22px; }
   #app .audit-row p { text-align:left; }
 }
-/* Shared visual hierarchy: navy navigation, light canvas, white working surfaces. */
+/* Shared visual hierarchy: black navigation, bone canvas, warm working surfaces. */
 @media screen {
   .desk-header, .desk-nav { background:var(--desk-navy); border-color:transparent; }
   .desk-layout { background:transparent; }
@@ -2277,7 +2277,7 @@ body.planner-focus-mode .planner-plan-card #plan-form textarea:focus { border-co
   body #app :is(.planner-session-browser,#player-note-folders),
   body .planner-drawer-header, body .planner-drawer-content .coaching-tools-disclosure {
     background:var(--desk-surface); border-color:var(--desk-line); border-radius:16px;
-    box-shadow:0 2px 6px #14233204;
+    box-shadow:0 2px 6px #10121304;
   }
   body #app :is(.roster-row,.note-card,.task-row,.account-row,.audit-row,.coaching-agenda-row,.development-observation,.development-attendance li),
   body #app #planner-days button:not([aria-pressed="true"]),
@@ -2699,5 +2699,18 @@ body #app #report-filters .report-filter[aria-pressed=false]:hover:not(:disabled
   }
   body #app button:active:not(:disabled), #login button:active:not(:disabled) {
     box-shadow: inset 0 2px 3px #162e5030;
+  }
+}
+
+@media screen {
+  body #app .desk-main :is(#payment-submit,#plan-save,#library-new,#planner-add-drill) {
+    background:var(--desk-gold);
+    border-color:var(--desk-gold);
+    color:var(--desk-navy);
+  }
+  body #app .desk-main :is(#payment-submit,#plan-save,#library-new,#planner-add-drill):hover:not(:disabled) {
+    background:var(--desk-accent-soft);
+    border-color:var(--desk-accent);
+    color:var(--desk-navy);
   }
 }

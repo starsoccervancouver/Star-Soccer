@@ -434,6 +434,58 @@ body.home-landing .home-cta-card :is(.home-camps-cta-button, .flow-text-link) {
   body.home-landing .home-coach-card .home-coach-book-link { grid-column: 2; }
   body.home-landing .home-cta-stack { padding-inline: 12px; }
 }
+/* A portrait-led directory with a distinct, consistent booking action. */
+body.home-landing .coach-directory-heading {
+  margin-bottom: clamp(18px, 2.4vw, 32px);
+}
+body.home-landing .coach-directory-heading h2 {
+  font: 400 clamp(2.65rem, 5vw, 4.25rem)/1.02 "Instrument Serif", Georgia, serif;
+  letter-spacing: -.035em;
+}
+body.home-landing .coach-directory-heading p {
+  margin: 8px 0 0; color: #bfd1df; font-size: 1rem;
+}
+body.home-landing .home-coach-card .home-coach-book-link {
+  padding: 8px 14px; border: 1px solid #50728a; border-radius: 24px;
+  color: #e3f2fd; text-decoration: none; gap: 10px;
+}
+body.home-landing .home-coach-card .home-coach-book-link:focus-visible {
+  outline: 3px solid #efac63; outline-offset: 2px;
+}
+body.home-landing .home-coach-card .home-coach-initials {
+  border-radius: 50%; background: #163347; color: #bcd9e9;
+  font: 400 1.5rem/1 "Instrument Serif", Georgia, serif;
+}
+body.home-landing .home-coach-card:not(.home-coach-lead) h3 { font-size: 1.14rem; }
+body.home-landing .home-coach-stack .home-coach-lead {
+  display: grid; grid-template-columns: minmax(0, 33%) minmax(0, 1fr);
+  grid-template-rows: 1fr auto; gap: 0 clamp(14px, 2vw, 26px);
+  align-items: center; padding: 0; margin-bottom: 8px; overflow: hidden;
+  background: #dcebf1; border: 0; border-radius: 15px;
+}
+body.home-landing .home-coach-lead .home-coach-portrait {
+  grid-column: 1; grid-row: 1 / 3; align-self: stretch;
+  width: 100%; height: 100%; min-height: 154px; aspect-ratio: auto;
+  border: 0; border-radius: 0; position: relative;
+}
+body.home-landing .home-coach-lead .home-coach-portrait img {
+  position: absolute; inset: 0; object-fit: cover; object-position: 48% center;
+}
+body.home-landing .home-coach-lead .home-coach-copy { padding: 18px 14px 0 0; }
+body.home-landing .home-coach-lead h3 {
+  color: #102637; font: 400 clamp(1.7rem, 3vw, 2.6rem)/1.06 "Instrument Serif", Georgia, serif;
+  margin: 4px 0 6px;
+}
+body.home-landing .home-coach-lead .home-coach-copy p { color: #304b59; }
+body.home-landing .coach-role { color: #395b69; font-size: .72rem; font-weight: 800; }
+body.home-landing .home-coach-lead .home-coach-book-link {
+  grid-column: 2; margin: 10px 0 16px; background: #102b3e; color: white; border-color: transparent;
+}
+@media(max-width:540px) {
+  body.home-landing .home-coach-card:not(.home-coach-lead) .home-coach-book-link {
+    margin: 5px 0 8px;
+  }
+}
 body.home-landing .home-story-main>section.home-parent-faq{width:min(1120px,calc(100% - 48px));margin:40px auto;padding:32px;background:#10253a;border-color:#314b61;box-shadow:none}
 body.home-landing .home-parent-faq details{border-color:#314b61}
 body.home-landing .home-parent-faq summary{min-height:56px;color:#e6eef5}

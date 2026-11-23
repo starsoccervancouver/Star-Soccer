@@ -40,6 +40,9 @@
         check(doc.fonts.check('700 16px Manrope') && !doc.querySelector('link[href*="fonts.googleapis.com"],link[href*="fonts.gstatic.com"]'),`${page} at ${width}px renders its local brand font without Google font connections`);
         check(Math.abs(header.left)<=1 && Math.abs(header.right-doc.documentElement.clientWidth)<=1,`${page} at ${width}px has navigation across the full screen width`);
         const brandImages=[...doc.querySelectorAll('img.brand-logo')];
+        if(page==='index.html'){
+          check(brandImages.length===2 && brandImages.every(img=>new URL(img.currentSrc).pathname.endsWith('/site-photos/star-soccer-logo-768.webp')), `Homepage at ${width}px uses the lightweight logo in the header and footer`);
+        }
         check(brandImages.length>=1 && brandImages.every(img=>new URL(img.getAttribute('src'), location.href).pathname.endsWith('/logo-star-soccer-minimalized.svg') && img.complete && img.naturalWidth > 0), `${page} at ${width}px loads the current Star Soccer logo in the header and footer`);
         check(doc.querySelector('link[rel="icon"]')?.getAttribute('href')?.includes('star-soccer-favicon.svg'), `${page} at ${width}px uses the new star favicon`);
         const nav=doc.querySelector('#primary-navigation');

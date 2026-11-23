@@ -5,22 +5,230 @@
 (function (root) {
   'use strict';
   const catalog = {
-    version: '20261021-capacity', zone: 'America/Vancouver', currency: 'CAD', groupCapacity:20,
-    email: 'starsoccervancouver@gmail.com',
-    coaches: {valentinos: 'Valentinos Dinglis', evan: 'Evan Lycos', romeo: 'Romeo Dinglis', owen: 'Owen Soroka'},
-    locations: {
-      connaught: {name: 'Connaught Park', mapQuery: 'Connaught Park Vancouver BC'},
-      kits: {name: 'Kitsilano Turf', mapQuery: 'Kitsilano Secondary School Turf Vancouver BC'},
-      'fen-burdett': {name: 'Fen Burdett Stadium', locality: 'North Vancouver', mapQuery: 'Fen Burdett Stadium 1648 Jones Avenue North Vancouver'}
+  "zone": "America/Vancouver",
+  "currency": "CAD",
+  "groupCapacity": 20,
+  "email": "starsoccervancouver@gmail.com",
+  "coaches": {
+    "valentinos": "Valentinos Dinglis",
+    "evan": "Evan Lycos",
+    "romeo": "Romeo Dinglis",
+    "owen": "Owen Soroka"
+  },
+  "locations": {
+    "connaught": {
+      "name": "Connaught Park",
+      "mapQuery": "Connaught Park Vancouver BC"
     },
-    sessions: [
-      {id:'tuesday',day:'Tuesday',weekday:2,time:'9:30–11:00 AM',startMinutes:570,minAge:null,maxAge:null,ageLabel:'Women’s soccer',audience:'women',location:'fen-burdett',coaches:['valentinos'],dropin:20,pass4:null,active:true,excludedDates:[]},
-      {id:'wednesday',day:'Wednesday',weekday:3,time:'3:45–5:15 PM',startMinutes:945,minAge:9,maxAge:14,location:'connaught',coaches:['valentinos','romeo'],dropin:30,pass4:95,active:true,excludedDates:[]},
-      {id:'thursday',day:'Thursday',weekday:4,time:'4:30–5:30 PM',startMinutes:990,minAge:6,maxAge:9,location:'connaught',coaches:['valentinos'],dropin:25,pass4:80,active:true,excludedDates:[]},
-      {id:'friday',day:'Friday',weekday:5,time:'3:45–5:00 PM',startMinutes:945,minAge:6,maxAge:12,location:'connaught',coaches:['romeo'],dropin:25,pass4:80,active:true,excludedDates:[]},
-      {id:'sunday',day:'Sunday',weekday:0,time:'9:00–10:30 AM',startMinutes:540,minAge:6,maxAge:9,location:'kits',coaches:['valentinos'],dropin:30,pass4:95,active:true,excludedDates:[]}
-    ]
-  };
+    "kits": {
+      "name": "Kitsilano Turf",
+      "mapQuery": "Kitsilano Secondary School Turf Vancouver BC"
+    },
+    "fen-burdett": {
+      "name": "Fen Burdett Stadium",
+      "locality": "North Vancouver",
+      "mapQuery": "Fen Burdett Stadium 1648 Jones Avenue North Vancouver"
+    }
+  },
+  "sessions": [
+    {
+      "id": "tuesday",
+      "day": "Tuesday",
+      "weekday": 2,
+      "time": "9:30–11:00 AM",
+      "startMinutes": 570,
+      "minAge": null,
+      "maxAge": null,
+      "ageLabel": "Women’s soccer",
+      "audience": "women",
+      "location": "fen-burdett",
+      "coaches": [
+        "valentinos"
+      ],
+      "dropin": 20,
+      "pass4": null,
+      "active": true,
+      "excludedDates": [],
+      "program": "Tuesday adult women's soccer",
+      "endMinutes": 660,
+      "capacity": 20
+    },
+    {
+      "id": "wednesday",
+      "day": "Wednesday",
+      "weekday": 3,
+      "time": "3:45–5:15 PM",
+      "startMinutes": 945,
+      "minAge": 9,
+      "maxAge": 14,
+      "location": "connaught",
+      "coaches": [
+        "valentinos",
+        "romeo"
+      ],
+      "dropin": 30,
+      "pass4": 95,
+      "active": true,
+      "excludedDates": [],
+      "program": "Wednesday weekly training",
+      "endMinutes": 1035,
+      "capacity": 20
+    },
+    {
+      "id": "thursday",
+      "day": "Thursday",
+      "weekday": 4,
+      "time": "4:30–5:30 PM",
+      "startMinutes": 990,
+      "minAge": 6,
+      "maxAge": 9,
+      "location": "connaught",
+      "coaches": [
+        "valentinos"
+      ],
+      "dropin": 25,
+      "pass4": 80,
+      "active": true,
+      "excludedDates": [],
+      "program": "Thursday weekly training",
+      "endMinutes": 1050,
+      "capacity": 20
+    },
+    {
+      "id": "friday",
+      "day": "Friday",
+      "weekday": 5,
+      "time": "3:45–5:00 PM",
+      "startMinutes": 945,
+      "minAge": 6,
+      "maxAge": 12,
+      "location": "connaught",
+      "coaches": [
+        "romeo"
+      ],
+      "dropin": 25,
+      "pass4": 80,
+      "active": true,
+      "excludedDates": [],
+      "program": "Friday weekly training",
+      "endMinutes": 1020,
+      "capacity": 20
+    },
+    {
+      "id": "sunday",
+      "day": "Sunday",
+      "weekday": 0,
+      "time": "9:00–10:30 AM",
+      "startMinutes": 540,
+      "minAge": 6,
+      "maxAge": 9,
+      "location": "kits",
+      "coaches": [
+        "valentinos"
+      ],
+      "dropin": 30,
+      "pass4": 95,
+      "active": true,
+      "excludedDates": [],
+      "program": "Sunday weekly training",
+      "endMinutes": 630,
+      "capacity": 20
+    }
+  ],
+  "privateRates": {
+    "1": {
+      "60": 65,
+      "90": 97.5,
+      "120": 130
+    },
+    "2": {
+      "60": 55,
+      "90": 82.5,
+      "120": 110
+    },
+    "3": {
+      "60": 45,
+      "90": 67.5,
+      "120": 90
+    },
+    "4": {
+      "60": 40,
+      "90": 60,
+      "120": 80
+    },
+    "5": {
+      "60": 35,
+      "90": 52.5,
+      "120": 70
+    },
+    "6": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "7": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "8": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "9": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "10": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "11": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "12": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "13": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "14": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "15": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "16": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "17": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    },
+    "18": {
+      "60": 30,
+      "90": 45,
+      "120": 60
+    }
+  },
+  "version": "860c9fc3ec76b5d73e21dd4a1c5e5a00966e10ae75a3019e69e42e6ad11f2c79"
+};
   function freeze(value) { Object.values(value).forEach(v => { if (v && typeof v === 'object') freeze(v); }); return Object.freeze(value); }
   freeze(catalog);
   function localClock(now = new Date()) {
@@ -75,10 +283,11 @@
   function privateQuote(count,duration) {
     count=Number(count);duration=Number(duration);
     if (!Number.isSafeInteger(count) || count<1 || count>18 || ![60,90,120].includes(duration)) return null;
-    const base=({1:65,2:55,3:45,4:40,5:35})[count] || 30;
+    const rateCard=catalog.privateRates?.[count];
+    const base=rateCard?.[60] ?? (({1:65,2:55,3:45,4:40,5:35})[count] || 30);
     // New standard inquiries use a consistent hourly rate for every duration.
     // Existing agreed bookings keep their recorded charge in the ledger.
-    const perPlayer=base*duration/60;
+    const perPlayer=rateCard?.[duration] ?? base*duration/60;
     return {perPlayer,total:perPlayer*count,base,duration,count,format:count<=5?'private':'smallgroup'};
   }
   function coachId(value) {

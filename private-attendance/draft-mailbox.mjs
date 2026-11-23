@@ -21,6 +21,17 @@ export function draftMailbox({read,fetchFn,access,owner}){
  async function getDraft(id){try{return await read('drafts/'+encodeURIComponent(id),[['format','minimal']]);}catch(e){if(e.message==='GMAIL_404')return null;throw e;}}
  return {
   getDraft,
+  async findManagedDraft(key,to){
+   const ref=marker(key), messageId='<'+ref+'@starsoccer.ca>';
+   const page=await read('drafts',[['q','in:drafts rfc822msgid:'+ref+'@starsoccer.ca'],['maxResults','2']]);
+   if(page.nextPageToken||page.drafts?.length!==1)return null;
+   const d=await read('drafts/'+encodeURIComponent(page.drafts[0].id),[['format','metadata']]);
+   const m=d.message;
+   if(!m?.labelIds?.includes('DRAFT')||m.labelIds.includes('TRASH')||addr(m,'to')!==to ||
+      header(m,'message-id')!==messageId||!header(m,'subject').includes(ref)||
+      header(m,'cc')||header(m,'bcc')||header(m,'to').includes(','))return null;
+   return d;
+  },
   async sent(id,to){const m=await info(id);return m.labelIds?.includes('SENT')&&!m.labelIds.includes('DRAFT')&&(!to||addr(m,'to')===to)?m.id:null;},
   async prior(c){
    const q='in:anywhere {in:sent in:drafts} to:'+c.to+' ';

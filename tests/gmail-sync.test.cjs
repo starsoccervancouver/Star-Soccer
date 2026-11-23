@@ -236,6 +236,31 @@ function ledger(){
  }};
 }
 const e={id:'message123',thread:'thread123',type:'payment',sender:from,received:'2026-11-19T12:00:00Z',ref:'CA123456',amount:60,payer:'Example Parent',memo:'Payment for BOOK-100',verified:true};
+test('a weekly registration, owner-deposited transfer and receipt replay as one booking, payment, allocation and draft',async()=>{
+ const {classifyMessage}=await import('../private-attendance/gmail-message.mjs');
+ const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
+ const {receipt}=await import('../private-attendance/draft-rules.mjs');
+ const {processDraft}=await import('../private-attendance/draft-job.mjs');
+ const db=campLedger(),reference='SS-WEEKLY-E2E';
+ db.tables.sessions=[{id:'wed',fields:{Session:'Wednesday training','Source session ID':'SS-20261125-WE',Date:'2026-11-25',Time:'3:45 pm – 5:15 pm',Venue:'Connaught Park','Weekly program':['weekly'],'Session status':'Planned',Capacity:20,Attendance:[]}}];
+ const event={...await campEvent(),reference,version:'SS-WEEKLY-V2',sessionId:'wednesday',quotedPrice:'30',option:'Drop-in',dates:'2026-11-25',age:'10'};
+ const transfer=msg(from,'Interac e-Transfer: EXAMPLE PARENT sent you $30.00. Claim your deposit!','Message: Payment for '+reference+' Transfer Details Reference Number: CA567890 Sent From: EXAMPLE PARENT Amount: $30.00 (CAD)',['INBOX','incoming','deposited']);
+ transfer.id='deposited-mail';
+ db.tables.templates=[{fields:{Template:'Camp Email Master',Version:'REVIEW05 test',HTML:'<img src="logo"><p>VANCOUVER · PRO-D CAMPS</p><p>Registration confirmed</p><h1>{{CAMP_TITLE}}</h1><img src="field"><p>Thanks for registering! {{PLAYER_NAMES}}</p><p>The fee is {{PRICE_PER_PLAYER}}</p><p>Thanks,<br>Romeo</p><img src="signature">'}}];
+ db.tables.draftLog=[];const records=new Map(),storage={get:k=>records.get(k),put:(k,v)=>records.set(k,v),transaction:f=>f(storage)};
+ let made=0;const mail={prior:async()=>false,create:async()=>({id:'draft'+(++made),message:{threadId:'thread'}}),getDraft:async()=>({message:{threadId:'thread'}})};
+ for(let i=0;i<2;i++){
+  await syncLedgerEvent(db,event,{...placementOptions,confirmedDraftFlow:true});
+  await syncLedgerEvent(db,classifyMessage(transfer,ids,owner));
+  assert.equal(db.tables.allocations.length,1);
+  const c=receipt(db.tables,db.tables.payments[0],'2026-11-19');
+  assert.ok(c.html,c.review);
+  await processDraft({c,old:db.tables.draftLog[0]?.fields||{},db,storage,mail});
+ }
+ assert.equal(db.tables.registrations.length,1);assert.equal(db.tables.bookings.filter(r=>r.fields['Booking reference']===reference).length,1);
+ assert.equal(db.tables.attendance.length,1);assert.equal(db.tables.payments.length,1);assert.equal(db.tables.allocations[0].fields['Applied CAD'],30);
+ assert.equal(made,1);assert.equal(db.tables.draftLog.length,1);
+});
 test('surname-first deposit recovers an automated hold once and leaves an unspecified sibling split open',async()=>{
  const {syncLedgerEvent}=await import('../private-attendance/gmail-ledger.mjs');
  const db=ledger(),event={...e,payer:'PARENT,EXAMPLE MIDDLE',memo:''};

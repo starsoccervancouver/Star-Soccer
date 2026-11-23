@@ -155,9 +155,19 @@ export async function processDraft({c,old,db,storage,mail,observedSentId}){
  }
  if(c.obsolete){if(old.Status||c.kind==='Renewal')return save('Obsolete',c.obsolete);return;}
  if(c.review)return save('Review',c.review);
- if(state||old.Status==='Creating'){
+ const resume=state?.phase==='prepared' && state.to===c.to && state.signature===snapshot(c);
+ if(!resume && (state||old.Status==='Creating')){
   const found=await mail.findSent(c.key,{...old,Recipient:old.Recipient||c.to});
-  return found?sent(found):save('Review','Draft creation outcome is uncertain. Check Gmail. Automatic retry is held.');
+  if(found)return sent(found);
+  if(state?.to===c.to && state.signature===snapshot(c) && mail.findManagedDraft){
+   const existing=await mail.findManagedDraft(c.key,c.to);
+   if(existing){
+    await storage.put(lock,{...state,draftId:existing.id,thread:existing.message.threadId,
+     ...(c.kind==='Receipt'?{allocationHtml:c.allocationHtml,receiptFamily:c.receiptFamily}:{})});
+    return save('Draft',c.detail,{Recipient:c.to,'Gmail draft ID':existing.id,'Gmail thread ID':existing.message.threadId});
+   }
+  }
+  return save('Review','Draft creation outcome is uncertain. Check Gmail. Automatic retry is held.');
  }
  if(c.kind==='Confirmation'){
   const legacy=await storage.get('confirmation:booking:'+c.id);
@@ -168,10 +178,23 @@ export async function processDraft({c,old,db,storage,mail,observedSentId}){
   if(intake.some(x=>x.fields['Gmail draft ID']||['Ignore','Duplicate'].includes(x.fields.Review)||['Sent - confirmed','No reply needed'].includes(x.fields['Reply workflow'])))return save('Review','Check the existing intake draft or owner decision.');
  }
  if(await mail.prior(c))return save('Review','Related drafts or sent messages already exist. Check Gmail for the original.');
- const acquired=await storage.transaction(async tx=>{if(await tx.get(lock))return false;await tx.put(lock,{to:c.to,signature:snapshot(c)});return true;});
+ const intent={to:c.to,signature:snapshot(c),phase:'prepared'};
+ const acquired=resume || await storage.transaction(async tx=>{if(await tx.get(lock))return false;await tx.put(lock,intent);return true;});
  if(!acquired)return;
  await save('Creating','Checking Gmail for the new draft.',{Recipient:c.to});
- const d=await mail.create(c);if(!d?.id)throw Error('GMAIL_DRAFT_UNCERTAIN');
+ const claimed=await storage.transaction(async tx=>{
+  const saved=await tx.get(lock);
+  if(saved?.phase!=='prepared'||saved.signature!==intent.signature)return false;
+  await tx.put(lock,{...intent,phase:'requested'});return true;
+ });
+ if(!claimed)return;
+ let d;
+ try{d=await mail.create(c);}
+ catch(error){
+  if(error.message==='GMAIL_429')await storage.put(lock,intent);
+  throw error;
+ }
+ if(!d?.id)throw Error('GMAIL_DRAFT_UNCERTAIN');
  await storage.put(lock,{to:c.to,draftId:d.id,thread:d.message?.threadId,signature:snapshot(c),
   ...(c.kind==='Receipt'?{allocationHtml:c.allocationHtml,receiptFamily:c.receiptFamily}:{})});
  await save('Draft',c.detail,{Recipient:c.to,'Gmail draft ID':d.id,...(d.message?.threadId?{'Gmail thread ID':d.message.threadId}:{})});

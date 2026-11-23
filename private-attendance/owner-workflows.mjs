@@ -1,4 +1,6 @@
 import {sessionTimes,vancouverInstant} from './airtable-roster.mjs';
+import reviewedPrograms from './weekly-programs.json' with {type:'json'};
+import {assignmentConflict} from './schedule-conflicts.mjs';
 const tables={"Families":"tbldgg7nkOSbisXTA","Dated Attendance (internal)":"tblcJQZMT2JKEUS2B","Bookings":"tblVsKHnBZMlxYavr","Payments":"tblF3FEKz8Bza5CEJ","Website Registrations":"tblxyNOfuxDnUoTtP","Staff":"tblqTiyXVvlsuPh2F"};
 const single=a=>a?.length===1?a[0]:null;
 const record=(t,id)=>'https://airtable.com/appnaG94HQpEaRios/'+tables[t]+(id?'/'+id:'');
@@ -18,7 +20,16 @@ staff:['Name','Hourly rate CAD'],expenses:['Expense ID','Supplier','Category','E
 attribution:['Registration reference','Visit ID','utm_source']};
 export function ownerWorkflows(data,{now,notices,desk,calendar,calendarReason,draftStates=[],draftError}){
  const lines=[],items=[],line=(group,text)=>lines.push({group,text}),item=(group,title,action,link)=>items.push({group,title,action,link});
+ for(const s of reviewedPrograms.sessions)line('Weekly programs',s.program+' · '+s.time+' · '+s.venue+' · '+s.capacity+' places · '+money(s.dropin)+' drop-in');
  const by=n=>new Map(data[n].map(r=>[r.id,r.fields]));
+ const conflicts=new Set();
+ for(const session of data.sessions.filter(r=>r.fields.Date>=day(now)&&r.fields.Date<=day(now+7*86400000))){
+  const other=assignmentConflict(session,data.sessions);
+  const pair=[session.id,other].sort().join('/');
+  if(other&&!conflicts.has(pair)){
+   conflicts.add(pair);item('Coaching team',session.fields.Date+' · overlapping coach assignments','Check the two dated sessions and confirm coach coverage.',record('Dated Attendance (internal)',session.id));
+  }
+ }
  const books=by('bookings'),payments=by('payments'),sessions=by('sessions'),intake=new Map(data.intake.map(r=>[r.fields['Message ID'],r.fields]));
  const active=data.attendance.filter(r=>r.fields['Coverage state']==='Active'),paid=new Map(),applied=new Map(),unknown=new Set();
  for(const {fields:a} of data.allocations){

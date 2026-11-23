@@ -130,6 +130,23 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const owner=await storage.get('ownerAddress')||STAR_SOCCER_OWNER;
       const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner});
       const previousSend=await storage.get('mail-drafts:recent-send');
+      // Revisit deposited notices received since receipt drafting was activated.
+      // Use the normal queue so retries retain the original Interac and Gmail keys.
+      const repairKey='mail-drafts:interac-name-replay:v1';
+      const repair=await storage.get(repairKey);
+      if(filing && repair!=='done'){
+        const activated=(await storage.get('mail-drafts:report'))?.activated;
+        if(Number.isFinite(Date.parse(activated))){
+          const params=[['labelIds',labels[depositLabel]],['q','from:notify@payments.interac.ca after:'+Math.floor(Date.parse(activated)/1000)+' -in:trash -in:spam'],['maxResults','50']];
+          if(repair)params.push(['pageToken',repair]);
+          const page=await gmail(access,'messages',params);
+          await storage.transaction(async tx=>{
+            for(const m of page.messages||[])await tx.put('q:'+m.id,true);
+            await tx.put(repairKey,page.nextPageToken||'done');
+          });
+        }
+      }
+      let processedDeposit=false;
       let pending=await storage.list({prefix:'q:',limit:1});
       if(!pending.size){
         const scan=await storage.get('scan')||await bootstrap(access,null,await storage.get('ownerAddress'));
@@ -150,6 +167,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
             const event=classifyMessage(message,labels,STAR_SOCCER_OWNER,mailbox,followupEnabled||!!campPlacementSince);
             const confirmedDraftFlow=!!filing&&Date.parse(event?.received)>=Date.parse('2026-11-22T07:30:00Z');
             await syncLedgerEvent(ledger,event,{campPlacementSince,confirmedDraftFlow,trackConfirmation:followupEnabled||confirmedDraftFlow,now:new Date(clock())});
+            processedDeposit=event?.type==='payment'&&event.verified;
           }
           catch(err){
             if(!/^AIRTABLE_/.test(err.message))throw err;
@@ -171,7 +189,7 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       const filingPending=filing?await filing.step():false;
       const previousDraftCheck=await storage.get('mail-drafts:report');
       const draftInterval=previousDraftCheck?.waitingRenewal?pollInterval:900000;
-      if(filing && (previousSend||!previousDraftCheck?.sourcesChecked||clock()-(await storage.get('mail-drafts:last')||0)>=draftInterval)){
+      if(filing && (processedDeposit||previousSend||!previousDraftCheck?.sourcesChecked||clock()-(await storage.get('mail-drafts:last')||0)>=draftInterval)){
         try{
           const report=await runDraftJob({db:ledger,storage,mail,now:clock()});
           await storage.put('mail-drafts:report',report);

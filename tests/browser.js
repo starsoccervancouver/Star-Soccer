@@ -69,9 +69,13 @@
           check(camps && camps.getClientRects().length && camps.getBoundingClientRect().height>=48,`Homepage at ${width}px shows a large camp action`);
           check(camps && camps.textContent.includes('Compare Vancouver winter soccer camps') && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with a descriptive winter soccer camp action`);
           check(doc.querySelector('h1').textContent.includes('Weekly soccer coaching.') && doc.querySelector('h1').textContent.includes('Ages 6–14 in Kitsilano.'),`Homepage at ${width}px describes the weekly service, ages and location`);
-          for(const [coach,days] of [['Valentinos Dinglis',['tuesday','wednesday','thursday','sunday']],['Romeo Dinglis',['wednesday','friday']]]){
-            const links=[...doc.querySelectorAll(`[role="group"][aria-label="Weekly groups with ${coach}"] a`)];
-            check(links.length===days.length && links.every((link,index)=>new URL(link.href).searchParams.get('day')===days[index] && link.getBoundingClientRect().height>=44),`${coach} has readable weekly-group links at ${width}px`);
+          const profiles=[...doc.querySelectorAll('#coaching-team .home-coach-card')];
+          for(const [coach,preference] of [['Valentinos Dinglis','valentinos'],['Evan Lycos','evan'],['Romeo Dinglis','romeo'],['Owen Soroka','owen']]){
+            const card=profiles.find(profile=>profile.querySelector('h3')?.textContent.trim()===coach);
+            const links=card?.querySelectorAll('a');
+            const link=links?.[0];
+            check(links?.length===1 && link.getAttribute('href')===`program-private-small-group.html?coach=${preference}#private-form` &&
+              link.getBoundingClientRect().height>=44 && link.getBoundingClientRect().width>=44,`${coach} has one usable private inquiry link at ${width}px`);
           }
           const sidebarCards=[...doc.querySelectorAll('#coaching-team .home-cta-stack > .home-cta-card')];
           const sidebarDestinations=['registration.html?sessionId=tuesday&type=dropin','methodology.html','camps.html#camp-weeks'];
@@ -79,7 +83,7 @@
             const link=card.querySelector('.home-camps-cta-button');
             return link && link.getAttribute('href')===sidebarDestinations[i] && link.getClientRects().length && link.getBoundingClientRect().height>=44;
           }),`Homepage at ${width}px has three usable options beside the coaching cards`);
-          check(sidebarCards[2]?.textContent.includes('Winter') && sidebarCards[2]?.textContent.includes('Kitsilano Turf') && doc.querySelectorAll('#coaching-team .home-coach-card').length===4,`Homepage at ${width}px keeps winter camps beside all four coaching profiles`);
+          check(sidebarCards[2]?.textContent.includes('Winter') && sidebarCards[2]?.textContent.includes('Kitsilano Turf') && profiles.length===4,`Homepage at ${width}px keeps winter camps beside all four coaching profiles`);
           const lead=doc.querySelector('.immersive-hero-lead').getBoundingClientRect(),actions=doc.querySelector('.hero-action-panel').getBoundingClientRect(),heroPhoto=doc.querySelector('.home-training-photo').getBoundingClientRect();
           check(actions.top>=lead.bottom && (width>700?actions.right<heroPhoto.right:heroPhoto.top>=actions.bottom),`Homepage at ${width}px keeps choices below the introduction and ahead of the mobile photo`);
         }
@@ -138,12 +142,18 @@
             ? historyRow.getBoundingClientRect().height+(parseFloat(frame.contentWindow.getComputedStyle(form).rowGap)||0)
             : 0;
           if(history)check(historyHeight>0 && historyHeight<=100,`${page} at ${width}px keeps the optional attendance-history row within 100px`);
-          // The coach credential adds two lines on narrow phones and one at the 430px test width.
-          const coachCopyAllowance=privateForm?(width<430?40:20):0;
+          // The coach credential adds up to two lines, depending on the available space and font metrics.
+          const coachLink=privateForm?doc.querySelector('#private-form a[href="index.html#coaching-team"]'):null;
+          let coachCopyAllowance=0;
+          if(coachLink){
+            const paragraph=coachLink.parentElement;
+            const lineHeight=parseFloat(frame.contentWindow.getComputedStyle(paragraph).lineHeight);
+            coachCopyAllowance=Math.ceil(paragraph.getBoundingClientRect().height-lineHeight);
+            check(coachCopyAllowance>0 && coachCopyAllowance<=40,`Coach credential at ${width}px adds at most two lines`);
+          }
           const limit=baseLimit+Math.min(historyHeight,100)+Math.ceil(priceLineOffset)+coachCopyAllowance;
           check(Math.round(submit.getBoundingClientRect().bottom)<=limit && submit.getBoundingClientRect().height>=48,`${page} at ${width}px keeps a large submit button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
           if(privateForm){
-            const coachLink=doc.querySelector('#private-form a[href="index.html#coaching-team"]');
             check(coachLink?.parentElement.textContent.includes('coached in Vancouver for 30+ years') && coachLink.getClientRects().length===1,`Private coaching at ${width}px shows the credential beside a single-line coach link`);
             doc.querySelector('[name="Training format"][value="smallgroup"]').click();
             check(Math.round(submit.getBoundingClientRect().bottom)<=limit && submit.getBoundingClientRect().height>=48,`Small group at ${width}px also keeps its inquiry button within ${limit}px (${Math.round(submit.getBoundingClientRect().bottom)}px)`);
@@ -220,6 +230,11 @@
     const faq=doc.querySelector('.home-parent-faq details');
     faq.querySelector('summary').click();
     check(faq.open && faq.querySelector('p').getClientRects().length && [...faq.querySelectorAll('a')].every(link=>link.getAttribute('href')) && doc.documentElement.scrollWidth<=321,'Parent FAQ opens with working program links and fits a 320px screen');
+    const owenInquiry=doc.querySelector('#coaching-team a[href*="coach=owen"]');
+    if(owenInquiry){
+      doc=await load(owenInquiry.getAttribute('href'),320);
+      check(doc.querySelector('#private-inquiry [name="Preferred coach"]').value==='owen' && doc.querySelector('#private-info-coach').textContent==='Owen Soroka','Owen’s private inquiry carries his name into the form and its summary');
+    }
     doc=await load('program-private-small-group.html?format=smallgroup&coach=evan',320);
     const groupForm=doc.querySelector('#private-inquiry'),groupPlayers=groupForm.elements.namedItem('Players');
     const groupChoice=groupForm.querySelector('[value="smallgroup"]'),privateChoice=groupForm.querySelector('[value="private"]');

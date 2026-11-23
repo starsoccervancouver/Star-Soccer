@@ -329,7 +329,12 @@ export const collectibleBooking = row => row.scope==='session' || (row.scope==='
 
 export function unpaidSessionRows(report) {
   return report.rows.filter(row=>collectibleBooking(row) && row.status==='due' && Number.isFinite(row.amountDue) && row.amountDue>0)
-    .map(({scope,status,amountDue,bookingId,familyId,familyName,playerId,playerName,pastBookingBalance})=>({scope,status,amountDue,bookingId,familyId,familyName,playerId,playerName,pastBookingBalance}));
+    .map(row=>{
+      const {scope,status,amountDue,bookingId,familyId,familyName,playerId,playerName,pastBookingBalance,
+        date,time,location,sessionLabel,bookingType,attendanceStatus,coveredDates,amountCharged,amountPaid}=row;
+      return {scope,status,amountDue,bookingId,familyId,familyName,playerId,playerName,pastBookingBalance,
+        date,time,location,sessionLabel,bookingType,attendanceStatus,coveredDates,amountCharged,amountPaid};
+    });
 }
 
 export function createBooksReader(load, clock = Date.now, summaryStore) {

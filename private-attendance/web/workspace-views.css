@@ -191,6 +191,6 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
 
 #opening-overview { max-width:36rem; margin:clamp(16px,5vw,60px) auto; padding-inline:16px; color:var(--desk-ink); }
 #opening-overview h1 { margin:0; font-size:28px; }
-#opening-overview #home-attention { background:var(--desk-surface); border:1px solid var(--desk-line); border-radius:12px; padding:16px; }
+#opening-overview :is(#home-attention,#unpaid-bookings) { background:var(--desk-surface); border:1px solid var(--desk-line); border-radius:12px; padding:16px; }
 #opening-overview #home-attention h2 { margin:0 0 8px; font-size:18px; }
 #opening-overview #home-unpaid-list a { align-items:center; min-height:44px; color:var(--desk-ink); text-decoration:none; }

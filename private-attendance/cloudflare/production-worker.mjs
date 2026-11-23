@@ -91,9 +91,9 @@ export class AttendanceCoordinator{
    const summaryStore={
     read:()=>{
      const saved=JSON.parse(this.store.get("SELECT value FROM runtime_state WHERE key='unpaid-overview'")?.value||'null');
-     return saved?.version===2?saved:null;
+     return saved?.version===3?saved:null;
     },
-    save:value=>this.store.run("INSERT OR REPLACE INTO runtime_state(key,value) VALUES('unpaid-overview',?)",JSON.stringify({...value,version:2})),
+    save:value=>this.store.run("INSERT OR REPLACE INTO runtime_state(key,value) VALUES('unpaid-overview',?)",JSON.stringify({...value,version:3})),
     clear:()=>this.store.run("DELETE FROM runtime_state WHERE key='unpaid-overview'")
    };
    const reader=createRosterReader({baseId:config.baseId,token:env.AIRTABLE_TOKEN,tableMap:config.tables,summaryStore,timeZone:clubConfig.timeZone,verifiedContacts:config.verifiedContacts||{},fetchFn:airtableFetch});

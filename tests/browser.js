@@ -90,7 +90,7 @@
           }),`Homepage at ${width}px has three usable options beside the coaching cards`);
           check(sidebarCards[2]?.textContent.includes('Winter') && sidebarCards[2]?.textContent.includes('Kitsilano Turf') && profiles.length===4,`Homepage at ${width}px keeps winter camps beside all four coaching profiles`);
           const lead=doc.querySelector('.immersive-hero-lead').getBoundingClientRect(),actions=doc.querySelector('.hero-action-panel').getBoundingClientRect(),heroPhoto=doc.querySelector('.home-training-photo').getBoundingClientRect();
-          check(actions.top>=lead.bottom && (width>700?actions.right<heroPhoto.right:heroPhoto.top>=actions.bottom),`Homepage at ${width}px keeps choices below the introduction and ahead of the mobile photo`);
+          check(actions.top>=lead.bottom && (width>700?actions.right<heroPhoto.right:heroPhoto.bottom<=lead.top),`Homepage at ${width}px keeps choices below the introduction and leads with the training photo on mobile`);
         }
         if(page==='camps.html') {
           const links=[...doc.querySelectorAll('.camp-comparison .winter-camp-cta')];

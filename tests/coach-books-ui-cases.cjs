@@ -391,13 +391,26 @@ module.exports = async function checkBooks(fixture) {
 
   const walkIn={...due,familyId:null,familyName:null,amountDue:60,amountOutstanding:60};
   const past={...walkIn,scope:'booking',bookingId:recordId(999),date:null,sessionLabel:'Earlier camp · date unrecorded',pastBookingBalance:true,amountDue:50,amountOutstanding:50};
-  const carryover=await fixture({...emptyHome,books:[walkIn,past]});
+  const carryover=await fixture({...emptyHome,books:[walkIn,past],paymentRecording:true});
   try{
     const {page}=carryover;
+    await carryover.context.route('**/workspace/api/booking-payment',async route=>{
+      const cmd=route.request().postDataJSON();
+      assert.equal(cmd.familyId,undefined);assert.equal(cmd.playerId,walkIn.playerId);
+      assert.deepEqual(cmd.items,[{bookingId:past.bookingId,applyCents:5000,dueCents:5000},{bookingId:walkIn.bookingId,applyCents:1000,dueCents:6000}]);
+      Object.assign(past,{status:'paid',amountDue:0,amountOutstanding:0});
+      Object.assign(walkIn,{amountDue:50,amountOutstanding:50});
+      await route.fulfill({json:{saved:true}});
+    });
     await page.locator('#home-unpaid-label .unpaid-total').getByText('$110.00 owing').waitFor();
     await page.locator('#home-unpaid-list a').getByText('$110.00').click();
     await page.locator('#selected-balance').getByText('$110.00 owing').waitFor();
     assert.equal(await page.locator('#unpaid-booking-list .books-entry').count(),2);
+    await page.locator('#payment-entry summary').click();
+    await page.locator('#payment-amount').fill('60');await page.locator('#payment-method').selectOption('Cash');
+    await page.locator('#payment-submit').click();
+    await page.locator('#home-unpaid-label .unpaid-total').getByText('$50.00 owing').waitFor();
+    assert.equal(new URL(page.url()).hash,'#view=home');
   }finally{await carryover.context.close();}
 
   const accountingRows=[{...due},otherParent];

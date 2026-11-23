@@ -134,7 +134,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
   if(path==='/workspace/api/booking-payment'){
    if(request.method!=='POST')deny('METHOD_NOT_ALLOWED',405);
    coaches.owner(actor);if(!bookingPayments)deny('PAYMENT_DISABLED',403);
-   const input=await body(request,['id','familyId','date','method','reference','items']);
+   const input=await body(request,['id','familyId','playerId','date','method','reference','items']);
    const current=currentSession(raw,signed).actor;coaches.owner(current);
    let saved;
    try{saved=await bookingPayments('record-booking-payment',{actor:current.email,input});}

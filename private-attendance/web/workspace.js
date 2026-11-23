@@ -847,10 +847,10 @@
    if(mode==='family'){
     const familyContact=rows.find(row=>row.familyId&&row.contact)?.contact;
     details.append(bookContact(familyContact));
-    const id=rows[0]?.familyId;
-    if(canRecordPayment()&&id){
-     const family=unpaidByFamily(booksRows.filter(row=>row.familyId===id))[0];
-     if(family){const pay=node('button','Record a payment','secondary');pay.type='button';pay.addEventListener('click',()=>{go('books',false,null,{bookTarget:'family-'+family.id,expandPayment:true});});details.append(pay);}
+    const {familyId,playerId}=rows[0];
+    if(canRecordPayment()&&(familyId||playerId)){
+     const family=unpaidByFamily(booksRows.filter(row=>familyId?row.familyId===familyId:!row.familyId&&row.playerId===playerId))[0];
+     if(family){const pay=node('button','Record a payment','secondary');pay.type='button';pay.addEventListener('click',()=>{go('books',false,null,{bookTarget:familyId?'family-'+familyId:'player-'+playerId,expandPayment:true});});details.append(pay);}
     }
    }
    const list=node('ul','','book-members');
@@ -927,12 +927,12 @@
  }
  function setupPaymentForm(family){
   paymentFamily=family;paymentCommand=null;
-  const entry=$('payment-entry');entry.open=false;entry.hidden=!canRecordPayment()||!family.id;
+  const entry=$('payment-entry');entry.open=false;entry.hidden=!canRecordPayment()||!(family.id||family.rows[0]?.playerId);
   const form=$('booking-payment-form');form.reset();$('payment-result').textContent='';
   if(entry.hidden)return;
   const select=$('payment-target');
   select.replaceChildren(new Option('All unpaid sessions · oldest first',''));
-  for(const row of family.rows)select.add(new Option([familyDate(row.date),row.playerName,familyMoney(row.amountDue)].filter(Boolean).join(' · '),row.bookingId));
+  for(const row of family.rows)select.add(new Option([row.pastBookingBalance?'Earlier camp':familyDate(row.date),row.playerName,familyMoney(row.amountDue)].filter(Boolean).join(' · '),row.bookingId));
   $('payment-target-label').hidden=family.rows.length===1;
   $('payment-date').max=today();$('payment-date').value=today();
   for(const field of form.elements)field.disabled=paymentBusy;
@@ -944,7 +944,7 @@
   $('payment-ref-label').hidden=!transfer;$('payment-reference').required=transfer;
   const target=$('payment-target').value,amount=$('payment-amount');
   const rows=paymentFamily.rows.filter(r=>!target||r.bookingId===target)
-   .sort((a,b)=>String(a.date).localeCompare(String(b.date))||a.bookingId.localeCompare(b.bookingId));
+   .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||a.bookingId.localeCompare(b.bookingId));
   const max=rows.reduce((sum,r)=>sum+Math.round(r.amountDue*100),0);
   amount.max=(max/100).toFixed(2);
   let left=Math.round(amount.valueAsNumber*100);
@@ -952,7 +952,7 @@
   if(left>0&&left<=max)for(const row of rows){
    const dueCents=Math.round(row.amountDue*100),applyCents=Math.min(dueCents,left);
    items.push({bookingId:row.bookingId,applyCents,dueCents});
-   lines.push(familyDate(row.date)+' · '+row.playerName+' · '+familyMoney(applyCents/100));left-=applyCents;
+   lines.push((row.pastBookingBalance?'Earlier camp':familyDate(row.date))+' · '+row.playerName+' · '+familyMoney(applyCents/100));left-=applyCents;
    if(!left)break;
   }
   $('payment-split').textContent=items.length?'Apply to '+lines.join('; '):'Available balance: '+familyMoney(max/100);
@@ -996,7 +996,7 @@
   if(!paymentCommand){
    const items=updatePaymentForm();if(!items.length)return;
    const method=$('payment-method').value;
-   paymentCommand={id:crypto.randomUUID(),familyId:paymentFamily.id,date:$('payment-date').value,method,
+   paymentCommand={id:crypto.randomUUID(),...(paymentFamily.id?{familyId:paymentFamily.id}:{playerId:paymentFamily.rows[0].playerId}),date:$('payment-date').value,method,
     reference:method==='E-transfer'?$('payment-reference').value.trim().toUpperCase():'',items};
   }
   submitBookingPayment(paymentCommand,$('payment-submit'));

@@ -1,23 +1,26 @@
-import {collectibleBooking} from './session-books.mjs';
+import {collectibleBooking,playerPaymentReference} from './session-books.mjs';
 import {deny} from './coach-store.mjs';
 
 const recordId=/^rec[A-Za-z0-9]{14}$/;
 const commandId=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const cents=v=>Number.isFinite(v)?Math.round(v*100):null;
 const one=(links,id)=>Array.isArray(links)&&links.length===1&&links[0]===id;
+const familyMatches=(links,id)=>id?one(links,id):!links?.length;
+const payerMatches=(row,payer)=>payer.playerId?!row.familyId&&row.playerId===payer.playerId:row.familyId===payer.familyId;
 const conflict=()=>deny('PAYMENT_LEDGER_CHANGED',409);
 const validCents=v=>Number.isSafeInteger(v)&&v>0;
 const bookingFields=['Family','Player','Family reference','Booking status','Charge review','Due now CAD','Payment Allocations'];
-const receiptFields=['Source payment ID','Payment reference','Evidence reference','Payment date','Direction','Method','Verification','Family','Family reference','Amount CAD','Payment context','Payment Allocations'];
+const receiptFields=['Source payment ID','Payment reference','Evidence reference','Payment date','Direction','Method','Verification','Family','Family reference','Amount CAD','Payment context','Payment Allocations','Players associated (not allocation)'];
 const allocationFields=['Allocation ID','Payment','Booking','Amount CAD','Applied CAD','Review status'];
 
 function validate(input,today){
- const {familyId,date,method,reference,items}=input;
- if(!recordId.test(familyId)||typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date||date>today||
+ const {familyId,playerId,date,method,reference,items}=input;
+ const target=familyId!==undefined?{familyId}:{playerId};
+ if((familyId!==undefined&&playerId!==undefined)||typeof (familyId??playerId)!=='string'||!recordId.test(familyId??playerId)||typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date||date>today||
   !['Cash','E-transfer'].includes(method)||typeof reference!=='string'||(method==='Cash'?reference!=='':!(/^[A-Z0-9]{6,24}$/).test(reference))||
   !Array.isArray(items)||!items.length||items.some(i=>!i||!recordId.test(i.bookingId)||!validCents(i.applyCents)||!validCents(i.dueCents)||i.applyCents>i.dueCents)||
   new Set(items.map(i=>i.bookingId)).size!==items.length||!validCents(items.reduce((n,i)=>n+i.applyCents,0)))deny('INVALID_PAYMENT',400);
- return {familyId,date,method,reference,items:items.map(({bookingId,dueCents,applyCents})=>({bookingId,dueCents,applyCents}))};
+ return {...target,date,method,reference,items:items.map(({bookingId,dueCents,applyCents})=>({bookingId,dueCents,applyCents}))};
 }
 
 export function createBookingPayments({store,db,books,today}){
@@ -29,7 +32,7 @@ export function createBookingPayments({store,db,books,today}){
   return rows[0].fields;
  }
  const pending=()=>store.all('SELECT id,plan FROM booking_payment_commands WHERE done=0').map(({id,plan})=>{
-  const p=JSON.parse(plan);return {id,familyId:p.familyId,name:p.name,amount:p.total/100};
+  const p=JSON.parse(plan);return {id,...(p.playerId?{playerId:p.playerId}:{familyId:p.familyId}),name:p.name,amount:p.total/100};
  });
  async function commit(plan,retry){
   const {source,familyId,familyRef,items,total}=plan;
@@ -39,12 +42,12 @@ export function createBookingPayments({store,db,books,today}){
   const memo='Coach Desk receipt '+plan.id;
   function assertReceipt(record){
    const f=record.fields;
-   if(f['Source payment ID']!==source||f['Payment context']!==memo||f['Family reference']!==familyRef||!one(f.Family,familyId)||f.Method!==plan.method||f.Direction!=='Incoming'||f.Verification!=='Verified'||f['Payment date']!==plan.date||cents(f['Amount CAD'])!==total)conflict();
+   if(f['Source payment ID']!==source||f['Payment context']!==memo||f['Family reference']!==familyRef||!familyMatches(f.Family,familyId)||(plan.playerId&&!one(f['Players associated (not allocation)'],plan.playerId))||f.Method!==plan.method||f.Direction!=='Incoming'||f.Verification!=='Verified'||f['Payment date']!==plan.date||cents(f['Amount CAD'])!==total)conflict();
   }
   if(receipt)assertReceipt(receipt);
   if(retry&&!receipt){
    const {rows}=await books();
-   if(!items.every(i=>rows.some(r=>collectibleBooking(r)&&r.status==='due'&&r.familyId===familyId&&r.bookingId===i.bookingId&&cents(r.amountDue)===i.dueCents)))conflict();
+   if(!items.every(i=>rows.some(r=>collectibleBooking(r)&&r.status==='due'&&payerMatches(r,plan)&&r.bookingId===i.bookingId&&cents(r.amountDue)===i.dueCents)))conflict();
   }
   const allocations=await db.list('allocations',allocationFields,"LEFT({Allocation ID},"+(source.length+1)+")='"+source+"-'");
   const expected=new Set(items.map(i=>source+'-'+i.bookingId));
@@ -54,7 +57,7 @@ export function createBookingPayments({store,db,books,today}){
   for(const item of items){
    const f=await booking(item.bookingId),id=source+'-'+item.bookingId;
    const existing=allocations.filter(a=>a.fields['Allocation ID']===id);
-   if(!one(f.Family,familyId)||!one(f.Player,item.playerId)||!['Accepted','Completed'].includes(f['Booking status'])||f['Charge review']!=='Agreed'||
+   if(!familyMatches(f.Family,familyId)||!one(f.Player,item.playerId)||!['Accepted','Completed'].includes(f['Booking status'])||f['Charge review']!=='Agreed'||
     (f['Family reference']?f['Family reference']!==familyRef:f['Payment Allocations']?.length)||existing.length>1)conflict();
    if(existing.length){
     const a=existing[0].fields;
@@ -64,7 +67,7 @@ export function createBookingPayments({store,db,books,today}){
   }
   store.run('UPDATE booking_payment_commands SET started=1 WHERE id=?',plan.id);
   if(!receipt)receipt=await db.save('payments',{'Source payment ID':source,'Payment reference':source,'Amount CAD':total/100,Direction:'Incoming',Method:plan.method,Verification:'Verified',
-   Family:[familyId],'Family reference':familyRef,'Payment date':plan.date,'Verified by':plan.actor,'Evidence reference':plan.reference||memo,'Payment context':memo},{key:'Source payment ID'});
+   ...(familyId?{Family:[familyId]}:{'Players associated (not allocation)':[plan.playerId]}),'Family reference':familyRef,'Payment date':plan.date,'Verified by':plan.actor,'Evidence reference':plan.reference||memo,'Payment context':memo},{key:'Source payment ID'});
   for(const {item,id,existing,reference} of targets){
    if(existing)continue;
    if(!reference)await db.save('bookings',{'Family reference':familyRef},{id:item.bookingId});
@@ -91,20 +94,20 @@ export function createBookingPayments({store,db,books,today}){
   let plan;
   if(old)plan=JSON.parse(old.plan);
   else{
-   const p=JSON.parse(payload);
-   if(store.get('SELECT id FROM booking_payment_commands WHERE family=? AND done=0',p.familyId))deny('PAYMENT_PENDING',409);
+   const p=JSON.parse(payload),payerKey=p.familyId||playerPaymentReference(p.playerId);
+   if(store.get('SELECT id FROM booking_payment_commands WHERE family=? AND done=0',payerKey))deny('PAYMENT_PENDING',409);
    const {rows}=await books(),items=[],references=new Set();
    let name;
    for(const item of p.items){
-    const row=rows.find(r=>collectibleBooking(r)&&r.status==='due'&&r.bookingId===item.bookingId&&r.familyId===p.familyId);
+    const row=rows.find(r=>collectibleBooking(r)&&r.status==='due'&&r.bookingId===item.bookingId&&payerMatches(r,p));
     if(!row||cents(row.amountDue)!==item.dueCents)conflict();
     const f=await booking(item.bookingId);
-    if(!one(f.Family,p.familyId)||!one(f.Player,row.playerId)||(!f['Family reference']&&f['Payment Allocations']?.length))conflict();
+    if(!familyMatches(f.Family,p.familyId)||!one(f.Player,row.playerId)||(!f['Family reference']&&f['Payment Allocations']?.length))conflict();
     if(f['Family reference'])references.add(f['Family reference']);
-    name=row.familyName||row.contact?.guardian||'Family';
+    name=p.playerId?row.playerName||'Player':row.familyName||row.contact?.guardian||'Family';
     items.push({...item,playerId:row.playerId});
    }
-   if(references.size>1)conflict();
+   if(references.size>1||(p.playerId&&references.size&&!references.has(payerKey)))conflict();
    const source=p.method==='Cash'?'COACH-'+input.id:'INTERAC-'+p.reference;
    if(p.method==='E-transfer'){
     if(store.get('SELECT id FROM booking_payment_commands WHERE source=?',source))deny('PAYMENT_ALREADY_EXISTS',409);
@@ -112,8 +115,8 @@ export function createBookingPayments({store,db,books,today}){
     if(records.some(({fields:f})=>[f['Source payment ID'],f['Payment reference']].some(v=>[source,p.reference].includes(String(v||'').trim().toUpperCase()))||
       (String(f['Evidence reference']||'').toUpperCase().match(/[A-Z0-9]+/g)||[]).includes(p.reference)))deny('PAYMENT_ALREADY_EXISTS',409);
    }
-   plan={...p,id:input.id,actor,source,name,items,familyRef:[...references][0]||name,total:items.reduce((n,i)=>n+i.applyCents,0)};
-   store.run('INSERT INTO booking_payment_commands(id,actor,family,source,payload,plan) VALUES(?,?,?,?,?,?)',input.id,actor,p.familyId,source,payload,JSON.stringify(plan));
+   plan={...p,id:input.id,actor,source,name,items,familyRef:p.playerId?payerKey:[...references][0]||name,total:items.reduce((n,i)=>n+i.applyCents,0)};
+   store.run('INSERT INTO booking_payment_commands(id,actor,family,source,payload,plan) VALUES(?,?,?,?,?,?)',input.id,actor,payerKey,source,payload,JSON.stringify(plan));
   }
   try{await commit(plan,!!old);}
   catch(error){
@@ -124,5 +127,11 @@ export function createBookingPayments({store,db,books,today}){
   store.run('UPDATE booking_payment_commands SET done=1 WHERE id=?',input.id);
   return {saved:true};
  }
- return {save,pending};
+ // Keep the balance check and its writes in order across concurrent owner submissions.
+ let writes=Promise.resolve();
+ return {pending,save(actor,input){
+  const attempt=writes.then(()=>save(actor,input));
+  writes=attempt.catch(()=>{});
+  return attempt;
+ }};
 }

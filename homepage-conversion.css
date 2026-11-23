@@ -316,22 +316,6 @@ body.home-landing .home-parent-faq details p{padding:0 4px 12px;line-height:1.75
 body.home-landing .hero-women-link{display:flex;align-items:center;min-height:44px;padding:8px 4px;color:#e5f1fc;font-size:.92rem;font-weight:700;text-underline-offset:4px}
 body.home-landing .hero-women-link:focus-visible{outline:3px solid #f9d593;outline-offset:4px;border-radius:4px}
 
-/* Each coach keeps identity and experience together, with one aligned booking area. */
-body.home-landing .home-coaching-column{display:flex;flex-direction:column;gap:16px;min-width:0}
-body.home-landing .home-coach-stack{grid-auto-rows:auto;height:auto;gap:16px}
-body.home-landing .home-coach-card{grid-template-columns:minmax(180px,.9fr) minmax(0,1.3fr);align-items:start;gap:20px 24px;height:auto;min-width:0;padding:22px}
-body.home-landing .home-coach-card-header{align-items:flex-start;margin:0}
-body.home-landing .home-coach-card-title h3{font-size:1.5rem;line-height:1.15;margin:4px 0 0}
-body.home-landing .home-coach-card ul{gap:6px}
-body.home-landing .home-coach-card li{line-height:1.5}
-body.home-landing .home-coach-booking{grid-column:1/-1;display:grid;gap:10px;min-width:0;padding-top:16px;border-top:1px solid #344b61}
-body.home-landing .home-coach-booking .home-news-box-tag{margin:0}
-body.home-landing .home-coach-booking .flow-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}
-body.home-landing .home-coach-booking .button{width:100%;min-width:0;min-height:44px;padding:10px 12px;border-radius:10px;font-size:.86rem;line-height:1.4;white-space:normal;text-align:center;justify-content:center}
-body.home-landing .home-coach-book-link{width:100%;min-height:44px;margin:0;justify-content:center;text-align:center;font-size:.9rem;line-height:1.5;white-space:normal}
-@media(max-width:980px){body.home-landing .home-coach-card{grid-template-columns:1fr;gap:16px}}
-@media(max-width:540px){body.home-landing .home-coach-card{padding:20px 16px}body.home-landing .home-coach-booking .flow-actions{grid-template-columns:1fr}}
-
 /* Keep the photographic, navy identity with a quieter, more readable hierarchy. */
 body.home-landing{background:#081523;color:#e6eef5}
 body.home-landing .home-story-main{gap:0;background:#081523}
@@ -347,20 +331,109 @@ body.home-landing a.hero-action:focus-visible{transform:none;box-shadow:0 4px 16
 body.home-landing .home-proof-strip{background:#0b1c2c;border-color:#314b61}
 body.home-landing .home-local-guide{background:#081523}
 body.home-landing .home-local-guide aside{background:#10253a;border-color:#314b61;box-shadow:none}
-body.home-landing .home-latest-band{background:#0b1c2c;padding:40px 0}
-body.home-landing .home-latest-band-inner{width:min(1200px,calc(100% - 48px));padding:0;background:none;border:0;box-shadow:none}
-body.home-landing .home-trust-grid{gap:24px}
-body.home-landing .home-coach-card,body.home-landing .home-cta-card{background:#10253a;border-color:#314b61;box-shadow:none}
-body.home-landing .home-news-copy h2,body.home-landing .home-coach-card h3,body.home-landing .home-cta-card h3{font-family:Manrope,system-ui,sans-serif;font-weight:800;line-height:1.3;letter-spacing:-.03em;text-transform:none;color:#e6eef5;white-space:normal}
-body.home-landing .home-news-copy h2{font-size:clamp(1.65rem,2.6vw,2.2rem)}
-body.home-landing .home-coach-card-title h3{font-size:1.4rem}
-body.home-landing .home-cta-card h3{font-size:1.4rem;margin:8px 0 12px}
-body.home-landing .home-news-copy p,body.home-landing .home-coach-card li,body.home-landing .home-cta-card>p{color:#b4c5d4;line-height:1.7}
-body.home-landing .home-news-box-tag{font-size:.66rem;line-height:1.6;letter-spacing:.09em;color:#9bc9ed}
-body.home-landing .home-cta-stack{gap:16px;top:100px}
-body.home-landing .home-cta-card .home-camps-cta-button{margin-top:16px}
-body.home-landing :is(.home-camps-cta-button,.home-coach-book-link){min-height:48px;border-radius:10px;box-shadow:none}
-body.home-landing .home-coach-booking .button{min-height:48px}
+/* The coach directory and adjacent options share a compact, touch-friendly layout. */
+body.home-landing .home-latest-band {
+  background: #0b1c2c;
+  padding: clamp(24px, 3vw, 36px) 0;
+}
+@media (min-width: 901px) {
+  body.home-landing #coaching-team { scroll-margin-top: 100px; }
+}
+body.home-landing .home-latest-band-inner {
+  width: min(1120px, calc(100% - 48px));
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+body.home-landing .home-trust-grid { gap: clamp(20px, 3vw, 40px); }
+body.home-landing .home-coaching-column { display: grid; align-content: start; gap: 8px; min-width: 0; }
+body.home-landing .home-news-copy h2,
+body.home-landing .home-coach-card h3,
+body.home-landing .home-cta-card h3 {
+  margin: 0;
+  color: #e6eef5;
+  font-family: Manrope, system-ui, sans-serif;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -.025em;
+  text-transform: none;
+  white-space: normal;
+}
+body.home-landing .home-news-copy h2 { font-size: clamp(1.45rem, 2.3vw, 1.9rem); }
+body.home-landing .home-coach-stack { height: auto; grid-auto-rows: auto; gap: 0; }
+body.home-landing .home-coach-card {
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  height: auto;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid #314b61;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+body.home-landing .home-coach-copy { min-width: 0; }
+body.home-landing .home-coach-card h3 { margin-bottom: 3px; font-size: 1.04rem; }
+body.home-landing .home-coach-copy p,
+body.home-landing .home-cta-card > p { margin: 0; color: #b9ccda; font-size: .875rem; line-height: 1.5; }
+body.home-landing .home-cta-stack {
+  gap: 0;
+  top: 100px;
+  padding: 0 16px;
+  background: #10253a;
+  border: 1px solid #314b61;
+  border-radius: 12px;
+}
+body.home-landing .home-cta-card {
+  min-width: 0;
+  padding: 12px 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+body.home-landing .home-cta-card + .home-cta-card { border-top: 1px solid #314b61; }
+body.home-landing .home-cta-card h3 { margin-bottom: 4px; font-size: 1rem; }
+body.home-landing .home-option-links { display: flex; align-items: center; flex-wrap: wrap; gap: 0 14px; }
+body.home-landing .home-coach-card .home-coach-book-link,
+body.home-landing .home-cta-card :is(.home-camps-cta-button, .flow-text-link) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  justify-self: start;
+  gap: 4px;
+  width: fit-content;
+  min-height: 44px;
+  margin: 0;
+  padding: 4px 2px;
+  color: #b3d9f8;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  font-size: .875rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: normal;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: #6d98b9;
+  text-underline-offset: 3px;
+}
+@media (max-width: 540px) {
+  body.home-landing .home-coach-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+    align-items: start;
+    gap: 0 10px;
+    padding: 10px 0 2px;
+  }
+  body.home-landing .home-coach-card .home-coach-portrait { grid-row: span 2; }
+  body.home-landing .home-coach-card .home-coach-book-link { grid-column: 2; }
+  body.home-landing .home-cta-stack { padding-inline: 12px; }
+}
 body.home-landing .home-story-main>section.home-parent-faq{width:min(1120px,calc(100% - 48px));margin:40px auto;padding:32px;background:#10253a;border-color:#314b61;box-shadow:none}
 body.home-landing .home-parent-faq details{border-color:#314b61}
 body.home-landing .home-parent-faq summary{min-height:56px;color:#e6eef5}

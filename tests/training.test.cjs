@@ -82,7 +82,15 @@ test('transport success alone never confirms acceptance',()=>{
  for(const body of [null,{}, {success:false},{success:'false'},{success:1},{success:'yes'}])assert.equal(T.accepted({ok:true},body),false);
  assert.equal(T.accepted({ok:false},{success:true}),false);assert(T.accepted({ok:true},{success:true}));assert(T.accepted({ok:true},{success:'true'}));
 });
-test('coach aliases preserve old links without trusting arbitrary names',()=>{assert.equal(T.coachId('Valentino Dinglis'),'valentinos');assert.equal(T.coachId('Evan Lycos'),'evan');assert.equal(T.coachId('<script>'),'');assert.equal(T.coachId('__proto__'),'');});
+test('coach aliases preserve old links without trusting arbitrary names',()=>{
+  assert.equal(T.coachId('Valentino Dinglis'),'valentinos');
+  for(const [id,name] of Object.entries(T.catalog.coaches)){
+    assert.equal(T.coachId(id),id);
+    assert.equal(T.coachId(name),id);
+  }
+  assert.equal(T.coachId('<script>'),'');
+  assert.equal(T.coachId('__proto__'),'');
+});
 
 test('session sharing uses approved groups and a clean public destination',()=>{
  for(const s of T.catalog.sessions)assert.equal(T.sessionLink(s.id),'https://starsoccer.ca/programs.html?day='+s.id+'#sessions');

@@ -582,21 +582,39 @@
     if (!p) return null;
     return items.filter(i => i.kind === 'ball').map(i => positionIn(frame, i.id)).filter(ball => routeDistance(p, ball, view) > .1).sort((a, b) => routeDistance(p, a, view) - routeDistance(p, b, view))[0] || null;
   }
-  function playerArtwork(kind, position, color) {
-    if (!['home', 'away'].includes(kind) || !Number.isFinite(position?.facing)) return pieceArtwork(kind, color);
-    const art = svg('g', { 'data-symbol': kind, 'data-facing': position.facing, transform: 'rotate(' + position.facing + ')', 'aria-hidden': 'true' });
-    // A top-down head and shoulder line show body angle; the chevron marks the front.
-    art.append(svg('path', { d: 'M-8-12 Q-18-12-24-4 L-21 7 L-14 5 L-12 17 Q-10 21 0 21 T12 17 L14 5 L21 7 L24-4 Q18-12 8-12Z', fill: playerColors[color || (kind === 'away' ? 'gold' : 'blue')], stroke: '#fffdf7', 'stroke-width': 2.5, 'stroke-linejoin':'round' }), svg('path',{d:'M-20-5 L-17 1 M20-5 L17 1 M-9 15 Q0 18 9 15',fill:'none',stroke:'#fff','stroke-opacity':.65,'stroke-width':2}), svg('circle', { cy: -12, r: 8, fill: '#dbc6ad', stroke: '#293b31', 'stroke-width': 2 }), svg('path', { d:'M-3-19 L0-24 L3-19Z', fill:'#293b31', 'data-player-front':'' }), svg('path', { d: 'M-9-30 L0-37 L9-30', fill:'none', stroke:'#fffdf7', 'stroke-width':5, 'stroke-linecap':'round', 'stroke-linejoin':'round', 'pointer-events':'none' }), svg('path', { d: 'M-9-30 L0-37 L9-30', fill:'none', stroke:'#20382d', 'stroke-width':2.5, 'stroke-linecap':'round', 'stroke-linejoin':'round', 'data-body-direction':'', 'pointer-events':'none' }));
+  function playerArtwork(kind, color, facing) {
+    const kit = playerColors[color || (kind === 'away' ? 'gold' : 'blue')];
+    const ink = '#233139', skin = '#e4b68f';
+    const art = svg('g', {
+      'data-symbol':kind, 'aria-hidden':'true', 'stroke-linecap':'round', 'stroke-linejoin':'round'
+    });
+    // A staggered stance and bent arms distinguish front and back even at toolbar size.
+    art.append(
+      svg('path', { d:'M-11-9 Q0-14 12-8 L17-3 L13 5 L10 4 L9 11 Q0 15-9 11 L-11 3 L-15 5 L-19-1Z', fill:kit, stroke:ink, 'stroke-width':2.3 }),
+      svg('path', { d:'M-9 10 Q0 13 9 10 L11 16 L4 19 L0 15 L-5 19 L-12 16Z', fill:'#30404a', stroke:ink, 'stroke-width':1.4 }),
+      svg('path', { d:'M-8 16 L-12 20 L-15 16 M7 17 L11 24', fill:'none', stroke:ink, 'stroke-width':7 }),
+      svg('path', { d:'M-8 16 L-12 20 L-15 16 M7 17 L11 24', fill:'none', stroke:'#ebe9de', 'stroke-width':4.5 }),
+      svg('path', { d:'M-15 17 L-16 12 M11 25 L14 23', fill:'none', stroke:ink, 'stroke-width':6 }),
+      svg('path', { d:'M-16 1 L-21-3 L-21-10 M16 0 L21 5 L20 10', fill:'none', stroke:ink, 'stroke-width':6.5 }),
+      svg('path', { d:'M-16 1 L-21-3 L-21-10 M16 0 L21 5 L20 10', fill:'none', stroke:skin, 'stroke-width':4 }),
+      svg('path', { d:'M-13-6 L-17-2 M12-5 L15-2', fill:'none', stroke:'#faf5e9', 'stroke-width':2 }),
+      svg('path', { d:'M-8-13 Q-8-21-2-22 L0-26 Q1-27 3-23 Q9-22 9-14 Q9-6 1-6 Q-6-6-8-13Z', fill:skin, stroke:ink, 'stroke-width':1.8, 'data-player-front':'' }),
+      svg('path', { d:'M-7-16 Q-3-14 1-16 Q6-18 8-16 Q10-7 2-5 Q-6-4-7-11Z', fill:'#463831' })
+    );
+    if (Number.isFinite(facing)) {
+      art.dataset.facing = String(facing);
+      art.setAttribute('transform', 'rotate(' + facing + ')');
+      const chevron = 'M-8-31 L0-37 L8-31';
+      art.append(svg('path', { d:chevron, fill:'none', stroke:ink, 'stroke-width':5.5 }),
+        svg('path', { d:chevron, fill:'none', stroke:'#b8e6f5', 'stroke-width':2.6, 'data-body-direction':'' }));
+    }
     return art;
   }
   function orientedArtwork(item, position, cameraAngle = 0) {
-    const graphic = playerArtwork(item.kind, position, item.color);
-    if (angleKey(item.kind) === 'facing') {
-      if (!Number.isFinite(position.facing)) graphic.setAttribute('transform', 'rotate(' + -cameraAngle + ')');
-    } else {
-      const angle = position.rotation ?? (item.kind === 'cone' ? -cameraAngle : 0);
-      graphic.setAttribute('transform', 'rotate(' + angle + ') scale(' + (item.scale || 1) + ')');
-    }
+    if (angleKey(item.kind) === 'facing') return playerArtwork(item.kind, item.color, position.facing);
+    const graphic = pieceArtwork(item.kind);
+    const angle = position.rotation ?? (item.kind === 'cone' ? -cameraAngle : 0);
+    graphic.setAttribute('transform', 'rotate(' + angle + ') scale(' + (item.scale || 1) + ')');
     return graphic;
   }
   function visionArtwork(item, frame, view = record.content.pitch) {
@@ -612,15 +630,9 @@
     clipped.append(svg('path', { d: 'M0 0 L' + (-p.shadow.width * unitX / 2) + ' ' + p.shadow.length * unitX + ' L' + p.shadow.width * unitX / 2 + ' ' + p.shadow.length * unitX + 'Z', transform: 'translate(' + at.x * unitX + ' ' + at.y * unitY + ') rotate(' + angle + ')', fill: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'fill-opacity': .10, stroke: playerColor(item) === 'white' ? '#68747b' : playerColors[playerColor(item)], 'stroke-opacity': .22, 'stroke-width': 1 }));
     return clipped;
   }
-  function pieceArtwork(kind, color) {
-    const art = svg('g', { 'aria-hidden': 'true', 'data-symbol': kind, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
-    if (['home', 'away'].includes(kind)) {
-      const fill = playerColors[color || (kind === 'away' ? 'gold' : 'blue')];
-      const outline = 'M-9-23 Q-6-18 0-18 Q6-18 9-23 L19-19 L27-9 L19-1 L14-5 L14 18 Q14 22 10 22 H-10 Q-14 22-14 18 V-5 L-19-1 L-27-9 L-19-19Z';
-      art.append(svg('path', { d:outline, fill, stroke:'#142730', 'stroke-width':4 }),
-        svg('path', { d:outline, fill:'none', stroke:'#edf1df', 'stroke-width':1.3 }),
-        svg('path', { d:'M-9-22 Q0-8 9-22 M-25-10 L-19-4 M19-4 L25-10 M-11 17 H11', fill:'none', stroke:'#ffffff', 'stroke-opacity':.65, 'stroke-width':2.3 }));
-    } else if (kind === 'cone') {
+  function pieceArtwork(kind) {
+    const art = svg('g', { 'aria-hidden':'true', 'data-symbol':kind, 'stroke-linejoin':'round', 'stroke-linecap':'round' });
+    if (kind === 'cone') {
       art.append(svg('path', { d:'M-20 12 L-12 7 H12 L20 12 V17 Q0 21-20 17Z', fill:'#d66a2e', stroke:'#573823', 'stroke-width':2 }),
         svg('path', { d:'M-13 11 L-3-18 Q0-21 3-18 L13 11 Q0 16-13 11Z', fill:'#f79b4b', stroke:'#573823', 'stroke-width':2 }),
         svg('path', { d:'M-7-5 Q0-2 7-5 L9 1 Q0 5-9 1Z', fill:'#fff2d9' }));
@@ -748,7 +760,7 @@
     modeHint.title = editMode === 'place' ? 'Moving a piece adjusts its position in every phase and preserves its route.' : 'Add a next phase, then drag players and balls to record their movement.';
     const toolbarColor = currentPlayerColor || 'blue';
     if (currentColor.dataset.color !== toolbarColor) {
-      currentColor.replaceChildren(pieceArtwork('home', toolbarColor));
+      currentColor.replaceChildren(playerArtwork('home', toolbarColor));
       currentColor.dataset.color = toolbarColor;
     }
     newPlayer.hidden = !record.content.items.some(item => ['home', 'away'].includes(item.kind));

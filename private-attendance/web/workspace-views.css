@@ -120,7 +120,7 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
 }
 
 @media screen {
-  #app #panel-home #home-attention { border-inline-start:3px solid var(--desk-accent); padding:12px clamp(10px,2vw,18px); }
+  #app #panel-home #home-attention { border-inline-start:3px solid var(--desk-gold); padding:12px clamp(10px,2vw,18px); }
   #home-attention > h2 { letter-spacing:-.025em; }
   #home-attention #home-unpaid { margin-block:4px; padding:0; background:var(--desk-inset); border:1px solid var(--desk-line); border-radius:9px; }
   #home-attention #home-unpaid > summary { padding:10px 12px; border-radius:8px; }
@@ -131,4 +131,4 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
   #home-attention #home-priorities .priority-action + .priority-action { border-block-start:1px solid var(--desk-line); border-radius:0; }
 }
 
-#home-unpaid-label .unpaid-total { display:inline-block; margin-inline-start:.65em; color:var(--desk-ink); font-variant-numeric:tabular-nums; white-space:nowrap; }
+#home-unpaid-label .unpaid-total { display:inline-block; margin-inline-start:.65em; color:var(--desk-accent-hover); font-variant-numeric:tabular-nums; white-space:nowrap; }

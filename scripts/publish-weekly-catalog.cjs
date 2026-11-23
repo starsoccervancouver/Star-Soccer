@@ -67,7 +67,11 @@ async function loadPreview() {
   idURL.searchParams.set('audience',endpoint);
   const get=async(url,token)=>{
     const response=await fetch(url,{headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(30000)});
-    if(!response.ok)throw Error('Weekly publication stopped, HTTP '+response.status+' from '+new URL(url).hostname);
+    if(!response.ok){
+      const message=url===endpoint?(await response.json().catch(()=>({}))).error:'';
+      const check=['Airtable weekly program read','Weekly program validation','Published catalog comparison','Future dated session check'].find(stage=>message?.startsWith(stage+' failed.'));
+      throw Error('Weekly publication stopped, HTTP '+response.status+' from '+new URL(url).hostname+(check?' during '+check:''));
+    }
     return response.json();
   };
   const identity=await get(idURL,process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN);

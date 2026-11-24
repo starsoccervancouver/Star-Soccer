@@ -79,8 +79,9 @@ body.training-compact #sessions .schedule-direct-actions .button:not(.button-gho
   background: #c9e9ff;
 }
 
-body.winter-camps-page::before { display: none; }
+/* Let the responsive winter pitch show through the heading. */
 body.winter-camps-page .winter-camp-hero {
+  background: transparent;
   width: min(1040px, calc(100% - 32px));
   margin: 14px auto;
 }

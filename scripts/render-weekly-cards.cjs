@@ -8,10 +8,9 @@ function programPage(catalog,html) {
     const location=catalog.locations[s.location];
     const directions=s.coaches.map(k=>catalog.coaches[k]).join(' & ');
     const headingId=id==='tuesday'?'':' id="session-'+id+'-title"';
-    const attendanceNote=original.match(/Up to \d+ players expected this week · /)?.[0] || '';
     const card='<div class="schedule-entry-main"><span class="schedule-day"><strong'+headingId+'>'+s.day+'</strong><span>'+s.time+'</span></span>'+
       '<span class="schedule-detail"><strong>'+esc(s.ageLabel||('Ages '+s.minAge+'–'+s.maxAge))+' · '+esc(location.name)+'</strong><span>'+esc(directions)+'</span></span>'+
-      '<span class="schedule-price"><strong>$'+s.dropin+' drop-in</strong><span>'+(s.pass4===null?attendanceNote+s.capacity+' maximum':'$'+s.pass4+' · 4 consecutive sessions')+'</span>'+
+      '<span class="schedule-price"><strong>$'+s.dropin+' drop-in</strong><span>'+(s.pass4===null?s.capacity+' maximum':'$'+s.pass4+' · 4 consecutive sessions')+'</span>'+
       (s.pass4!==null && s.dropin*4>s.pass4?'<span data-pass-value>Save $'+(s.dropin*4-s.pass4)+' vs 4 drop-ins</span>':'')+'</span></div>';
     const section=/<div class="schedule-entry-main">[\s\S]*?<\/div>/;
     if(!section.test(original))throw Error('Program card structure changed');

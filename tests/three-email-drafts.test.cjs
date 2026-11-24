@@ -4,6 +4,8 @@ const template='<img src="logo"><p>VANCOUVER · PRO-D CAMPS</p><p>Registration c
 async function setup(){
  const {runDraftJob}=await import('../private-attendance/draft-job.mjs');
  const d=fixture(template),map=new Map(),drafts=new Map(),delivered=new Map();
+ const cash=d.payments.find(r=>r.id==='cash');
+ d.payments.push({id:'transfer',fields:{...cash.fields,Method:'E-transfer','Payment reference':'TEST-TRANSFER'}});
  const storage={get:async k=>map.get(k),put:async(k,v)=>map.set(k,v),transaction:f=>f(storage)};
  const db={list:async table=>d[table],save:async(table,fields,{key,id})=>{
   let r=d[table].find(r=>id?r.id===id:r.fields[key]===fields[key]);
@@ -46,8 +48,9 @@ test('all three rules run twice without duplicates, and never send',async()=>{
  assert.match(byKey.get('Confirmation:Partial').html,/applied CAD \$20.00.*remaining balance is CAD \$40.00/);
  for(const c of byKey.values())assert.deepEqual(c.html.match(/<img[^>]*>/g),['<img src="logo">','<img src="field">','<img src="signature">']);
  assert.match(byKey.get('Receipt:siblings').html,/Example Paid.*60.00.*Example Partial.*20.00/);
- assert.match(byKey.get('Receipt:cash').html,/CAD \$25.00 by cash/);
- assert.ok(!byKey.get('Receipt:cash').html.includes('<li>'));
+ assert.ok(!byKey.has('Receipt:cash'));
+ assert.match(byKey.get('Receipt:transfer').html,/CAD \$25.00/);
+ assert.ok(!byKey.get('Receipt:transfer').html.includes('<li>'));
  assert.match(byKey.get('Renewal:active:'+date).html,/Example training/);assert.ok(!byKey.has('Renewal:renewed:'+date));
  const renewal=s.d.draftLog.find(r=>r.fields['Email key']==='Renewal:active:'+date).fields;
  s.d.enrollments[0].fields['Prepaid covered until']='2027-02-12';await s.run();await s.run();
@@ -59,7 +62,7 @@ test('manual sending, edited drafts and deletion do not regenerate mail',async()
  s.drafts.get(log['Gmail draft ID']).edited=true;await s.run();assert.equal(s.count,6);
  s.drafts.delete(log['Gmail draft ID']);s.delivered.set('Confirmation:Paid','sent-id');await s.run();await s.run();
  assert.equal(log['Sent Gmail ID'],'sent-id');assert.equal(s.d.registrations[0].fields['Confirmation Gmail ID'],'sent-id');
- const lost=s.d.draftLog.find(r=>r.fields['Email key']==='Receipt:cash').fields;s.drafts.delete(lost['Gmail draft ID']);await s.run();await s.run();
+ const lost=s.d.draftLog.find(r=>r.fields['Email key']==='Receipt:transfer').fields;s.drafts.delete(lost['Gmail draft ID']);await s.run();await s.run();
  assert.equal(lost.Status,'Review');assert.equal(s.count,6);
 });
 test('a verified split revises the same Gmail draft, survives a lost response and preserves owner text',async()=>{
@@ -102,11 +105,11 @@ test('a verified split revises the same Gmail draft, survives a lost response an
  s.d.allocations.length=0;await s.run();assert.equal(writes,3);assert.equal(log.Status,'Sent');assert.equal(s.count,6);
 });
 test('automated placement, unverified payment and opted-out renewal cannot produce drafts',async()=>{
- const s=await setup();s.d.bookings[1].fields['Source booking ID']='gmail-weekly:form';s.d.payments[1].fields.Verification='Needs review';
+ const s=await setup();s.d.bookings[1].fields['Source booking ID']='gmail-weekly:form';s.d.payments.find(r=>r.id==='transfer').fields.Verification='Needs review';
  s.d.enrollments[0].fields['Weekly attendance email preference']='Opted out';await s.run();await s.run();
- const keys=()=>[...s.drafts.values()].map(x=>x.c.key);assert.ok(!keys().includes('Confirmation:Unpaid'));assert.ok(!keys().includes('Receipt:cash'));assert.ok(!keys().includes('Renewal:active:'+date));
- s.d.bookings[1].fields['Owner approved confirmation']=true;s.d.payments[1].fields.Verification='Verified';await s.run();await s.run();
- assert.equal(keys().filter(x=>x==='Confirmation:Unpaid').length,1);assert.equal(keys().filter(x=>x==='Receipt:cash').length,1);
+ const keys=()=>[...s.drafts.values()].map(x=>x.c.key);assert.ok(!keys().includes('Confirmation:Unpaid'));assert.ok(!keys().includes('Receipt:transfer'));assert.ok(!keys().includes('Renewal:active:'+date));
+ s.d.bookings[1].fields['Owner approved confirmation']=true;s.d.payments.find(r=>r.id==='transfer').fields.Verification='Verified';await s.run();await s.run();
+ assert.equal(keys().filter(x=>x==='Confirmation:Unpaid').length,1);assert.equal(keys().filter(x=>x==='Receipt:transfer').length,1);
 });
 test('an uncertain Gmail POST stays held on a retry and historical receipts stay quiet',async()=>{
  const s=await setup();let count=0;const create=s.mail.create;s.mail.create=async c=>{if(c.key==='Confirmation:Paid'){count++;throw Error('uncertain');}return create(c);};

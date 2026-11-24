@@ -1144,12 +1144,8 @@
    renderPendingPayments(result.pendingPayments||[]);
    const pending=$('pending-booking-payments').childElementCount;
    const label=$('home-unpaid-label');
-   label.textContent='Payment to finish';
-   if(unpaidFamilies.length){
-    const count=unpaidFamilies.length,total=unpaidFamilies.reduce((sum,family)=>sum+family.cents,0);
-    label.replaceChildren(node('span','Unpaid sessions ('+count+(count===1?' family)':' families)')),
-     node('strong',familyMoney(total/100)+' owing','unpaid-total'));
-   }
+   const count=unpaidFamilies.length;
+   label.textContent=count?'Unpaid sessions ('+count+(count===1?' family)':' families)'):'Payment to finish';
    $('home-unpaid').hidden=!unpaidFamilies.length&&!pending;
    updateHomeAttention();renderUnpaidRows();$('home-unpaid-status').textContent='';
  }

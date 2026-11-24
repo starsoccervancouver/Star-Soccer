@@ -141,16 +141,10 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
     border-right:2px solid var(--desk-accent); border-bottom:2px solid var(--desk-accent); transform:rotate(45deg);
   }
   #home-unpaid[open] > summary::after { transform:rotate(225deg); }
-  #home-unpaid-label > span { flex:1 1 auto; }
   #home-attention #home-unpaid[open] > summary { border-radius:8px 8px 0 0; border-bottom:1px solid var(--desk-line); }
   #app #home-attention #home-unpaid > summary:is(:hover,:focus-visible) { background:var(--desk-option-hover); }
-  #home-attention #home-unpaid-list { padding-inline:5px; }
-  #home-attention #home-unpaid-list a { display:grid; grid-template-columns:minmax(0,1fr) auto 7px; padding:5px 8px; gap:10px; border-radius:5px; }
-  #home-attention #home-unpaid-list a strong { color:var(--desk-ink); }
-  #home-unpaid-list a::after { content:''; width:6px; height:6px; border-block-start:1.5px solid var(--desk-accent); border-inline-end:1.5px solid var(--desk-accent); transform:rotate(45deg); }
 }
 
-#home-unpaid-label .unpaid-total { display:inline-block; padding:2px 7px; border-radius:5px; background:var(--desk-field); color:var(--desk-accent-hover); font-variant-numeric:tabular-nums; white-space:nowrap; }
 
 
 /* One workspace canvas, with the active destination and actionable records on distinct levels. */
@@ -170,7 +164,6 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
   #app #panel-home :is(#home-attention,#coaching-hub) { border-radius:12px; box-shadow:none; }
   #app #panel-home #home-attention { border-inline-start:1px solid var(--desk-line); }
   #app #home-attention #home-unpaid[open] > summary { background:var(--desk-accent-soft); }
-  #app #home-unpaid-label .unpaid-total { color:var(--desk-accent); }
   #app #coaching-hub .coach-next-group { background:var(--desk-accent-soft); color:var(--desk-ink); border-color:var(--desk-line); }
   #app #coaching-hub .coach-next-group strong { color:var(--desk-accent); }
   #app .desk-main :is(input,textarea)::placeholder { color:var(--desk-muted); opacity:1; }
@@ -193,4 +186,3 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
 #opening-overview h1 { margin:0; font-size:28px; }
 #opening-overview :is(#home-attention,#unpaid-bookings) { background:var(--desk-surface); border:1px solid var(--desk-line); border-radius:12px; padding:16px; }
 #opening-overview #home-attention h2 { margin:0 0 8px; font-size:18px; }
-#opening-overview #home-unpaid-list a { align-items:center; min-height:44px; color:var(--desk-ink); text-decoration:none; }

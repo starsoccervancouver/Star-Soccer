@@ -463,14 +463,14 @@ module.exports = async function checkBooks(fixture) {
       Object.assign(walkIn,{amountDue:50,amountOutstanding:50});
       await route.fulfill({json:{saved:true}});
     });
-    await page.locator('#home-unpaid-label .unpaid-total').getByText('$110.00 owing').waitFor();
+    await page.getByText('Unpaid sessions (1 family)',{exact:true}).waitFor();
     await page.locator('#home-unpaid-list a').getByText('$110.00').click();
     await page.locator('#selected-balance').getByText('$110.00 owing').waitFor();
     assert.equal(await page.locator('#unpaid-booking-list .books-entry').count(),2);
     await page.locator('#payment-entry summary').click();
     await page.locator('#payment-amount').fill('60');await page.locator('#payment-method').selectOption('Cash');
     await page.locator('#payment-submit').click();
-    await page.locator('#home-unpaid-label .unpaid-total').getByText('$50.00 owing').waitFor();
+    await page.locator('#home-unpaid-list a').getByText('$50.00',{exact:true}).waitFor();
     assert.equal(new URL(page.url()).hash,'#view=home');
   }finally{await carryover.context.close();}
 
@@ -500,7 +500,7 @@ module.exports = async function checkBooks(fixture) {
     await page.locator('#payment-method').selectOption('Cash');
     await page.locator('#payment-submit').click();
     await family.getByText('$21.50',{exact:true}).waitFor();
-    assert.equal(await page.locator('.unpaid-total').innerText(),'$46.00 owing');
+    assert.equal(await page.locator('#home-unpaid-label').innerText(),'Unpaid sessions (2 families)');
     assert.equal(new URL(page.url()).hash,'#view=home');
     await family.click();
     await page.locator('#payment-entry summary').click();
@@ -509,7 +509,7 @@ module.exports = async function checkBooks(fixture) {
     await page.locator('#home-unpaid-list a').getByText('$24.50',{exact:true}).waitFor();
     assert.equal(new URL(page.url()).hash,'#view=home');
     assert.equal(await family.count(),0);
-    assert.equal(await page.locator('.unpaid-total').innerText(),'$24.50 owing');
+    assert.equal(await page.locator('#home-unpaid-label').innerText(),'Unpaid sessions (1 family)');
     assert.equal(await page.locator('#home-unpaid-list a').count(),1);
     assert.equal(submissions,2);assert.deepEqual(payment.errors,[]);
   }finally{await payment.context.close();}

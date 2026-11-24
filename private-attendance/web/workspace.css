@@ -81,8 +81,10 @@ button, .button {
   color: #fff;
   background:var(--desk-accent-fill);
   font-size: 14px;
-  font-weight: 750;
-  line-height: 1.45;
+  font-weight: 650;
+  line-height: 1.4;
+  letter-spacing: normal;
+  word-spacing: normal;
   text-decoration: none;
   cursor: pointer;
   touch-action: manipulation;
@@ -1241,6 +1243,28 @@ input:disabled, select:disabled, textarea:disabled {
   margin-bottom: 10px;
 }
 
+:is(.boot-message, .desk-loading, #opening-roster-status):not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: .55em;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.boot-message { justify-content: center; }
+:is(.boot-message, .desk-loading, #opening-roster-status)::before {
+  content: "";
+  flex: 0 0 .85em;
+  height: .85em;
+  box-sizing: border-box;
+  border: 2px solid var(--desk-control-line);
+  border-top-color: currentColor;
+  border-radius: 50%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :is(.boot-message, .desk-loading, #opening-roster-status)::before { animation: desk-status-turn 1s linear infinite; }
+}
+@keyframes desk-status-turn { to { transform: rotate(1turn); } }
+
 .boot-message {
   margin: 0;
   padding: 36px 20px;
@@ -1811,7 +1835,15 @@ button.dictation-button[aria-pressed="true"] { border-color: #a47434; color: var
 
 /* A working coach's dashboard: one selected session, then clear next actions. */
 .home-command-row { align-items: stretch; margin-bottom: 24px; }
-.nav-foot a[data-club-site], .return-site[data-club-site] { gap: .3em; }
+.nav-foot a[data-club-site], .return-site[data-club-site],
+#planner-back, #planner-open-selected {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: .45em;
+}
+#planner-back, #planner-open-selected { justify-content: center; }
+
 .session-spotlight {
   position: relative; overflow: hidden; min-width: 0;
   border: 1px solid #294054; background: var(--desk-navy-soft); color: #fff;

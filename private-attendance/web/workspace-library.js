@@ -80,7 +80,7 @@
   const sessionHeading = node('div', '', 'library-session-heading'), sessionChoiceTitle = node('h2'); sessionChoiceTitle.id = 'library-session-title';
   const sessionClose = action('Close', () => closeSessionPicker()); sessionClose.id = 'library-session-close';
   sessionHeading.append(sessionChoiceTitle, sessionClose);
-  const sessionIntro = node('p', '', 'small'), sessionBack = action('← Training groups', () => { sessionGroup = null; sessionPast.checked = false; renderSessionGrid(); sessionGrid.querySelector('button')?.focus(); }); sessionBack.id = 'library-session-back';
+  const sessionIntro = node('p', '', 'small'), sessionBack = action('←\u00a0Training groups', () => { sessionGroup = null; sessionPast.checked = false; renderSessionGrid(); sessionGrid.querySelector('button')?.focus(); }); sessionBack.id = 'library-session-back';
   const sessionPast = node('input'); sessionPast.type = 'checkbox'; sessionPast.id = 'library-session-past';
   const pastLabel = label('Show past dates', sessionPast); pastLabel.className = 'library-session-past';
   const sessionTools = node('div', '', 'library-session-tools'); sessionTools.append(sessionBack, pastLabel);
@@ -98,7 +98,7 @@
   const localDate = () => clubDateFormat.format(new Date());
   const sessionDateLabel = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '') ? sessionDateFormat.format(new Date(value + 'T12:00:00Z')) : 'Date to confirm';
   function sessionCard(title, detail, handler) {
-    const button = action('', handler, 'library-session-card'); button.append(node('strong', title), node('span', detail), node('span', 'Choose →', 'library-session-link')); return button;
+    const button = action('', handler, 'library-session-card'); button.append(node('strong', title), node('span', detail), node('span', 'Choose\u00a0→', 'library-session-link')); return button;
   }
   function renderSessionGrid() {
     sessionGrid.replaceChildren(); if (!sessionChoice) return;

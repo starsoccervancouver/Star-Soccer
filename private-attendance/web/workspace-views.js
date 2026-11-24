@@ -49,7 +49,7 @@
       const group = next && groups.find(item => item.sessionIds.includes(next.id));
       if (group) {
         const resume = button('', 'continue-group', () => onOpen(next.id)); resume.className = 'coach-next-group'; resume.dataset.coachViews = 'next'; resume.dataset.nextSessionId = next.id;
-        resume.append(make('span', 'Continue to next group →', 'coach-next-label'), make('strong', group.label), make('span', format(next.date,shortDayFormat), 'coach-next-date'));
+        resume.append(make('span', 'Continue to next group\u00a0→', 'coach-next-label'), make('strong', group.label), make('span', format(next.date,shortDayFormat), 'coach-next-date'));
         toolbar.before(resume);
       }
     }

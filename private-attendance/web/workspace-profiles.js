@@ -53,7 +53,7 @@
       card.dataset.profileId = entry.id;
       const avatar = node('span', entry.name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase(), 'profile-avatar'); avatar.setAttribute('aria-hidden', 'true');
       const text = node('span', '', 'player-directory-card-text'), groups = new Set(entry.rows.map(row => scopeKey(row.session)));
-      text.append(node('strong', entry.name), node('span', [entry.age ? 'Age ' + entry.age : '', groups.size + (groups.size === 1 ? ' group' : ' groups')].filter(Boolean).join(' · '), 'small'), node('span', 'View profile →', 'player-directory-card-link'));
+      text.append(node('strong', entry.name), node('span', [entry.age ? 'Age ' + entry.age : '', groups.size + (groups.size === 1 ? ' group' : ' groups')].filter(Boolean).join(' · '), 'small'), node('span', 'View profile\u00a0→', 'player-directory-card-link'));
       card.append(avatar, text); cards.append(card);
     }
     if (!visible.length) cards.append(node('p', directory.length ? 'No players match. Try another name or group.' : 'Player profiles will appear when named players are on your accessible rosters.', 'empty-state'));
@@ -165,7 +165,7 @@
   }
   function renderDetail(entry) {
     detail.replaceChildren();
-    const back = button('← All players', () => { if (!leaveDraft()) return; selected = ''; group = ''; render(); search.focus(); }); back.id = 'profile-back'; back.disabled = saving || context.busy; detail.append(back);
+    const back = button('←\u00a0All players', () => { if (!leaveDraft()) return; selected = ''; group = ''; render(); search.focus(); }); back.id = 'profile-back'; back.disabled = saving || context.busy; detail.append(back);
     const header = node('div', '', 'profile-heading'), name = node('h2', entry.name); name.tabIndex = -1;
     header.append(name, node('p', entry.age ? 'Age ' + entry.age : 'Player profile', 'small')); detail.append(header);
     const groups = new Map(); for (const row of entry.rows) groups.set(scopeKey(row.session), scopeLabel(row.session));

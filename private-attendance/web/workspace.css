@@ -2634,12 +2634,30 @@ body #app #report-filters .report-filter[aria-pressed=false]:hover:not(:disabled
 }
 #home-attention .family-balance-list a:focus-visible { outline:2px solid var(--desk-accent); outline-offset:0; }
 #home-attention .family-balance-list a:active { background:var(--desk-accent-soft); border-color:var(--desk-accent); }
-#unpaid-bookings .books-return { display:inline-block; margin-bottom:12px; color:var(--desk-accent); }
-#unpaid-bookings > header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; }
-#unpaid-bookings-title { margin:0; overflow-wrap:anywhere; font-size:20px; }
-#selected-balance { color:var(--desk-ink); font-variant-numeric:tabular-nums; }
+#unpaid-bookings .books-return {
+  display:inline-flex; align-items:center; min-height:32px; margin-bottom:6px;
+  color:var(--desk-muted); font-size:.875rem; text-decoration:none;
+}
+#unpaid-bookings .books-return:is(:hover,:focus-visible) { color:var(--desk-accent); text-decoration:underline; }
+#unpaid-bookings > header {
+  display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:4px 16px;
+  padding:0; border:0; background:transparent;
+}
+#unpaid-bookings-title { margin:0; overflow-wrap:anywhere; font-size:clamp(1.25rem,3vw,1.625rem); line-height:1.15; }
+#selected-balance { color:var(--desk-accent); font-size:1.125rem; font-variant-numeric:tabular-nums; white-space:nowrap; }
 #selected-balance-status:empty { display:none; }
-#unpaid-booking-list { margin-block:10px; }
+#unpaid-booking-list:not(:empty) { display:grid; gap:6px; margin:14px 0 0; }
+#unpaid-booking-list .books-entry {
+  padding:12px 14px; border:1px solid var(--desk-line); border-radius:9px;
+  background:var(--desk-field); line-height:1.35;
+}
+#unpaid-booking-list .books-session > strong { font-size:1rem; }
+#unpaid-booking-list .books-balance { justify-items:start; text-align:start; }
+#unpaid-booking-list .books-entry small { color:var(--desk-muted); }
+#unpaid-booking-list .books-amount { color:var(--desk-accent); }
+@container (max-width:35.99rem) {
+  #unpaid-booking-list .books-contact { padding-top:8px; border-top:1px solid var(--desk-line); }
+}
 .books-tools { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
 .books-tools label { flex: 1 1 12rem; min-width: 0; max-width: 100%; margin: 0; }
 .books-tools :is(input,select) { width: 100%; min-width: 0; max-width: 100%; }
@@ -2722,14 +2740,36 @@ body #app #report-filters .report-filter[aria-pressed=false]:hover:not(:disabled
   .books-tools { gap: .4rem .65rem; }
   .books-totals { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
-#payment-entry { border-top:1px solid var(--desk-line); padding-top:8px; }
-#payment-entry > summary { min-height:44px; padding-block:10px; color:var(--desk-accent); font-weight:700; cursor:pointer; }
-#booking-payment-form { display:grid; gap:10px; margin:6px 0; }
-#booking-payment-form label { display:grid; gap:4px; min-width:0; margin:0; }
+#payment-entry { margin-top:14px; }
+#payment-entry > summary {
+  box-sizing:border-box; display:inline-flex; align-items:center; justify-content:space-between;
+  gap:16px; min-height:44px; max-width:100%; padding:8px 14px; border-radius:8px;
+  border:1px solid transparent; background:var(--desk-accent); color:var(--desk-field);
+  font:inherit; font-weight:700; line-height:1.2; cursor:pointer; list-style:none;
+}
+#payment-entry > summary::-webkit-details-marker { display:none; }
+#payment-entry > summary::after {
+  content:''; width:7px; height:7px; margin-top:-3px; flex:none;
+  border:solid currentColor; border-width:0 1.5px 1.5px 0; transform:rotate(45deg);
+}
+#payment-entry > summary:hover { background:var(--desk-accent-hover); }
+#payment-entry[open] > summary { background:var(--desk-inset); color:var(--desk-ink); border-color:var(--desk-control-line); }
+#payment-entry[open] > summary:hover { background:var(--desk-option-hover); }
+#payment-entry[open] > summary::after { margin-top:3px; transform:rotate(225deg); }
+#payment-entry > summary:focus-visible { outline:2px solid var(--desk-accent); outline-offset:3px; }
+#booking-payment-form {
+  display:grid; gap:12px; margin:8px 0 0; padding:14px;
+  background:var(--desk-field); border:1px solid var(--desk-line); border-radius:9px;
+}
+#booking-payment-form label { display:grid; gap:5px; min-width:0; margin:0; }
 #booking-payment-form :is(input,select) { width:100%; min-width:0; }
-.payment-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr)); gap:10px; }
+.payment-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr)); gap:12px; }
 #payment-submit { justify-self:start; }
 #payment-split,#payment-result { margin:0; }
+#payment-result:empty { display:none; }
+@media (max-width:600px) {
+  #payment-entry > summary, #payment-submit { width:100%; }
+}
 #pending-booking-payments button { display:block; margin-block:4px; }
 
 @media screen {

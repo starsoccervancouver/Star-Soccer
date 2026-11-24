@@ -745,7 +745,6 @@
    if(covered||row.date)description.append(node('span',covered||familyDate(row.date),'books-venue'));
   }
   const balance=node('div','','books-balance');
-  balance.append(node('span',bookStatuses[row.status]||'Needs review'));
   if(Number.isFinite(row.amountDue))balance.append(node('strong',familyMoney(row.amountDue)+' owing','books-amount'));
   const amounts=[];
   if(Number.isFinite(row.amountCharged))amounts.push('Charged '+familyMoney(row.amountCharged));

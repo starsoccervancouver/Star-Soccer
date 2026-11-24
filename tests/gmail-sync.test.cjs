@@ -47,6 +47,46 @@ test('siblings from one form retain their shared visit ID on separate registrati
  assert.equal(new Set(db.tables.registrations.map(row=>row.fields.Reference)).size,3);
 });
 
+test('Gmail registration relay reaches the linked Coach Desk family once after a replay', async () => {
+  const {classifyMessage} = await import('../private-attendance/gmail-message.mjs');
+  const {syncLedgerEvent} = await import('../private-attendance/gmail-ledger.mjs');
+  const {createFamilyLedger} = await import('../private-attendance/family-ledger.mjs');
+  const db = ledger();
+  const family = db.tables.families[0];
+  family.id = 'rec00000000000001';
+  family.fields.Email = 'parent@example.test';
+  const reference = 'SS-WEEKLY-RELAY01';
+  const visit = '12345678-abcd-4abc-8abc-123456789012';
+  const body = [
+    'Registration version: SS-WEEKLY-V2', 'Client reference: ' + reference,
+    'Player name: Example Player', 'Parent email: parent@example.test',
+    'Requested option: Friday training', 'Visit ID: ' + visit,
+    'Landing page path: /programs.html', 'Campaign source (URL tag): newsletter'
+  ].join('\n');
+  const message = msg('noreply@formspree.io', 'Star Soccer registration', body, ['INBOX']);
+  const event = classifyMessage(message, ids, owner);
+  await syncLedgerEvent(db, event);
+  await syncLedgerEvent(db, event);
+  assert.equal(db.tables.intake.length, 1);
+  assert.equal(db.tables.intake[0].fields['Message ID'], message.id);
+  assert.equal(db.tables.registrations.length, 1);
+  const registration = db.tables.registrations[0];
+  assert.equal(registration.fields['Source Gmail ID'], message.id);
+  assert.equal(registration.fields['Visit ID'], visit);
+  assert.equal(registration.fields['Landing page path'], '/programs.html');
+  assert.equal(registration.fields.utm_source, 'newsletter');
+  assert.deepEqual(registration.fields.Family, [family.id]);
+
+  // Airtable assigns record IDs and exposes the inverse of the Family link.
+  registration.id = 'rec00000000000002';
+  family.fields['Website Registrations'] = [registration.id];
+  const view = createFamilyLedger(async (table, fields, recordIds) =>
+    db.tables[table].filter(row => recordIds.includes(row.id)));
+  const detail = await view.detail(family.id);
+  assert.deepEqual(detail.registrations.map(({reference, program, status}) => ({reference, program, status})),
+    [{reference, program: 'Friday training', status: 'Needs review'}]);
+});
+
 function campLedger() {
  const db=ledger();
  db.tables.families[0].fields.Email='parent@example.test';

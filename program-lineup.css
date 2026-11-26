@@ -23,6 +23,9 @@ body.winter-camps-page .winter-camp-hero::after { display: none; }
 body.training-compact .fall-hero-copy h1 span,
 body.winter-camps-page .winter-camp-hero .eyebrow { color: var(--lineup-accent); }
 
+body.training-compact::before { display: block; }
+body.training-compact .fall-program-hero { background: #08152370; }
+
 body.training-compact .training-intro { color: #bdcddd; }
 
 body.winter-camps-page .camp-comparison,

@@ -176,7 +176,7 @@
     const applyFormat=()=>{
       const group=smallGroup(),min=group?6:1,max=group?18:5;
       const focus=privateForm.elements.namedItem('Training focus');
-      if(focus){focus.disabled=group;focus.closest('label').hidden=group;}
+      if(focus){focus.disabled=group;focus.closest('label').hidden=group;document.getElementById('goalkeeping-summary').hidden=group;}
       if(playerHelp) playerHelp.textContent=group?'Bring your own group of 6–18 players':privateHint;
       players.min=String(min);players.max=String(max);
       if(!Number.isSafeInteger(Number(players.value)) || Number(players.value)<min || Number(players.value)>max)players.value=String(min);

@@ -5,13 +5,12 @@
 <h1 id="private-heading">Private Soccer Training in Vancouver</h1>
 <p class="quick-context">A 60-minute, one-to-one soccer lesson is $65 CAD for players ages five and up.</p>
 <p class="quick-context">Build first touch, composure under pressure, or confidence on the ball.</p>
-<p class="quick-context">You can request Valentinos Dinglis, head coach of Star Soccer. A former professional goalkeeper, he has coached in Vancouver for 30+ years. <a class="flow-text-link" href="index.html#coaching-team">Meet the coaches</a></p>
+<p class="quick-context">You can request Valentinos Dinglis, head coach of Star Soccer. He has coached in Vancouver for 30+ years. <a class="flow-text-link" href="index.html#coaching-team">Meet the coaches</a></p>
 <form id="private-inquiry" data-inquiry="private" action="https://formspree.io/f/mvkkyyyw" method="post">
 <fieldset class="private-format-picker"><legend class="sr-only">Training format</legend>
 <label><input type="radio" name="Training format" value="private" checked><span><strong>Private Training</strong><small>1–5 players</small></span></label>
 <label><input type="radio" name="Training format" value="smallgroup"><span><strong>Small Group Training</strong><small>6–18 players</small></span></label>
 </fieldset>
-<label id="private-focus">Training focus<select name="Training focus"><option>General soccer training</option><option>Goalkeeping</option></select></label>
 <div class="quick-player-row">
 <label>Session length<select name="Minutes"><option value="60">60 minutes</option><option value="90">90 minutes</option><option value="120">120 minutes</option><option value="other">Another duration</option></select></label>
 <label>Players<input type="number" name="Players" min="1" max="5" step="1" value="1" inputmode="numeric" aria-describedby="private-player-help" required></label>
@@ -25,10 +24,11 @@
 <p class="sr-only" id="private-age-help">Choose the player’s age in whole years, starting at five.</p>
 </fieldset>
 <details class="quick-details contact-more" data-optional-fields>
-<summary>Tell us more (optional)</summary>
+<summary><span id="goalkeeping-summary">Goalkeeping &amp; </span>preferences</summary>
 <div class="quick-extras">
 <p>Share your preferred coach, availability, location or training goals.</p>
 <label>Parent / guardian name (optional)<input type="text" name="Parent name" autocomplete="name" maxlength="100"></label>
+<label id="private-focus">Training focus<select name="Training focus"><option>General soccer training</option><option>Goalkeeping</option></select><small>Head coach Valentinos Dinglis is a former professional goalkeeper.</small></label>
 <label>Preferred coach (optional)<select name="Preferred coach"><option value="">No preference</option><option value="valentinos">Valentinos Dinglis</option><option value="evan">Evan Lycos</option><option value="romeo">Romeo Dinglis</option><option value="owen">Owen Soroka</option></select></label>
 <label>Preferred dates and times (optional)<textarea name="Availability" rows="2" maxlength="500" placeholder="For example: Tuesdays after 4 PM"></textarea></label>
 <label>Preferred location (optional)<select name="Location"><option>Discuss with the coach</option><option>Connaught Park</option><option>Kitsilano Turf</option></select></label>

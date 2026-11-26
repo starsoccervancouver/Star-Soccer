@@ -1,5 +1,6 @@
 import training from '../training.js';
-import reviewedPrograms from './weekly-programs.json' with {type:'json'};
+import historicalPrograms from './weekly-programs.json' with {type:'json'};
+import currentReview from '../program-catalog.json' with {type:'json'};
 import winterCamps from '../winter-camps.js';
 import {sessionTimes, vancouverInstant} from './airtable-roster.mjs';
 import {assignmentConflict} from './schedule-conflicts.mjs';
@@ -39,8 +40,15 @@ export function weeklyRequest(event, published) {
   if(!['SS-WEEKLY-V2','SS-PASS-V1'].includes(event.version))return;
   const dates=split(event.dates,','),type=event.version==='SS-PASS-V1'?'pass4':'dropin';
   try{
-    const s=published?.sessions.find(row=>row.id===event.sessionId);
-    if(published && (!s||!s.active||!Number.isFinite(s[type])||s[type]<=0))return;
+    const moved=['wednesday','friday'].includes(event.sessionId);
+    const historic=moved&&dates[0]<training.weeklyTurfMoveDate;
+    // One placement request has one shared venue. Do not silently move a pass
+    // spanning the old and new locations; leave it with the existing review flow.
+    if(historic&&dates.some(date=>date>=training.weeklyTurfMoveDate))return;
+    const source=historic?null:published;
+    const s=source?.sessions.find(row=>row.id===event.sessionId);
+    if(source && (!s||!s.active||!Number.isFinite(s[type])||s[type]<=0))return;
+    const reviewedPrograms=historic?historicalPrograms:currentReview;
     const q=s ? training.bookChoice({session:s,type,price:s[type],label:type==='pass4'?'Four-session pass':'Drop-in'},dates[0],event.age,new Date(event.received))
       : training.booking(event.sessionId,type,dates[0],event.age,new Date(event.received));
     if(!sameSet(dates,q.dates)||q.price!==Number(event.quotedPrice)||q.label!==event.option)return;
@@ -48,7 +56,7 @@ export function weeklyRequest(event, published) {
     const offer=s?{...s,venue:q.location}:reviewedPrograms.sessions.find(s=>s.id===event.sessionId);
     if(!offer || offer[type]!==q.price || offer.time!==q.session.time || offer.venue!==q.location)return;
     return {weekly:true,venue:q.location,pass:type==='pass4',price:q.price,dates,capacity:offer.capacity,
-      termsVersion:published?.version||reviewedPrograms.version,slots:dates.map(date=>({date,time,key:'SS-'+date.replaceAll('-','')+'-'+q.session.day.slice(0,2).toUpperCase()}))};
+      termsVersion:source?.version||reviewedPrograms.version,slots:dates.map(date=>({date,time,key:'SS-'+date.replaceAll('-','')+'-'+q.session.day.slice(0,2).toUpperCase()}))};
   }catch{return;}
 }
 export async function placeCampRegistration(db, {event, registration, family, player, now, confirmationId, weekly}) {

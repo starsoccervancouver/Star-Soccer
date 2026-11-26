@@ -56,7 +56,7 @@ function render(message,{title,theme='autumn',calendarUrl=null,kicker='Registrat
 }
 // Legacy historical Calendar recovery only. New check-ins use weeklyAttendanceDraft.
 function attendanceInquiry(sessionId,date,players,ref,calendarUrl=null,parentName=null){
-  const s=T.getSession(sessionId),d=T.isoDate(date),list=names(players);reference(ref);
+  const s=T.getSessionOn(sessionId,date),d=T.isoDate(date),list=names(players);reference(ref);
   if(!s||!d||d.getUTCDay()!==s.weekday||s.excludedDates.includes(date))throw new Error('Choose an approved weekly session date.');
   const body=[
     greeting(list,parentName),
@@ -161,7 +161,7 @@ function paymentThankYou({parentName=null,players,amountCents,reference:ref,conf
   return render({subject:'Star Soccer payment received | '+playerList+' | '+ref,body,reference:ref},{title:'Thank you for your payment',theme,visuals:true,kicker:'Payment received'});
 }
 function reminderDue(sessionId,date,now=new Date()){
-  const s=T.getSession(sessionId),d=T.isoDate(date),clock=T.localClock(now);
+  const s=T.getSessionOn(sessionId,date),d=T.isoDate(date),clock=T.localClock(now);
   if(!s||!d||d.getUTCDay()!==s.weekday||s.excludedDates.includes(date)||!T.eligibleDate(s,date,now))return false;
   const sendDate=T.addDays(date,-2);
   return clock.date>sendDate||(clock.date===sendDate&&clock.minutes>=540);

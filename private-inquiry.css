@@ -27,7 +27,7 @@ body.private-registration .private-age-end[hidden] { display: none; }
 body.private-registration .private-age-end { min-width: 0; }
 body.private-registration .private-age-range .ss-number-stepper { grid-template-columns: 44px minmax(24px, 1fr) 44px; gap: 1px; padding: 2px; }
 body.private-registration .private-age-range .ss-number-input { font-size: 16px; }
-body.private-registration .private-format-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; min-width: 0; margin: 0 0 2px; padding: 0; border: 0; }
+body.private-registration .private-format-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-width: 0; margin: 0 0 2px; padding: 0; border: 0; }
 body.private-registration .private-format-picker label { display: flex; align-items: center; gap: 9px; min-width: 0; min-height: 66px; padding: 10px; border: 1px solid #5c7487; border-radius: 10px; background: #0c2035; cursor: pointer; }
 body.private-registration .private-format-picker label:has(:checked) { border-color: #efbc98; background: #26333e; }
 @media (hover: hover) {
@@ -158,4 +158,12 @@ body.private-registration .private-goals-grid p { font-size: .9rem; }
 }
 @media (max-width: 360px) {
   body.private-registration .quick-panel .quick-context { margin-bottom: 0; }
+}
+
+@media (max-width: 600px) {
+  body.private-registration .private-format-picker { gap: 4px; }
+  body.private-registration .private-format-picker label { position: relative; justify-content: center; text-align: center; padding: 5px 2px; }
+  body.private-registration .private-format-picker input { position: absolute; opacity: 0; }
+  body.private-registration .private-format-picker strong { font-size: .78rem; }
+  body.private-registration .private-format-picker :checked + span strong { text-decoration: underline; text-underline-offset: 2px; }
 }

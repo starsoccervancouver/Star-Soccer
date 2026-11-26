@@ -141,6 +141,11 @@
       finally {form.removeAttribute('aria-busy');}
     });
   }
+  const trainingFormats={
+    private:{title:'Private Training',min:1,max:5,action:'Send private inquiry'},
+    smallgroup:{title:'Small Group Training',min:6,max:18,action:'Send small group inquiry',hint:'Bring your own group of 6–18 players'},
+    goalkeeping:{title:'Goalkeeping',min:1,max:10,action:'Send goalkeeping inquiry',hint:'Head coach Valentinos Dinglis is a former professional goalkeeper.'}
+  };
   const privateForm=document.querySelector('#private-inquiry');
   if(privateForm) {
     const youngest=privateForm.elements.namedItem('Youngest age'),oldest=privateForm.elements.namedItem('Oldest age');
@@ -170,14 +175,12 @@
     coach.addEventListener('change',updateCoach);updateCoach();
     const players=privateForm.elements.namedItem('Players'),duration=privateForm.elements.namedItem('Minutes');
     const formats=[...privateForm.querySelectorAll('[name="Training format"]')];
-    const smallGroup=()=>formats.some(el=>el.checked && el.value==='smallgroup');
+    const selectedFormat=()=>trainingFormats[privateForm.elements.namedItem('Training format').value];
     const playerHelp=document.getElementById('private-player-help');
     const privateHint=playerHelp?.textContent;
     const applyFormat=()=>{
-      const group=smallGroup(),min=group?6:1,max=group?18:5;
-      const focus=privateForm.elements.namedItem('Training focus');
-      if(focus){focus.disabled=group;focus.closest('label').hidden=group;document.getElementById('goalkeeping-summary').hidden=group;}
-      if(playerHelp) playerHelp.textContent=group?'Bring your own group of 6–18 players':privateHint;
+      const {min,max,hint}=selectedFormat();
+      if(playerHelp) playerHelp.textContent=hint||privateHint;
       players.min=String(min);players.max=String(max);
       if(!Number.isSafeInteger(Number(players.value)) || Number(players.value)<min || Number(players.value)>max)players.value=String(min);
       // Let the shared number stepper refresh its boundary buttons as well.
@@ -187,11 +190,11 @@
     const updateQuote=()=>{
       const validCount=players.validity.valid;
       const q=validCount?T.privateQuote(players.value,duration.value):null;
-      const group=smallGroup();
-      text('#private-summary-title',group?'Small Group Training':'Private Training');
+      const format=selectedFormat();
+      text('#private-summary-title',format.title);
       const submit=privateForm.querySelector('[type="submit"]');
-      if(!privateForm.hasAttribute('aria-busy') && submit.textContent!=='Inquiry submitted')submit.textContent=group?'Send small group inquiry':'Send private inquiry';
-      estimate.textContent=q?`${T.money(q.perPlayer)} per player · ${T.money(q.total)} total (CAD)`:validCount?'We’ll confirm a price for your requested duration.':`Choose ${group?'6–18':'1–5'} players for this training.`;
+      if(!privateForm.hasAttribute('aria-busy') && submit.textContent!=='Inquiry submitted')submit.textContent=format.action;
+      estimate.textContent=q?`${T.money(q.perPlayer)} per player · ${T.money(q.total)} total (CAD)`:validCount?'We’ll confirm a price for your requested duration.':`Choose ${format.min}–${format.max} players for this training.`;
       const durationText=duration.value==='other'?'Custom duration':duration.value+' minutes';
       text('#private-info-duration',durationText);
       const count=Number(players.value);
@@ -202,7 +205,7 @@
     };
     [players,duration].forEach(el=>el.addEventListener('change',updateQuote));players.addEventListener('input',updateQuote);
     formats.forEach(el=>el.addEventListener('change',applyFormat));
-    const initialFormat=params.get('format')==='smallgroup'?'smallgroup':'private';
+    const initialFormat=formats.find(el=>el.value===params.get('format'))?.value||'private';
     formats.forEach(el=>{el.checked=el.value===initialFormat;});applyFormat();
   }
   document.querySelectorAll('form[data-inquiry]').forEach(inquiry=>{
@@ -227,7 +230,10 @@
         const youngest=inquiry.elements.namedItem('Youngest age').value,oldest=Number(n)===1?youngest:inquiry.elements.namedItem('Oldest age').value;
         data.set('Player ages',youngest===oldest?`${youngest} years`:`${youngest}–${oldest} years`);
         data.delete('Youngest age');data.delete('Oldest age');
-        data.set('Format',Number(n)<=5?'Private Training (1–5 players)':'Small Group Training (6–18 players)');data.set('Preferred coach',T.catalog.coaches[coach]||'No preference');
+        const format=trainingFormats[data.get('Training format')];
+        data.set('Format',`${format.title} (${format.min}–${format.max} players)`);
+        if(data.get('Training format')==='goalkeeping')data.set('Training focus','Goalkeeping');
+        data.set('Preferred coach',T.catalog.coaches[coach]||'No preference');
         data.set('Estimate CAD',quote?`${quote.perPlayer} per player; ${quote.total} group total`:'Quote to be arranged');
       }
       // Keep the attempted values visible while a response is pending or uncertain.

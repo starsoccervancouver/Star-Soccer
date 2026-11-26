@@ -12,7 +12,7 @@ function wallTime(date,minutes){
   throw new Error('Cannot resolve approved Vancouver training time.');
 }
 function invitation(sessionId,date,players,ref,parentName=null){
-  const message=E.attendanceInquiry(sessionId,date,players,ref,null,parentName),s=T.getSession(sessionId),end=s.time.match(/[–-](\d{1,2}):(\d{2}) (AM|PM)$/);
+  const message=E.attendanceInquiry(sessionId,date,players,ref,null,parentName),s=T.getSessionOn(sessionId,date),end=s.time.match(/[–-](\d{1,2}):(\d{2}) (AM|PM)$/);
   if(!end)throw new Error('Review the session end time.');
   const minutes=(Number(end[1])%12)*60+Number(end[2])+(end[3]==='PM'?720:0);
   if(minutes<=s.startMinutes)throw new Error('Review the approved training duration.');

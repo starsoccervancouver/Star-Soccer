@@ -1,5 +1,5 @@
 {
-  "version": "860c9fc3ec76b5d73e21dd4a1c5e5a00966e10ae75a3019e69e42e6ad11f2c79",
+  "version": "4942723864006468d2e6459440f0c60978630f6c2d104ffd0198f2b45575d212",
   "zone": "America/Vancouver",
   "sessions": [
     {
@@ -16,8 +16,8 @@
       "id": "wednesday",
       "program": "Wednesday weekly training",
       "day": "Wednesday",
-      "time": "3:45–5:15 PM",
-      "venue": "Connaught Park",
+      "time": "4:00–5:15 PM",
+      "venue": "Kitsilano Turf",
       "capacity": 20,
       "dropin": 30,
       "pass4": 95
@@ -37,7 +37,7 @@
       "program": "Friday weekly training",
       "day": "Friday",
       "time": "3:45–5:00 PM",
-      "venue": "Connaught Park",
+      "venue": "Kitsilano Turf",
       "capacity": 20,
       "dropin": 25,
       "pass4": 80

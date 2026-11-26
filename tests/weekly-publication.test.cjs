@@ -8,7 +8,7 @@ test('published terms change the quote without modifying existing terms',async()
   const rows=structuredClone(published.sessions),wed=rows.find(s=>s.id==='wednesday');
   Object.assign(wed,{dropin:31,time:'4:00–5:30 PM',capacity:14,venue:'Kitsilano Turf'});
   const next=offers.applyOffers(training.catalog,rows);
-  const event={version:'SS-WEEKLY-V2',sessionId:'wednesday',age:'10',dates:'2026-11-25',received:'2026-11-23T17:00:00Z',option:'Drop-in',quotedPrice:'31'};
+  const event={version:'SS-WEEKLY-V2',sessionId:'wednesday',age:'10',dates:'2026-12-02',received:'2026-11-27T17:00:00Z',option:'Drop-in',quotedPrice:'31'};
   const quote=weeklyRequest(event,next);
   assert.equal(quote.price,31);assert.equal(quote.capacity,14);assert.equal(quote.venue,'Kitsilano Turf');assert.equal(quote.slots[0].time,'4:00–5:30 PM');
   assert.equal(weeklyRequest({...event,quotedPrice:'30'},next),undefined);
@@ -41,4 +41,17 @@ test('a venue move updates the card, home and locations while an unpublished pri
   assert(files['locations.html'].includes('<strong>Wednesday '+rows[1].time+'</strong>'));
   assert.equal(JSON.parse(files['program-catalog.json']).sessions[1].dropin,31);
   assert.deepEqual(files,artifacts(candidate));
+});
+
+test('the November turf move preserves historical terms and checks current dated quotes',async()=>{
+  const {weeklyRequest}=await import('../private-attendance/camp-placement.mjs');
+  const dropin=(sessionId,dates,received)=>({version:'SS-WEEKLY-V2',option:'Drop-in',sessionId,age:'10',dates,received,quotedPrice:sessionId==='wednesday'?'30':'25'});
+  const old=dropin('wednesday','2026-11-25','2026-11-23T17:00:00Z');
+  const friday=dropin('friday','2026-11-27','2026-11-26T17:00:00Z');
+  const wed=dropin('wednesday','2026-12-02','2026-11-27T17:00:00Z');
+  assert.equal(weeklyRequest(old,training.catalog).venue,'Connaught Park');
+  assert.equal(weeklyRequest(old).slots[0].time,'3:45–5:15 PM');
+  assert.equal(weeklyRequest(friday).venue,'Kitsilano Turf');
+  assert.equal(weeklyRequest(wed).slots[0].time,'4:00–5:15 PM');
+  assert.equal(weeklyRequest({...old,version:'SS-PASS-V1',option:'Four-session pass',quotedPrice:'95',dates:'2026-11-25, 2026-12-02, 2026-12-09, 2026-12-16'},training.catalog),undefined);
 });

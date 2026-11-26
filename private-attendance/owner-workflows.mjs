@@ -1,5 +1,5 @@
 import {sessionTimes,vancouverInstant} from './airtable-roster.mjs';
-import reviewedPrograms from './weekly-programs.json' with {type:'json'};
+import reviewedPrograms from '../program-catalog.json' with {type:'json'};
 import {assignmentConflict} from './schedule-conflicts.mjs';
 const tables={"Families":"tbldgg7nkOSbisXTA","Dated Attendance (internal)":"tblcJQZMT2JKEUS2B","Bookings":"tblVsKHnBZMlxYavr","Payments":"tblF3FEKz8Bza5CEJ","Website Registrations":"tblxyNOfuxDnUoTtP","Staff":"tblqTiyXVvlsuPh2F"};
 const single=a=>a?.length===1?a[0]:null;

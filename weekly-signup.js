@@ -20,7 +20,7 @@
     return Object.freeze({sessionId:s.id,price:b.price,start:b.dates[0],end:b.dates[3],dates:Object.freeze([...b.dates]),upcoming:b.dates[0]===T.nextDate(s,now)});
   }
   function confirmation(sessionId,date,reference,playerName){
-    const s=T.getSession(sessionId),d=T.isoDate(date);
+    const s=T.getSessionOn(sessionId,date),d=T.isoDate(date);
     if(!s||!d||d.getUTCDay()!==s.weekday||!/^SS-[A-Z0-9-]{6,40}$/.test(reference))throw new Error('Invalid registration confirmation.');
     const name=String(playerName||'').trim();
     if(!name||name.length>100||/[\r\n\x00-\x1f]/.test(name))throw new Error('Invalid player name.');
@@ -46,7 +46,7 @@
   function passConfirmation(sessionId,startDate,reference,playerName,now=new Date(),updated=false){
     // Reuse identity/reference validation; derive every date and price from the catalog.
     confirmation(sessionId,startDate,reference,playerName);
-    const s=T.getSession(sessionId),p=passPlan(sessionId,startDate,now);
+    const s=T.getSessionOn(sessionId,startDate),p=passPlan(sessionId,startDate,now);
     const name=String(playerName).trim();
     return {subject:`Star Soccer 4-week pass ${updated?'start updated':'confirmed'} | ${s.day} | ${p.start} | ${reference}`,body:[
       `Thank you, ${name} — your four-session pass is ${updated?'updated':'confirmed'}!`,

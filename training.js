@@ -57,11 +57,11 @@
       "id": "wednesday",
       "day": "Wednesday",
       "weekday": 3,
-      "time": "3:45–5:15 PM",
-      "startMinutes": 945,
+      "time": "4:00–5:15 PM",
+      "startMinutes": 960,
       "minAge": 9,
       "maxAge": 14,
-      "location": "connaught",
+      "location": "kits",
       "coaches": [
         "valentinos",
         "romeo"
@@ -102,7 +102,7 @@
       "startMinutes": 945,
       "minAge": 6,
       "maxAge": 12,
-      "location": "connaught",
+      "location": "kits",
       "coaches": [
         "romeo"
       ],
@@ -227,7 +227,7 @@
       "120": 60
     }
   },
-  "version": "860c9fc3ec76b5d73e21dd4a1c5e5a00966e10ae75a3019e69e42e6ad11f2c79"
+  "version": "4942723864006468d2e6459440f0c60978630f6c2d104ffd0198f2b45575d212"
 };
   function freeze(value) { Object.values(value).forEach(v => { if (v && typeof v === 'object') freeze(v); }); return Object.freeze(value); }
   freeze(catalog);
@@ -242,8 +242,18 @@
   }
   function addDays(value, days) { const d=isoDate(value); if(!d) throw new Error('Choose a valid calendar date.'); d.setUTCDate(d.getUTCDate()+days); return d.toISOString().slice(0,10); }
   function getSession(id) { return catalog.sessions.find(s=>s.id===id && s.active) || null; }
-  function choice(id, type) {
+  // Dated recovery uses the terms in force before the turf move. Live booking
+  // cards and newly offered dates continue to follow the current catalog.
+  const weeklyTurfMoveDate='2026-11-27';
+  function getSessionOn(id,date) {
     const session=getSession(id);
+    if (!session || !isoDate(date) || date>=weeklyTurfMoveDate) return session;
+    if (id==='wednesday') return {...session,time:'3:45–5:15 PM',startMinutes:945,location:'connaught'};
+    if (id==='friday') return {...session,location:'connaught'};
+    return session;
+  }
+  function choice(id, type, date=null) {
+    const session=date?getSessionOn(id,date):getSession(id);
     if (!session || !['dropin','pass4'].includes(type) || !Number.isFinite(session[type]) || session[type]<=0) throw new Error('This booking link is no longer available. Please choose a current session.');
     return {session,type,price:session[type],label:type==='pass4'?'Four-session pass':'Drop-in'};
   }
@@ -263,7 +273,7 @@
     return /^\d{1,3}$/.test(String(age)) && Number.isInteger(Number(age)) && Number(age)>=(session.minAge??1) && Number(age)<=(session.maxAge??120);
   }
   function booking(id,type,date,age,now = new Date()) {
-    return bookChoice(choice(id,type),date,age,now);
+    return bookChoice(choice(id,type,date),date,age,now);
   }
   function bookChoice(result,date,age,now) {
     const {session:s,type}=result;
@@ -332,7 +342,7 @@
       'Keep these details before and after training. Contact '+catalog.email+' about payment or session changes.'
     ].join('\n');
   }
-  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,choice,eligibleDate,nextDate,booking,bookChoice,ageDescription,validAge,prettyDate,money,paymentInstructions,privateQuote,coachId,accepted,receiptText,referralSources,referralSource,sessionLink,registrationHelp});
+  const api=Object.freeze({catalog,localClock,isoDate,addDays,getSession,getSessionOn,weeklyTurfMoveDate,choice,eligibleDate,nextDate,booking,bookChoice,ageDescription,validAge,prettyDate,money,paymentInstructions,privateQuote,coachId,accepted,receiptText,referralSources,referralSource,sessionLink,registrationHelp});
   root.StarTraining=api;
   if(typeof module!=='undefined' && module.exports) module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

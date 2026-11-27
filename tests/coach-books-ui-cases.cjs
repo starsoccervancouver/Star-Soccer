@@ -213,7 +213,8 @@ module.exports = async function checkBooks(fixture) {
       await page.locator('#unpaid-booking-list').getByText(due.playerName).waitFor();
       assert((await page.locator('#unpaid-booking-list').innerText()).includes(due.sessionLabel));
       await page.locator('#payment-entry summary').click();
-      await page.locator('#payment-amount').fill('31.50');await page.locator('#payment-method').selectOption('Cash');
+      assert.equal(await page.locator('#payment-amount').inputValue(),'31.50','The current balance is ready to record while the roster loads');
+      await page.locator('#payment-method').selectOption('Cash');
       assert(await page.locator('#app').isHidden());
       if(handoff==='during-entry'){
         openRoster();await page.locator('#app').waitFor();openDetails();await page.waitForLoadState('networkidle');
@@ -233,6 +234,34 @@ module.exports = async function checkBooks(fixture) {
       assert.deepEqual(f.errors,[]);
     }finally{openRoster();openDetails();await f.context.close();}
   }
+  let releaseRoster,releaseDetails;
+  const pendingRoster=new Promise(resolve=>{releaseRoster=resolve;});
+  const pendingDetails=new Promise(resolve=>{releaseDetails=resolve;});
+  const pendingRows=[{...due}];
+  const pendingPayment=await fixture({...emptyHome,books:pendingRows,priorityStart:true,openingUnpaid:true,paymentRecording:true,deskGate:pendingRoster,detailGate:pendingDetails});
+  try{
+    const {page}=pendingPayment;
+    let submissions=0;
+    await pendingPayment.context.route('**/workspace/api/booking-payment',async route=>{
+      const command=route.request().postDataJSON();submissions++;
+      assert.deepEqual(command.items,[{bookingId:due.bookingId,applyCents:1200,dueCents:3150}]);
+      Object.assign(pendingRows[0],{amountDue:19.5,amountOutstanding:19.5});
+      await route.fulfill({json:{saved:true}});
+    });
+    await page.locator('#home-unpaid-list a').first().click();
+    await page.locator('#payment-entry summary').click();
+    assert.equal(await page.locator('#payment-amount').inputValue(),'31.50');
+    await page.locator('#payment-amount').fill('12');
+    await page.locator('#payment-method').selectOption('Cash');
+    releaseRoster();await page.locator('#app').waitFor();releaseDetails();
+    await page.waitForLoadState('networkidle');
+    assert.equal(await page.locator('#payment-amount').inputValue(),'12','A partial amount survives the roster loading');
+    await page.locator('#payment-submit').click();
+    await page.locator('#home-unpaid-list a').getByText('$19.50',{exact:true}).waitFor();
+    assert.equal(submissions,1);
+    assert.deepEqual(pendingPayment.errors,[]);
+  }finally{releaseRoster();releaseDetails();await pendingPayment.context.close();}
+
   const opening = await fixture({...emptyHome,books,openingUnpaid:true});
   try {
     await opening.page.locator('#home-unpaid-list').getByRole('link',{name:/Avery Fictional.*31.50/}).waitFor();
@@ -450,6 +479,33 @@ module.exports = async function checkBooks(fixture) {
     assert(await unnamed.page.locator('#payment-entry').isHidden());
   }finally{await unnamed.context.close();}
 
+  const firstBalance={...due};
+  const secondBalance={...second,playerId:recordId(104)};
+  const familyPayment=await fixture({...emptyHome,books:[firstBalance,secondBalance,secondBalance],paymentRecording:true});
+  try{
+    const {page}=familyPayment;
+    let submissions=0;
+    await familyPayment.context.route('**/workspace/api/booking-payment',async route=>{
+      const command=route.request().postDataJSON();submissions++;
+      assert.equal(command.familyId,due.familyId);
+      assert.deepEqual(command.items,[
+        {bookingId:secondBalance.bookingId,applyCents:1225,dueCents:1225},
+        {bookingId:firstBalance.bookingId,applyCents:3150,dueCents:3150}
+      ]);
+      Object.assign(firstBalance,{status:'paid',amountDue:0});
+      Object.assign(secondBalance,{status:'paid',amountDue:0});
+      await route.fulfill({json:{saved:true}});
+    });
+    await page.locator('#home-unpaid-list a').getByText('$43.75',{exact:true}).click();
+    await page.locator('#payment-entry summary').click();
+    assert.equal(await page.locator('#payment-amount').inputValue(),'43.75','The default includes each unpaid booking once');
+    await page.locator('#payment-method').selectOption('Cash');
+    await page.locator('#payment-submit').click();
+    await page.waitForFunction(()=>document.querySelector('#home-unpaid').hidden);
+    assert.equal(submissions,1);
+    assert.deepEqual(familyPayment.errors,[]);
+  }finally{await familyPayment.context.close();}
+
   const walkIn={...due,familyId:null,familyName:null,amountDue:60,amountOutstanding:60};
   const past={...walkIn,scope:'booking',bookingId:recordId(999),date:null,sessionLabel:'Earlier camp · date unrecorded',pastBookingBalance:true,amountDue:50,amountOutstanding:50};
   const carryover=await fixture({...emptyHome,books:[walkIn,past],paymentRecording:true});
@@ -468,7 +524,20 @@ module.exports = async function checkBooks(fixture) {
     await page.locator('#selected-balance').getByText('$110.00 owing').waitFor();
     assert.equal(await page.locator('#unpaid-booking-list .books-entry').count(),2);
     await page.locator('#payment-entry summary').click();
-    await page.locator('#payment-amount').fill('60');await page.locator('#payment-method').selectOption('Cash');
+    const amount=page.locator('#payment-amount'),target=page.locator('#payment-target');
+    assert.equal(await amount.inputValue(),'110.00','All outstanding sessions are included in the default');
+    await target.selectOption(walkIn.bookingId);
+    assert.equal(await amount.inputValue(),'60.00','Choosing one session defaults to its balance');
+    await target.selectOption('');
+    assert.equal(await amount.inputValue(),'110.00');
+    await amount.fill('20');
+    await target.selectOption(past.bookingId);
+    assert.equal(await amount.inputValue(),'20','Changing the session preserves a manually entered amount');
+    await amount.fill('60');
+    assert(await amount.evaluate(input=>input.validity.rangeOverflow),'An amount over the selected balance cannot be submitted');
+    await target.selectOption('');
+    assert.equal(await amount.inputValue(),'60');
+    await page.locator('#payment-method').selectOption('Cash');
     await page.locator('#payment-submit').click();
     await page.locator('#home-unpaid-list a').getByText('$50.00',{exact:true}).waitFor();
     assert.equal(new URL(page.url()).hash,'#view=home');
@@ -504,7 +573,8 @@ module.exports = async function checkBooks(fixture) {
     assert.equal(new URL(page.url()).hash,'#view=home');
     await family.click();
     await page.locator('#payment-entry summary').click();
-    await page.locator('#payment-amount').fill('21.50');await page.locator('#payment-method').selectOption('E-transfer');
+    assert.equal(await page.locator('#payment-amount').inputValue(),'21.50','The default reflects the remaining balance after a partial payment');
+    await page.locator('#payment-method').selectOption('E-transfer');
     await page.locator('#payment-reference').fill('example123');await page.locator('#payment-submit').click();
     await page.locator('#home-unpaid-list a').getByText('$24.50',{exact:true}).waitFor();
     assert.equal(new URL(page.url()).hash,'#view=home');

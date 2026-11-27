@@ -696,7 +696,7 @@
  const familyDate=value=>value && Number.isFinite(Date.parse(value))?dateWithYearFormat.format(Date.parse(value)):value;
  const booksPageSize=40;
  let bookTarget='',expandPayment=false;
- let unpaidFamilies=[],paymentFamily=null,paymentCommand=null,paymentBusy=false;
+ let unpaidFamilies=[],paymentFamily=null,paymentCommand=null,paymentBusy=false,paymentAmountEdited=false;
  const canRecordPayment=()=>canViewBooks()&&profile.role==='owner'&&(openingView?openingView.canRecord:data?.paymentRecordingAvailable)===true;
  let booksRequest=0,booksRows=null,booksDenied=false,booksLimit=booksPageSize,booksMode='family',homeUnpaidState='idle';
  const canViewBooks=()=>!booksDenied&&(!!openingView||data?.booksAvailable===true)&&(profile?.role==='owner'||(profile?.role==='admin'&&profile.familyAccess===true));
@@ -954,7 +954,7 @@
   $('unpaid-bookings-title').focus();
  }
  function setupPaymentForm(family){
-  paymentFamily=family;paymentCommand=null;
+  paymentFamily=family;paymentCommand=null;paymentAmountEdited=false;
   const entry=$('payment-entry');entry.open=false;entry.hidden=!canRecordPayment()||!(family.id||family.rows[0]?.playerId);
   const form=$('booking-payment-form');form.reset();$('payment-result').textContent='';
   if(entry.hidden)return;
@@ -964,9 +964,9 @@
   $('payment-target-label').hidden=family.rows.length===1;
   $('payment-date').max=today();$('payment-date').value=today();
   for(const field of form.elements)field.disabled=paymentBusy;
-  updatePaymentForm();
+  updatePaymentForm(true);
  }
- function updatePaymentForm(){
+ function updatePaymentForm(fillAmount=false){
   if(!paymentFamily)return [];
   const transfer=$('payment-method').value==='E-transfer';
   $('payment-ref-label').hidden=!transfer;$('payment-reference').required=transfer;
@@ -975,6 +975,7 @@
    .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||a.bookingId.localeCompare(b.bookingId));
   const max=rows.reduce((sum,r)=>sum+Math.round(r.amountDue*100),0);
   amount.max=(max/100).toFixed(2);
+  if(fillAmount&&!paymentAmountEdited)amount.value=amount.max;
   let left=Math.round(amount.valueAsNumber*100);
   const items=[],lines=[];
   if(left>0&&left<=max)for(const row of rows){
@@ -986,7 +987,10 @@
   $('payment-split').textContent=items.length?'Apply to '+lines.join('; '):'Available balance: '+familyMoney(max/100);
   return items;
  }
- $('booking-payment-form').addEventListener('input',updatePaymentForm);
+ $('booking-payment-form').addEventListener('input',event=>{
+  if(event.target===$('payment-amount'))paymentAmountEdited=true;
+  updatePaymentForm(event.target===$('payment-target'));
+ });
  async function submitBookingPayment(command,button){
   if(paymentBusy||!canRecordPayment())return;
   const ticket=generation,form=$('booking-payment-form'),inBooks=tab==='books'||!!openingView?.target;

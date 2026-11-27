@@ -211,6 +211,21 @@ def read_cache(get_text):
     return {}
 
 
+def match_key(match):
+    return (match["date"], match["home"].strip(), match["away"].strip(), tuple(match["goals"]))
+
+
+def add_champions_league_highlights(source):
+    # Verified UEFA video permalinks, keyed by final score as well as fixture.
+    manifest = Path(__file__).with_name("uefa-highlight-links.json")
+    links = {match_key(row): row["highlightUrl"]
+             for row in json.loads(manifest.read_text(encoding="utf-8"))}
+    for match in source["items"]:
+        url = links.get(match_key(match))
+        if url:
+            match["highlightUrl"] = url
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=Path("football-news.json"))
@@ -246,6 +261,8 @@ def main():
         raise SystemExit(f"Feed verification failed: {', '.join(failures)}")
     for source in snapshot.values():
         source["items"] = [item for item in source["items"] if is_recent(item)]
+    if "champions-league" in snapshot:
+        add_champions_league_highlights(snapshot["champions-league"])
     args.output.write_text(json.dumps({"version": 1, "sources": snapshot}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 

@@ -3,8 +3,33 @@
   "sources": {
     "premier-league": {
       "kind": "results",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
+      "checkedAt": "2026-11-27T23:44:34+00:00",
       "items": [
+        {
+          "home": "Nottingham Forest",
+          "away": "Chelsea",
+          "goals": [
+            3,
+            2
+          ],
+          "date": "2026-11-27",
+          "competition": "Premier League",
+          "source": "TheSportsDB",
+          "url": "https://www.premierleague.com/en/results"
+        },
+        {
+          "home": "Brentford",
+          "away": "Everton",
+          "goals": [
+            4,
+            0
+          ],
+          "date": "2026-11-23",
+          "competition": "Premier League",
+          "source": "TheSportsDB",
+          "url": "https://www.premierleague.com/en/results",
+          "youtubeId": "wiQR6Nx28ik"
+        },
         {
           "home": "Liverpool",
           "away": "Manchester United",
@@ -15,7 +40,8 @@
           "date": "2026-11-22",
           "competition": "Premier League",
           "source": "TheSportsDB",
-          "url": "https://www.premierleague.com/en/results"
+          "url": "https://www.premierleague.com/en/results",
+          "youtubeId": "9bLh_lq4SrI"
         },
         {
           "home": "Hull City",
@@ -27,7 +53,8 @@
           "date": "2026-11-22",
           "competition": "Premier League",
           "source": "TheSportsDB",
-          "url": "https://www.premierleague.com/en/results"
+          "url": "https://www.premierleague.com/en/results",
+          "youtubeId": "FKCFZFOT3Tc"
         },
         {
           "home": "Newcastle United",
@@ -39,7 +66,8 @@
           "date": "2026-11-21",
           "competition": "Premier League",
           "source": "TheSportsDB",
-          "url": "https://www.premierleague.com/en/results"
+          "url": "https://www.premierleague.com/en/results",
+          "youtubeId": "R_680r02Lio"
         },
         {
           "home": "Bournemouth",
@@ -51,7 +79,8 @@
           "date": "2026-11-21",
           "competition": "Premier League",
           "source": "TheSportsDB",
-          "url": "https://www.premierleague.com/en/results"
+          "url": "https://www.premierleague.com/en/results",
+          "youtubeId": "p0YI3gesOH4"
         },
         {
           "home": "Tottenham Hotspur",
@@ -63,7 +92,8 @@
           "date": "2026-11-21",
           "competition": "Premier League",
           "source": "TheSportsDB",
-          "url": "https://www.premierleague.com/en/results"
+          "url": "https://www.premierleague.com/en/results",
+          "youtubeId": "-f5rhR4zQiY"
         },
         {
           "home": "Chelsea",
@@ -75,7 +105,8 @@
           "date": "2026-11-21",
           "competition": "Premier League",
           "source": "TheSportsDB",
-          "url": "https://www.premierleague.com/en/results"
+          "url": "https://www.premierleague.com/en/results",
+          "youtubeId": "7FO9vPbudn4"
         },
         {
           "home": "Manchester City",
@@ -87,7 +118,8 @@
           "date": "2026-11-21",
           "competition": "Premier League",
           "source": "TheSportsDB",
-          "url": "https://www.premierleague.com/en/results"
+          "url": "https://www.premierleague.com/en/results",
+          "youtubeId": "1uF4loZpNlY"
         },
         {
           "home": "Aston Villa",
@@ -99,31 +131,189 @@
           "date": "2026-11-21",
           "competition": "Premier League",
           "source": "TheSportsDB",
-          "url": "https://www.premierleague.com/en/results"
-        },
-        {
-          "home": "Coventry City",
-          "away": "Crystal Palace",
-          "goals": [
-            3,
-            2
-          ],
-          "date": "2026-11-21",
-          "competition": "Premier League",
-          "source": "TheSportsDB",
-          "url": "https://www.premierleague.com/en/results"
+          "url": "https://www.premierleague.com/en/results",
+          "youtubeId": "TZSf2qjSAX4"
         }
       ]
     },
     "champions-league": {
       "kind": "results",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
-      "items": []
+      "checkedAt": "2026-11-27T23:44:34+00:00",
+      "items": [
+        {
+          "home": "Sabah",
+          "away": "FC Barcelona",
+          "goals": [
+            1,
+            4
+          ],
+          "date": "2026-11-25",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-222871ca3407-ab3f8f54d19d-1000--champions-league-highlights-sabah-1-4-barcelona/"
+        },
+        {
+          "home": "Slavia Prag",
+          "away": "Villarreal CF",
+          "goals": [
+            0,
+            1
+          ],
+          "date": "2026-11-25",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-22286ec0a31e-a65ed22a0fd7-1000--champions-league-highlights-slavia-praha-0-1-villarreal/"
+        },
+        {
+          "home": "Inter Mailand",
+          "away": "VfB Stuttgart",
+          "goals": [
+            2,
+            0
+          ],
+          "date": "2026-11-25",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-2228bc00c56a-d1df30a90905-1000--champions-league-highlights-inter-2-0-stuttgart/"
+        },
+        {
+          "home": "Atletico Madrid",
+          "away": "Viking",
+          "goals": [
+            2,
+            0
+          ],
+          "date": "2026-11-25",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-2228b06054ea-ad0f4fda8792-1000--champions-league-highlights-atleti-2-0-viking/"
+        },
+        {
+          "home": "Paris St. Germain",
+          "away": "AS Rom",
+          "goals": [
+            2,
+            2
+          ],
+          "date": "2026-11-25",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-2228984630a6-db8bc83542cb-1000--champions-league-highlights-paris-2-2-roma/"
+        },
+        {
+          "home": "FC Brügge",
+          "away": "FC Liverpool",
+          "goals": [
+            0,
+            3
+          ],
+          "date": "2026-11-25",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-2228b380a58f-fe0d5fa65428-1000--champions-league-highlights-club-brugge-0-3-liverpool/"
+        },
+        {
+          "home": "Lille OSC",
+          "away": "FC Bayern München",
+          "goals": [
+            2,
+            1
+          ],
+          "date": "2026-11-25",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-2228b69684ab-a8fcc3561a52-1000--champions-league-highlights-lille-2-1-bayern-munchen/"
+        },
+        {
+          "home": "Sporting CP",
+          "away": "Manchester United FC",
+          "goals": [
+            2,
+            2
+          ],
+          "date": "2026-11-25",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-2228babfaa22-73eee0c64012-1000--champions-league-highlights-sporting-cp-2-2-man-utd/"
+        },
+        {
+          "home": "Shakhtar Donetsk",
+          "away": "Fenerbahçe SK",
+          "goals": [
+            0,
+            1
+          ],
+          "date": "2026-11-25",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-2228b585da05-4849ca11d35a-1000--champions-league-highlights-shakhtar-0-1-fenerbahce/"
+        },
+        {
+          "home": "Galatasaray Istanbul",
+          "away": "Aston Villa",
+          "goals": [
+            1,
+            0
+          ],
+          "date": "2026-11-24",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-22267adb9120-372cf5dcb426-1000--champions-league-highlights-galatasaray-1-0-aston-villa/"
+        },
+        {
+          "home": "FK Bodö/Glimt",
+          "away": "LASK",
+          "goals": [
+            1,
+            0
+          ],
+          "date": "2026-11-24",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-22267758dc57-0902491aab96-1000--champions-league-highlights-bodo-glimt-1-0-lask/"
+        },
+        {
+          "home": "Real Madrid",
+          "away": "PSV Eindhoven",
+          "goals": [
+            5,
+            1
+          ],
+          "date": "2026-11-24",
+          "competition": "Champions League",
+          "source": "OpenLigaDB",
+          "url": "https://www.uefa.com/uefachampionsleague/fixtures-results/",
+          "highlightUrl": "https://www.uefa.com/news-media/video/02ab-2226b40ed5c9-ad0d34dee894-1000--champions-league-highlights-real-madrid-5-1-psv/"
+        }
+      ]
     },
     "bundesliga": {
       "kind": "results",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
+      "checkedAt": "2026-11-27T23:44:34+00:00",
       "items": [
+        {
+          "home": "SV Werder Bremen",
+          "away": "Borussia Mönchengladbach",
+          "goals": [
+            3,
+            3
+          ],
+          "date": "2026-11-27",
+          "competition": "Bundesliga",
+          "source": "OpenLigaDB",
+          "url": "https://www.bundesliga.com/en/bundesliga/matchday"
+        },
         {
           "home": "FC Augsburg",
           "away": "1. FSV Mainz 05",
@@ -219,24 +409,12 @@
           "competition": "Bundesliga",
           "source": "OpenLigaDB",
           "url": "https://www.bundesliga.com/en/bundesliga/matchday"
-        },
-        {
-          "home": "FC Bayern München",
-          "away": "1. FC Köln",
-          "goals": [
-            1,
-            1
-          ],
-          "date": "2026-11-20",
-          "competition": "Bundesliga",
-          "source": "OpenLigaDB",
-          "url": "https://www.bundesliga.com/en/bundesliga/matchday"
         }
       ]
     },
     "whitecaps": {
       "kind": "results",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
+      "checkedAt": "2026-11-27T23:44:34+00:00",
       "items": [
         {
           "home": "Vancouver Whitecaps",
@@ -248,71 +426,60 @@
           "date": "2026-11-22",
           "competition": "American Major League Soccer",
           "source": "TheSportsDB",
-          "url": "https://www.whitecapsfc.com/schedule/"
+          "url": "https://www.whitecapsfc.com/schedule/",
+          "youtubeId": "RIXFbrfaIvs"
         }
       ]
     },
     "international-men": {
       "kind": "results",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
-      "items": [
-        {
-          "home": "Canada",
-          "away": "Guatemala",
-          "goals": [
-            4,
-            1
-          ],
-          "date": "2026-11-16",
-          "competition": "CONCACAF Nations League · Men",
-          "source": "International Football Results",
-          "url": "https://github.com/martj42/international_results"
-        },
-        {
-          "home": "Wales",
-          "away": "Portugal",
-          "goals": [
-            2,
-            3
-          ],
-          "date": "2026-11-17",
-          "competition": "UEFA Nations League · Men",
-          "source": "International Football Results",
-          "url": "https://github.com/martj42/international_results"
-        },
-        {
-          "home": "Denmark",
-          "away": "Norway",
-          "goals": [
-            2,
-            3
-          ],
-          "date": "2026-11-17",
-          "competition": "UEFA Nations League · Men",
-          "source": "International Football Results",
-          "url": "https://github.com/martj42/international_results"
-        }
-      ]
+      "checkedAt": "2026-11-27T23:44:34+00:00",
+      "items": []
     },
     "international-women": {
       "kind": "results",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
+      "checkedAt": "2026-11-27T23:44:34+00:00",
       "items": []
     },
     "ballon-dor-men": {
       "kind": "awards",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
+      "checkedAt": "2026-11-27T23:44:34+00:00",
       "items": []
     },
     "ballon-dor-women": {
       "kind": "awards",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
+      "checkedAt": "2026-11-27T23:44:34+00:00",
       "items": []
     },
     "la-liga": {
       "kind": "results",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
+      "checkedAt": "2026-11-27T23:44:34+00:00",
       "items": [
+        {
+          "home": "Levante",
+          "away": "Racing de Santander",
+          "goals": [
+            1,
+            3
+          ],
+          "date": "2026-11-27",
+          "competition": "La Liga",
+          "source": "TheSportsDB",
+          "url": "https://www.laliga.com/en-GB/laliga-easports/results"
+        },
+        {
+          "home": "Levante",
+          "away": "Elche",
+          "goals": [
+            1,
+            1
+          ],
+          "date": "2026-11-23",
+          "competition": "La Liga",
+          "source": "TheSportsDB",
+          "url": "https://www.laliga.com/en-GB/laliga-easports/results",
+          "youtubeId": "YBi-3FM8-3U"
+        },
         {
           "home": "Getafe",
           "away": "Atlético Madrid",
@@ -323,7 +490,8 @@
           "date": "2026-11-22",
           "competition": "La Liga",
           "source": "TheSportsDB",
-          "url": "https://www.laliga.com/en-GB/laliga-easports/results"
+          "url": "https://www.laliga.com/en-GB/laliga-easports/results",
+          "youtubeId": "DO8-Wy33ho0"
         },
         {
           "home": "Barcelona",
@@ -335,7 +503,8 @@
           "date": "2026-11-22",
           "competition": "La Liga",
           "source": "TheSportsDB",
-          "url": "https://www.laliga.com/en-GB/laliga-easports/results"
+          "url": "https://www.laliga.com/en-GB/laliga-easports/results",
+          "youtubeId": "Ngrd58fZSVA"
         },
         {
           "home": "Osasuna",
@@ -347,7 +516,8 @@
           "date": "2026-11-22",
           "competition": "La Liga",
           "source": "TheSportsDB",
-          "url": "https://www.laliga.com/en-GB/laliga-easports/results"
+          "url": "https://www.laliga.com/en-GB/laliga-easports/results",
+          "youtubeId": "15YyZiloozk"
         },
         {
           "home": "Racing de Santander",
@@ -359,7 +529,8 @@
           "date": "2026-11-22",
           "competition": "La Liga",
           "source": "TheSportsDB",
-          "url": "https://www.laliga.com/en-GB/laliga-easports/results"
+          "url": "https://www.laliga.com/en-GB/laliga-easports/results",
+          "youtubeId": "YeOPNxoh0lQ"
         },
         {
           "home": "Sevilla",
@@ -371,7 +542,8 @@
           "date": "2026-11-21",
           "competition": "La Liga",
           "source": "TheSportsDB",
-          "url": "https://www.laliga.com/en-GB/laliga-easports/results"
+          "url": "https://www.laliga.com/en-GB/laliga-easports/results",
+          "youtubeId": "dQkp9JOW2WU"
         },
         {
           "home": "Real Madrid",
@@ -383,7 +555,8 @@
           "date": "2026-11-21",
           "competition": "La Liga",
           "source": "TheSportsDB",
-          "url": "https://www.laliga.com/en-GB/laliga-easports/results"
+          "url": "https://www.laliga.com/en-GB/laliga-easports/results",
+          "youtubeId": "pmjOx-ItOz4"
         },
         {
           "home": "Deportivo Alavés",
@@ -395,7 +568,8 @@
           "date": "2026-11-21",
           "competition": "La Liga",
           "source": "TheSportsDB",
-          "url": "https://www.laliga.com/en-GB/laliga-easports/results"
+          "url": "https://www.laliga.com/en-GB/laliga-easports/results",
+          "youtubeId": "IYM7UXWv3tE"
         },
         {
           "home": "Rayo Vallecano",
@@ -407,26 +581,40 @@
           "date": "2026-11-21",
           "competition": "La Liga",
           "source": "TheSportsDB",
-          "url": "https://www.laliga.com/en-GB/laliga-easports/results"
-        },
-        {
-          "home": "Athletic Bilbao",
-          "away": "Espanyol",
-          "goals": [
-            0,
-            1
-          ],
-          "date": "2026-11-20",
-          "competition": "La Liga",
-          "source": "TheSportsDB",
-          "url": "https://www.laliga.com/en-GB/laliga-easports/results"
+          "url": "https://www.laliga.com/en-GB/laliga-easports/results",
+          "youtubeId": "AFtt31mdI68"
         }
       ]
     },
     "serie-a": {
       "kind": "results",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
+      "checkedAt": "2026-11-27T23:44:34+00:00",
       "items": [
+        {
+          "home": "Venezia",
+          "away": "Bologna",
+          "goals": [
+            0,
+            0
+          ],
+          "date": "2026-11-27",
+          "competition": "Serie A",
+          "source": "TheSportsDB",
+          "url": "https://en.legaseriea.it/"
+        },
+        {
+          "home": "Monza",
+          "away": "Fiorentina",
+          "goals": [
+            3,
+            0
+          ],
+          "date": "2026-11-23",
+          "competition": "Serie A",
+          "source": "TheSportsDB",
+          "url": "https://en.legaseriea.it/",
+          "youtubeId": "W1XS5zSvtzs"
+        },
         {
           "home": "Atalanta",
           "away": "Inter Milan",
@@ -437,7 +625,8 @@
           "date": "2026-11-22",
           "competition": "Serie A",
           "source": "TheSportsDB",
-          "url": "https://en.legaseriea.it/"
+          "url": "https://en.legaseriea.it/",
+          "youtubeId": "91CeztXQwPM"
         },
         {
           "home": "Sassuolo",
@@ -449,7 +638,8 @@
           "date": "2026-11-22",
           "competition": "Serie A",
           "source": "TheSportsDB",
-          "url": "https://en.legaseriea.it/"
+          "url": "https://en.legaseriea.it/",
+          "youtubeId": "-9b2VmQQrhs"
         },
         {
           "home": "AC Milan",
@@ -461,7 +651,8 @@
           "date": "2026-11-22",
           "competition": "Serie A",
           "source": "TheSportsDB",
-          "url": "https://en.legaseriea.it/"
+          "url": "https://en.legaseriea.it/",
+          "youtubeId": "88S0aBcQ0Bc"
         },
         {
           "home": "Juventus",
@@ -473,7 +664,8 @@
           "date": "2026-11-22",
           "competition": "Serie A",
           "source": "TheSportsDB",
-          "url": "https://en.legaseriea.it/"
+          "url": "https://en.legaseriea.it/",
+          "youtubeId": "qSa3PFh2Q24"
         },
         {
           "home": "Bologna",
@@ -485,7 +677,8 @@
           "date": "2026-11-22",
           "competition": "Serie A",
           "source": "TheSportsDB",
-          "url": "https://en.legaseriea.it/"
+          "url": "https://en.legaseriea.it/",
+          "youtubeId": "nuFJoRWpF-E"
         },
         {
           "home": "Lazio",
@@ -497,7 +690,8 @@
           "date": "2026-11-21",
           "competition": "Serie A",
           "source": "TheSportsDB",
-          "url": "https://en.legaseriea.it/"
+          "url": "https://en.legaseriea.it/",
+          "youtubeId": "Q6nFh3GTRdg"
         },
         {
           "home": "Napoli",
@@ -509,7 +703,8 @@
           "date": "2026-11-21",
           "competition": "Serie A",
           "source": "TheSportsDB",
-          "url": "https://en.legaseriea.it/"
+          "url": "https://en.legaseriea.it/",
+          "youtubeId": "hIn0YqsC8Cg"
         },
         {
           "home": "Parma",
@@ -521,26 +716,27 @@
           "date": "2026-11-21",
           "competition": "Serie A",
           "source": "TheSportsDB",
-          "url": "https://en.legaseriea.it/"
-        },
-        {
-          "home": "Como",
-          "away": "Cagliari",
-          "goals": [
-            2,
-            0
-          ],
-          "date": "2026-11-21",
-          "competition": "Serie A",
-          "source": "TheSportsDB",
-          "url": "https://en.legaseriea.it/"
+          "url": "https://en.legaseriea.it/",
+          "youtubeId": "njM0-6hREPM"
         }
       ]
     },
     "ligue-1": {
       "kind": "results",
-      "checkedAt": "2026-11-23T06:28:36+00:00",
+      "checkedAt": "2026-11-27T23:44:34+00:00",
       "items": [
+        {
+          "home": "Brest",
+          "away": "Paris FC",
+          "goals": [
+            1,
+            0
+          ],
+          "date": "2026-11-27",
+          "competition": "Ligue 1",
+          "source": "TheSportsDB",
+          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"
+        },
         {
           "home": "Marseille",
           "away": "Le Mans",
@@ -551,7 +747,8 @@
           "date": "2026-11-22",
           "competition": "Ligue 1",
           "source": "TheSportsDB",
-          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"
+          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures",
+          "youtubeId": "OTJLPTkGnYs"
         },
         {
           "home": "Lorient",
@@ -563,7 +760,8 @@
           "date": "2026-11-22",
           "competition": "Ligue 1",
           "source": "TheSportsDB",
-          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"
+          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures",
+          "youtubeId": "pAlOf6pUjzw"
         },
         {
           "home": "Paris FC",
@@ -575,7 +773,8 @@
           "date": "2026-11-22",
           "competition": "Ligue 1",
           "source": "TheSportsDB",
-          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"
+          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures",
+          "youtubeId": "L9fWDiOWw7w"
         },
         {
           "home": "Lille",
@@ -587,7 +786,8 @@
           "date": "2026-11-21",
           "competition": "Ligue 1",
           "source": "TheSportsDB",
-          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"
+          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures",
+          "youtubeId": "Fo67e3Sz7vI"
         },
         {
           "home": "Nice",
@@ -599,7 +799,8 @@
           "date": "2026-11-21",
           "competition": "Ligue 1",
           "source": "TheSportsDB",
-          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"
+          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures",
+          "youtubeId": "PGXZMhu0PDg"
         },
         {
           "home": "Monaco",
@@ -611,7 +812,8 @@
           "date": "2026-11-21",
           "competition": "Ligue 1",
           "source": "TheSportsDB",
-          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"
+          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures",
+          "youtubeId": "bSXBBCNKqbE"
         },
         {
           "home": "Strasbourg",
@@ -623,7 +825,8 @@
           "date": "2026-11-21",
           "competition": "Ligue 1",
           "source": "TheSportsDB",
-          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"
+          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures",
+          "youtubeId": "viyfHXZvj_4"
         },
         {
           "home": "Lens",
@@ -635,19 +838,8 @@
           "date": "2026-11-21",
           "competition": "Ligue 1",
           "source": "TheSportsDB",
-          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"
-        },
-        {
-          "home": "Troyes",
-          "away": "Le Havre",
-          "goals": [
-            3,
-            1
-          ],
-          "date": "2026-11-20",
-          "competition": "Ligue 1",
-          "source": "TheSportsDB",
-          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"
+          "url": "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures",
+          "youtubeId": "iNBCIFNUxOQ"
         }
       ]
     }

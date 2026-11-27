@@ -90,6 +90,9 @@
       summary: known?.summary,
       report: known?.report ?? game.url,
       youtubeId: /^[A-Za-z0-9_-]{11}$/.test(youtubeId ?? '') ? youtubeId : null,
+      highlightUrl: key === 'champions-league' &&
+        /^https:\/\/www\.uefa\.com\/news-media\/video\/[a-z0-9-]+\/$/.test(game.highlightUrl ?? '')
+        ? game.highlightUrl : null,
       eventPhoto: game.eventPhoto,
       lead: Boolean(known?.lead),
       interest: known?.lead ? interest + 10 : interest,
@@ -127,7 +130,12 @@
       summary.textContent = story.summary;
       summary.hidden = false;
     }
-    if (story.youtubeId) {
+    if (story.highlightUrl) {
+      video.href = story.highlightUrl;
+      video.querySelector('[data-story-video-label]').textContent = 'Watch on UEFA';
+      video.setAttribute('aria-label', 'Watch highlights on UEFA: ' + story.title);
+      video.hidden = false;
+    } else if (story.youtubeId) {
       video.href = 'https://www.youtube.com/watch?v=' + story.youtubeId;
       video.querySelector('[data-story-video-label]').textContent = 'Watch on YouTube';
       video.setAttribute('aria-label', 'Watch highlights on YouTube: ' + story.title);

@@ -101,6 +101,7 @@ async function checkFootballNews(page, base) {
   const checkedAt='2026-11-23T00:00:00Z';
   const game={away:'Visitor',goals:[2,0],competition:'League',source:'Test feed',url};
   const supplementary=['premier-league','champions-league','bundesliga'];
+  const uefaHighlight=require('../scripts/uefa-highlight-links.json').find(match=>match.home==='Sabah').highlightUrl;
   await page.route('**/football-news.json', route=>route.fulfill({json:{version:1,sources:{
     whitecaps:{kind:'results',checkedAt,items:[
       {...game,home:'Vancouver Whitecaps',away:'Real Salt Lake',date:'2026-11-22'},
@@ -120,7 +121,7 @@ async function checkFootballNews(page, base) {
       {name:'Player award',winner:'Year only',year:2026,url},
     ]},
     ...Object.fromEntries(supplementary.map(home=>[home,{kind:'results',checkedAt,items:[
-      {...game,home,date:'2026-11-16'},
+      {...game,home,date:'2026-11-16',highlightUrl:uefaHighlight},
     ]}]))
   }}}));
   await page.route('https://i.ytimg.com/**', route => route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"/>'}));
@@ -134,6 +135,9 @@ async function checkFootballNews(page, base) {
   assert.equal(await cards.first().locator('img').getAttribute('src'), 'https://i.ytimg.com/vi/ldXZdhBLMKk/hqdefault.jpg');
   assert.equal(await cards.first().getByRole('link',{name:/Watch highlights/}).getAttribute('href'),
     'https://www.youtube.com/watch?v=ldXZdhBLMKk');
+  const uefaLinks=section.getByRole('link',{name:/Watch highlights on UEFA/});
+  assert.equal(await uefaLinks.count(),1,'Only the Champions League card uses the UEFA video link');
+  assert.equal(await uefaLinks.first().getAttribute('href'),uefaHighlight);
   const titles=await cards.getByRole('heading').allTextContents();
   assert(titles.every(title=>/Barça come from two down|Whitecaps open the playoffs|champions-league beat|premier-league beat|Canada beat Guatemala/.test(title)),
     'Champions League, Premier League, Whitecaps and Canada get priority alongside a major Barcelona result');

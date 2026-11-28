@@ -144,7 +144,7 @@
   const trainingFormats={
     private:{title:'Private Training',min:1,max:5,action:'Send private inquiry'},
     smallgroup:{title:'Small Group Training',min:6,max:18,action:'Send small group inquiry',hint:'Bring your own group of 6–18 players'},
-    goalkeeping:{title:'Goalkeeping',min:1,max:10,action:'Send goalkeeping inquiry',hint:'Head coach Valentinos Dinglis is a former professional goalkeeper.'}
+    goalkeeping:{title:'Goalkeeping',min:1,max:6,action:'Send goalkeeping inquiry',hint:'Head coach Valentinos Dinglis is a former professional goalkeeper.'}
   };
   const privateForm=document.querySelector('#private-inquiry');
   if(privateForm) {

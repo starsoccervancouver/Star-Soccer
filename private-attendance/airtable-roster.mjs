@@ -52,7 +52,7 @@ export function normalizeAirtableRoster({tables,observedAt,revision,verifiedCont
    const coachUnlinked=String(a['Source coverage key']||'').startsWith('coach:')&&!links(b.Family).length;
    if(b['Booking status']!=='Accepted'||!links(b.Player).includes(playerId)||!coachUnlinked&&one(b.Family)!==familyId)throw new Error('UNVERIFIED_BOOKING');
    const dates=String(b['Covered dates']||b['Start date']||'').match(/\d{4}-\d{2}-\d{2}/g)||[];if(!dates.includes(day))throw new Error('UNCOVERED_SESSION');
-   kind=b['Booking type']==='Four consecutive sessions'?'pass':b['Booking type']==='Drop-in'?'dropin':null;
+   kind=b['Booking type']==='Camp package'?'camp':b['Booking type']==='Four consecutive sessions'?'pass':b['Booking type']==='Drop-in'?'dropin':null;
   }else{
    enrollment=enrollments.get(one(a.Enrollment));
    if(!enrollment||enrollment['Enrollment status']!=='Active'||enrollment['Billing approval']!=='Approved'||one(enrollment.Player)!==playerId||one(enrollment.Family)!==familyId||one(enrollment['Weekly program'])!==one(sessions.get(sessionId)['Weekly program'])||!date(enrollment['Effective from'])||day<enrollment['Effective from']||enrollment['Effective until']&&day>enrollment['Effective until'])throw new Error('UNVERIFIED_ENROLLMENT');

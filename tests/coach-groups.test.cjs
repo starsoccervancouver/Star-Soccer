@@ -94,6 +94,14 @@ test('roster review actions link to the source record for each issue',async()=>{
  for(const [reason,table,id] of [['Parent email missing','families',3],['Player name to confirm','players',2],['Weekly check-in preference needs review','enrollments',4],['Capacity needs review before any confirmation','sessions',1]]){
   assert.equal(issues.find(issue=>issue.reason===reason).action.href,'https://airtable.com/'+baseId+'/'+map[table]+'/'+rid(id));
  }
+ const family=tables.families[0].fields;
+ family.Email='family@example.org';
+ family['Roster verified email']=family.Email;
+ const reasons=()=>overview({}).issues.map(issue=>issue.reason);
+ assert(!reasons().includes('Parent email needs verification'));
+ assert(reasons().includes('Weekly check-in preference needs review'));
+ family.Email='changed@example.org';
+ assert(reasons().includes('Parent email needs verification'));
  assert(overview({}).issues.every(issue=>!issue.action));
  assert(!JSON.stringify(players).includes('airtable.com'));
 });

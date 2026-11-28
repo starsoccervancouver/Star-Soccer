@@ -13,6 +13,10 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
+from uefa_highlights import UEFA_IMAGE, UEFA_URL, discover_highlights, match_key
+from espn_highlights import VIDEO_URL as ESPN_VIDEO_URL, safe_image as safe_espn_image
+from espn_highlights import discover_highlights as discover_espn_highlights
+
 TODAY = datetime.now(ZoneInfo("America/Vancouver")).date()
 FIRST_DAY = (TODAY - timedelta(days=6)).isoformat()
 AGENT = "StarSoccer.ca football news (https://starsoccer.ca/contact.html)"
@@ -172,7 +176,7 @@ SOURCES = {
         4332, "Italian Serie A", "Serie A", "https://en.legaseriea.it/"), 10),
     "ligue-1": ("results", lambda: sportsdb_league(
         4334, "French Ligue 1", "Ligue 1", "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"), 10),
-    "champions-league": ("results", lambda: european("ucl", "Champions League", "https://www.uefa.com/uefachampionsleague/fixtures-results/"), 12),
+    "champions-league": ("results", lambda: european("ucl", "Champions League", "https://www.uefa.com/uefachampionsleague/fixtures-results/"), 36),
     "bundesliga": ("results", lambda: european("bl1", "Bundesliga", "https://www.bundesliga.com/en/bundesliga/matchday"), 10),
     "whitecaps": ("results", whitecaps, 3),
     "international-men": ("results", lambda: international("international_results", "Men"), 3),
@@ -211,19 +215,79 @@ def read_cache(get_text):
     return {}
 
 
-def match_key(match):
-    return (match["date"], match["home"].strip(), match["away"].strip(), tuple(match["goals"]))
-
-
-def add_champions_league_highlights(source):
-    # Verified UEFA video permalinks, keyed by final score as well as fixture.
+def add_champions_league_highlights(source, previous_items=()):
+    # Keep known links for unchanged scores if UEFA's catalogue is unavailable.
     manifest = Path(__file__).with_name("uefa-highlight-links.json")
-    links = {match_key(row): row["highlightUrl"]
+    links = {match_key(row): {"url": row["highlightUrl"]}
              for row in json.loads(manifest.read_text(encoding="utf-8"))}
+    for row in previous_items:
+        url = row.get("highlightUrl", "")
+        if isinstance(url, str) and UEFA_URL.fullmatch(url):
+            thumbnail = row.get("highlightThumbnail", "")
+            links[match_key(row)] = {
+                "url": url,
+                "thumbnail": thumbnail if isinstance(thumbnail, str) and UEFA_IMAGE.fullmatch(thumbnail) else None,
+            }
+    try:
+        found = discover_highlights(source["items"], download)
+        links.update(found)
+        print(f'UEFA highlights: {len(found)} fixtures matched automatically')
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+        print(f"UEFA highlights unavailable: {error}. Keeping known links.")
     for match in source["items"]:
-        url = links.get(match_key(match))
-        if url:
-            match["highlightUrl"] = url
+        media = links.get(match_key(match))
+        if media:
+            match["highlightUrl"] = media["url"]
+            if media.get("thumbnail"):
+                match["highlightThumbnail"] = media["thumbnail"]
+            else:
+                match.pop("highlightThumbnail", None)
+        else:
+            match.pop("highlightUrl", None)
+            match.pop("highlightThumbnail", None)
+
+
+def add_espn_highlights(snapshot, previous_sources):
+    fields = ("espnVideoUrl", "espnThumbnail", "espnVideoKind", "espnExpiresAt")
+    for source, content in snapshot.items():
+        previous = {match_key(row): row for row in previous_sources.get(source, [])
+                    if "home" in row and "away" in row and "goals" in row}
+        for row in content.get("items", []):
+            if "home" not in row or "away" not in row or "goals" not in row:
+                continue
+            old = dict(previous.get(match_key(row), {}))
+            for field in fields:
+                row.pop(field, None)
+            url = old.get("espnVideoUrl", "")
+            image = old.get("espnThumbnail", "")
+            expires = old.get("espnExpiresAt", "")
+            try:
+                available = not expires or datetime.fromisoformat(expires.replace("Z", "+00:00")) > datetime.now(UTC)
+            except (ValueError, TypeError):
+                available = False
+            if (isinstance(url, str) and ESPN_VIDEO_URL.fullmatch(url)
+                    and safe_espn_image(image) and available
+                    and old.get("espnVideoKind") in {"highlights", "moment"}):
+                row.update({field: old[field] for field in fields if field in old})
+
+    def espn_download(url):
+        with urlopen(Request(url, headers={"User-Agent": "Mozilla/5.0"}), timeout=12) as response:
+            content = response.read(5_000_001)
+        if len(content) > 5_000_000:
+            raise ValueError("ESPN response exceeded the expected size")
+        return content.decode("utf-8-sig")
+
+    try:
+        found = discover_espn_highlights(snapshot, espn_download)
+        for source, content in snapshot.items():
+            for row in content.get("items", []):
+                if "home" in row and "away" in row and "goals" in row:
+                    media = found.get((source, match_key(row)))
+                    if media:
+                        row.update(media)
+        print(f"ESPN videos: {len(found)} fixtures matched")
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+        print(f"ESPN videos unavailable: {error}. Keeping known links.")
 
 
 def main():
@@ -238,6 +302,7 @@ def main():
         for key in SOURCES.keys() & live.keys():
             if live[key]["checkedAt"] > snapshot.get(key, {}).get("checkedAt", ""):
                 snapshot[key] = live[key]
+    previous_sources = {key: list(value.get("items", [])) for key, value in snapshot.items()}
     now = datetime.now(UTC).isoformat(timespec="seconds")
     failures = []
     with ThreadPoolExecutor(max_workers=6) as pool:
@@ -262,7 +327,8 @@ def main():
     for source in snapshot.values():
         source["items"] = [item for item in source["items"] if is_recent(item)]
     if "champions-league" in snapshot:
-        add_champions_league_highlights(snapshot["champions-league"])
+        add_champions_league_highlights(snapshot["champions-league"], previous_sources.get("champions-league", []))
+    add_espn_highlights(snapshot, previous_sources)
     args.output.write_text(json.dumps({"version": 1, "sources": snapshot}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 

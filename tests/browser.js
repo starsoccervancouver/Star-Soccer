@@ -73,7 +73,7 @@
           check(camps && camps.getAttribute('href')==='camps.html' && /Dec 21–25 and Dec 28–Jan 1/.test(camps.textContent) && !doc.querySelector('a[href="pro-d-camp-registration.html"]'),`Homepage at ${width}px promotes both December weeks and omits the expired Pro-D signup`);
           check(camps && camps.getClientRects().length && camps.getBoundingClientRect().height>=48,`Homepage at ${width}px shows a large camp action`);
           check(camps && camps.querySelector('.hero-action-title').textContent.trim()==='Soccer Camps Vancouver →' && !camps.textContent.includes('$250'),`Homepage at ${width}px leads with a descriptive winter soccer camp action`);
-          check(doc.querySelector('h1').textContent.includes('Weekly soccer coaching.') && doc.querySelector('h1').textContent.includes('Ages 6–14 in Kitsilano.'),`Homepage at ${width}px describes the weekly service, ages and location`);
+          check(doc.querySelector('h1').textContent === 'Soccer Lessons in Vancouver' && doc.querySelector('h1 + p')?.textContent === 'Weekly groups for ages 6–14 in Kitsilano.',`Homepage at ${width}px describes the weekly service, ages and location`);
           const profiles=[...doc.querySelectorAll('#coaching-team .home-coach-card')];
           for(const [coach,preference] of [['Valentinos Dinglis','valentinos'],['Evan Lycos','evan'],['Romeo Dinglis','romeo'],['Owen Soroka','owen']]){
             const card=profiles.find(profile=>profile.querySelector('h3')?.textContent.trim()===coach);
@@ -231,7 +231,7 @@
       }
     }
     let doc=await load('',320);
-    check(doc.querySelector('h1')?.textContent.includes('Weekly soccer coaching.') && doc.querySelector('.site-header a[aria-label="Star Soccer home"]')?.getAttribute('href')==='/', 'Root home navigation serves the current homepage');
+    check(doc.querySelector('h1')?.textContent === 'Soccer Lessons in Vancouver' && doc.querySelector('.site-header a[aria-label="Star Soccer home"]')?.getAttribute('href')==='/', 'Root home navigation serves the current homepage');
     const faq=doc.querySelector('.home-parent-faq details');
     faq.querySelector('summary').click();
     check(faq.open && faq.querySelector('p').getClientRects().length && [...faq.querySelectorAll('a')].every(link=>link.getAttribute('href')) && doc.documentElement.scrollWidth<=321,'Parent FAQ opens with working program links and fits a 320px screen');

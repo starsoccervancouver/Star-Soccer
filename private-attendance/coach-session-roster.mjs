@@ -1,4 +1,5 @@
 import {deny} from './coach-store.mjs';
+import {sessionRate, sessionRateCutover} from './session-rate.mjs';
 
 const recordId = /^rec[A-Za-z0-9]{14}$/;
 const commandId = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -13,12 +14,19 @@ const fields = {
   players:['Player','Player status','Family','Source player ID'],
   families:['Family','Guardian name'],
   programs:['Program','Drop-in CAD'],
-  attendance:['Player','Session','Booking','Coverage state','Source coverage key'],
+  attendance:['Player','Session','Booking','Coverage state','Source coverage key','Attendance status'],
   bookings:['Player','Family','Booking type','Booking status','Start date','Covered dates','First session','Fixed-price package','Source booking ID'],
   enrollments:['Enrollment','Player','Family','Weekly program','Enrollment status','Effective from','Effective until','Billing schedule','Billing approval','Agreed per-session CAD','Prepaid covered from','Prepaid covered until']
 };
 
-export function createSessionRoster({db, store, today}) {
+export function createSessionRoster({db, store, today, sessionRateField=null}) {
+  const readColumns = table => table === 'sessions' && sessionRateField ? [...fields.sessions,sessionRateField] : fields[table];
+  const usesSessionRate = session => !!sessionRateField && session.fields.Date >= sessionRateCutover;
+  const rateFor = (data, session) => {
+    const program = data.programs?.find(row => row.id === programFor(session))?.fields;
+    const rate = sessionRate(session.fields,program,sessionRateField);
+    return rate === null ? null : Math.round(rate * 100);
+  };
   store.run(`CREATE TABLE IF NOT EXISTS coach_roster_commands (
     id TEXT PRIMARY KEY, actor TEXT NOT NULL, payload TEXT NOT NULL, player_id TEXT, result TEXT
   )`);
@@ -30,7 +38,7 @@ export function createSessionRoster({db, store, today}) {
   )`);
 
   async function snapshot() {
-    const entries = await Promise.all(Object.entries(fields).map(async ([table, columns]) => [table, await db.list(table, columns)]));
+    const entries = await Promise.all(Object.keys(fields).map(async table => [table, await db.list(table, readColumns(table))]));
     return Object.fromEntries(entries);
   }
   function sessionFor(data, id) {
@@ -103,7 +111,7 @@ export function createSessionRoster({db, store, today}) {
     let booking = existingBooking(data, session, player);
     const pass=prepaidEnrollment(data,session,player);
     if(pass&&booking&&booking.fields['Booking type']!=='Four consecutive sessions'&&booking.fields['Fixed-price package']!==true) deny('ROSTER_BOOKING_CONFLICT',409);
-    if(!booking&&!pass)checkRates(data,session,player);
+    if(!booking&&!pass&&!usesSessionRate(session))checkRates(data,session,player);
     const key = 'coach:' + session.id + ':' + player.id;
     if (!booking&&!pass) {
       const previous = data.bookings.filter(row => row.fields['Source booking ID'] === key);
@@ -156,12 +164,14 @@ export function createSessionRoster({db, store, today}) {
     async options(sessionId) {
       if (!recordId.test(sessionId || '')) deny('INVALID_REQUEST', 400);
       const tablesToRead=['sessions','players','families','programs','enrollments'];
-      const data=Object.fromEntries(await Promise.all(tablesToRead.map(async name=>[name,await db.list(name,fields[name])])));
+      const data=Object.fromEntries(await Promise.all(tablesToRead.map(async name=>[name,await db.list(name,readColumns(name))])));
       const session = sessionFor(data, sessionId), programId = programFor(session);
       const program = data.programs.find(row => row.id === programId)?.fields;
       return {
         recurring:!!programId,
-        rate:Number.isFinite(program?.['Drop-in CAD']) && program['Drop-in CAD'] >= 0 ? program['Drop-in CAD'] : null,
+        rate:usesSessionRate(session) ? (rateFor(data,session) === null ? null : rateFor(data,session)/100) :
+          Number.isFinite(program?.['Drop-in CAD']) && program['Drop-in CAD'] >= 0 ? program['Drop-in CAD'] : null,
+        rateLocked:usesSessionRate(session) && rateFor(data,session) !== null,
         players:data.players.filter(row => names(row.fields.Player) && row.fields['Player status'] !== 'Inactive')
           .map(row => {
             const family=links(row.fields.Family);
@@ -171,7 +181,7 @@ export function createSessionRoster({db, store, today}) {
               (!item['Effective from']||item['Effective from']<=session.fields.Date)&&(!item['Effective until']||item['Effective until']>=session.fields.Date)&&
               Number.isFinite(item['Agreed per-session CAD'])&&item['Agreed per-session CAD']>=0);
             return {id:row.id,name:names(row.fields.Player),familyId:links(row.fields.Family).length === 1 ? row.fields.Family[0] : null,
-              ...(agreed.length===1?{agreedRate:agreed[0].fields['Agreed per-session CAD']}:{})};
+              ...(!usesSessionRate(session)&&agreed.length===1?{agreedRate:agreed[0].fields['Agreed per-session CAD']}:{})};
           })
           .sort((a,b) => a.name.localeCompare(b.name)),
         families:data.families.map(row => ({id:row.id,name:names(row.fields['Guardian name']) || names(row.fields.Family) || 'Unnamed family'}))
@@ -195,6 +205,18 @@ export function createSessionRoster({db, store, today}) {
       }
       const data = await snapshot(), session = sessionFor(data, sessionId);
       if (mode === 'permanent' && !programFor(session)) deny('ROSTER_NOT_RECURRING', 409);
+      if (usesSessionRate(session)) {
+        const known = rateFor(data,session);
+        if (known !== null && known !== rateCents) deny('ROSTER_RATE_CHANGED',409);
+        if (known === null) {
+          if (data.attendance.some(row => one(row.fields.Session,session.id) &&
+              row.fields['Coverage state']==='Active' && row.fields['Attendance status']==='Present')) deny('ROSTER_RATE_REVIEW',409);
+          // The first owner to set a price sets it for the session, not just
+          // for the selected player. Subsequent additions must use that price.
+          await db.save('sessions',{[sessionRateField]:rateCents/100},{id:session.id});
+          session.fields[sessionRateField] = rateCents/100;
+        }
+      }
       let player;
       if (playerId || command.player_id) player = playerFor(data, playerId || command.player_id);
       else {
@@ -216,7 +238,7 @@ export function createSessionRoster({db, store, today}) {
       if(!selectedSeat){
         const booking=existingBooking(data,session,player),pass=prepaidEnrollment(data,session,player);
         if(pass&&booking&&booking.fields['Booking type']!=='Four consecutive sessions'&&booking.fields['Fixed-price package']!==true)deny('ROSTER_BOOKING_CONFLICT',409);
-        if(!booking&&!pass)checkRates(data,session,player);
+        if(!booking&&!pass&&!usesSessionRate(session))checkRates(data,session,player);
       }
       let member;
       if (mode === 'permanent') {
@@ -236,7 +258,15 @@ export function createSessionRoster({db, store, today}) {
       let added = 0;
       const reviewDates = [];
       for (const row of dates) {
-        try { if (await seat(data, row, player, rateCents)) added++; }
+        try {
+          const datedRate = usesSessionRate(row) ? rateFor(data,row) : rateCents;
+          if (datedRate === null && !existingSeat(data,row.id,player.id) &&
+              !existingBooking(data,row,player) && !prepaidEnrollment(data,row,player)) {
+            if (row.id === session.id) deny('ROSTER_RATE_CHANGED',409);
+            reviewDates.push(row.fields.Date); continue;
+          }
+          if (await seat(data, row, player, datedRate ?? 0)) added++;
+        }
         catch (error) {
           if (row.id === session.id || error?.status !== 409) throw error;
           reviewDates.push(row.fields.Date);
@@ -249,8 +279,8 @@ export function createSessionRoster({db, store, today}) {
     async sync() {
       const memberships = store.all('SELECT * FROM coach_roster_memberships');
       if (!memberships.length) return {added:0,issues:[]};
-      const tablesToRead=['sessions','attendance','enrollments'];
-      const data=Object.fromEntries(await Promise.all(tablesToRead.map(async name=>[name,await db.list(name,fields[name])])));
+      const tablesToRead=['sessions','attendance','enrollments',...(sessionRateField?['programs']:[])];
+      const data=Object.fromEntries(await Promise.all(tablesToRead.map(async name=>[name,await db.list(name,readColumns(name))])));
       const work=memberships.some(member=>{
         const enrolled=data.enrollments.find(row=>row.id===member.enrollment_id)?.fields;
         if(['Paused','Needs review'].includes(enrolled?.['Enrollment status']))return false;
@@ -284,12 +314,13 @@ export function createSessionRoster({db, store, today}) {
         for (const session of data.sessions.filter(row => programFor(row) === member.program_id && date(row.fields.Date) && row.fields.Date >= first &&
           (member.independent || !enrolled['Effective until'] || row.fields.Date <= enrolled['Effective until']) && ['Planned','Confirmed'].includes(row.fields['Session status']))) {
           try {
-            if(currentRate===null&&!existingSeat(data,session.id,player.id)&&
+            const datedRate=usesSessionRate(session)?rateFor(data,session):currentRate;
+            if(datedRate===null&&!existingSeat(data,session.id,player.id)&&
               !existingBooking(data,session,player)&&!prepaidEnrollment(data,session,player)){
-              issues.push({sessionId:session.id,player:names(player.fields.Player),reason:'Permanent player’s rate needs review'});
+              issues.push({sessionId:session.id,player:names(player.fields.Player),reason:usesSessionRate(session)?'Session rate needs review':'Permanent player’s rate needs review'});
               continue;
             }
-            if (await seat(data, session, player, currentRate??0,true)) added++;
+            if (await seat(data, session, player, datedRate??0,true)) added++;
           }
           catch (error) {
             if (error?.status !== 409) throw error;

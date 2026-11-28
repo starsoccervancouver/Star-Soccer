@@ -1,10 +1,11 @@
 import coachGroups from './web/workspace-groups.js';
+import {sessionRateCutover} from './session-rate.mjs';
 
 // A booking owns the charge and its verified payment allocations. A roster place
 // alone does not establish a price, and a shared charge belongs in the books once.
 const fields = {
   sessions: ['Session', 'Source session ID', 'Weekly program', 'Date', 'Time', 'Venue', 'Session status', 'Attendance'],
-  attendance: ['Session', 'Session date', 'Player', 'Booking', 'Coverage state', 'Attendance status', 'Covered session key', 'Attended billing session', 'Preparation registration kind'],
+  attendance: ['Session', 'Session date', 'Player', 'Booking', 'Coverage state', 'Attendance status', 'Covered session key', 'Attended billing session', 'Preparation registration kind', 'Billing review'],
   players: ['Player', 'Family', 'Attendance', 'Bookings'],
   bookings: ['Source booking ID', 'Player', 'Family', 'Attendance', 'First session', 'Start date', 'Covered dates', 'Booking status', 'Booking type',
     'Charge review', 'Charge CAD', 'Billing basis', 'Attendance-adjusted charge CAD', 'Payment Allocations', 'Verified applied CAD', 'Balance CAD', 'Due now CAD', 'Upcoming booked CAD', 'Unresolved price count', 'Fixed-price package'],
@@ -118,6 +119,16 @@ function receiptReviews(tables, families, bookings) {
 
 function reconciledAmounts(booking, familyId, family, upcoming, receipts) {
   if (booking['Charge review'] !== 'Agreed' || booking['Unresolved price count'] !== 0) return {issue:'Confirm the agreed price.'};
+  const rawBalance = booking['Balance CAD'];
+  if (Number.isFinite(rawBalance) && rawBalance < 0 &&
+      Math.abs(Math.round(rawBalance*100)-rawBalance*100)<0.000001) {
+    const charged = cents(booking['Attendance-adjusted charge CAD']);
+    const paid = cents(booking['Verified applied CAD']);
+    if (charged !== null && paid !== null && charged - paid === Math.round(rawBalance*100)) {
+      return {issue:'Review the ' + new Intl.NumberFormat('en-CA',{style:'currency',currency:'CAD'}).format(-rawBalance) +
+        ' credit from recorded payments.'};
+    }
+  }
   const [charged, balance, due] = ['Attendance-adjusted charge CAD', 'Balance CAD', 'Due now CAD'].map(key => cents(booking[key]));
   const paid = cents(booking['Verified applied CAD'] ?? (links(booking['Payment Allocations']).length === 0 ? 0 : null));
   const futureBooked = cents(booking['Upcoming booked CAD']);
@@ -249,10 +260,19 @@ export function buildSessionBooks(tables, today, source = {}) {
         continue;
       }
       const upcoming = starts > today;
+      if (members.some(m => m.session.Date >= sessionRateCutover && m.a['Billing review'] === 'Needs reconciliation')) {
+        rows.push(review(row,booking,'Review the session rate and booking before collecting.'));
+        continue;
+      }
       const {amounts, issue} = reconciledAmounts(booking, single(player?.Family), family, upcoming, receipts);
       if (amounts) {
         const attended = a['Attendance status'] === 'Present';
-        if (multiple) Object.assign(row, amounts, {status: 'package'});
+        if (multiple && (packageBooking || basis !== 'Attendance')) Object.assign(row, amounts, {status: 'package'});
+        else if (multiple && basis === 'Attendance' && amounts.amountDue > 0 &&
+          members.some(m => m.a['Attendance status'] === 'Present' && m.a['Attended billing session'] === m.sessionId))
+          Object.assign(row,amounts,{status:'due',attendanceBilled:true,sessionLabel:'Attended sessions'});
+        else if (multiple && basis === 'Attendance' && amounts.amountDue === 0)
+          Object.assign(row,amounts,{status:amounts.amountUpcoming>0?'upcoming':amounts.amountPaid>0?'paid':'no-charge',attendanceBilled:true,sessionLabel:'Attended sessions'});
         else if ((upcoming || amounts.amountUpcoming > 0) && amounts.amountDue === 0) Object.assign(row, amounts, {status: 'upcoming'});
         else if (amounts.amountDue > 0) {
           if (attended && (basis === 'Historical' || a['Attended billing session'] === sessionId)) Object.assign(row, amounts, {status: 'due'});
@@ -327,14 +347,14 @@ export async function readSessionBooks(read, now, timeZone, source) {
 }
 
 // Overview can reuse a recent display read. Books and payment validation always request fresh data.
-export const collectibleBooking = row => row.scope==='session' || (row.scope==='booking' && row.pastBookingBalance===true);
+export const collectibleBooking = row => row.scope==='session' || (row.scope==='booking' && (row.pastBookingBalance===true || row.attendanceBilled===true));
 
 export function unpaidSessionRows(report) {
   return report.rows.filter(row=>collectibleBooking(row) && row.status==='due' && Number.isFinite(row.amountDue) && row.amountDue>0)
     .map(row=>{
-      const {scope,status,amountDue,bookingId,familyId,familyName,playerId,playerName,pastBookingBalance,
+      const {scope,status,amountDue,bookingId,familyId,familyName,playerId,playerName,pastBookingBalance,attendanceBilled,
         date,time,location,sessionLabel,bookingType,attendanceStatus,coveredDates,amountCharged,amountPaid}=row;
-      return {scope,status,amountDue,bookingId,familyId,familyName,playerId,playerName,pastBookingBalance,
+      return {scope,status,amountDue,bookingId,familyId,familyName,playerId,playerName,pastBookingBalance,attendanceBilled,
         date,time,location,sessionLabel,bookingType,attendanceStatus,coveredDates,amountCharged,amountPaid};
     });
 }

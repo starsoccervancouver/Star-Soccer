@@ -12,7 +12,7 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
   const session = (n, date, time = '4:00 PM', players = [], status = 'Scheduled') => ({ id: rid(n), programId: rid(900), date, time, location: 'Fictional field', status, capacity: 20, capacityUsed: players.length, expected: players.length, counts: { yes: 0, no: 0, awaiting: players.length, confirmed: 0 }, issues: [], players });
   const sessions = [session(8,'2026-12-23','4:00 PM',[player(8)],'Cancelled'), session(7,'2026-12-27','9:00 AM',[player(7)]), session(6,'2026-12-30','4:00 PM',[player(6)]), session(2,'2026-12-31'), session(3,'2027-01-01','3:00 PM',[player(3)]), session(4,'2027-01-01','5:00 PM',[player(4)]), session(5,'2027-01-03','9:00 AM',[],'Cancelled'), session(1,'2027-01-06','4:00 PM',[player(1)]), session(9,'2027-01-08','3:00 PM',[player(9)])];
   const browser = await chromium.launch(); let checks = 0;
-  async function fixture(rows = sessions, role = 'owner', allowMark = false, allowRoster = false) {
+  async function fixture(rows = sessions, role = 'owner', allowMark = false, allowRoster = false, datedRates = false) {
     const context = await browser.newContext();
     await context.addInitScript(now => { const Base = Date; window.Date = class extends Base { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return Base.parse(now); } }; }, now);
     const writes = [], rosterWrites = [], errors = [], pendingMarks = [];
@@ -23,7 +23,7 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
       if (url.pathname.endsWith('/bootstrap')) value = { profile: { ...profile, role }, csrfToken: 'fictional-csrf', googleEnabled: true };
       else if (url.pathname.endsWith('/desk')) value = { profile: { ...profile, role }, sessions: rows, notes: [], tasks: [], observedAt: now, ...(allowRoster?{rosterEditingAvailable:true}:{}) };
       else if (url.pathname.endsWith('/refresh')) value = allowRoster?{profile:{...profile,role},sessions:rows,notes:[],tasks:[],observedAt:now,rosterEditingAvailable:true}:{refreshed:true};
-      else if (url.pathname.endsWith('/session-roster/options') && allowRoster) value={recurring:true,rate:30,players:[{id:rid(101),name:'Fictional Existing',familyId:rid(9001),agreedRate:25.5}],families:[{id:rid(9001),name:'Fictional Family'}]};
+      else if (url.pathname.endsWith('/session-roster/options') && allowRoster) value={recurring:true,rate:datedRates?25:30,rateLocked:datedRates,players:[{id:rid(101),name:'Fictional Existing',familyId:rid(9001),...(datedRates?{}:{agreedRate:25.5})}],families:[{id:rid(9001),name:'Fictional Family'}]};
       else if (url.pathname.endsWith('/session-roster/add') && allowRoster) {
         const payload=request.postDataJSON();rosterWrites.push(payload);
         const current=rows.find(s=>s.id===payload.sessionId),name=payload.newName||'Fictional Existing';
@@ -183,6 +183,19 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     await editable.page.locator('#login').waitFor();
     assert(!(await editable.page.locator('body').textContent()).includes('New Fictional Player'),'Signing out clears the player picker');
     assert.deepEqual(editable.errors,[]);await editable.context.close();checks++;
+
+    const datedRows=[session(2,'2026-12-31')],dated=await fixture(datedRows,'owner',false,true,true);
+    await openSession(dated.page,datedRows,rid(2),'attendance');
+    await dated.page.locator('#session-add-player summary').click();
+    await dated.page.locator('#session-add-player-choice option[value="'+rid(101)+'"]').waitFor({state:'attached'});
+    assert.equal(await dated.page.locator('#session-add-player-rate').inputValue(),'25.00');
+    assert.equal(await dated.page.locator('#session-add-player-rate').getAttribute('readonly'),'');
+    await dated.page.locator('#session-add-player-choice').selectOption(rid(101));
+    assert.equal(await dated.page.locator('#session-add-player-rate').inputValue(),'25.00');
+    await dated.page.locator('#session-add-player-submit').click();
+    await dated.page.locator('#roster').getByText('Fictional Existing',{exact:true}).waitFor();
+    assert.equal(dated.rosterWrites[0].rateCents,2500);
+    assert.deepEqual(dated.errors,[]);await dated.context.close();checks++;
 
     console.log('Attendance group/history UI: ' + checks + ' isolated group, date, cancellation, role-scope, pending-save and mobile checks passed.');
   } finally { await browser.close(); }

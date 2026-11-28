@@ -93,7 +93,7 @@ test('passes and historical multi-session booking payments appear once', async (
     const rows = await project(t => {nextSeat(t); t.bookings[0].fields['Billing basis'] = basis;});
     assert.equal(rows.length, 1);
     assert.deepEqual([rows[0].status, rows[0].scope, rows[0].sessionId, rows[0].amountDue, rows[0].coveredDates],
-      ['package', 'booking', null, 25, ['2026-11-20','2026-11-22']]);
+      [basis==='Historical'?'due':'package', 'booking', null, 25, ['2026-11-20','2026-11-22']]);
   }
   const [shared] = await project(t => {nextSeat(t); t.bookings[0].fields.Player.push('sibling');});
   assert.deepEqual([shared.status, shared.playerId, shared.playerName, shared.contact, shared.amountDue], ['review',null,null,null,null]);

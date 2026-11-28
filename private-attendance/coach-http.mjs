@@ -15,7 +15,7 @@ const random=()=>randomBytes(32).toString('base64url');
 const same=(a,b)=>{const x=Buffer.from(a||''),y=Buffer.from(b||'');return x.length===y.length&&timingSafeEqual(x,y);};
 const cookie=(request,name)=>request.headers.get('cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith(name+'='))?.slice(name.length+1);
 const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow','Strict-Transport-Security':'max-age=31536000','Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'",'Permissions-Policy':'publickey-credentials-create=(self), publickey-credentials-get=(self), camera=(), microphone=(self), geolocation=()'};
-export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger,sessionBooks=null,bookingPayments=null,sessionRoster=null,automationHistory=null,gmailSync=null,attention=null,familyFollowups=null,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',timeZone='America/Vancouver',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
+export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger,sessionBooks=null,bookingPayments=null,sessionRoster=null,bookOutcome=null,automationHistory=null,gmailSync=null,attention=null,familyFollowups=null,attendance,origin='https://attendance.starsoccer.ca',basePath='/workspace',timeZone='America/Vancouver',googleAuth=null,updateAttendance=()=>{},legacyNotes=async()=>[],assets,clock=()=>Date.now()}){
  origin=validateWorkspaceOrigin(origin);basePath=validateCoachPath(basePath);
  const preview = origin==='https://starsoccer.ca' && basePath==='/coachdesk' && googleAuth
    ? createOperationsPreview({cookieKey,origin,coaches,overview,familyLedger,clock}) : null;
@@ -174,6 +174,18 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    try{saved=await bookingPayments('record-booking-payment',{actor:current.email,input});}
    finally{sessionBooks?.invalidate?.();}
    coaches.owner(currentSession(raw,signed).actor);return json(200,saved);
+  }
+  if(path==='/workspace/api/books-outcome'&&request.method==='POST'){
+   coaches.owner(actor);if(!bookOutcome)deny('ACCESS_DENIED',403);
+   const {bookingId,attendanceId,decision}=await body(request,['bookingId','attendanceId','decision']);
+   const report=await sessionBooks({});
+   const row=report.rows.find(r=>r.bookingId===bookingId && (decision==='Cancelled'?r.canCancel===true:
+    decision==='Did not attend'&&r.absenceOptions?.some(a=>a.id===attendanceId)));
+   if(!row)deny('BOOK_REVIEW_CHANGED',409);
+   coaches.owner(currentSession(raw,signed).actor);
+   await bookOutcome(decision,bookingId,attendanceId);
+   coaches.recordAudit(actor,'books-outcome',bookingId,{attendanceId,decision});
+   return json(200,{saved:true});
   }
   if(path==='/workspace/api/books-review'&&request.method==='POST'){
    coaches.owner(actor);

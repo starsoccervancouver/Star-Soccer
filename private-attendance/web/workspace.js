@@ -932,6 +932,24 @@
    if(row.decision)body.append(node('span','Resolved · '+row.decision));
    details.append(body);
   });
+  if(profile?.role==='owner' && (row.canCancel || row.absenceOptions?.length)){
+   const controls=node('details','','book-review-actions'),label=node('summary','Resolve'),message=node('span');
+   controls.append(label);message.setAttribute('role','status');
+   const action=(decision,visit)=>{
+    const button=node('button',decision+(visit&&row.absenceOptions.length>1?' · '+familyDate(visit.date)+' '+(visit.time||''):''));
+    button.onclick=async()=>{
+     const flow=generation;
+     for(const b of controls.querySelectorAll('button'))b.disabled=true;
+     message.textContent='Saving…';
+     try{await api('books-outcome',{decision,bookingId:row.bookingId,...(visit?{attendanceId:visit.id}:{})});
+      if(flow===generation&&tab==='books')await loadBooks();
+     }catch(error){message.textContent=error.message;for(const b of controls.querySelectorAll('button'))b.disabled=false;}
+    };controls.append(button);
+   };
+   if(row.canCancel)action('Cancelled');
+   for(const visit of row.absenceOptions||[])action('Did not attend',visit);
+   controls.append(message);li.append(controls);
+  }
   if(row.reviewKey&&profile?.role==='owner'){
    const controls=node('div','','book-review-actions'),message=node('span');
    message.setAttribute('role','status');

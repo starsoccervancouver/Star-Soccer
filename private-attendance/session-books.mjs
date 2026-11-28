@@ -76,7 +76,8 @@ function receiptReviews(tables, families, bookings) {
   }
   function item(fid,pid) {
     const key = fid || pid;
-    if (!reviews.has(key)) reviews.set(key,{fid,pid:fid?null:pid,unapplied:0,claims:false,check:false});
+    if (!reviews.has(key)) reviews.set(key,{fid,pid:fid?null:pid,evidence:new Set(),unapplied:0,claims:false,check:false});
+    if(pid)reviews.get(key).evidence.add(pid);
     if (fid) familyIssues.add(fid);
     return reviews.get(key);
   }
@@ -104,12 +105,12 @@ function receiptReviews(tables, families, bookings) {
   for (const [fid,f] of families) {
     if (Number.isFinite(f['Unverified payment claims CAD']) && f['Unverified payment claims CAD'] !== 0) item(fid,null).claims = true;
   }
-  const rows = Array.from(reviews.values(), ({fid,pid,unapplied,claims,check}) => {
+  const rows = Array.from(reviews.values(), ({fid,pid,unapplied,claims,check,evidence}) => {
     const reasons = [];
     if (unapplied) reasons.push('Match the unapplied training payment to a booking.');
     if (claims && !unapplied) reasons.push('Review the family payment flag and match the recorded transfers.');
     if (check) reasons.push('Check the receipt amount, method and allocation links.');
-    return {scope:'family', status:'review', ...emptyAmounts, reviewBalance:null, amountUnapplied:unapplied?unapplied/100:null,
+    return {scope:'family', reviewEvidence:[...evidence].sort().concat(families.get(fid)?.['Unverified payment claims CAD']??0), status:'review', ...emptyAmounts, reviewBalance:null, amountUnapplied:unapplied?unapplied/100:null,
       reviewReason:reasons.join(' '), ...household(fid,families.get(fid)), paymentId:pid, bookingId:null, attendanceId:null,
       playerId:null, playerName:null, sessionId:null, sessionLabel:null, date:null, time:null, location:null,
       sessionGroupKey:'payment-review',sessionGroupLabel:'Family payment reviews'};

@@ -38,6 +38,7 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
  CREATE INDEX IF NOT EXISTS coach_diagrams_session ON coach_diagrams(session_id,archived);
  CREATE TABLE IF NOT EXISTS coach_drills(id TEXT PRIMARY KEY,author_email TEXT NOT NULL REFERENCES coach_users(email),request_id TEXT NOT NULL,title TEXT NOT NULL,skill TEXT NOT NULL,minutes INTEGER NOT NULL CHECK(minutes BETWEEN 1 AND 120),target TEXT NOT NULL CHECK(target IN('warmup','technical','game')),setup TEXT NOT NULL,coaching TEXT NOT NULL,progression TEXT NOT NULL,equipment TEXT NOT NULL,diagram TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,updated_by TEXT NOT NULL REFERENCES coach_users(email),version INTEGER NOT NULL,archived INTEGER NOT NULL DEFAULT 0,UNIQUE(author_email,request_id));
  CREATE INDEX IF NOT EXISTS coach_drills_author ON coach_drills(author_email,archived,updated_at);
+ CREATE TABLE IF NOT EXISTS books_review_decisions(review_key TEXT PRIMARY KEY,decision TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_tasks(id TEXT PRIMARY KEY,author_email TEXT NOT NULL,session_id TEXT,title TEXT NOT NULL,due_date TEXT,status TEXT NOT NULL,version INTEGER NOT NULL,created_at TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_audit(id TEXT PRIMARY KEY,actor_email TEXT NOT NULL,action TEXT NOT NULL,target TEXT NOT NULL,occurred_at TEXT NOT NULL,detail TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS coach_attendance_commands(id TEXT PRIMARY KEY,actor_email TEXT NOT NULL,session_id TEXT NOT NULL,attendance_id TEXT NOT NULL,payload TEXT NOT NULL,state TEXT NOT NULL,created_at TEXT NOT NULL);`);
@@ -185,6 +186,16 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
   },
   saveTask(actor,{id=null,title,sessionId=null,dueDate=null,status='open',expectedVersion=0}){if(sessionId)api.requireSession(actor,sessionId);title=txt(title,250);if(!['open','done'].includes(status)||dueDate!==null&&(!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)||new Date(dueDate+'T00:00:00Z').toISOString().slice(0,10)!==dueDate))deny('INVALID_TASK',400);return store.transaction(()=>{const old=id?store.get('SELECT * FROM coach_tasks WHERE id=?',id):null;if(id&&(!old||!api.full(actor)&&old.author_email!==actor.email))deny();if((old?.version||0)!==expectedVersion)deny('TASK_CHANGED',409);id=old?.id||token('task_');if(old)store.run('UPDATE coach_tasks SET title=?,due_date=?,status=?,version=version+1 WHERE id=?',title,dueDate,status,id);else store.run('INSERT INTO coach_tasks VALUES(?,?,?,?,?,?,1,?)',id,actor.email,sessionId,title,dueDate,status,stamp());audit(actor,'task-saved',id,{status});return api.tasks(actor);});},
   audit(actor){if(!api.full(actor))deny();return store.all('SELECT id,actor_email,action,target,occurred_at,detail FROM coach_audit ORDER BY occurred_at DESC LIMIT 100');},
+  bookDecisions(){return new Map(store.all('SELECT * FROM books_review_decisions').map(r=>[r.review_key,r.decision]));},
+  decideBookReview(actor,key,decision){
+   api.owner(actor);
+   if(!['Already handled','Duplicate entry','No further action','Deleted'].includes(decision))deny('INVALID_REQUEST',400);
+   return store.transaction(()=>{
+    store.run('INSERT OR REPLACE INTO books_review_decisions VALUES(?,?)',key,decision);
+    audit(actor,'books-review-decision',key,{decision});
+    return {saved:true};
+   });
+  },
   recordAudit:audit
  };Object.assign(api,createCoachResources({store,coaches:api,deny,audit,clock}));return Object.freeze(api);
 }

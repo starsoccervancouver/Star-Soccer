@@ -346,3 +346,18 @@ test('session roster changes require the owner and an authenticated session',asy
  assert.deepEqual(calls.map(call=>call.operation),['coach-roster-options','coach-roster-add']);
  assert.equal(calls[1].payload.actor,owner.email);
 });
+test('Books retains owner review decisions and resurfaces changed discrepancies',async t=>{
+ const row={scope:'booking',status:'review',bookingId:rid(70),reviewBalance:25,reviewReason:'Check receipt'};
+ const {owner,admin,request}=await setup(t,{sessionBooks:async()=>({rows:[row]})});
+ const read=async()=> (await (await request(owner,'session-books',{})).json()).rows;
+ const [{reviewKey:key}]=await read();
+ const decide=(actor,decision)=>request(actor,'books-review',{key,decision});
+ assert.equal((await decide(admin,'Deleted')).status,403);
+ assert.equal((await decide(owner,'Already handled')).status,200);
+ assert.equal((await read())[0].status,'resolved');
+ assert.equal((await decide(owner,'Deleted')).status,200);
+ assert.deepEqual(await read(),[]);
+ row.reviewBalance=35;
+ assert.equal((await read())[0].status,'review');
+ assert.equal((await decide(owner,'Deleted')).status,409);
+});

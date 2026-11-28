@@ -804,7 +804,7 @@
  let booksRequest=0,booksRows=null,booksDenied=false,booksLimit=booksPageSize,booksMode='family',homeUnpaidState='idle';
  const canViewBooks=()=>!booksDenied&&(!!openingView||data?.booksAvailable===true)&&(profile?.role==='owner'||(profile?.role==='admin'&&profile.familyAccess===true));
  const sessionDue=row=>(row.scope==='session'||row.scope==='booking'&&(row.pastBookingBalance===true||row.attendanceBilled===true))&&row.status==='due'&&Number.isFinite(row.amountDue)&&row.amountDue>0;
- const bookStatuses={due:'Payment due',paid:'Paid',upcoming:'Upcoming','no-charge':'No charge',package:'Package',review:'Needs review'};
+ const bookStatuses={resolved:'Resolved',due:'Payment due',paid:'Paid',upcoming:'Upcoming','no-charge':'No charge',package:'Package',review:'Needs review'};
 
  function resetBooks(){
   closeOpeningView();
@@ -929,6 +929,27 @@
    if(row.reviewReason&&row.scope!=='family')body.append(node('span',row.reviewReason));
    if(groupMode!=='family')body.append(bookContact(row.contact));
    if(!body.childElementCount)body.append(node('span',bookStatuses[row.status]||'Needs review'));
+   if(row.decision)body.append(node('span','Resolved · '+row.decision));
+   if(row.reviewKey&&profile?.role==='owner'){
+    const controls=node('div','','book-review-actions'),resolve=node('button','Resolve'),remove=node('button','Delete');
+    const choices=node('select'),save=node('button','Save decision'),message=node('span');
+    choices.setAttribute('aria-label','Resolution');
+    for(const label of ['Already handled','Duplicate entry','No further action'])choices.add(new Option(label,label));
+    choices.hidden=save.hidden=true;
+    message.setAttribute('role','status');
+    const submit=async decision=>{
+     for(const el of [save,resolve,remove,choices])el.disabled=true;
+     try{
+      await api('books-review',{key:row.reviewKey,decision});
+      if(tab==='books')await loadBooks();
+     }catch(error){message.textContent=error.message;for(const el of [save,resolve,remove,choices])el.disabled=false;}
+    };
+    resolve.onclick=()=>{choices.hidden=save.hidden=false;choices.focus();};
+    save.onclick=()=>submit(choices.value);
+    remove.onclick=()=>{if(confirm('Delete this review item from Books? Its underlying financial records are kept.'))submit('Deleted');};
+    if(row.status==='review')controls.append(resolve);
+    controls.append(remove,choices,save,message);body.append(controls);
+   }
    details.append(body);
   });
   return li;
@@ -988,6 +1009,7 @@
    case 'outstanding':return row.amountOutstanding>0;
    case 'due':return row.amountDue>0;
    case 'upcoming':return row.amountUpcoming>0;
+   case 'resolved':return row.status==='resolved';
    case 'review':return row.status==='review';
    case 'paid':return row.status==='paid'||row.amountOutstanding===0&&row.amountPaid>0;
    case 'booking':return row.scope==='booking';

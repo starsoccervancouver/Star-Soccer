@@ -2820,3 +2820,6 @@ body #app #report-filters .report-filter[aria-pressed=false]:hover:not(:disabled
     color:var(--desk-ink);
   }
 }
+
+.book-review-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-top:.65rem; }
+.book-review-actions button, .book-review-actions select { min-height:2.5rem; padding:.4rem .85rem; border-radius:.6rem; }

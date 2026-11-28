@@ -1,11 +1,16 @@
 import {unpaidSessionRows} from './session-books.mjs';
-import {randomBytes,createHmac,timingSafeEqual} from 'node:crypto';
+import {createHash,randomBytes,createHmac,timingSafeEqual} from 'node:crypto';
 import {Buffer} from 'node:buffer';
 import {deny} from './coach-store.mjs';
 import {requestId,logFailure,mailConnectionError} from './coach-diagnostics.mjs';
 import {validateWorkspaceOrigin} from './deployment-config.mjs';
 import {validateCoachPath,normalizeCoachPath} from './coach-path.mjs';
 import {createOperationsPreview,previewCookie} from './operations-preview.mjs';
+function bookReviewKey(row){
+ if(row.status!=='review'||!(row.bookingId||row.attendanceId||row.paymentId||row.familyId))return null;
+ return createHash('sha256').update(JSON.stringify([row.scope,row.bookingId,row.attendanceId,row.paymentId,row.familyId,
+  row.playerId,row.reviewReason,row.reviewBalance,row.amountUnapplied,row.attendanceStatus,row.reviewEvidence])).digest('hex');
+}
 const random=()=>randomBytes(32).toString('base64url');
 const same=(a,b)=>{const x=Buffer.from(a||''),y=Buffer.from(b||'');return x.length===y.length&&timingSafeEqual(x,y);};
 const cookie=(request,name)=>request.headers.get('cookie')?.split(';').map(v=>v.trim()).find(v=>v.startsWith(name+'='))?.slice(name.length+1);
@@ -170,6 +175,14 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    finally{sessionBooks?.invalidate?.();}
    coaches.owner(currentSession(raw,signed).actor);return json(200,saved);
   }
+  if(path==='/workspace/api/books-review'&&request.method==='POST'){
+   coaches.owner(actor);
+   const {key,decision}=await body(request,['key','decision']);
+   if(typeof key!=='string'||!/^([a-f0-9]{64})$/.test(key))deny('INVALID_REQUEST',400);
+   const report=await sessionBooks({});
+   if(!report.rows.some(row=>bookReviewKey(row)===key))deny('BOOK_REVIEW_CHANGED',409);
+   return json(200,coaches.decideBookReview(currentSession(raw,signed).actor,key,decision));
+  }
   if(path==='/workspace/api/session-books'){
    coaches.requireFamilyAccess(actor);
    if(request.method!=='POST')deny('METHOD_NOT_ALLOWED',405);
@@ -193,7 +206,15 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
     const rows=unpaidSessionRows(report);
     checkAccess();return json(200,{rows,...(pendingPayments.length?{pendingPayments}:{})});
    }
-   return json(200,{rows:report.rows});
+   const decisions=coaches.bookDecisions();
+   const rows=report.rows.flatMap(row=>{
+    const reviewKey=bookReviewKey(row);
+    if(!reviewKey)return [row];
+    const decision=decisions.get(reviewKey);
+    if(decision==='Deleted')return [];
+    return [{...row,reviewKey,...(decision?{status:'resolved',decision}:{})}];
+   });
+   return json(200,{rows});
   }
   if(path==='/workspace/api/automation-history'&&request.method==='POST'){
    coaches.owner(actor);if(!automationHistory)deny('NOT_FOUND',404);

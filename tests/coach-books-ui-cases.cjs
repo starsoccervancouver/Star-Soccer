@@ -214,12 +214,12 @@ module.exports = async function checkBooks(fixture) {
       assert((await page.locator('#unpaid-booking-list').innerText()).includes(due.sessionLabel));
       await page.locator('#payment-entry summary').click();
       assert.equal(await page.locator('#payment-amount').inputValue(),'31.50','The current balance is ready to record while the roster loads');
-      await page.locator('#payment-method').selectOption('Cash');
+      await page.getByRole('radio',{name:'Cash'}).check();
       assert(await page.locator('#app').isHidden());
       if(handoff==='during-entry'){
         openRoster();await page.locator('#app').waitFor();openDetails();await page.waitForLoadState('networkidle');
         assert.equal(await page.locator('#payment-amount').inputValue(),'31.50');
-        assert.equal(await page.locator('#payment-method').inputValue(),'Cash');
+        assert(await page.getByRole('radio',{name:'Cash'}).isChecked());
       }
       await page.locator('#payment-submit').click();
       if(handoff==='during-payment'){
@@ -252,7 +252,7 @@ module.exports = async function checkBooks(fixture) {
     await page.locator('#payment-entry summary').click();
     assert.equal(await page.locator('#payment-amount').inputValue(),'31.50');
     await page.locator('#payment-amount').fill('12');
-    await page.locator('#payment-method').selectOption('Cash');
+    await page.getByRole('radio',{name:'Cash'}).check();
     releaseRoster();await page.locator('#app').waitFor();releaseDetails();
     await page.waitForLoadState('networkidle');
     assert.equal(await page.locator('#payment-amount').inputValue(),'12','A partial amount survives the roster loading');
@@ -499,7 +499,7 @@ module.exports = async function checkBooks(fixture) {
     await page.locator('#home-unpaid-list a').getByText('$43.75',{exact:true}).click();
     await page.locator('#payment-entry summary').click();
     assert.equal(await page.locator('#payment-amount').inputValue(),'43.75','The default includes each unpaid booking once');
-    await page.locator('#payment-method').selectOption('Cash');
+    await page.getByRole('radio',{name:'Cash'}).check();
     await page.locator('#payment-submit').click();
     await page.waitForFunction(()=>document.querySelector('#home-unpaid').hidden);
     assert.equal(submissions,1);
@@ -537,7 +537,7 @@ module.exports = async function checkBooks(fixture) {
     assert(await amount.evaluate(input=>input.validity.rangeOverflow),'An amount over the selected balance cannot be submitted');
     await target.selectOption('');
     assert.equal(await amount.inputValue(),'60');
-    await page.locator('#payment-method').selectOption('Cash');
+    await page.getByRole('radio',{name:'Cash'}).check();
     await page.locator('#payment-submit').click();
     await page.locator('#home-unpaid-list a').getByText('$50.00',{exact:true}).waitFor();
     assert.equal(new URL(page.url()).hash,'#view=home');
@@ -566,7 +566,7 @@ module.exports = async function checkBooks(fixture) {
     await family.click();
     await page.locator('#payment-entry summary').click();
     await page.locator('#payment-amount').fill('10');
-    await page.locator('#payment-method').selectOption('Cash');
+    await page.getByRole('radio',{name:'Cash'}).check();
     await page.locator('#payment-submit').click();
     await family.getByText('$21.50',{exact:true}).waitFor();
     assert.equal(await page.locator('#home-unpaid-label').innerText(),'Unpaid sessions (2 families)');
@@ -574,7 +574,7 @@ module.exports = async function checkBooks(fixture) {
     await family.click();
     await page.locator('#payment-entry summary').click();
     assert.equal(await page.locator('#payment-amount').inputValue(),'21.50','The default reflects the remaining balance after a partial payment');
-    await page.locator('#payment-method').selectOption('E-transfer');
+    await page.getByRole('radio',{name:'E-transfer'}).check();
     await page.locator('#payment-reference').fill('example123');await page.locator('#payment-submit').click();
     await page.locator('#home-unpaid-list a').getByText('$24.50',{exact:true}).waitFor();
     assert.equal(new URL(page.url()).hash,'#view=home');

@@ -2764,6 +2764,22 @@ body #app #report-filters .report-filter[aria-pressed=false]:hover:not(:disabled
 #booking-payment-form label { display:grid; gap:5px; min-width:0; margin:0; }
 #booking-payment-form :is(input,select) { width:100%; min-width:0; }
 .payment-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr)); gap:12px; }
+#booking-payment-form #payment-method { min-width:0; margin:0; padding:0; border:0; }
+#payment-method legend { padding:0; margin-bottom:5px; }
+#payment-method .payment-method-choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+#booking-payment-form #payment-method label { position:relative; display:block; cursor:pointer; }
+#booking-payment-form #payment-method input {
+  position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer;
+}
+#payment-method label span {
+  display:flex; min-height:44px; align-items:center; justify-content:center; padding:8px;
+  border:1px solid var(--desk-control-line); border-radius:8px; background:var(--desk-inset);
+  color:var(--desk-ink); text-align:center;
+}
+#payment-method label:hover span { background:var(--desk-option-hover); }
+#payment-method input:checked + span { border-color:var(--desk-accent); background:var(--desk-accent-soft); color:var(--desk-accent); font-weight:700; }
+#payment-method input:focus-visible + span { outline:2px solid var(--desk-accent); outline-offset:2px; }
+#payment-method input:disabled + span { opacity:.55; cursor:default; }
 #payment-submit { justify-self:start; }
 #payment-split,#payment-result { margin:0; }
 #payment-result:empty { display:none; }

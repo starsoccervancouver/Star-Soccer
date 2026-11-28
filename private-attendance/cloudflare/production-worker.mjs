@@ -192,7 +192,7 @@ export class AttendanceCoordinator{
       await this.ctx.storage.put('weekly-rsvp-summary',{date,...report});
      }catch{await this.ctx.storage.put('weekly-rsvp-summary',{date,error:'Check roster access'});}
     };
-    if(!await this.ctx.storage.get('weekly-rsvp-scheduler')){
+    if(!await this.ctx.storage.get('weekly-rsvp-scheduler')||!(await this.ctx.storage.get('weekly-rsvp-summary'))?.issues){
      await this.ctx.storage.setAlarm(Date.now()+1000);
      await this.ctx.storage.put('weekly-rsvp-scheduler',true);
     }

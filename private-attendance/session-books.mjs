@@ -191,11 +191,13 @@ export function buildSessionBooks(tables, today, source = {}) {
 
   function sessionRow(seat) {
     const {attendanceId, playerId, player, sessionId, session, a, bookingId, valid, family} = seat;
+    const booking=bookings.get(bookingId);
+    const unlinkedCoachBooking=String(booking?.['Source booking ID']||'').startsWith('coach:')&&!links(booking?.Family).length;
     return {scope: 'session', attendanceId, playerId, playerName: player?.Player || null, sessionId, sessionLabel: session.Session || null,
       date: session.Date || null, time: session.Time || null, location: session.Venue || null,
       attendanceStatus: a['Attendance status'] || 'Not marked', bookingId, bookingType: bookings.get(bookingId)?.['Booking type'] || null,
       status: 'review', ...emptyAmounts, reviewReason:null, reviewBalance:null,
-      ...(groups.get(sessionId) || wholeBookings), ...household(single(player?.Family), valid ? family : null)};
+      ...(groups.get(sessionId) || wholeBookings), ...household(unlinkedCoachBooking?null:single(player?.Family), unlinkedCoachBooking?null:valid ? family : null)};
   }
 
   const processed = new Set();

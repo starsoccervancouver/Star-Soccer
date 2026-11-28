@@ -26,7 +26,8 @@ export function buildOwnerOverview(tables,observedAt,verifiedContacts={},source=
    if(kind==='dropin'&&!optedOut&&(!es.length||es.some(e=>e.fields['Weekly attendance email preference']!=='Enabled')))reasons.push('Weekly check-in preference needs review');
    const response=a['RSVP status']==='Yes'?'yes':a['RSVP status']==='No'?'no':null;
    const confirmed=['pass','camp'].includes(kind),status=response==='no'?'Unavailable':confirmed?'Confirmed by registration':response==='yes'?'Attending':a['RSVP status']==='Awaiting response'?'Awaiting reply':'Not yet asked';
-   if(a['Session preparation status']==='Excluded')continue;
+   const coachUnclassified=!p['Player status']&&String(a['Source coverage key']||'').startsWith('coach:')&&(!b||b['Booking status']==='Accepted');
+   if(a['Session preparation status']==='Excluded'&&!coachUnclassified)continue;
    const playerId=ids(a.Player)[0], familyId=ids(p.Family)[0], bookingId=ids(a.Booking)[0], enrollmentId=(es.find(e=>ids(a.Enrollment).includes(e.id)&&e.fields['Weekly attendance email preference']!=='Enabled')||es.find(e=>e.fields['Weekly attendance email preference']!=='Enabled'))?.id;
    for(const reason of reasons){
     let target;
@@ -50,7 +51,7 @@ export function buildOwnerOverview(tables,observedAt,verifiedContacts={},source=
 
 // Cache the source roster only. Callers apply current account permissions on every request.
 export function createOverviewCache(load, clock=Date.now) {
- let current=null, pending=null;
+ let current=null, pending=null,version=0;
  function apply(snapshot, updates) {
   if(!updates.size || !snapshot)return;
   for(const session of snapshot.sessions)for(const player of session.players){
@@ -58,16 +59,17 @@ export function createOverviewCache(load, clock=Date.now) {
   }
  }
  return {
+  invalidate(){current=null;pending=null;version++;},
   async read({refresh=false}={}){
    if(!refresh && current && clock()-Date.parse(current.observedAt)<=300000)return current;
    if(!pending){
-    const updates=new Map();
-    const result=load().then(snapshot=>{
+    const updates=new Map(),started=version,entry={updates};
+    entry.result=load().then(snapshot=>{
      apply(snapshot,updates);
-     current=snapshot;
-     return current;
-    }).finally(()=>{pending=null;});
-    pending={result,updates};
+     if(started===version)current=snapshot;
+     return snapshot;
+    }).finally(()=>{if(pending===entry)pending=null;});
+    pending=entry;
    }
    return pending.result;
   },

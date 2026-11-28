@@ -4,6 +4,29 @@ const id=n=>'rec'+String(n).padStart(14,'0'),row=(n,fields)=>({id:id(n),fields})
 function fixture(){return {observedAt:'2026-11-02T18:00:00Z',revision:1,tables:{sessions:[row(1,{Session:'Wednesday',Date:'2026-11-04',Time:'3:45 pm – 5:15 pm',Venue:'Connaught Park',Capacity:20,'Session status':'Planned','Weekly program':[id(9)],Attendance:[id(4)]})],players:[row(2,{Player:'Fictional player','Player status':'Active',Family:[id(3)]})],families:[row(3,{'Guardian name':'Fictional parent',Email:'fictional@example.com'})],bookings:[row(5,{'Booking type':'Drop-in','Booking status':'Accepted',Player:[id(2)],Family:[id(3)],'Covered dates':'2026-11-04'})],attendance:[row(4,{Player:[id(2)],Session:[id(1)],Booking:[id(5)],'Coverage state':'Active','Session date':'2026-11-04','Attendance status':'Present','RSVP status':'Not requested'})],enrollments:[row(6,{Player:[id(2)],Family:[id(3)],'Enrollment status':'Active','Weekly attendance email preference':'Enabled'})],registrations:[]}};}
 test('real roster normalizer keeps guardian/player identity and physical attendance without inferring contact verification',async()=>{const {normalizeAirtableRoster}=await modulePromise,v=fixture(),r=normalizeAirtableRoster(v);assert.equal(r.history[0].physicalAttendance,'Present');assert.equal(r.snapshot.sessions[0].entries[0].emailVerified,false);assert.equal(r.snapshot.sessions[0].entries[0].reminderPreference,'enabled');assert.equal(r.snapshot.sessions[0].startAt,'2026-11-04T22:45:00.000Z');v.verifiedContacts={[id(3)]:{email:'fictional@example.com',evidence:'owner confirmed test contact'}};assert.equal(normalizeAirtableRoster(v).snapshot.sessions[0].entries[0].emailVerified,true);});
 test('roster rejects wrong family, uncovered date, unknown booking kind and capacity drift',async()=>{const {normalizeAirtableRoster}=await modulePromise;for(const mutate of [v=>v.tables.bookings[0].fields.Family=[id(99)],v=>v.tables.attendance[0].fields['Session date']='2026-11-05',v=>delete v.tables.bookings[0].fields['Booking type'],v=>v.tables.sessions[0].fields.Capacity=21]){const v=fixture();mutate(v);assert.throws(()=>normalizeAirtableRoster(v));}});
+test('an unlinked Coach Desk player occupies a seat without receiving a parent invitation',async()=>{
+ const {normalizeAirtableRoster}=await modulePromise,v=fixture();
+ v.tables.players[0].fields.Family=[];
+ v.tables.attendance[0].fields['Source coverage key']='coach:'+id(1)+':'+id(2);
+ const result=normalizeAirtableRoster(v);
+ assert.equal(result.snapshot.sessions[0].entries.length,0);
+ assert.equal(result.snapshot.sessions[0].ownerExpected,1);
+ assert.equal(result.preferences.length,0);
+});
+test('a Coach Desk booking still permits parent invitations after a player gains a family',async()=>{
+ const {normalizeAirtableRoster}=await modulePromise,v=fixture();
+ v.tables.bookings[0].fields.Family=[];
+ v.tables.attendance[0].fields['Source coverage key']='coach:'+id(1)+':'+id(2);
+ assert.equal(normalizeAirtableRoster(v).snapshot.sessions[0].entries[0].familyId,id(3));
+});
+test('a player with no profile status can be added to an individual session without changing the profile',async()=>{
+ const {normalizeAirtableRoster}=await modulePromise,v=fixture();
+ delete v.tables.players[0].fields['Player status'];
+ v.tables.attendance[0].fields['Source coverage key']='coach:'+id(1)+':'+id(2);
+ assert.equal(normalizeAirtableRoster(v).snapshot.sessions[0].entries.length,1);
+ delete v.tables.attendance[0].fields['Source coverage key'];
+ assert.throws(()=>normalizeAirtableRoster(v),/UNKNOWN_PLAYER_STATUS/);
+});
 test('explicit pass registration confirms pass without subscribing to weekly reminders',async()=>{const {normalizeAirtableRoster}=await modulePromise,v=fixture();v.tables.registrations=[row(8,{'Registration kind':'SS-PASS-V1'})];v.tables.attendance[0].fields['Website Registrations']=[id(8)];assert.equal(normalizeAirtableRoster(v).snapshot.sessions[0].entries[0].kind,'pass');});
 test('legacy enrollment coverage requires approved identity, exact program and dates',async()=>{const {normalizeAirtableRoster}=await modulePromise,v=fixture();delete v.tables.attendance[0].fields.Booking;v.tables.attendance[0].fields.Enrollment=[id(6)];Object.assign(v.tables.enrollments[0].fields,{'Billing approval':'Approved','Weekly program':[id(9)],'Effective from':'2026-10-01','Billing schedule':'Per session'});assert.equal(normalizeAirtableRoster(v).snapshot.sessions[0].entries[0].kind,'dropin');v.tables.enrollments[0].fields['Weekly program']=[id(10)];assert.throws(()=>normalizeAirtableRoster(v),/UNVERIFIED_ENROLLMENT/);});
 test('opt-out wins over an enabled enrollment; unknown preference remains held',async()=>{const {normalizeAirtableRoster}=await modulePromise,v=fixture();v.tables.enrollments.push(row(7,{...v.tables.enrollments[0].fields,'Weekly attendance email preference':'Opted out'}));assert.equal(normalizeAirtableRoster(v).snapshot.sessions[0].entries[0].reminderPreference,'disabled');v.tables.enrollments=[];assert.equal(normalizeAirtableRoster(v).snapshot.sessions[0].entries[0].reminderPreference,'unknown');});

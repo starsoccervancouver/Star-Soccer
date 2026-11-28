@@ -358,6 +358,26 @@
 
 <div id="planner-workspace" class="planner-workspace" hidden>
 <nav id="session-workspace-tabs" class="session-workspace-tabs" aria-label="This session"><button type="button" data-session-view="attendance">Attendance</button><button type="button" data-session-view="plan">Session plan</button><button type="button" data-session-view="notes">Player &amp; group notes</button></nav>
+<details id="session-add-player" class="session-add-player" hidden>
+<summary>Add player</summary>
+<form id="session-add-player-form">
+<label>Player<select id="session-add-player-choice" required><option value="">Select player</option></select></label>
+<label id="session-add-player-name-label" hidden>Player name<input id="session-add-player-name" maxlength="100" autocomplete="off"></label>
+<label id="session-add-player-family-label" hidden>Family<select id="session-add-player-family"><option value="">No family linked yet</option></select></label>
+<fieldset id="session-add-player-mode">
+<legend>Add to</legend>
+<div class="session-add-player-choices">
+<label><input type="radio" name="session-add-mode" value="dropin" checked><span>This session · drop-in</span></label>
+<label><input type="radio" name="session-add-mode" value="permanent"><span>Upcoming sessions · permanent</span></label>
+</div>
+</fieldset>
+<label>Per-session rate (CAD)<input id="session-add-player-rate" type="number" min="0" max="100000" step="0.01" inputmode="decimal" required></label>
+<p class="small">Charges follow attendance. An existing pass is used for covered dates.</p>
+<button id="session-add-player-submit" type="submit">Add player</button>
+<button id="session-add-player-retry" type="button" class="secondary" hidden>Retry loading players</button>
+<p id="session-add-player-status" role="status"></p>
+</form>
+</details>
 <section id="panel-attendance" class="session-workspace-pane" hidden>
 <section hidden class="attendance-browser" aria-label="Choose attendance session">
 <div class="attendance-view-controls" role="group" aria-label="Attendance views">

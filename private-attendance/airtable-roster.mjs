@@ -28,7 +28,7 @@ export function sessionInstant(day,time,timeZone='America/Vancouver'){
 export function normalizeAirtableRoster({tables,observedAt,revision,verifiedContacts={},timeZone='America/Vancouver'}){
  const by=name=>new Map((tables[name]||[]).map(r=>[r.id,r.fields]));
  const sessions=by('sessions'),players=by('players'),families=by('families'),bookings=by('bookings'),enrollments=by('enrollments'),registrations=by('registrations');
- const result=[],history=[],preferences=[];
+ const result=[],history=[],preferences=[],unlinkedCounts=new Map();
  for(const [id,s]of sessions){
   if(!['Planned','Confirmed','Cancelled','Completed'].includes(s['Session status'])||s.Capacity!==20)throw new Error('INVALID_SESSION_OR_CAPACITY');
   const times=sessionTimes(s.Time);
@@ -37,12 +37,20 @@ export function normalizeAirtableRoster({tables,observedAt,revision,verifiedCont
  const sessionMap=new Map(result.map(s=>[s.id,s]));
  for(const r of tables.attendance||[]){const a=r.fields;if(a['Coverage state']==='Void')continue;if(a['Coverage state']!=='Active')throw new Error('UNVERIFIED_COVERAGE');
   const playerId=one(a.Player),sessionId=one(a.Session),p=players.get(playerId),s=sessionMap.get(sessionId);if(!p||!s)throw new Error('UNRESOLVED_ROSTER_IDENTITY');
-  if(p['Player status']==='Inactive')continue;if(!['Active','Name to confirm'].includes(p['Player status']))throw new Error('UNKNOWN_PLAYER_STATUS');
-  const familyId=one(p.Family),f=families.get(familyId);if(!f)throw new Error('UNRESOLVED_FAMILY');
+  if(p['Player status']==='Inactive')continue;
+  const coachUnclassified=!p['Player status']&&String(a['Source coverage key']||'').startsWith('coach:');
+  if(!['Active','Name to confirm'].includes(p['Player status'])&&!coachUnclassified)throw new Error('UNKNOWN_PLAYER_STATUS');
   const day=sessions.get(sessionId).Date;if(a['Session date']!==day)throw new Error('COVERAGE_DATE_CONFLICT');
+  // A Coach Desk roster entry can have no parent yet. Keep its seat counted
+  // without creating an invitation that has no family recipient.
+  if(!links(p.Family).length && String(a['Source coverage key']||'').startsWith('coach:')){
+   unlinkedCounts.set(sessionId,(unlinkedCounts.get(sessionId)||0)+1);continue;
+  }
+  const familyId=one(p.Family),f=families.get(familyId);if(!f)throw new Error('UNRESOLVED_FAMILY');
   let kind,enrollment;
   if(links(a.Booking).length){const b=bookings.get(one(a.Booking));if(!b)throw new Error('MISSING_BOOKING');if(['Cancelled','Completed'].includes(b['Booking status']))continue;
-   if(b['Booking status']!=='Accepted'||!links(b.Player).includes(playerId)||one(b.Family)!==familyId)throw new Error('UNVERIFIED_BOOKING');
+   const coachUnlinked=String(a['Source coverage key']||'').startsWith('coach:')&&!links(b.Family).length;
+   if(b['Booking status']!=='Accepted'||!links(b.Player).includes(playerId)||!coachUnlinked&&one(b.Family)!==familyId)throw new Error('UNVERIFIED_BOOKING');
    const dates=String(b['Covered dates']||b['Start date']||'').match(/\d{4}-\d{2}-\d{2}/g)||[];if(!dates.includes(day))throw new Error('UNCOVERED_SESSION');
    kind=b['Booking type']==='Four consecutive sessions'?'pass':b['Booking type']==='Drop-in'?'dropin':null;
   }else{
@@ -67,11 +75,12 @@ export function normalizeAirtableRoster({tables,observedAt,revision,verifiedCont
   history.push({attendanceId:r.id,physicalAttendance:a['Attendance status']||'Not marked',response,version:meta?.version||1,updatedAt:a['RSVP updated at']||null});
   for(const [enrollmentId]of matches)preferences.push({enrollmentId,playerId,familyId});
  }
+ for(const session of result)session.ownerExpected=Math.max(session.ownerExpected,session.entries.length+(unlinkedCounts.get(session.id)||0));
  return {snapshot:{schemaVersion:1,source:'airtable-verified',snapshotId:'read_'+digest(tables).slice(0,20),revision,observedAt,complete:true,approved:true,sessions:result},history,preferences};
 }
 export const readFields={
  sessions:['Session','Source session ID','Date','Time','Venue','Session status','Capacity','Expected headcount (owner reported)','Weekly program','Attendance'],
- attendance:['Player','Session','Booking','Enrollment','Coverage state','Session date','Website Registrations','RSVP response notes','RSVP status','RSVP updated at','Attendance status','RSVP Reminders','RSVP reminder','Session preparation status','Billing schedule at date'],
+ attendance:['Player','Session','Booking','Enrollment','Coverage state','Session date','Website Registrations','RSVP response notes','RSVP status','RSVP updated at','Attendance status','RSVP Reminders','RSVP reminder','Session preparation status','Billing schedule at date','Source coverage key'],
  players:['Player','Player status','Family','Age'],families:['Guardian name','Email'],
  bookings:['Booking type','Booking status','Player','Family','Covered dates','Start date'],
  enrollments:['Enrollment status','Billing approval','Player','Family','Effective from','Effective until','Billing schedule','Weekly program','Weekly attendance email preference'],

@@ -186,3 +186,37 @@ body #app .desk-main .coach-view-switch button[aria-pressed=true]{background:var
 #opening-overview h1 { margin:0; font-size:28px; }
 #opening-overview :is(#home-attention,#unpaid-bookings) { background:var(--desk-surface); border:1px solid var(--desk-line); border-radius:12px; padding:16px; }
 #opening-overview #home-attention h2 { margin:0 0 8px; font-size:18px; }
+
+#session-add-player { margin:10px 0 16px; }
+#session-add-player > summary {
+  display:inline-flex; align-items:center; min-height:44px; padding:9px 14px;
+  border:1px solid var(--desk-control-line); border-radius:9px;
+  background:var(--desk-surface); color:var(--desk-ink); font-weight:700;
+  cursor:pointer; list-style:none;
+}
+#session-add-player > summary::-webkit-details-marker { display:none; }
+#session-add-player > summary::before { content:'+'; margin-right:8px; color:var(--desk-accent); font-size:1.25rem; }
+#session-add-player > summary:hover { background:var(--desk-option-hover); }
+#session-add-player > summary:focus-visible { outline:2px solid var(--desk-accent); outline-offset:3px; }
+#session-add-player-form {
+  display:grid; gap:12px; max-width:40rem; margin-top:8px; padding:16px;
+  border:1px solid var(--desk-line); border-radius:12px; background:var(--desk-surface);
+}
+#session-add-player-form label { display:grid; gap:5px; min-width:0; margin:0; }
+#session-add-player-form :is(input:not([type=radio]),select) { width:100%; min-width:0; }
+#session-add-player-mode { margin:0; padding:0; border:0; min-width:0; }
+#session-add-player-mode legend { margin-bottom:6px; padding:0; }
+#session-add-player-mode .session-add-player-choices { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr)); gap:8px; }
+#session-add-player-form #session-add-player-mode label { position:relative; display:block; cursor:pointer; }
+#session-add-player-mode input { position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; }
+#session-add-player-mode span {
+  display:flex; align-items:center; min-height:44px; padding:8px 12px; border:1px solid var(--desk-control-line);
+  border-radius:8px; background:var(--desk-inset); color:var(--desk-ink);
+}
+#session-add-player-mode input:checked + span { border-color:var(--desk-accent); background:var(--desk-accent-soft); color:var(--desk-accent); font-weight:700; }
+#session-add-player-mode input:focus-visible + span { outline:2px solid var(--desk-accent); outline-offset:2px; }
+#session-add-player-mode input:disabled + span { opacity:.55; }
+#session-add-player-form p { margin:0; }
+#session-add-player-status:empty { display:none; }
+#session-add-player-submit { justify-self:start; }
+@media (max-width:600px) { #session-add-player-submit { width:100%; } }

@@ -38,3 +38,28 @@ test('coalesced roster reads retain confirmed marks across refresh, expire, and 
  reads[3].resolve(snapshot());
  assert.deepEqual(marks(await retry),['Not marked','Not marked']);
 });
+test('roster invalidation keeps an older in-flight read from replacing newer data',async()=>{
+ const {createOverviewCache}=await import('../private-attendance/owner-overview.mjs');
+ const reads=[],cache=createOverviewCache(()=>new Promise(resolve=>reads.push(resolve)));
+ const old=cache.read();cache.invalidate();const fresh=cache.read();
+ reads[1]({observedAt:new Date().toISOString(),sessions:[{id:'new',players:[]}]});
+ await fresh;
+ reads[0]({observedAt:new Date().toISOString(),sessions:[{id:'old',players:[]}]});
+ await old;
+ assert.equal((await cache.read()).sessions[0].id,'new');
+});
+test('Coach Desk additions appear when the player profile has no status',async()=>{
+ const {buildOwnerOverview}=await import('../private-attendance/owner-overview.mjs');
+ const row=(id,fields)=>({id,fields});
+ const tables={
+  sessions:[row('s',{Session:'Friday',Date:'2026-11-27',Time:'4 PM',Venue:'Field',Capacity:20,'Session status':'Planned'})],
+  players:[row('p',{Player:'Fictional Player'})],families:[],
+  bookings:[row('b',{'Booking type':'Drop-in','Booking status':'Accepted'})],
+  attendance:[row('a',{Session:['s'],Player:['p'],Booking:['b'],'Coverage state':'Active',
+   'Source coverage key':'coach:s:p','Session preparation status':'Excluded'})],
+  enrollments:[],registrations:[]
+ };
+ assert.equal(buildOwnerOverview(tables,new Date().toISOString()).sessions[0].players.length,1);
+ tables.attendance[0].fields['Source coverage key']='legacy';
+ assert.equal(buildOwnerOverview(tables,new Date().toISOString()).sessions[0].players.length,0);
+});

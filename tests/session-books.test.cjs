@@ -215,6 +215,9 @@ test('uses verified family identities and the existing recurring, Pro-D and wint
   assert.deepEqual([stale.status,stale.familyId,stale.contact,stale.reviewBalance],['review',null,null,25]);
   const [unlinked]=await project(t=>{delete t.bookings[0].fields.Family;delete t.players[0].fields.Family;});
   assert.deepEqual([unlinked.playerId,unlinked.familyId,unlinked.amountOutstanding],['child',null,25]);
+  const [laterLinked]=await project(t=>{delete t.bookings[0].fields.Family;t.bookings[0].fields['Source booking ID']='coach:fixture';});
+  assert.deepEqual([laterLinked.playerId,laterLinked.familyId,laterLinked.amountOutstanding],['child',null,25],
+    'A booking created before a family was linked remains payable by player');
 });
 
 test('a due session links to its own booking and uses the ledger family name',async()=>{

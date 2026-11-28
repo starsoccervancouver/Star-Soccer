@@ -12,8 +12,11 @@ VIDEO_ID = re.compile(r"[0-9a-f]{4}-[0-9a-f]{12}-[0-9a-f]{12}-[0-9]{4}")
 UEFA_URL = re.compile(
     r"https://www\.uefa\.com/(?:news-media/video|uefachampionsleague/video(?:/highlights)?)/[a-z0-9-]+/"
 )
+UEFA_IMAGE = re.compile(
+    r"https://editorial\.uefa\.com/resources/[0-9a-f-]+/format/wide1/[A-Za-z0-9_.-]+"
+)
 SCORE = re.compile(r"\b(\d{1,2})\s*[-–]\s*(\d{1,2})\b")
-CLUB_WORDS = {"fc", "cf", "afc", "ac", "as", "sc", "sk", "fk", "vfb", "ssc", "osc", "kv", "club", "de"}
+CLUB_WORDS = {"fc", "cf", "afc", "ac", "as", "sc", "sk", "fk", "vfb", "ssc", "osc", "kv", "club", "de", "sv"}
 TEAM_ALIASES = {
     "inter mailand": "inter",
     "galatasaray istanbul": "galatasaray",
@@ -21,6 +24,11 @@ TEAM_ALIASES = {
     "slavia prag": "slavia praha",
     "rom": "roma",
     "aek athen": "aek athens",
+    "bayern munich": "bayern munchen",
+    "internazionale": "inter",
+    "slavia prague": "slavia praha",
+    "hamburger": "hamburg",
+    "1 fsv mainz 05": "mainz",
 }
 VIDEO_PRIORITY = {"Medium Highlights": 0, "Highlights": 1, "Long Highlights": 2}
 
@@ -41,6 +49,25 @@ def official_team_names(team):
     for field in ("displayName", "displayOfficialName", "shortName"):
         names.extend(translations.get(field, {}).get(language, "") for language in ("EN", "DE"))
     return {normalized_team(name) for name in names if name}
+
+
+def video_thumbnail(node):
+    picture = node.get("picture", "")
+    if not isinstance(picture, str) or not VIDEO_ID.fullmatch(picture):
+        return None
+    document = node.get("files", {}).get("content.json", {}).get("data", {}).get("document", {})
+    for group in document.get("mediagroup", []):
+        for figure in group.get("figure", []):
+            for image in figure.get("img", []):
+                prefix = "/resources/" + picture + "/"
+                source = image.get("src", "")
+                if (image.get("emk-softCrop") == "Wide" and image.get("data-id") == picture
+                        and isinstance(source, str) and source.startswith(prefix)):
+                    filename = source[len(prefix):]
+                    url = "https://editorial.uefa.com" + prefix + "format/wide1/" + filename
+                    if UEFA_IMAGE.fullmatch(url):
+                        return url
+    return None
 
 
 def valid_video(node, now):
@@ -80,6 +107,7 @@ def valid_video(node, now):
         "kickoff": kickoff,
         "goals": (int(score.group(1)), int(score.group(2))),
         "url": "https://www.uefa.com/uefachampionsleague/video/" + video_id + "/",
+        "thumbnail": video_thumbnail(node),
         "priority": VIDEO_PRIORITY[kind],
     }
 
@@ -151,6 +179,7 @@ def discover_highlights(items, download, now=None):
             "away": official_team_names(away),
             "goals": goals,
             "url": video["url"],
+            "thumbnail": video["thumbnail"],
         })
 
     matched = []
@@ -167,8 +196,8 @@ def discover_highlights(items, download, now=None):
         if len(possible) == 1:
             matched.append((match_key(item), possible[0]))
     occurrences = Counter(candidate["id"] for _, candidate in matched)
-    return {key: candidate["url"] for key, candidate in matched
-            if occurrences[candidate["id"]] == 1}
+    return {key: {"url": candidate["url"], "thumbnail": candidate["thumbnail"]}
+            for key, candidate in matched if occurrences[candidate["id"]] == 1}
 
 
 def match_key(match):

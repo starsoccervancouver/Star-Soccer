@@ -99,49 +99,94 @@ async function checkFootballNews(page, base) {
   await page.clock.setFixedTime(new Date('2026-11-23T01:00:00Z'));
   const url='https://example.com/';
   const checkedAt='2026-11-23T00:00:00Z';
-  const game={away:'Visitor',goals:[2,0],competition:'League',source:'Test feed',url};
-  const supplementary=['premier-league','champions-league','bundesliga'];
-  const uefaHighlight='https://www.uefa.com/uefachampionsleague/video/02ab-222871ca3407-ab3f8f54d19d-1000/';
-  await page.route('**/football-news.json', route=>route.fulfill({json:{version:1,sources:{
+  const uefaHighlight='https://www.uefa.com/uefachampionsleague/video/02ab-2228984630a6-db8bc83542cb-1000/';
+  const uefaThumbnail='https://editorial.uefa.com/resources/02ab-2228984630a5-647331bf682b-1000/format/wide1/psg-roma.jpeg';
+  const otherHighlight='https://www.uefa.com/uefachampionsleague/video/02ab-2228bc00c56a-d1df30a90905-1000/';
+  const otherThumbnail='https://editorial.uefa.com/resources/02ab-2228bc00c569-748e620c9c7e-1000/format/wide1/inter-stuttgart.jpeg';
+  const video={youtubeId:'abcdefghijk'};
+  const game={date:'2026-11-22',goals:[2,0],competition:'League',source:'Test feed',url};
+  const payload={version:1,sources:{
     whitecaps:{kind:'results',checkedAt,items:[
-      {...game,home:'Vancouver Whitecaps',away:'Real Salt Lake',date:'2026-11-22'},
-      {...game,home:'Old result',date:'2026-11-15'},
-      {...game,home:'Future result',date:'2026-11-23'},
+      {...game,home:'Vancouver Whitecaps',away:'Real Salt Lake',...video},
+      {...game,home:'Old result',away:'Old visitor',date:'2026-11-15',...video},
+      {...game,home:'Future result',away:'Future visitor',date:'2026-11-23',...video},
     ]},
     'la-liga':{kind:'results',checkedAt,items:[
-      {...game,home:'Barcelona',away:'Villarreal',goals:[3,2],date:'2026-11-22',competition:'La Liga'},
+      {...game,home:'Barcelona',away:'Villarreal',goals:[3,2],competition:'La Liga',...video},
+    ]},
+    'champions-league':{kind:'results',checkedAt,items:[
+      {...game,home:'FC Barcelona',away:'Sabah',goals:[4,1],competition:'Champions League',
+        highlightUrl:uefaHighlight,highlightThumbnail:uefaThumbnail},
+      {...game,home:'Paris St. Germain',away:'AS Rom',goals:[2,2],competition:'Champions League',
+        highlightUrl:uefaHighlight,highlightThumbnail:uefaThumbnail},
+      {...game,home:'Inter Mailand',away:'VfB Stuttgart',goals:[2,0],competition:'Champions League',
+        highlightUrl:otherHighlight,highlightThumbnail:otherThumbnail},
+    ]},
+    'premier-league':{kind:'results',checkedAt,items:[
+      {...game,home:'Liverpool',away:'Manchester United',goals:[4,0],competition:'Premier League',...video},
+      {...game,home:'Tottenham Hotspur',away:'Ipswich Town',competition:'Premier League',
+        espnVideoUrl:'https://www.espn.com/video/clip/_/id/123456/tottenham-ipswich-highlights',
+        espnThumbnail:'https://espnmedia-cdn.akamaized.net/espn/media/common/tottenham.jpg',
+        espnVideoKind:'highlights',espnExpiresAt:'2027-03-25T00:00:00Z'},
+      {...game,home:'No media',away:'No picture',competition:'Premier League'},
+    ]},
+    'serie-a':{kind:'results',checkedAt,items:[
+      {...game,home:'Atalanta',away:'Inter Milan',goals:[4,4],competition:'Serie A',...video},
     ]},
     'international-men':{kind:'results',checkedAt,items:[
-      {...game,home:'Canada',away:'Guatemala',goals:[4,1],date:'2026-11-16'},
-      {...game,home:'Other international',goals:[8,8],date:'2026-11-22'},
+      {...game,home:'Canada',away:'Guatemala',date:'2026-11-16',...video},
     ]},
-    awards:{kind:'awards',checkedAt,items:[
-      {name:'Player award',winner:'Recent winner',date:'2026-11-16',url},
-      {name:'Player award',winner:'Old winner',date:'2026-11-15',url},
-      {name:'Player award',winner:'Year only',year:2026,url},
-    ]},
-    ...Object.fromEntries(supplementary.map(home=>[home,{kind:'results',checkedAt,items:[
-      {...game,home,date:'2026-11-16',highlightUrl:uefaHighlight},
-    ]}]))
-  }}}));
-  await page.route('https://i.ytimg.com/**', route => route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"/>'}));
+  }};
+  let blockParisImage=false;
+  const pixel='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"/>';
+  await page.route('**/football-news.json', route=>route.fulfill({json:payload}));
+  await page.route('https://i.ytimg.com/**', route=>route.fulfill({contentType:'image/svg+xml',body:pixel}));
+  await page.route('https://espnmedia-cdn.akamaized.net/**', route=>route.fulfill({contentType:'image/svg+xml',body:pixel}));
+  await page.route('https://editorial.uefa.com/**', route=>
+    blockParisImage && route.request().url()===uefaThumbnail
+      ? route.abort()
+      : route.fulfill({contentType:'image/svg+xml',body:pixel}));
   await page.goto(base+'/index.html');
   const section=page.getByRole('region',{name:'Football News'});
   const cards=section.getByRole('article');
   await cards.first().waitFor();
-  assert.equal(await cards.count(),5,'A single grid displays no more than five stories');
+  await section.scrollIntoViewIfNeeded();
+  await cards.locator('img').evaluateAll(images=>images.forEach(image=>{image.loading='eager';}));
+  await page.waitForFunction(()=>[...document.querySelectorAll('#football-news .football-story img')]
+    .every(image=>image.complete && image.naturalWidth>0));
+  assert.equal(await cards.count(),5,'The grid displays five matches with images');
   assert.equal(await section.getByRole('tab').count(),0,'The story grid does not create subtabs');
-  assert.equal(await cards.first().getByRole('heading').textContent(),'Barça come from two down to beat Villarreal 3–2');
-  assert.equal(await cards.first().locator('img').getAttribute('src'), 'https://i.ytimg.com/vi/ldXZdhBLMKk/hqdefault.jpg');
-  assert.equal(await cards.first().getByRole('link',{name:/Watch highlights/}).getAttribute('href'),
-    'https://www.youtube.com/watch?v=ldXZdhBLMKk');
-  const uefaLinks=section.getByRole('link',{name:/Watch highlights on UEFA/});
-  assert.equal(await uefaLinks.count(),1,'Only the Champions League card uses the UEFA video link');
-  assert.equal(await uefaLinks.first().getAttribute('href'),uefaHighlight);
   const titles=await cards.getByRole('heading').allTextContents();
-  assert(titles.every(title=>/Barça come from two down|Whitecaps open the playoffs|champions-league beat|premier-league beat|Canada beat Guatemala/.test(title)),
-    'Champions League, Premier League, Whitecaps and Canada get priority alongside a major Barcelona result');
-  assert.equal(await section.getByText(/Old result|Old winner|Year only|Future result|Other international/).count(),0,'Expired, undated, future, and lower-priority items are hidden');
+  assert.deepEqual(titles,[
+    'Whitecaps open the playoffs with a 2–0 win',
+    'Barça come from two down to beat Villarreal 3–2',
+    'Paris Saint-Germain and Roma draw 2–2',
+    'Atalanta rescue a 4–4 draw against Inter',
+    'Liverpool put four past Manchester United',
+  ],'Whitecaps, Barcelona, Champions League and two other big matches have no repeated team');
+  assert.equal(await cards.nth(1).getByRole('link',{name:/Watch highlights/}).getAttribute('href'),
+    'https://www.youtube.com/watch?v=ldXZdhBLMKk');
+  assert.equal(await cards.nth(2).getByRole('link',{name:/Watch highlights on UEFA/}).getAttribute('href'),uefaHighlight);
+  assert.equal(await cards.nth(2).locator('img').getAttribute('src'),uefaThumbnail);
+  assert.equal(await section.getByText(/Old result|Future result|Canada beat|No media|Sabah/).count(),0,
+    'Expired, future, duplicate-team and imageless items are omitted');
+
+  blockParisImage=true;
+  await page.reload();
+  await section.scrollIntoViewIfNeeded();
+  await cards.locator('img').evaluateAll(images=>images.forEach(image=>{image.loading='eager';}));
+  await page.waitForFunction(()=>document.querySelectorAll('#football-news .football-story').length===5 &&
+    !document.querySelector('#football-news .football-story h3')?.textContent.includes('Paris') &&
+    ![...document.querySelectorAll('#football-news .football-story h3')].some(h=>h.textContent.includes('Paris')) &&
+    [...document.querySelectorAll('#football-news .football-story img')].every(image=>image.complete && image.naturalWidth>0));
+  const afterFailure=await cards.getByRole('heading').allTextContents();
+  assert(afterFailure.some(title=>title.includes('Stuttgart')),'Another match replaces a card with an unavailable image');
+  assert.equal(afterFailure.filter(title=>title.includes('Inter')).length,1,'Team deduplication still applies after image failure');
+  const espn=section.getByRole('link',{name:/Watch highlights on ESPN/});
+  assert.equal(await espn.count(),1,'The verified ESPN match video fills another card');
+  assert.equal(await espn.getAttribute('href'),'https://www.espn.com/video/clip/_/id/123456/tottenham-ipswich-highlights');
+  assert.equal(await espn.locator('xpath=ancestor::article').locator('img').getAttribute('src'),
+    'https://espnmedia-cdn.akamaized.net/espn/media/common/tottenham.jpg');
 }
 
 

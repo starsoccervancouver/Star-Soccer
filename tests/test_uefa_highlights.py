@@ -16,6 +16,8 @@ refresh = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(refresh)
 
 VIDEO_ID = "02ab-222871ca3407-ab3f8f54d19d-1000"
+PICTURE_ID = "02ab-222871ca3406-f80aec914f45-1000"
+THUMBNAIL = "https://editorial.uefa.com/resources/" + PICTURE_ID + "/format/wide1/match.jpeg"
 VIDEO_URL = "https://www.uefa.com/uefachampionsleague/video/" + VIDEO_ID + "/"
 OLD_URL = "https://www.uefa.com/news-media/video/02ab-222871ca3407-ab3f8f54d19d-1000--old/"
 NOW = datetime(2027, 2, 25, 12, tzinfo=UTC)
@@ -30,6 +32,11 @@ def editorial_node(**changes):
     node = {
         "id": VIDEO_ID,
         "title": "Champions League highlights: Arsenal 1-1 B. Dortmund",
+        "picture": PICTURE_ID,
+        "files": {"content.json": {"data": {"document": {"mediagroup": [{"figure": [{"img": [{
+            "emk-softCrop": "Wide", "data-id": PICTURE_ID,
+            "src": "/resources/" + PICTURE_ID + "/match.jpeg",
+        }]}]}]}}}},
         "pubInfo": {"status": "LIVE", "visible": True},
         "attributes": {
             "language": "en",
@@ -78,7 +85,7 @@ class AutomaticHighlights(unittest.TestCase):
     def test_future_match_is_discovered_with_official_team_names(self):
         match = feed_match()
         links, requests = lookup([match])
-        self.assertEqual(links, {uefa.match_key(match): VIDEO_URL})
+        self.assertEqual(links, {uefa.match_key(match): {"url": VIDEO_URL, "thumbnail": THUMBNAIL}})
         self.assertEqual(len(requests), 2)
 
     def test_changed_score_date_team_or_identity_never_matches(self):
@@ -104,7 +111,7 @@ class AutomaticHighlights(unittest.TestCase):
     def test_an_incorrect_video_does_not_hide_a_correct_one(self):
         wrong_score = editorial_node(title="Champions League highlights: Arsenal 2-1 B. Dortmund")
         links, _ = lookup([feed_match()], nodes=[wrong_score, editorial_node()])
-        self.assertEqual(links, {uefa.match_key(feed_match()): VIDEO_URL})
+        self.assertEqual(links, {uefa.match_key(feed_match()): {"url": VIDEO_URL, "thumbnail": THUMBNAIL}})
 
     def test_catalogue_pagination_finds_an_older_fixture(self):
         older = editorial_node()
@@ -120,8 +127,14 @@ class AutomaticHighlights(unittest.TestCase):
             return json.dumps({"result": [{"nodeData": node} for node in nodes]})
 
         links = uefa.discover_highlights([feed_match()], download, now=NOW)
-        self.assertEqual(links, {uefa.match_key(feed_match()): VIDEO_URL})
+        self.assertEqual(links, {uefa.match_key(feed_match()): {"url": VIDEO_URL, "thumbnail": THUMBNAIL}})
         self.assertEqual(len(urls), 3)
+
+    def test_a_different_picture_is_not_used_as_the_video_thumbnail(self):
+        node = editorial_node()
+        node["files"]["content.json"]["data"]["document"]["mediagroup"][0]["figure"][0]["img"][0]["data-id"] = "different"
+        links, _ = lookup([feed_match()], nodes=[node])
+        self.assertEqual(links[uefa.match_key(feed_match())]["thumbnail"], None)
 
     def test_ambiguous_feed_fixtures_do_not_receive_a_link(self):
         matches = [feed_match(), feed_match(home="Arsenal FC")]
@@ -141,9 +154,10 @@ class AutomaticHighlights(unittest.TestCase):
         old = feed_match(highlightUrl=OLD_URL)
         match = feed_match()
         source = {"items": [match]}
-        with patch.object(refresh, "discover_highlights", return_value={uefa.match_key(match): VIDEO_URL}):
+        with patch.object(refresh, "discover_highlights", return_value={uefa.match_key(match): {"url": VIDEO_URL, "thumbnail": THUMBNAIL}}):
             refresh.add_champions_league_highlights(source, [old])
         self.assertEqual(match["highlightUrl"], VIDEO_URL)
+        self.assertEqual(match["highlightThumbnail"], THUMBNAIL)
 
 
 if __name__ == "__main__":

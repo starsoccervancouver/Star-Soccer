@@ -143,7 +143,7 @@ export function createRosterReader({baseId,token,tableMap,summaryStore,verifiedC
   [tables.sessions,tables.attendance]=await Promise.all([read('sessions'),read('attendance')]);
   if(forOverview){
    tables.players=await readLinked('players',readFields.players,tables.attendance,'Player');
-   tables.families=await readLinked('families',readFields.families,tables.players,'Family');
+   tables.families=await readLinked('families',[...readFields.families,'Roster verified email'],tables.players,'Family');
    tables.bookings=await readLinked('bookings',['Booking type','Booking status'],tables.attendance,'Booking');
    tables.enrollments=tables.players.length?await read('enrollments',['Enrollment status','Player','Weekly attendance email preference']):[];
    tables.registrations=await readLinked('registrations',readFields.registrations,tables.attendance,'Website Registrations');

@@ -133,7 +133,7 @@ export async function placeCampRegistration(db, {event, registration, family, pl
   const booking = existing || await db.save('bookings', {
     ...(weekly?.termsVersion?{Notes:'Weekly catalog '+weekly.termsVersion+'. '+(request.pass?'Four consecutive dates':'Single date')+'. Agreed CAD '+request.price+'. '+request.venue+'.'}:{}),
     'Source booking ID': source, 'Booking reference': event.reference, Player: [player.id], Family: [family.id],
-    'Booking type': request.pass?'Four consecutive sessions':'Drop-in', 'Booking status': 'Accepted', 'Charge review': 'Agreed', 'Charge CAD': request.price,
+    'Booking type': event.version==='SS-CAMP-V2'?'Camp package':request.pass?'Four consecutive sessions':'Drop-in', 'Booking status': 'Accepted', 'Charge review': 'Agreed', 'Charge CAD': request.price,
     ...((event.version === 'SS-CAMP-V2'||request.pass) ? {'Fixed-price package': true} : {}),
     ...(event.version === 'SS-CAMP-DROPIN-V1' ? {'Agreed per-visit CAD': request.price / (request.slots.filter(slot => slot.date !== winterCamps.getWeek(event.campWeek).freeDate).length || 1)} : {}),
     'Start date': request.dates[0], 'Covered dates': request.dates.join(', '),

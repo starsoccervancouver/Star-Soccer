@@ -968,7 +968,7 @@
  }
  function updatePaymentForm(fillAmount=false){
   if(!paymentFamily)return [];
-  const transfer=$('payment-method').value==='E-transfer';
+  const transfer=$('payment-method').querySelector('input:checked')?.value==='E-transfer';
   $('payment-ref-label').hidden=!transfer;$('payment-reference').required=transfer;
   const target=$('payment-target').value,amount=$('payment-amount');
   const rows=paymentFamily.rows.filter(r=>!target||r.bookingId===target)
@@ -1031,7 +1031,7 @@
   event.preventDefault();if(!canRecordPayment()||!paymentFamily||paymentBusy)return;
   if(!paymentCommand){
    const items=updatePaymentForm();if(!items.length)return;
-   const method=$('payment-method').value;
+   const method=$('payment-method').querySelector('input:checked')?.value||'';
    paymentCommand={id:crypto.randomUUID(),...(paymentFamily.id?{familyId:paymentFamily.id}:{playerId:paymentFamily.rows[0].playerId}),date:$('payment-date').value,method,
     reference:method==='E-transfer'?$('payment-reference').value.trim().toUpperCase():'',items};
   }

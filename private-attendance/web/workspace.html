@@ -274,7 +274,13 @@
 <div class="payment-fields">
 <label>Amount received (CAD)<input id="payment-amount" type="number" step="0.01" min="0.01" inputmode="decimal" required></label>
 <label>Date received<input id="payment-date" type="date" required></label>
-<label>Payment method<select id="payment-method" required><option value="">Select method</option><option>Cash</option><option>E-transfer</option></select></label>
+<fieldset id="payment-method">
+<legend>Payment method</legend>
+<div class="payment-method-choices">
+<label><input type="radio" name="payment-method" value="Cash" required><span>Cash</span></label>
+<label><input type="radio" name="payment-method" value="E-transfer"><span>E-transfer</span></label>
+</div>
+</fieldset>
 <label id="payment-ref-label" hidden>Interac reference<input id="payment-reference" maxlength="24" pattern="[A-Za-z0-9]{6,24}" autocomplete="off"></label>
 </div>
 <p id="payment-split" class="small"></p>

@@ -88,8 +88,8 @@ test('withholds session dues when identity, attendance, agreed amounts, or payme
   assert.equal(exact.status, 'due');
 });
 
-test('passes and multi-session booking payments appear once, with covered dates and no attributed session', async () => {
-  for (const basis of ['Pass or package', 'Historical', 'Attendance']) {
+test('passes and historical multi-session booking payments appear once', async () => {
+  for (const basis of ['Pass or package', 'Historical']) {
     const rows = await project(t => {nextSeat(t); t.bookings[0].fields['Billing basis'] = basis;});
     assert.equal(rows.length, 1);
     assert.deepEqual([rows[0].status, rows[0].scope, rows[0].sessionId, rows[0].amountDue, rows[0].coveredDates],
@@ -103,6 +103,31 @@ test('passes and multi-session booking payments appear once, with covered dates 
     t.attendance[0].fields['Covered session key'] = 'friday';
   });
   assert.deepEqual([pass.status, pass.scope, pass.amountDue], ['package', 'session', null]);
+});
+
+test('a shared attendance-priced booking shows only the earned balance once and supports partial payments',async()=>{
+  const {buildSessionBooks,unpaidSessionRows,collectibleBooking}=await books;
+  const t=fixture();nextSeat(t);
+  t.bookings[0].fields['Billing basis']='Attendance';
+  t.attendance[0].fields['Attended billing session']='friday';
+  const row=buildSessionBooks(t,today).rows[0];
+  assert.equal(row.status,'due');
+  assert.equal(row.amountDue,25);
+  assert.equal(row.attendanceBilled,true);
+  assert.equal(collectibleBooking(row),true);
+  assert.equal(unpaidSessionRows({rows:[row]})[0].amountDue,25);
+  Object.assign(t.bookings[0].fields,{'Verified applied CAD':30,'Balance CAD':15,'Due now CAD':15});
+  t.families[0].fields['Verified applied CAD']=30;
+  t.families[0].fields['Verified family receipts CAD']=30;
+  assert.equal(buildSessionBooks(t,today).rows[0].amountDue,15);
+});
+
+test('an overpayment is shown as a credit for review, not as a new payment or balance due',async()=>{
+  const [row]=await project(t=>Object.assign(t.bookings[0].fields,
+    {'Attendance-adjusted charge CAD':25,'Verified applied CAD':30,'Balance CAD':-5,'Due now CAD':0}));
+  assert.equal(row.status,'review');
+  assert.match(row.reviewReason,/\$5\.00 credit/);
+  assert.equal(row.amountDue,null);
 });
 
 test('contradictory seats never duplicate or invent a collectible amount', async () => {

@@ -172,6 +172,17 @@ async function finishReadAfterExit({page,context}, exit) {
 
 module.exports = async function checkBooks(fixture) {
   const emptyHome = {homeQueues:true,roster:[],openInquiry:false};
+  const multi = {...due,scope:'booking',attendanceBilled:true,attendanceId:null,sessionId:null,
+    sessionLabel:'Attended sessions',coveredDates:['2026-10-23','2026-10-30']};
+  const shared = await fixture({...emptyHome,books:[multi],paymentRecording:true});
+  try {
+    const link=shared.page.locator('#home-unpaid-list').getByRole('link',{name:/Avery Fictional.*31.50/});
+    await link.waitFor();await link.click();
+    await shared.page.locator('#unpaid-booking-list').getByText(multi.playerName).waitFor();
+    await shared.page.locator('#payment-entry summary').click();
+    assert.equal(await shared.page.locator('#payment-amount').inputValue(),'31.50');
+    assert.deepEqual(shared.errors,[]);
+  } finally { await shared.context.close(); }
   for (const warm of [true,false]) {
     let openRoster,openBooks;
     const deskGate=new Promise(resolve=>{openRoster=resolve;}),booksGate=new Promise(resolve=>{openBooks=resolve;});

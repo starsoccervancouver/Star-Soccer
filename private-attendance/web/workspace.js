@@ -235,7 +235,8 @@
   $('session-add-player-name-label').hidden=!isNew;$('session-add-player-family-label').hidden=!isNew;
   $('session-add-player-name').required=isNew;
   const selectedOption=$('session-add-player-choice').selectedOptions[0];
-  $('session-add-player-rate').value=selectedOption?.dataset.rate??$('session-add-player').dataset.defaultRate??'';
+  const rate=$('session-add-player-rate');
+  if($('session-add-player').dataset.defaultRate || !rate.value)rate.value=selectedOption?.dataset.rate??$('session-add-player').dataset.defaultRate??'';
  }
  async function loadSessionPlayers(){
   if(!addPlayerSession||addPlayerLoaded||addPlayerBusy)return;
@@ -254,6 +255,7 @@
    family.replaceChildren(new Option('No family linked yet',''),...result.families.map(item=>new Option(item.name,item.id)));
    $('session-add-player').dataset.recurring=result.recurring?'yes':'';
    $('session-add-player').dataset.defaultRate=Number.isFinite(result.rate)?result.rate.toFixed(2):'';
+   $('session-add-player-rate').readOnly=result.rateLocked===true;
    $('session-add-player-status').textContent=result.recurring?'':'Permanent enrollment is available for repeating weekly sessions.';
    addPlayerLoaded=true;setSessionPlayerFields(false);showNewPlayerFields();
   }catch(error){
@@ -801,7 +803,7 @@
  const canRecordPayment=()=>canViewBooks()&&profile.role==='owner'&&(openingView?openingView.canRecord:data?.paymentRecordingAvailable)===true;
  let booksRequest=0,booksRows=null,booksDenied=false,booksLimit=booksPageSize,booksMode='family',homeUnpaidState='idle';
  const canViewBooks=()=>!booksDenied&&(!!openingView||data?.booksAvailable===true)&&(profile?.role==='owner'||(profile?.role==='admin'&&profile.familyAccess===true));
- const sessionDue=row=>(row.scope==='session'||row.scope==='booking'&&row.pastBookingBalance===true)&&row.status==='due'&&Number.isFinite(row.amountDue)&&row.amountDue>0;
+ const sessionDue=row=>(row.scope==='session'||row.scope==='booking'&&(row.pastBookingBalance===true||row.attendanceBilled===true))&&row.status==='due'&&Number.isFinite(row.amountDue)&&row.amountDue>0;
  const bookStatuses={due:'Payment due',paid:'Paid',upcoming:'Upcoming','no-charge':'No charge',package:'Package',review:'Needs review'};
 
  function resetBooks(){

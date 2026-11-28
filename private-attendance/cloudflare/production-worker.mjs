@@ -61,7 +61,8 @@ export class AttendanceCoordinator{
    const config=JSON.parse(this.env.AIRTABLE_CONFIG);
    const db=airtableClient(config,this.env.AIRTABLE_TOKEN,createAirtableTransport());
    const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:clubConfig.timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-   this.rosterManager=createSessionRoster({db,store:this.store,today});
+   this.rosterManager=createSessionRoster({db,store:this.store,today,
+    sessionRateField:config.baseId==='appnaG94HQpEaRios'?'Session rate CAD':null});
   }
   return this.rosterManager;
  }

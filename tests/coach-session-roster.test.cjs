@@ -4,7 +4,7 @@ const rid=n=>'rec'+String(n).padStart(14,'0');
 const uid=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 const row=(id,fields)=>({id,fields});
 
-async function fixture(t){
+async function fixture(t, {datedRates=false}={}){
  const {openStore}=await import('../private-attendance/sqlite-store.mjs');
  const {createSessionRoster}=await import('../private-attendance/coach-session-roster.mjs');
  const store=openStore();t.after(()=>store.close());
@@ -22,15 +22,15 @@ async function fixture(t){
  let next=100,failAfter=null;
  const db={
   async list(name){return structuredClone(tables[name]);},
-  async save(name,fields,{key}){
-   let record=tables[name].find(item=>item.fields[key]===fields[key]);
+  async save(name,fields,{key,id}){
+   let record=tables[name].find(item=>id?item.id===id:item.fields[key]===fields[key]);
    if(!record){record=row(rid(next++),{});tables[name].push(record);}
    Object.assign(record.fields,structuredClone(fields));
    if(failAfter===name){failAfter=null;throw Error('response lost');}
    return structuredClone(record);
   }
  };
- const roster=createSessionRoster({db,store,today:()=> '2026-11-27'});
+ const roster=createSessionRoster({db,store,today:()=> '2026-11-27',sessionRateField:datedRates?'Session rate CAD':null});
  return {roster,tables,fail:name=>{failAfter=name;}};
 }
 
@@ -42,6 +42,48 @@ test('player options include the group rate and an existing approved player rate
  assert.equal(result.rate,30);
  assert.equal(result.players[0].agreedRate,25.5);
  assert.equal(result.families[0].name,'Fictional Parent');
+});
+
+test('new permanent bookings use each session rate, never the earlier individual rate',async t=>{
+ const {roster,tables}=await fixture(t,{datedRates:true});
+ tables.sessions[0].fields['Session rate CAD']=25;
+ tables.sessions[1].fields['Session rate CAD']=35;
+ tables.enrollments.push(row(rid(41),{Player:[rid(10)],Family:[rid(11)],'Weekly program':[rid(9)],
+  'Enrollment status':'Active','Effective from':'2026-10-01','Billing schedule':'Per session',
+  'Billing approval':'Approved','Agreed per-session CAD':40}));
+ const options=await roster.options(rid(1));
+ assert.equal(options.rate,25);
+ assert.equal(options.rateLocked,true);
+ assert.equal(options.players[0].agreedRate,undefined);
+ await roster.add('owner@example.test',{id:uid(20),sessionId:rid(1),playerId:rid(10),mode:'permanent',rateCents:2500});
+ assert.deepEqual(tables.bookings.map(b=>b.fields['Charge CAD']),[25,35]);
+ tables.sessions.push(row(rid(4),{Session:'Friday',Date:'2026-12-18','Session status':'Planned','Weekly program':[rid(9)]}));
+ await roster.sync();
+ assert.equal(tables.bookings[2].fields['Charge CAD'],30,'A new weekly date uses the program price');
+ assert.equal(tables.enrollments[0].fields['Agreed per-session CAD'],40,'The earlier agreement is preserved');
+});
+
+test('the first price for an unpriced session applies to the whole session and stale prices are rejected',async t=>{
+ const {roster,tables}=await fixture(t,{datedRates:true});
+ tables.sessions[0].fields['Weekly program']=[];
+ const options=await roster.options(rid(1));
+ assert.equal(options.rate,null);
+ await roster.add('owner@example.test',{id:uid(21),sessionId:rid(1),playerId:rid(10),mode:'dropin',rateCents:4500});
+ assert.equal(tables.sessions[0].fields['Session rate CAD'],45);
+ assert.equal((await roster.options(rid(1))).rateLocked,true);
+ await assert.rejects(roster.add('owner@example.test',{id:uid(22),sessionId:rid(1),newName:'Another fictional player',mode:'dropin',rateCents:3000}),
+  error=>error.code==='ROSTER_RATE_CHANGED');
+ assert.equal(tables.players.length,1);
+});
+
+test('an unpriced session with existing attendance is held before setting a price',async t=>{
+ const {roster,tables}=await fixture(t,{datedRates:true});
+ tables.sessions[0].fields['Weekly program']=[];
+ tables.attendance.push(row(rid(60),{Session:[rid(1)],Player:[rid(10)],'Coverage state':'Active','Attendance status':'Present'}));
+ await assert.rejects(roster.add('owner@example.test',{id:uid(23),sessionId:rid(1),newName:'Another fictional player',mode:'dropin',rateCents:4500}),
+  error=>error.code==='ROSTER_RATE_REVIEW');
+ assert.equal(tables.sessions[0].fields['Session rate CAD'],undefined);
+ assert.equal(tables.players.length,1);
 });
 
 test('drop-in creates one attendance-based booking and retries safely after a lost response',async t=>{

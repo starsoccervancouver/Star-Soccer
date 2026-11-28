@@ -95,10 +95,12 @@ async function checkPublicHover(browser,desktop,base){
   }finally{await touch.close();}
 }
 async function checkFootballNews(page, base) {
-  // At 01:00 UTC it is still November 22 in Vancouver.
-  await page.clock.setFixedTime(new Date('2026-11-23T01:00:00Z'));
+  // At 01:00 UTC it is still November 27 in Vancouver.
+  await page.clock.setFixedTime(new Date('2026-11-28T01:00:00Z'));
   const url='https://example.com/';
-  const checkedAt='2026-11-23T00:00:00Z';
+  const checkedAt='2026-11-28T00:00:00Z';
+  const barcaHighlight='https://www.uefa.com/uefachampionsleague/video/02ab-222871ca3407-ab3f8f54d19d-1000/';
+  const barcaThumbnail='https://editorial.uefa.com/resources/02ab-222871ca3406-f80aec914f45-1000/format/wide1/sabah-barcelona_hl_-_facebook.jpeg';
   const uefaHighlight='https://www.uefa.com/uefachampionsleague/video/02ab-2228984630a6-db8bc83542cb-1000/';
   const uefaThumbnail='https://editorial.uefa.com/resources/02ab-2228984630a5-647331bf682b-1000/format/wide1/psg-roma.jpeg';
   const otherHighlight='https://www.uefa.com/uefachampionsleague/video/02ab-2228bc00c56a-d1df30a90905-1000/';
@@ -108,15 +110,15 @@ async function checkFootballNews(page, base) {
   const payload={version:1,sources:{
     whitecaps:{kind:'results',checkedAt,items:[
       {...game,home:'Vancouver Whitecaps',away:'Real Salt Lake',...video},
-      {...game,home:'Old result',away:'Old visitor',date:'2026-11-15',...video},
-      {...game,home:'Future result',away:'Future visitor',date:'2026-11-23',...video},
+      {...game,home:'Old result',away:'Old visitor',date:'2026-11-20',...video},
+      {...game,home:'Future result',away:'Future visitor',date:'2026-11-28',...video},
     ]},
     'la-liga':{kind:'results',checkedAt,items:[
       {...game,home:'Barcelona',away:'Villarreal',goals:[3,2],competition:'La Liga',...video},
     ]},
     'champions-league':{kind:'results',checkedAt,items:[
-      {...game,home:'FC Barcelona',away:'Sabah',goals:[4,1],competition:'Champions League',
-        highlightUrl:uefaHighlight,highlightThumbnail:uefaThumbnail},
+      {...game,home:'Sabah',away:'FC Barcelona',goals:[1,4],date:'2026-11-25',competition:'Champions League',
+        highlightUrl:barcaHighlight,highlightThumbnail:barcaThumbnail},
       {...game,home:'Paris St. Germain',away:'AS Rom',goals:[2,2],competition:'Champions League',
         highlightUrl:uefaHighlight,highlightThumbnail:uefaThumbnail},
       {...game,home:'Inter Mailand',away:'VfB Stuttgart',goals:[2,0],competition:'Champions League',
@@ -165,16 +167,16 @@ async function checkFootballNews(page, base) {
   const titles=await cards.getByRole('heading').allTextContents();
   assert.deepEqual(titles,[
     'Whitecaps open the playoffs with a 2–0 win',
-    'Barça come from two down to beat Villarreal 3–2',
+    'Barcelona beat Sabah 4–1',
     'Paris Saint-Germain and Roma draw 2–2',
     'Atalanta rescue a 4–4 draw against Inter',
     'Liverpool put four past Manchester United',
   ],'Whitecaps, Barcelona, Champions League and two other big matches have no repeated team');
-  assert.equal(await cards.nth(1).getByRole('link',{name:/Watch highlights/}).getAttribute('href'),
-    'https://www.youtube.com/watch?v=ldXZdhBLMKk');
+  assert.equal(await cards.nth(1).getByRole('link',{name:/Watch highlights on UEFA/}).getAttribute('href'),barcaHighlight);
+  assert.equal(await cards.nth(1).locator('img').getAttribute('src'),barcaThumbnail);
   assert.equal(await cards.nth(2).getByRole('link',{name:/Watch highlights on UEFA/}).getAttribute('href'),uefaHighlight);
   assert.equal(await cards.nth(2).locator('img').getAttribute('src'),uefaThumbnail);
-  assert.equal(await section.getByText(/Old result|Future result|Canada beat|No media|Sabah/).count(),0,
+  assert.equal(await section.getByText(/Old result|Future result|Canada beat|No media|Villarreal/).count(),0,
     'Expired, future, duplicate-team and imageless items are omitted');
 
   blockParisImage=true;

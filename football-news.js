@@ -218,21 +218,12 @@
       .sort((left, right) => right.date.localeCompare(left.date) || rank(left, right));
     add(whitecaps[0]);
 
-    const barcelona = stories.filter(story => story.barcelona && canAdd(story, selected)).sort(rank);
+    const barcelona = stories.filter(story => story.barcelona && canAdd(story, selected))
+      .sort((left, right) => right.date.localeCompare(left.date) || rank(left, right));
+    add(barcelona[0]);
+
     const champions = stories.filter(story => story.category === 'champions-league' && canAdd(story, selected)).sort(rank);
-    let pair;
-    for (const barca of barcelona) {
-      const other = champions.find(story => story.id !== barca.id && canAdd(story, [...selected, barca]));
-      if (other) { pair = [barca, other]; break; }
-    }
-    if (pair) {
-      pair.forEach(add);
-    } else {
-      add(barcelona.find(story => story.category === 'champions-league') ?? barcelona[0]);
-      if (!selected.some(story => story.category === 'champions-league')) {
-        add(champions.find(story => canAdd(story, selected)));
-      }
-    }
+    add(champions[0]);
     for (const story of stories.filter(story => europeanCompetitions.has(story.category)).sort(rank)) {
       if (selected.length >= 5) break;
       add(story);

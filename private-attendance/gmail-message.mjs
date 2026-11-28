@@ -1,3 +1,4 @@
+import {addressedToCoach} from './coach-mailboxes.mjs';
 import {Buffer} from 'node:buffer';
 import campaign from '../campaign-source.js';
 
@@ -15,6 +16,11 @@ function contents(part, plain, html) {
 function htmlText(html) {
   return html.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<\/(td|tr|p|div)>|<br\s*\/?>/gi,'\n')
     .replace(/<[^>]+>/g, ' ').replace(/&nbsp;|&zwnj;|[\u200c\xa0]/gi, ' ').replace(/&amp;/g,'&').replace(/&#39;|&apos;/g,"'").replace(/&quot;/g,'"');
+}
+export function messageText(payload) {
+  const plain=[], html=[];
+  contents(payload,plain,html);
+  return plain.join('\n') || htmlText(html.join('\n'));
 }
 function formFields(body) {
   const fields = {};
@@ -56,8 +62,7 @@ export function classifyMessage(message, labels, ownerEmail, confirmationMailbox
     }
     return null;
   }
-  const plain=[], html=[]; contents(message.payload,plain,html);
-  const body = plain.join('\n') || htmlText(html.join('\n'));
+  const body = messageText(message.payload);
   const flat = body.replace(/\s+/g, ' ');
   const fields = formFields(body);
   const has = name => !!labels[name] && ids.has(labels[name]);
@@ -80,7 +85,7 @@ export function classifyMessage(message, labels, ownerEmail, confirmationMailbox
   const isForm = provider && /star\s?soccer|starsoccer\.ca/i.test(subject+' '+flat.slice(0,500));
   const known = /^SS-(?:WEEKLY-V2|PASS-V1|CAMP-V2|CAMP-DROPIN-V1|DAY-CAMP-V1)$/.test(version);
   const registration = has('Registrations') || (isForm && (/registration|camp request/i.test(subject) || known));
-  if (sender===ownerEmail || ((!registration&&!has('Leads')&&!isForm) && (header('list-unsubscribe') || /^(?:auto-generated|auto-replied)/i.test(header('auto-submitted')) || !/\b(soccer|private (?:coaching|lesson|training)|camp|register|registration|soccer lessons?)\b/i.test(subject+' '+flat.slice(0,300)) || /no-?reply|notifications?@/i.test(sender||'')))) return null;
+  if (sender===ownerEmail || ((!registration&&!has('Leads')&&!isForm) && (header('list-unsubscribe') || /^(?:auto-generated|auto-replied)/i.test(header('auto-submitted')) || !addressedToCoach(header('to')) && !/\b(soccer|private (?:coaching|lesson|training)|camp|register|registration|soccer lessons?)\b/i.test(subject+' '+flat.slice(0,300)) || /no-?reply|notifications?@/i.test(sender||'')))) return null;
   if (!sender) return null;
   const contact = isForm ? emailOf(fields['parent email'] || fields['guardian email'] || fields.email || header('reply-to')) : sender;
   const attribution = {};

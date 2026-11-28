@@ -9,7 +9,7 @@ async function setup(t,contactFixture){
  const one=coaches.actor('one@example.test'),two=coaches.actor('two@example.test'),admin=coaches.actor('admin@example.test');
  coaches.assign(owner,{email:one.email,sessionId:rid(1),assigned:true});
  const ledgerCalls=[],familyLedger={async directory(){ledgerCalls.push('directory');return [];},async detail(id){ledgerCalls.push(id);return {balance:50};}};
- const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,sessionBooks:contactFixture?.sessionBooks,bookingPayments:contactFixture?.bookingPayments,sessionRoster:contactFixture?.sessionRoster,bookOutcome:contactFixture?.bookOutcome,attention:async({kind})=>({kind}),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
+ const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,sessionBooks:contactFixture?.sessionBooks,bookingPayments:contactFixture?.bookingPayments,sessionRoster:contactFixture?.sessionRoster,bookOutcome:contactFixture?.bookOutcome,attention:contactFixture?.attention||(async({kind})=>({kind})),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
  const request=(actor,path,payload)=>{const session=auth.createVerifiedSession(actor.email),origin='https://attendance.starsoccer.ca';return handler(new Request(origin+'/workspace/api/'+path,{method:payload===undefined?'GET':'POST',headers:{origin,'content-type':'application/json',cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf},...(payload===undefined?{}:{body:JSON.stringify(payload)})}));};
  return {store,coaches,owner,one,two,admin,request,auth,handler,ledgerCalls};
 }
@@ -372,4 +372,30 @@ test('Books outcome writes are owner-only and bound to the current eligible book
  rows[0]={bookingId:bid,canCancel:true};
  assert.equal((await request(owner,'books-outcome',{bookingId:bid,decision:'Cancelled'})).status,200);
  assert.deepEqual(calls,[['Did not attend',bid,visit],['Cancelled',bid,undefined]]);
+});
+
+test('each coach login gets only its addressed inquiry, while owner gets both',async t=>{
+ const {coachInquiryPage}=await import('../private-attendance/attention-inbox.mjs');
+ const addresses=['evan@starsoccer.ca','valentinos@starsoccer.ca'];
+ const subjects=['SS-81342','SS-81343'];
+ const messages=addresses.map((value,i)=>({id:String(1000000000000000+i),labelIds:['INBOX'],internalDate:String(Date.now()),
+   payload:{headers:[{name:'To',value},{name:'Subject',value:subjects[i]}]}}));
+ const fixture={labels:{},ledger:{list:async()=>messages.map(m=>({fields:{Kind:'Question','Message ID':m.id}}))},
+   read:async path=>path==='messages'?{messages}:messages.find(m=>path==='messages/'+m.id)};
+ const {owner,coaches,request}=await setup(t,{attention:async payload=>{
+   if(!payload.mailbox)return {items:messages.map(m=>({title:m.payload.headers[1].value}))};
+   return coachInquiryPage(fixture,payload.mailbox);
+ }});
+ const path='needs-attention/inquiries';
+ for(const [i,email] of ['evan.lycos@gmail.com','vdinglis@gmail.com'].entries()){
+   coaches.saveUser(owner,{email,name:'Test coach',role:i?'super_admin':'admin'});
+   const actor=coaches.actor(email);
+   const response=await request(actor,path,{});assert.equal(response.status,200);
+   const {items}=await response.json();assert.deepEqual(items.map(x=>x.title),[subjects[i]]);
+   assert.equal(items[0].href,undefined);
+   assert.equal((await request(actor,path,{mailbox:addresses[1-i]})).status,400);
+   assert.equal((await request(actor,'needs-attention/other',{})).status,403);
+   assert.equal((await request(actor,path,{completed:true,completionToken:'token'})).status,403);
+ }
+ assert.deepEqual((await (await request(owner,path,{})).json()).items.map(x=>x.title),subjects);
 });

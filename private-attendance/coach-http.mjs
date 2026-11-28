@@ -1,3 +1,4 @@
+import {coachMailbox} from './coach-mailboxes.mjs';
 import {unpaidSessionRows} from './session-books.mjs';
 import {createHash,randomBytes,createHmac,timingSafeEqual} from 'node:crypto';
 import {Buffer} from 'node:buffer';
@@ -39,7 +40,8 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    ...(sessionBooks&&(data.profile.role==='owner'||data.profile.role==='admin'&&data.profile.familyAccess===true)?{booksAvailable:true}:{}),
    ...(bookingPayments&&data.profile.role==='owner'?{paymentRecordingAvailable:true}:{}),
    ...(sessionRoster&&data.profile.role==='owner'?{rosterEditingAvailable:true}:{}),
-   ...(attention&&data.profile.familyAccess?{attentionAvailable:true}:{}),
+   ...(attention&&(data.profile.familyAccess||coachMailbox(actor))?{attentionAvailable:true}:{}),
+   ...(attention&&coachMailbox(actor)?{personalInquiryInbox:true}:{}),
    ...(gmailSync&&data.profile.role==='owner'?{gmailSyncAvailable:true}:{}),
    notes:coaches.notes(data.profile),tasks:coaches.tasks(data.profile)};
  }
@@ -258,12 +260,15 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    return json(200,await familyFollowups(request.method==='POST'));
   }
   if(path.startsWith('/workspace/api/needs-attention/')&&request.method==='POST'){
-   coaches.requireFamilyAccess(actor);
+   const mailbox=coachMailbox(actor);
+   if(!mailbox)coaches.requireFamilyAccess(actor);
    if(!attention)deny('ATTENTION_UNAVAILABLE',503);
    const kind=path.split('/').pop();
+   if(mailbox&&kind!=='inquiries')deny();
    if(kind==='other')coaches.owner(actor);
    if(!['registrations','inquiries','payments','other'].includes(kind))deny('NOT_FOUND',404);
    const input=await body(request,['cursor','completionToken','completed','receipt','history']);
+   if(mailbox&&('completionToken' in input||'completed' in input||'receipt' in input))deny();
    if('completionToken' in input||'completed' in input||'receipt' in input){
     if('cursor' in input||'history' in input||('receipt' in input&&(typeof input.receipt!=='string'||input.receipt.length>54000))||typeof input.completed!=='boolean'||typeof input.completionToken!=='string'||!/^([\w-]{43})\.([\w-]{43})$/.test(input.completionToken))deny('INVALID_REQUEST',400);
     return json(200,await attention({kind,completionToken:input.completionToken,completed:input.completed,receipt:input.receipt}));
@@ -271,7 +276,7 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    const {cursor=''}=input;
    if(typeof cursor!=='string'||cursor.length>512||!/^[a-zA-Z0-9_=-]*$/.test(cursor))deny('INVALID_REQUEST',400);
    if('history' in input&&(input.history!==true||cursor&&!/^[\w-]{43}$/.test(cursor)))deny('INVALID_REQUEST',400);
-   return json(200,await attention({kind,cursor,history:input.history}));
+   return json(200,await attention({kind,cursor,history:input.history,...(mailbox?{mailbox}:{})}));
   }
   if(path==='/workspace/api/families'&&request.method==='GET'){
    coaches.requireFamilyAccess(actor);

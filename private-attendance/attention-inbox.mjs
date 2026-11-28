@@ -1,5 +1,6 @@
+import {addressedToCoach} from './coach-mailboxes.mjs';
 // Reads the connected mailbox and ledger only when an authorized staff member opens the queue.
-import {transferNotice} from './gmail-message.mjs';
+import {transferNotice,messageText} from './gmail-message.mjs';
 
 const pageSize = 12;
 const mailId = id => typeof id === 'string' && /^[a-f0-9]{10,32}$/i.test(id);
@@ -65,6 +66,23 @@ function slicePage(items, cursor) {
   const offset = Number(cursor || 0);
   if (!Number.isSafeInteger(offset) || offset < 0) throw Error('INVALID_CURSOR');
   return {items:items.slice(offset,offset+pageSize),next:items.length>offset+pageSize?String(offset+pageSize):null};
+}
+// Search only this recipient and independently verify the To header before returning any text.
+export async function coachInquiryPage({ledger,read,labels},mailbox,cursor='') {
+  const params=[['q','to:'+mailbox+' -in:sent -in:drafts -in:spam -in:trash'],['maxResults',String(pageSize)]];
+  if(cursor)params.push(['pageToken',cursor]);
+  const page=await read('messages',params);
+  const questions=new Set((await ledger.list('intake',intakeFields))
+    .map(row=>row.fields).filter(f=>f.Kind==='Question'&&!ignored(f)&&!noReply(f)).map(sourceId));
+  const policy=inboxPolicy(labels);
+  const items=await readInBatches((page.messages||[]).filter(m=>questions.has(m.id)),async({id})=>{
+    let m;
+    try{m=await read('messages/'+id,[['format','full']]);}
+    catch(error){if(error.message==='GMAIL_404')return null;throw error;}
+    if(!live(m)||sent(m)||!addressedToCoach(header(m,'To'),mailbox)||policy.administrative(m))return null;
+    return {key:id,title:header(m,'Subject')||'Parent inquiry',status:messageText(m.payload).trim()||m.snippet||'Parent inquiry',date:day(Number(m.internalDate))};
+  });
+  return {items:items.filter(Boolean),resolved:[],next:page.nextPageToken||null};
 }
 export async function attentionPage({ledger,read,labels,mailbox,now}, kind, cursor='') {
   const root='https://mail.google.com/mail/u/?authuser='+encodeURIComponent(mailbox);

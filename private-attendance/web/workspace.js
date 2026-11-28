@@ -623,14 +623,14 @@
    action.type='button';action.title=completed?'Reopen':'Mark complete';action.setAttribute('aria-label',action.title+': '+item.title);
    action.disabled=!reportGroups.get(kind).finished||pendingReports.has(item.completionToken);action.addEventListener('click',()=>saveReport(kind,item));
    const info=node('div','','report-info'),category=node('span',categories[kind],'report-tag report-'+kind);
-   const link=node('a',item.title,'report-subject');link.href=item.href;if(new URL(link.href).hostname!=='mail.google.com')link.target='_blank';link.rel='noopener noreferrer';
+   const link=node(item.href?'a':'strong',item.title,'report-subject');if(item.href){link.href=item.href;if(new URL(link.href).hostname!=='mail.google.com')link.target='_blank';link.rel='noopener noreferrer';}
    info.append(link,node('small',item.reopened?'Reopened for review':item.status));
    const date=node('time',item.date||'');
    if(/^\d{4}-\d{2}-\d{2}$/.test(item.date||'')){
     date.dateTime=item.date;date.textContent=dateWithYearFormat.format(new Date(item.date+'T12:00:00Z'));
    }
    if(item.completedAt)date.title='Completed '+completedDateFormat.format(new Date(item.completedAt));
-   row.append(action,category,info,date);list.append(row);
+   if(item.completionToken)row.append(action);row.append(category,info,date);list.append(row);
   }
   if(!visible.length)list.append(node('p',attentionRunning?'Checking reports…':problems.length?'No matching items in the available results.':query?'No reports match your search.':completed?'No completed reports here yet.':'Nothing to review.','report-empty'));
   $('attention-refresh').disabled=attentionRunning||pendingReports.size>0;
@@ -664,13 +664,13 @@
  $('owner-workflow-panel').addEventListener('toggle',renderOwnerWorkflow);
  async function loadAttention(force=false){
   $('owner-workflow-panel').hidden=profile?.role!=='owner';if(force)renderOwnerWorkflow();
-  if(!profile?.familyAccess)return;
+  if(!profile?.familyAccess&&!data?.personalInquiryInbox)return;
   if(attentionRunning||pendingReports.size||!force&&Date.now()-attentionTime<90000){
    if(tab==='attention')renderReports();
    return;
   }
   const request=++attentionRequest;attentionRunning=true;reportSaved='';reportGroups.clear();
-  for(const kind of Object.keys(categories))if(kind!=='other'||profile.role==='owner')reportGroups.set(kind,{rows:new Map(),liveOK:false,historyOK:false,finished:false});
+  for(const kind of Object.keys(categories))if(data.personalInquiryInbox?kind==='inquiries':kind!=='other'||profile.role==='owner')reportGroups.set(kind,{rows:new Map(),liveOK:false,historyOK:false,finished:false});
   renderReports();
   async function readPages(kind,history,collect){
    let cursor='';const seen=new Set();
@@ -692,7 +692,7 @@
      for(const key of page.resolved)resolved.add(key);
     });
     if(request!==attentionRequest)return;
-    for(const [key,item] of latest)if(!resolved.has(key))group.rows.set(item.completionToken,item);
+    for(const [key,item] of latest)if(!resolved.has(key))group.rows.set(item.completionToken||item.key,item);
     group.liveOK=true;
    }catch{}
    if(request!==attentionRequest)return;
@@ -779,7 +779,8 @@
  function renderReportPane(){
   $('automation-history').hidden=profile.role!=='owner';
   const roster=reportView==='roster';
-  $('report-open').hidden=$('report-completed').hidden=!profile.familyAccess;
+  $('report-open').hidden=!profile.familyAccess&&!data.personalInquiryInbox;
+  $('report-completed').hidden=!profile.familyAccess||data.personalInquiryInbox;
   for(const [id,view] of [['report-open','open'],['report-completed','completed'],['report-roster','roster']])$(id).setAttribute('aria-pressed',String(reportView===view));
   $('report-mail').hidden=roster;$('report-roster-panel').hidden=!roster;
   if(roster)renderRosterReviews();else renderReports();
@@ -1519,11 +1520,12 @@
  function go(next,preserveSession=false,familyId=null,route=null){if(paymentBusy&&!route?.keepSelection)return;
   const previewRows=tab==='home'&&next==='books'&&route?.bookTarget&&!route.keepSelection?unpaidFamilies.flatMap(family=>family.rows):null;
   if(next==='tasks')return;const shortcut=['attendance','notes'].includes(next),reopenGroup=shortcut&&hasOpenedGroup&&!!session();const requestedView=['attendance','notes'].includes(next)?next:next==='plan'&&!preserveSession?'plan':workspaceView;if(['attendance','notes'].includes(next))next='plan';if(saveBusy||loadingDesk||tacticsBusy()||plannerBusy()||!profile||!titles[next]||next==='families'&&!profile.familyAccess||next==='books'&&!canViewBooks()||next==='team'&&profile.role!=='owner'||['activity','legacy','coaches'].includes(next)&&!full())return;if(next!==tab&&tab==='tasks'&&taskDirty()){if(!confirm('Leave follow-ups and discard your unsaved task changes?'))return;resetTaskDraft();}if(next!==tab&&tab==='library'&&(window.CoachLibrary?.isDirty()||window.CoachResources?.isDirty())){if(!confirm('Leave resources and discard your unsaved draft?'))return;window.CoachLibrary?.discard();window.CoachResources?.discard();}if(next!==tab&&tab==='profiles'&&window.CoachProfiles?.isDirty()){if(!confirm('Leave this profile and discard your unsaved note?'))return;window.CoachProfiles.discard();}if(next!==tab)stopDictation();if(next===tab&&next==='plan'&&planDirty())return;if(tab==='plan'&&next!=='plan'&&(noteDirty()||planDirty()||tacticsDirty()||plannerDirty())){if(!confirm('Leave the planner and discard unsaved changes?'))return;resetNote();restorePlanDraft();discardTactics();discardPlanner();}if(next==='plan'&&tab!=='plan'&&!preserveSession){const target=selected&&session()?selected:window.CoachPlanner?.nextSession(data?.sessions)?.id||'';if(!allowSessionChange(target))return;if(target!==selected){resetNote();resetRosterFilters();}selected=target;$('show-all').checked=true;}if(next==='attendance'){const target=attendanceDefault(attendanceSessions());if(!allowSessionChange(target))return;if(target!==selected){resetNote();resetRosterFilters();}selected=target;}else if(session()&&session().status!=='Cancelled'&&!chosenSessions().some(s=>s.id===selected))$('show-all').checked=true;if(next!==tab&&!route?.keepSelection&&(tab==='home'||tab==='books'))resetBooks();if(tab==='families'&&next!==tab)resetFamilyRecords();if(next==='books'){bookTarget=route?.bookTarget||'';expandPayment=!!route?.expandPayment;}if(next==='attention'){
-    reportView=profile.familyAccess?(route?.reportView||reportView):'roster';
+    reportView=(profile.familyAccess||data.personalInquiryInbox)?(route?.reportView||reportView):'roster';
+    if(data.personalInquiryInbox&&reportView==='completed')reportView='open';
     reviewFilter=route?.reviewFilter||reviewFilter;
     if(!reviewTypes().some(([key])=>key===reviewFilter))reviewFilter='all';
    }
-   workspaceView=requestedView;tab=next;renderSelector();$('session-toolbar').hidden=true;$('settings-navigation').hidden=!settingsTabs.includes(tab);$('refresh').hidden=settingsTabs.includes(tab)||['families','books','attention'].includes(tab);if(tab==='attendance')renderAttendance();document.querySelectorAll('.tab-panel').forEach(p=>{p.hidden=p.id!=='panel-'+tab;});document.querySelectorAll('#navigation button[data-tab]').forEach(b=>{const active=b.dataset.tab===(tab==='plan'?'plan':tab)||b.dataset.tab==='settings'&&settingsTabs.includes(tab);b.classList.toggle('nav-active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});document.querySelectorAll('[data-settings-tab]').forEach(b=>{if(b.dataset.settingsTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});const t=tab==='plan'&&workspaceView!=='plan'?[titles[workspaceView][0],titles[workspaceView][1],'Choose a training group to open '+(workspaceView==='attendance'?'its attendance.':'its group and player notes.')]:titles[tab];$('page-eyebrow').textContent=t[0];$('page-title').textContent=t[1];$('page-copy').textContent=t[2];if(tab==='home'){renderHome();if(canViewBooks())loadBooks(true);if(data.familyFollowupsAvailable)loadOwnerFollowups();}if(tab==='attention'){renderReportPane();if(reportView==='roster'&&profile.role==='owner'&&data.familyFollowupsAvailable&&['all','registrations'].includes(reviewFilter))loadOwnerFollowups();}if(profile.familyAccess && (tab==='attention'&&reportView!=='roster'||tab==='home'&&data.attentionAvailable))loadAttention();if(tab==='books'&&!route?.keepSelection)loadBooks(false,previewRows);if(tab==='families')showFamilyView(familyId);if(tab==='notes')renderNotes();if(tab==='plan'){if(!preserveSession&&!reopenGroup)window.CoachPlanner?.exitFocus();if(preserveSession||reopenGroup||window.CoachPlanner?.isFocused())loadPlan();renderWorkspaceView();}if(tab==='tasks')renderTasks();if(tab==='settings')renderSettings();if(tab==='team')loadTeam();if(tab==='activity')loadActivity();publishCoachContext();if(reopenGroup){renderAttendance();renderNotes();window.CoachPlanner?.focusSession(selected);}renderWorkspaceView();}
+   workspaceView=requestedView;tab=next;renderSelector();$('session-toolbar').hidden=true;$('settings-navigation').hidden=!settingsTabs.includes(tab);$('refresh').hidden=settingsTabs.includes(tab)||['families','books','attention'].includes(tab);if(tab==='attendance')renderAttendance();document.querySelectorAll('.tab-panel').forEach(p=>{p.hidden=p.id!=='panel-'+tab;});document.querySelectorAll('#navigation button[data-tab]').forEach(b=>{const active=b.dataset.tab===(tab==='plan'?'plan':tab)||b.dataset.tab==='settings'&&settingsTabs.includes(tab);b.classList.toggle('nav-active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});document.querySelectorAll('[data-settings-tab]').forEach(b=>{if(b.dataset.settingsTab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});const t=tab==='plan'&&workspaceView!=='plan'?[titles[workspaceView][0],titles[workspaceView][1],'Choose a training group to open '+(workspaceView==='attendance'?'its attendance.':'its group and player notes.')]:titles[tab];$('page-eyebrow').textContent=t[0];$('page-title').textContent=t[1];$('page-copy').textContent=t[2];if(tab==='home'){renderHome();if(canViewBooks())loadBooks(true);if(data.familyFollowupsAvailable)loadOwnerFollowups();}if(tab==='attention'){renderReportPane();if(reportView==='roster'&&profile.role==='owner'&&data.familyFollowupsAvailable&&['all','registrations'].includes(reviewFilter))loadOwnerFollowups();}if((profile.familyAccess||data.personalInquiryInbox) && (tab==='attention'&&reportView!=='roster'||tab==='home'&&data.attentionAvailable))loadAttention();if(tab==='books'&&!route?.keepSelection)loadBooks(false,previewRows);if(tab==='families')showFamilyView(familyId);if(tab==='notes')renderNotes();if(tab==='plan'){if(!preserveSession&&!reopenGroup)window.CoachPlanner?.exitFocus();if(preserveSession||reopenGroup||window.CoachPlanner?.isFocused())loadPlan();renderWorkspaceView();}if(tab==='tasks')renderTasks();if(tab==='settings')renderSettings();if(tab==='team')loadTeam();if(tab==='activity')loadActivity();publishCoachContext();if(reopenGroup){renderAttendance();renderNotes();window.CoachPlanner?.focusSession(selected);}renderWorkspaceView();}
  function render(){if(!data)return;renderSelector();renderHome();renderAttendance();renderNotes();if(tab==='plan'&&!planDirty())loadPlan();if(tab==='team')loadTeam();if(tab==='settings')renderSettings();publishCoachContext();}
  const opensOverview=()=>(fragment.get('view')||tab)==='home';
  async function loadDesk(refresh=false,initialDesk=null,balanceSnapshot=undefined,canRecord=false){

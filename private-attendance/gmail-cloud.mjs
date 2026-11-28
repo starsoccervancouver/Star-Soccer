@@ -7,7 +7,7 @@ import {runDraftJob,observeDraftSend} from './draft-job.mjs';
 import {draftMailbox} from './draft-mailbox.mjs';
 import {outcomeFiling} from './gmail-outcome-labels.mjs';
 import {reportCompletions} from './report-completions.mjs';
-import {attentionPage,filterReportItems} from './attention-inbox.mjs';
+import {coachInquiryPage,attentionPage,filterReportItems} from './attention-inbox.mjs';
 import {classifyMessage,depositLabel} from './gmail-message.mjs';
 import {airtableClient,syncLedgerEvent} from './gmail-ledger.mjs';
 import {createAirtableTransport} from './airtable-transport.mjs';
@@ -304,6 +304,13 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
       return {enabled:true,...report};
     }
     if(op==='attention'){
+      if(payload.mailbox){
+        if(payload.kind!=='inquiries'||payload.completionToken!==undefined)throw Error('INVALID_REQUEST');
+        if(payload.history)return {items:[],resolved:[],next:null};
+        const context=await reportContext();
+        return coachInquiryPage({ledger:context.ledger,labels:await readLabels(context.access),
+          read:(path,params)=>gmail(context.access,path,params)},payload.mailbox,payload.cursor);
+      }
       if(!payload.history&&payload.completionToken!==undefined)return completions.set(payload.kind,payload.completionToken,payload.completed,payload.receipt);
       // Cap archived metadata reads per request and advance by the underlying storage cursor.
       const history=payload.history?await completions.history(payload.kind,payload.cursor,12):null;

@@ -1,3 +1,4 @@
+import {runWeeklyRsvp} from '../weekly-rsvp.mjs';
 import {searchAutomationHistory} from '../automation-history.mjs';
 import {durableSqliteStore} from './storage.mjs';
 import {preview,catalogPath} from '../weekly-publication.mjs';
@@ -67,6 +68,12 @@ export class AttendanceCoordinator{
  alarm(){
   if(!active(this.env)||this.env.LIVE_AIRTABLE_WRITES!=='true')return;
   const run=this.tail.catch(()=>{}).then(async()=>{
+   if(await this.ctx.storage.get('weekly-rsvp-scheduler')){
+    await this.ctx.storage.setAlarm(Date.now()+3600000);
+    if(!this.handler)await this.handle(new Request(STAR_SOCCER_ORIGIN+'/health'));
+    if(this.weeklyRsvp)await this.weeklyRsvp();
+    return;
+   }
    if(!await this.ctx.storage.get('roster-scheduler'))return this.mail().cycle();
    await this.ctx.storage.setAlarm(Date.now()+300000);
    const ledger=this.env.ATTENDANCE_COORDINATOR.get(this.env.ATTENDANCE_COORDINATOR.idFromName('private-gmail-ledger-v1'));
@@ -145,7 +152,7 @@ export class AttendanceCoordinator{
    const reader=createRosterReader({baseId:config.baseId,token:env.AIRTABLE_TOKEN,tableMap:config.tables,summaryStore,timeZone:clubConfig.timeZone,verifiedContacts:config.verifiedContacts||{},fetchFn:airtableFetch});
    const adapter=createAirtableAdapter({baseId:config.baseId,tableId:config.tables.attendance,fields:config.rsvpFields,token:env.AIRTABLE_TOKEN,fetchFn:airtableFetch,dryRun:env.LIVE_AIRTABLE_WRITES!=='true',exclusiveWriter:config.exclusiveWriter,approval:config.approval});
    const preference=createPreferenceAdapter({baseId:config.baseId,tableId:config.tables.enrollments,fields:config.preferenceFields,token:env.AIRTABLE_TOKEN,fetchFn:airtableFetch,enabled:env.LIVE_AIRTABLE_WRITES==='true'&&config.approval?.ownerApproved===true&&config.approval?.scope==='attendance-rsvp-only'&&config.approval?.baseId===config.baseId&&config.approval?.tableId===config.tables.attendance&&Date.parse(config.approval?.approvedAt)<=Date.now()&&Date.parse(config.approval?.expiresAt)>Date.now()});
-   const refreshRoster=async(sessionId)=>{const revision=Number(this.store.get("SELECT value FROM runtime_state WHERE key='revision'")?.value||0)+1;const data=await reader.read(revision,sessionId);this.service.importRoster(data.snapshot);this.service.seedHistory(data.history);this.store.run("INSERT INTO runtime_state VALUES('revision',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",String(revision));this.store.run("INSERT INTO runtime_state VALUES('preferenceTargets',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",JSON.stringify([...new Map([...JSON.parse(this.store.get("SELECT value FROM runtime_state WHERE key='preferenceTargets'")?.value||'[]'),...data.preferences].map(t=>[t.enrollmentId,t])).values()]));};
+   const refreshRoster=async(sessionId)=>{const revision=Number(this.store.get("SELECT value FROM runtime_state WHERE key='revision'")?.value||0)+1;const data=await reader.read(revision,sessionId);this.service.importRoster(data.snapshot);this.service.seedHistory(data.history);this.store.run("INSERT INTO runtime_state VALUES('revision',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",String(revision));this.store.run("INSERT INTO runtime_state VALUES('preferenceTargets',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",JSON.stringify([...new Map([...JSON.parse(this.store.get("SELECT value FROM runtime_state WHERE key='preferenceTargets'")?.value||'[]'),...data.preferences].map(t=>[t.enrollmentId,t])).values()]));return data.snapshot;};
    const flush=async()=>{await projectOutbox({service:this.service,adapter});const targets=JSON.parse(this.store.get("SELECT value FROM runtime_state WHERE key='preferenceTargets'")?.value||'[]');for(const event of this.service.listPreferences()){try{if((await preference.deliver(event,targets)).delivered)this.service.markPreferenceDelivered(event.event_id);}catch{/* Durable preference remains pending for manual recovery. */}}return {pending:this.service.listOutbox().length+this.service.listPreferences().length};};
    const ownerAuth=createOwnerAuth({store:this.store});const overviewCache=createOverviewCache(()=>reader.overview());
    this.invalidateRoster=()=>{overviewCache.invalidate();reader.sessionBooks.invalidate();reader.familyLedger.invalidateDirectory();};
@@ -166,8 +173,30 @@ export class AttendanceCoordinator{
       const gmailSync=!this.coachOnly&&env.LIVE_AIRTABLE_WRITES==='true'&&env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET?async(op,payload={})=>{
       const target=env.ATTENDANCE_COORDINATOR.get(env.ATTENDANCE_COORDINATOR.idFromName('private-gmail-ledger-v1'));
       const response=await target.fetch('https://'+gmailHost+'/'+op,{method:'POST',body:JSON.stringify(payload)});
-      const value=await response.json();if(!response.ok)throw Error(value.error);return value;
+      const value=await response.json();if(!response.ok)throw Error(value.error);
+      if(op==='status'||op==='owner-workflows'){
+       const summary=await this.ctx.storage.get('weekly-rsvp-summary')||null;
+       if(op==='status')value.weeklyRsvp=summary;
+       if(op==='owner-workflows'&&(summary?.error||summary?.needsReview))value.items.push({group:'Sessions',title:'Weekly RSVP reminders need review',action:summary.error||'Check upcoming session rosters, guardian email verification and weekly email preferences.',link:'https://starsoccer.ca/coachdesk#view=sessions'});
+      }
+      return value;
      }:null;
+   if(gmailSync&&config.baseId==='appnaG94HQpEaRios'){
+    this.weeklyRsvp=async()=>{
+     const date=new Intl.DateTimeFormat('en-CA',{timeZone:clubConfig.timeZone}).format(new Date());
+     const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:clubConfig.timeZone,hour:'2-digit',hourCycle:'h23'}).format(new Date()));
+     const previous=await this.ctx.storage.get('weekly-rsvp-summary');
+     if(hour<9||previous?.date===date&&!previous.error)return;
+     try{
+      const report=await runWeeklyRsvp({db:billingDb,refresh:refreshRoster,service:this.service,store:this.store,contacts:config.verifiedContacts||{},writeDraft:mail=>gmailSync('weekly-rsvp-draft',mail)});
+      await this.ctx.storage.put('weekly-rsvp-summary',{date,...report});
+     }catch{await this.ctx.storage.put('weekly-rsvp-summary',{date,error:'Check roster access'});}
+    };
+    if(!await this.ctx.storage.get('weekly-rsvp-scheduler')){
+     await this.ctx.storage.setAlarm(Date.now()+1000);
+     await this.ctx.storage.put('weekly-rsvp-scheduler',true);
+    }
+   }
    const bookingPayments=!this.coachOnly&&env.LIVE_AIRTABLE_WRITES==='true'?async(operation,payload={})=>{
     const ledger=env.ATTENDANCE_COORDINATOR.get(env.ATTENDANCE_COORDINATOR.idFromName('private-gmail-ledger-v1'));
     const response=await ledger.fetch('https://'+gmailHost+'/'+operation,{method:'POST',body:JSON.stringify(payload)});

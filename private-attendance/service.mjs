@@ -66,6 +66,19 @@ export function createService({store,origin='http://127.0.0.1:8785',approvedOrig
   if(!c||c.used||c.token_hash!==tokenHash||c.csrf_hash!==csrfHash||c.action!==action||(c.answer??null)!==(answer??null)||c.expected_version!==expectedVersion||now()>=ms(c.expires_at))fail('INVALID_CONFIRMATION',403);
   return c;
  }
+ function issue({playerId,sessionId,rotate=false}){
+   const s=session(sessionId),p=subject(sessionId,playerId);ready(s);if(p.kind!=='dropin')fail('REGISTRATION_ALREADY_CONFIRMED',409);if(!p.email_verified)fail('CONTACT_NOT_VERIFIED',409);
+   const pref=store.get('SELECT * FROM preferences WHERE family_id=? AND player_id=?',p.family_id,p.player_id);if(p.reminder_preference!=='enabled'||pref?.weekly_enabled===0)fail('RECURRING_EMAILS_DISABLED',409);
+   if(capacity(s).blocked)fail('CAPACITY_REVIEW_REQUIRED',409);
+   if(ms(s.start_at)-now()>7*86400000)fail('INVITATION_TOO_EARLY',409);
+   const active=store.get("SELECT token_hash FROM invitations WHERE session_id=? AND player_id=? AND purpose='rsvp' AND revoked=0 AND expires_at>? LIMIT 1",sessionId,playerId,stamp());
+   if(active&&!rotate)fail('INVITATION_ALREADY_ISSUED',409);
+   store.run('UPDATE invitations SET revoked=1 WHERE session_id=? AND player_id=?',sessionId,playerId);
+   const token=random(),optOutToken=random(),issuedAt=stamp();
+   const optOutExpiresAt=new Date(now()+30*86400000).toISOString();
+   for(const [value,purpose,expires]of [[token,'rsvp',s.start_at],[optOutToken,'optout',optOutExpiresAt]])store.run('INSERT INTO invitations(token_hash,purpose,session_id,player_id,expires_at,issued_at) VALUES(?,?,?,?,?,?)',hash(value),purpose,sessionId,playerId,expires,issuedAt);
+   return {token,optOutToken,expiresAt:s.start_at,optOutExpiresAt,playerId,sessionId,yesUrl:origin+'/respond#token='+token+'&answer=yes',noUrl:origin+'/respond#token='+token+'&answer=no',optOutUrl:origin+'/respond#token='+optOutToken+'&action=optout',draftOnly:true};
+  }
  const api={
   importRoster(input){const snap=normalizeSnapshot(input,now(),mode);return store.transaction(()=>{
    for(const s of snap.sessions){const fingerprint=hash(JSON.stringify(s)),old=store.get('SELECT * FROM sessions WHERE id=?',s.id);
@@ -82,19 +95,8 @@ export function createService({store,origin='http://127.0.0.1:8785',approvedOrig
     store.run(`UPDATE invitations SET revoked=1 WHERE session_id=? AND purpose='rsvp' AND player_id IN (SELECT player_id FROM roster WHERE session_id=? AND (active=0 OR eligible=0 OR reserved=0 OR email_verified=0 OR kind!='dropin'))`,s.id,s.id);
    }return {imported:snap.sessions.length,revision:snap.revision,source:input.source,businessWrites:0};
   });},
-  issueInvitation({playerId,sessionId,rotate=false}){return store.transaction(()=>{
-   const s=session(sessionId),p=subject(sessionId,playerId);ready(s);if(p.kind!=='dropin')fail('REGISTRATION_ALREADY_CONFIRMED',409);if(!p.email_verified)fail('CONTACT_NOT_VERIFIED',409);
-   const pref=store.get('SELECT * FROM preferences WHERE family_id=? AND player_id=?',p.family_id,p.player_id);if(p.reminder_preference!=='enabled'||pref?.weekly_enabled===0)fail('RECURRING_EMAILS_DISABLED',409);
-   if(capacity(s).blocked)fail('CAPACITY_REVIEW_REQUIRED',409);
-   if(ms(s.start_at)-now()>7*86400000)fail('INVITATION_TOO_EARLY',409);
-   const active=store.get("SELECT token_hash FROM invitations WHERE session_id=? AND player_id=? AND purpose='rsvp' AND revoked=0 AND expires_at>? LIMIT 1",sessionId,playerId,stamp());
-   if(active&&!rotate)fail('INVITATION_ALREADY_ISSUED',409);
-   store.run('UPDATE invitations SET revoked=1 WHERE session_id=? AND player_id=?',sessionId,playerId);
-   const token=random(),optOutToken=random(),issuedAt=stamp();
-   const optOutExpiresAt=new Date(now()+30*86400000).toISOString();
-   for(const [value,purpose,expires]of [[token,'rsvp',s.start_at],[optOutToken,'optout',optOutExpiresAt]])store.run('INSERT INTO invitations(token_hash,purpose,session_id,player_id,expires_at,issued_at) VALUES(?,?,?,?,?,?)',hash(value),purpose,sessionId,playerId,expires,issuedAt);
-   return {token,optOutToken,expiresAt:s.start_at,optOutExpiresAt,playerId,sessionId,yesUrl:origin+'/respond#token='+token+'&answer=yes',noUrl:origin+'/respond#token='+token+'&answer=no',optOutUrl:origin+'/respond#token='+optOutToken+'&action=optout',draftOnly:true};
-  });},
+  issueInvitation(input){return store.transaction(()=>issue(input));},
+  withInvitations(inputs,save){return store.transaction(()=>save(inputs.map(issue)));},
   preview({token,answer,action='rsvp',csrfSession}){if(!['rsvp','optout'].includes(action)||(action==='rsvp'&&!['yes','no'].includes(answer))||(action==='optout'&&answer!==undefined))fail('INVALID_RESPONSE');return store.transaction(()=>{
    const {inv,s,p}=invitation(token,action),version=current(s.id,p.player_id)?.version??0,challenge=random(),created=now();
    store.run('INSERT INTO challenges(challenge_hash,token_hash,csrf_hash,action,answer,expected_version,expires_at) VALUES(?,?,?,?,?,?,?)',hash(challenge),inv.token_hash,browser(csrfSession),action,answer??null,version,new Date(Math.min(created+10*60000,ms(inv.expires_at))).toISOString());

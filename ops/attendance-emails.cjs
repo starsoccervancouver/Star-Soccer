@@ -24,7 +24,7 @@ function reference(value){
   return value;
 }
 function reminderKey(familyId,sessionId,date){
-  if(!/^rec[A-Za-z0-9]{14}$/.test(familyId)||!T.getSession(sessionId)||!T.isoDate(date))throw new Error('Invalid reminder identity.');
+  if(!/^rec[A-Za-z0-9]{14}$/.test(familyId)||(!T.getSession(sessionId)&&!/^rec[A-Za-z0-9]{14}$/.test(sessionId))||!T.isoDate(date))throw new Error('Invalid reminder identity.');
   return 'SS-RSVP-'+crypto.createHash('sha256').update([familyId,sessionId,date].join('|')).digest('hex').slice(0,20).toUpperCase();
 }
 function approvedCalendarUrl(value){

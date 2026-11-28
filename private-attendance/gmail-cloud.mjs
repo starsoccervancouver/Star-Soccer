@@ -240,6 +240,24 @@ export function createCloudMail(storage,env,{fetchFn=fetch,clock=Date.now}={}) {
   }
   const completions=reportCompletions(storage,env.COOKIE_KEY);
   async function handle(op,payload){
+    if(op==='weekly-rsvp-draft'){
+      if(config.baseId!=='appnaG94HQpEaRios'||!await storage.get('filing:enabled'))throw Error('GMAIL_DRAFT_UNAVAILABLE');
+      const c=payload;
+      if(!/^SS-RSVP-[A-F0-9]{20}$/.test(c.key)||!Object.values(config.verifiedContacts||{}).some(v=>v.evidence&&v.email===c.to))throw Error('CONTACT_NOT_VERIFIED');
+      const {access}=await reportContext();
+      const mail=draftMailbox({read:(path,params)=>gmail(access,path,params),fetchFn,access,owner:await storage.get('ownerAddress')});
+      const stateKey='weekly-rsvp:'+c.key;
+      const state=await storage.get(stateKey);
+      if(state?.id)return state;
+      const recovered=await mail.findManagedDraft(c.key,c.to);
+      if(recovered)return {id:recovered.id};
+      if(state||await mail.prior(c))throw Error('RSVP_REVIEW');
+      await storage.put(stateKey,{creating:true});
+      const draft=await mail.create(c);
+      if(!draft?.id)throw Error('RSVP_REVIEW');
+      await storage.put(stateKey,{id:draft.id});
+      return {id:draft.id};
+    }
     if(op==='owner-workflows'){
       if(config.baseId!=='appnaG94HQpEaRios')throw Error('WRONG_LEDGER');
       const data={};for(const [name,columns] of Object.entries(reportFields))data[name]=await ledger.list(name,columns);

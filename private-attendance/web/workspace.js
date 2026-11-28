@@ -29,7 +29,7 @@
  function groupRows(){const group=selectedGroup();if(group?.verified)return group.sessions;const row=session();if(!row)return EMPTY_ROWS;if(fallbackRow!==row){fallbackRow=row;fallbackRows=[row];}return fallbackRows;}
  const EMPTY_ROWS=Object.freeze([]);let fallbackRow=null,fallbackRows=EMPTY_ROWS;
  function folderNotes(){const ids=new Set(groupRows().map(s=>s.id));return notes.filter(n=>ids.has(n.session_id)&&(n.player_id||'')===noteFolder);}
- function renderWorkspaceView(){const active=tab==='plan'&&!!window.CoachPlanner?.isFocused();$('panel-attendance').hidden=!active||workspaceView!=='attendance';$('panel-notes').hidden=!active||workspaceView!=='notes';$('session-plan-section').hidden=!active||workspaceView!=='plan';$('planner-save').hidden=workspaceView!=='plan';document.querySelectorAll('[data-session-view]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.sessionView===workspaceView));b.disabled=saveBusy||loadingDesk||plannerBusy()||tacticsBusy();});}
+ function renderWorkspaceView(){const active=tab==='plan'&&!!window.CoachPlanner?.isFocused();$('panel-attendance').hidden=!active||workspaceView!=='attendance';$('panel-notes').hidden=!active||workspaceView!=='notes';$('session-plan-section').hidden=!active||workspaceView!=='plan';$('planner-save').hidden=workspaceView!=='plan';syncSessionPlayerControl(active);document.querySelectorAll('[data-session-view]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.sessionView===workspaceView));b.disabled=saveBusy||loadingDesk||plannerBusy()||tacticsBusy();});}
  function setWorkspaceView(view){if(!['attendance','plan','notes'].includes(view)||saveBusy||loadingDesk||plannerBusy()||tacticsBusy())return false;stopDictation();workspaceView=view;if(view==='attendance')renderAttendance();if(view==='notes')renderNotes();if(view==='plan')loadPlan();renderWorkspaceView();publishCoachContext();document.dispatchEvent(new Event('coach:dictation-state'));return true;}
  function notice(text,error=false){if(!error){$('global-error').hidden=true;$('global-error').textContent='';}const el=error?$('global-error'):$('notice');el.textContent=text;el.hidden=false;if(!error)setTimeout(()=>{el.hidden=true;},5000);}
  async function api(path,body,includeDesk=false,openingOverview=false){
@@ -143,7 +143,7 @@
   notice(v.diagram?'Activity and diagram added. Save the shared plan when ready.':'Activity added to your sequence. Save the shared plan when ready.');
  });
  window.addEventListener('coach:copy-plan',async event=>{const sourceId=event.detail?.sourceSessionId;if(saveBusy||loadingDesk||tab!=='plan'||planSession!==selected||!data?.sessions.some(item=>item.id===sourceId&&item.status!=='Cancelled')||sourceId===selected)return;if(planDirty()&&!confirm('Replace this draft preparation with the selected session plan? The reflection stays unchanged.'))return;stopDictation();const targetId=selected,controls=[...$('plan-form').querySelectorAll('input,textarea,select,button')];saveBusy=true;controls.forEach(control=>control.disabled=true);renderAttendanceNavigation();try{const response=await api('session',{sessionId:sourceId}),content=response.plan?.content||{};if(!planKeys.slice(0,5).some(key=>String(content[key]||'').trim())&&!content.activities?.length)return notice('No saved preparation plan for that session.',true);if(selected!==targetId)return;for(const key of planKeys.slice(0,5))$('plan-'+key).value=String(content[key]||'').slice(0,$('plan-'+key).maxLength);window.CoachPlanBlocks?.copy(content);syncDraftIndicators();notice('Preparation copied to this draft. Review it and save when ready.');}catch(error){notice(error.message,true);}finally{saveBusy=false;controls.forEach(control=>control.disabled=false);renderAttendanceNavigation();}});
- function clearPrivate(){resetBooks();$('nav-books').hidden=true;$('home-unpaid').hidden=true;$('panel-books').hidden=true;clearAttention();$('nav-attention').hidden=true;$('panel-attention').hidden=true;$('nav-families').hidden=true;$('panel-families').hidden=true;mailChecked=false;$('gmail-sync-settings').hidden=true;$('gmail-sync-status').textContent='';$('gmail-sync-disconnect').hidden=true;resetFamilyRecords();window.CoachPlanBlocks?.clear();planSaveState='idle';rosterLoadFailed=false;window.dispatchEvent(new CustomEvent('coach:status',{detail:null}));hasOpenedGroup=false;stopDictation();for(const id of ['profile-avatar','profile-name','profile-email','profile-role','profile-scope','profile-signin','preferences-status','identity','role','session','note-player','note-title','plan-updated','roster','note-list','home-followups','user-list','assignments','legacy-list','activity-list','task-list','home-stats','home-priorities','note-results','task-summary','attendance-stats','attendance-days','attendance-slot','attendance-history','attendance-week-range','attendance-freshness','roster-search-count'])$(id).replaceChildren();for(const id of ['note-form','plan-form','task-form','user-form'])$(id).reset();data=null;groupSource=null;groupCache=[];fallbackRow=null;fallbackRows=EMPTY_ROWS;noteFolder='';workspaceView='plan';notes=[];tasks=[];users=[];editingNote=null;noteUncertain=false;editingUser=null;plan={version:0,content:{}};$('note-search').value='';$('note-category-filter').value='all';$('note-review-filter').checked=false;taskView='open';resetRosterFilters();$('roster-search-clear').hidden=true;clearPrintRoster();planSession=null;planLoad++;planPendingSession=null;resetTaskDraft();$('task-search').value='';$('task-scope').value='all';syncDraftIndicators();attendanceCommands.clear();attendancePending.clear();attendanceErrors.clear();saveBusy=false;attendanceView='upcoming';attendancePastDay='all';$('attendance-past-day').value='all';$('settings-navigation').hidden=true;publishCoachContext();}
+ function clearPrivate(){addPlayerSession='';addPlayerBusy=false;resetSessionPlayer();$('session-add-player').hidden=true;resetBooks();$('nav-books').hidden=true;$('home-unpaid').hidden=true;$('panel-books').hidden=true;clearAttention();$('nav-attention').hidden=true;$('panel-attention').hidden=true;$('nav-families').hidden=true;$('panel-families').hidden=true;mailChecked=false;$('gmail-sync-settings').hidden=true;$('gmail-sync-status').textContent='';$('gmail-sync-disconnect').hidden=true;resetFamilyRecords();window.CoachPlanBlocks?.clear();planSaveState='idle';rosterLoadFailed=false;window.dispatchEvent(new CustomEvent('coach:status',{detail:null}));hasOpenedGroup=false;stopDictation();for(const id of ['profile-avatar','profile-name','profile-email','profile-role','profile-scope','profile-signin','preferences-status','identity','role','session','note-player','note-title','plan-updated','roster','note-list','home-followups','user-list','assignments','legacy-list','activity-list','task-list','home-stats','home-priorities','note-results','task-summary','attendance-stats','attendance-days','attendance-slot','attendance-history','attendance-week-range','attendance-freshness','roster-search-count'])$(id).replaceChildren();for(const id of ['note-form','plan-form','task-form','user-form'])$(id).reset();data=null;groupSource=null;groupCache=[];fallbackRow=null;fallbackRows=EMPTY_ROWS;noteFolder='';workspaceView='plan';notes=[];tasks=[];users=[];editingNote=null;noteUncertain=false;editingUser=null;plan={version:0,content:{}};$('note-search').value='';$('note-category-filter').value='all';$('note-review-filter').checked=false;taskView='open';resetRosterFilters();$('roster-search-clear').hidden=true;clearPrintRoster();planSession=null;planLoad++;planPendingSession=null;resetTaskDraft();$('task-search').value='';$('task-scope').value='all';syncDraftIndicators();attendanceCommands.clear();attendancePending.clear();attendanceErrors.clear();saveBusy=false;attendanceView='upcoming';attendancePastDay='all';$('attendance-past-day').value='all';$('settings-navigation').hidden=true;publishCoachContext();}
  const planKeys=['focus','warmup','technical','game','equipment','reflection'];
  const planActivityFingerprint=value=>JSON.stringify(value,(_,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.keys(item).sort().map(key=>[key,item[key]])):item);
  let planSaveState='idle',rosterLoadFailed=false;
@@ -209,6 +209,107 @@
 
  }
  function renderAttendance(){renderAttendanceNavigation();const s=session(),query=$('roster-search').value.trim().toLocaleLowerCase(),players=s?.players||[],statusFilter=$('roster-status-filter').value,filtered=!!query||statusFilter!=='all',visible=players.filter(p=>(!query||String(p.name||'').toLocaleLowerCase().includes(query))&&(statusFilter==='all'||(p.actualAttendance||'Not marked')===statusFilter||attendancePending.has(s.id+'|'+p.attendanceId)||attendanceErrors.has(s.id+'|'+p.attendanceId)));$('roster-search').disabled=(saveBusy&&!attendancePending.size)||loadingDesk||!players.length;$('roster-status-filter').disabled=(saveBusy&&!attendancePending.size)||loadingDesk||!players.length;$('roster-search-clear').hidden=!query;$('roster-search-clear').disabled=saveBusy&&!attendancePending.size;$('roster-search-count').textContent=filtered?visible.length+' of '+players.length+' players shown':players.length+' '+(players.length===1?'player':'players');$('attendance-stats').hidden=!s;$('attendance-stats').replaceChildren(stat('Expected roster',s?.expected||0),stat('Parent replied Yes',s?.counts.yes||0),stat('Registered pass / camp',s?.counts.confirmed||0),stat('Marked present',s?.players.filter(p=>p.actualAttendance==='Present').length||0),stat('Marked absent',s?.players.filter(p=>p.actualAttendance==='Absent').length||0));$('roster-title').textContent=s?day(s.date)+' roster':attendanceView==='past'?'No past session selected':'No upcoming session recorded';$('roster-details').textContent=s?s.time+' · '+s.location:'';$('marking-help').textContent=s?.status==='Cancelled'?'This session was cancelled. Its attendance record is read-only.':s&&s.date>today()?'Attendance marking opens on the session day. You can prepare notes and the plan now.':'Parent replies help you prepare. Mark Present or Absent only after checking the player is there.';$('roster').replaceChildren(...visible.map(p=>{const rowKey=s.id+'|'+p.attendanceId,pending=attendancePending.has(rowKey);const row=node('div','','roster-row'),info=node('div'),controls=node('div','','attendance-controls');controls.setAttribute('role','group');controls.setAttribute('aria-label','Attendance for '+p.name);info.append(node('strong',p.name),node('span',(p.actualAttendance||'Not marked')+(pending?' · Saving…':''),'attendance-status '+({Present:'status-present',Absent:'status-absent','Not marked':'status-unmarked'}[p.actualAttendance]||'status-unmarked')),node('p',(p.age?'Age '+p.age+' · ':'')+({dropin:'Weekly drop-in',pass:'Four-session pass',camp:'Camp',unknown:'Booking type to review'})[p.kind]+' · '+p.status));for(const [label,status]of [['Present','Present'],['Absent','Absent'],['Not marked','Not marked']]){const b=node('button',label,p.actualAttendance===status?'current'+(status==='Absent'?' absent':status==='Not marked'?' unmarked':''):'');b.type='button';b.disabled=(saveBusy&&!attendancePending.size)||pending||loadingDesk||s.status==='Cancelled'||status!=='Not marked'&&s.date>today();b.setAttribute('aria-pressed',String(p.actualAttendance===status));b.addEventListener('click',()=>markAttendance(p,status));controls.append(b);}row.dataset.attendanceId=p.attendanceId;row.setAttribute('aria-busy',String(pending));if(attendanceErrors.has(rowKey))info.append(node('p','Save not confirmed. Tap a status to retry.','attendance-save-error'));row.append(info,controls);return row;}));if(filtered&&!visible.length)$('roster').append(empty('No players match these filters. Clear the search or choose All players to see the full roster.'));else if(!s?.players.length)$('roster').append(empty(!s?(attendanceView==='past'?'Choose a previous session above to review its attendance.':'The next seven days only appear here. Previous sessions are in Past attendance.'):s.capacityUsed?'Expected players still need individual roster records.':'No named players recorded for this session.'));}
+ let addPlayerSession='',addPlayerLoaded=false,addPlayerRequest=0,addPlayerCommand=null,addPlayerBusy=false;
+ function resetSessionPlayer(){
+  addPlayerRequest++;addPlayerLoaded=false;addPlayerCommand=null;
+  $('session-add-player').open=false;$('session-add-player-form').reset();
+  $('session-add-player-choice').replaceChildren(new Option('Select player',''));
+  $('session-add-player-family').replaceChildren(new Option('No family linked yet',''));
+  $('session-add-player-name-label').hidden=true;$('session-add-player-family-label').hidden=true;
+  $('session-add-player-name').required=false;$('session-add-player-status').textContent='';
+  $('session-add-player-retry').hidden=true;
+  $('session-add-player-submit').textContent='Add player';
+ }
+ function syncSessionPlayerControl(active){
+  const available=active&&profile?.role==='owner'&&data?.rosterEditingAvailable===true&&session()?.status!=='Cancelled';
+  const current=available?session()?.id||'':'';
+  if(current!==addPlayerSession){resetSessionPlayer();addPlayerSession=current;}
+  $('session-add-player').hidden=!current;
+ }
+ function setSessionPlayerFields(disabled){
+  for(const field of $('session-add-player-form').elements)field.disabled=disabled;
+  if(!disabled&&!$('session-add-player').dataset.recurring)$('session-add-player-mode').querySelector('[value="permanent"]').disabled=true;
+ }
+ function showNewPlayerFields(){
+  const isNew=$('session-add-player-choice').value==='new';
+  $('session-add-player-name-label').hidden=!isNew;$('session-add-player-family-label').hidden=!isNew;
+  $('session-add-player-name').required=isNew;
+  const selectedOption=$('session-add-player-choice').selectedOptions[0];
+  $('session-add-player-rate').value=selectedOption?.dataset.rate??$('session-add-player').dataset.defaultRate??'';
+ }
+ async function loadSessionPlayers(){
+  if(!addPlayerSession||addPlayerLoaded||addPlayerBusy)return;
+  const ticket=++addPlayerRequest,flow=generation,id=addPlayerSession;
+  setSessionPlayerFields(true);$('session-add-player-retry').hidden=true;$('session-add-player-status').textContent='Loading players…';
+  try{
+   const result=await api('session-roster/options',{sessionId:id});
+   if(ticket!==addPlayerRequest||flow!==generation||id!==addPlayerSession)return;
+   const choice=$('session-add-player-choice'),family=$('session-add-player-family');
+   const families=new Map(result.families.map(item=>[item.id,item.name]));
+   choice.replaceChildren(new Option('Select player',''),...result.players.map(item=>{
+    const option=new Option(item.name+(item.familyId&&families.has(item.familyId)?' · '+families.get(item.familyId):''),item.id);
+    if(Number.isFinite(item.agreedRate))option.dataset.rate=item.agreedRate.toFixed(2);
+    return option;
+   }),new Option('Add a new player','new'));
+   family.replaceChildren(new Option('No family linked yet',''),...result.families.map(item=>new Option(item.name,item.id)));
+   $('session-add-player').dataset.recurring=result.recurring?'yes':'';
+   $('session-add-player').dataset.defaultRate=Number.isFinite(result.rate)?result.rate.toFixed(2):'';
+   $('session-add-player-status').textContent=result.recurring?'':'Permanent enrollment is available for repeating weekly sessions.';
+   addPlayerLoaded=true;setSessionPlayerFields(false);showNewPlayerFields();
+  }catch(error){
+   if(ticket===addPlayerRequest&&flow===generation){$('session-add-player-status').textContent=error.message;$('session-add-player-retry').hidden=false;setSessionPlayerFields(false);}
+  }
+ }
+ $('session-add-player').addEventListener('toggle',()=>{if($('session-add-player').open)loadSessionPlayers();});
+ $('session-add-player-retry').addEventListener('click',loadSessionPlayers);
+ $('session-add-player-choice').addEventListener('change',showNewPlayerFields);
+ $('session-add-player-form').addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(addPlayerBusy||!addPlayerLoaded||!addPlayerSession||!session()||saveBusy||loadingDesk)return;
+  const form=$('session-add-player-form'),choice=$('session-add-player-choice').value;
+  if(!form.reportValidity())return;
+  if(!addPlayerCommand){
+   const rate=$('session-add-player-rate').valueAsNumber;
+   addPlayerCommand={id:crypto.randomUUID(),sessionId:addPlayerSession,mode:$('session-add-player-mode').querySelector('input:checked').value,
+    rateCents:Math.round(rate*100),...(choice==='new'?{newName:$('session-add-player-name').value.trim(),...($('session-add-player-family').value?{familyId:$('session-add-player-family').value}:{})}:{playerId:choice})};
+  }
+  const playerName=choice==='new'?$('session-add-player-name').value.trim():$('session-add-player-choice').selectedOptions[0]?.textContent||'';
+  const flow=generation,id=addPlayerSession,button=$('session-add-player-submit');
+  addPlayerBusy=true;saveBusy=true;setSessionPlayerFields(true);button.disabled=true;
+  $('session-add-player-status').textContent='Adding player…';
+  try{
+   const result=await api('session-roster/add',addPlayerCommand);
+   if(flow!==generation||id!==addPlayerSession)return;
+   addPlayerCommand=null;
+   let message=result.recurring?'Permanent enrollment saved. Added to '+result.added+' '+(result.added===1?'session':'sessions')+'.':
+    result.added?'Player added to this session.':'The player is already on this session.';
+   if(result.reviewDates?.length)message+=' Review these dates: '+result.reviewDates.map(day).join(', ')+'.';
+   if(result.historicalReview)message+=' The historical session needs a billing review.';
+   try{
+    const fresh=await api('refresh',{},true);
+    if(flow!==generation||id!==addPlayerSession)return;
+    data.sessions=fresh.sessions;data.observedAt=fresh.observedAt;
+   }catch{message+=' Refresh the roster to see the latest changes.';}
+   if(choice==='new'&&result.playerId&&!Array.from($('session-add-player-choice').options).some(option=>option.value===result.playerId)){
+    $('session-add-player-choice').add(new Option(playerName,result.playerId));
+   }
+   form.reset();showNewPlayerFields();button.textContent='Add player';
+   $('session-add-player-status').textContent=message;
+  }catch(error){
+   if(flow!==generation||id!==addPlayerSession)return;
+   const retry=!error.code||error.code==='ROSTER_UNAVAILABLE';
+   if(!retry)addPlayerCommand=null;
+   $('session-add-player-status').textContent=error.message+(retry?' Tap Retry to finish adding this player.':'');
+   button.textContent=retry?'Retry':'Add player';
+  }finally{
+   if(flow===generation&&id===addPlayerSession){
+    addPlayerBusy=false;saveBusy=false;
+    setSessionPlayerFields(!!addPlayerCommand);button.disabled=false;
+    renderAttendance();renderSelector();publishCoachContext();
+    if(!addPlayerLoaded&&!addPlayerCommand)loadSessionPlayers();
+   }
+  }
+ });
  async function markAttendance(p,status){
   const selectedSessionId=selected,rowKey=selectedSessionId+'|'+p.attendanceId;
   if(saveBusy&&!attendancePending.size||attendancePending.has(rowKey)||loadingDesk||p.actualAttendance===status||session()?.status==='Cancelled')return;

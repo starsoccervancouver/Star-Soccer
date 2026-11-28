@@ -9,7 +9,7 @@ async function setup(t,contactFixture){
  const one=coaches.actor('one@example.test'),two=coaches.actor('two@example.test'),admin=coaches.actor('admin@example.test');
  coaches.assign(owner,{email:one.email,sessionId:rid(1),assigned:true});
  const ledgerCalls=[],familyLedger={async directory(){ledgerCalls.push('directory');return [];},async detail(id){ledgerCalls.push(id);return {balance:50};}};
- const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,sessionBooks:contactFixture?.sessionBooks,bookingPayments:contactFixture?.bookingPayments,attention:async({kind})=>({kind}),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
+ const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,sessionBooks:contactFixture?.sessionBooks,bookingPayments:contactFixture?.bookingPayments,sessionRoster:contactFixture?.sessionRoster,attention:async({kind})=>({kind}),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
  const request=(actor,path,payload)=>{const session=auth.createVerifiedSession(actor.email),origin='https://attendance.starsoccer.ca';return handler(new Request(origin+'/workspace/api/'+path,{method:payload===undefined?'GET':'POST',headers:{origin,'content-type':'application/json',cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf},...(payload===undefined?{}:{body:JSON.stringify(payload)})}));};
  return {store,coaches,owner,one,two,admin,request,auth,handler,ledgerCalls};
 }
@@ -326,4 +326,23 @@ test('finance sign-in can return balance snapshots before reading the roster',as
  const finance=await open(owner);assert.equal(finance.paymentRecordingAvailable,false);assert.deepEqual(finance.balanceSnapshot,snapshot);assert.equal(reads,0);
  assert.equal(finance.desk,undefined);
  const coach=await open(one);assert.equal(coach.balanceSnapshot,undefined);assert.ok(coach.desk);assert.equal(reads,1);
+});
+
+test('session roster changes require the owner and an authenticated session',async t=>{
+ const calls=[];
+ const sessionRoster=async(operation,payload)=>{
+  calls.push({operation,payload});
+  return operation==='coach-roster-options'?{players:[],families:[],recurring:true,rate:30}:{saved:true,playerId:rid(22),added:1,recurring:false};
+ };
+ const {owner,one,admin,request}=await setup(t,{sessionRoster});
+ for(const actor of [one,admin]){
+  const denied=await request(actor,'session-roster/options',{sessionId:rid(1)});
+  assert.equal(denied.status,403);
+ }
+ const options=await request(owner,'session-roster/options',{sessionId:rid(1)});
+ assert.equal(options.status,200);assert.equal((await options.json()).rate,30);
+ const saved=await request(owner,'session-roster/add',{id:'00000000-0000-4000-8000-000000000001',sessionId:rid(1),playerId:rid(22),mode:'dropin',rateCents:3000});
+ assert.equal(saved.status,200);
+ assert.deepEqual(calls.map(call=>call.operation),['coach-roster-options','coach-roster-add']);
+ assert.equal(calls[1].payload.actor,owner.email);
 });

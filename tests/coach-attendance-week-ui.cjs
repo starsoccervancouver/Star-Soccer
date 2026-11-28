@@ -12,17 +12,25 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
   const session = (n, date, time = '4:00 PM', players = [], status = 'Scheduled') => ({ id: rid(n), programId: rid(900), date, time, location: 'Fictional field', status, capacity: 20, capacityUsed: players.length, expected: players.length, counts: { yes: 0, no: 0, awaiting: players.length, confirmed: 0 }, issues: [], players });
   const sessions = [session(8,'2026-12-23','4:00 PM',[player(8)],'Cancelled'), session(7,'2026-12-27','9:00 AM',[player(7)]), session(6,'2026-12-30','4:00 PM',[player(6)]), session(2,'2026-12-31'), session(3,'2027-01-01','3:00 PM',[player(3)]), session(4,'2027-01-01','5:00 PM',[player(4)]), session(5,'2027-01-03','9:00 AM',[],'Cancelled'), session(1,'2027-01-06','4:00 PM',[player(1)]), session(9,'2027-01-08','3:00 PM',[player(9)])];
   const browser = await chromium.launch(); let checks = 0;
-  async function fixture(rows = sessions, role = 'owner', allowMark = false) {
+  async function fixture(rows = sessions, role = 'owner', allowMark = false, allowRoster = false) {
     const context = await browser.newContext();
     await context.addInitScript(now => { const Base = Date; window.Date = class extends Base { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return Base.parse(now); } }; }, now);
-    const writes = [], errors = [], pendingMarks = [];
+    const writes = [], rosterWrites = [], errors = [], pendingMarks = [];
     await context.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url()); assert.equal(url.origin, origin, 'No live network');
       if (assets[url.pathname]) return route.fulfill({ status: 200, contentType: assets[url.pathname].type, body: assets[url.pathname].body });
       let value;
       if (url.pathname.endsWith('/bootstrap')) value = { profile: { ...profile, role }, csrfToken: 'fictional-csrf', googleEnabled: true };
-      else if (url.pathname.endsWith('/desk')) value = { profile: { ...profile, role }, sessions: rows, notes: [], tasks: [], observedAt: now };
-      else if (url.pathname.endsWith('/refresh')) value = { refreshed: true };
+      else if (url.pathname.endsWith('/desk')) value = { profile: { ...profile, role }, sessions: rows, notes: [], tasks: [], observedAt: now, ...(allowRoster?{rosterEditingAvailable:true}:{}) };
+      else if (url.pathname.endsWith('/refresh')) value = allowRoster?{profile:{...profile,role},sessions:rows,notes:[],tasks:[],observedAt:now,rosterEditingAvailable:true}:{refreshed:true};
+      else if (url.pathname.endsWith('/session-roster/options') && allowRoster) value={recurring:true,rate:30,players:[{id:rid(101),name:'Fictional Existing',familyId:rid(9001),agreedRate:25.5}],families:[{id:rid(9001),name:'Fictional Family'}]};
+      else if (url.pathname.endsWith('/session-roster/add') && allowRoster) {
+        const payload=request.postDataJSON();rosterWrites.push(payload);
+        const current=rows.find(s=>s.id===payload.sessionId),name=payload.newName||'Fictional Existing';
+        current.players.push({...player(55),name});current.registered=current.capacityUsed=current.expected=current.players.length;
+        value={saved:true,playerId:payload.playerId||rid(155),added:1,recurring:payload.mode==='permanent',reviewDates:[]};
+      }
+      else if (url.pathname.endsWith('/logout') && allowRoster) value = {signedOut:true};
       else if (url.pathname.endsWith('/session')) value = { plan: { version: 0, content: {} } };
       else if (allowMark && url.pathname.endsWith('/attendance')) { const payload = request.postDataJSON(); writes.push(payload);const index=writes.length-1;const result=await new Promise(resolve=>{pendingMarks[index]=resolve;});pendingMarks[index]=null;if(result==='lost')return route.abort();if(['fail','unauthorized'].includes(result))return route.fulfill({status:result==='fail'?503:401,json:{error:result==='fail'?'SAVE_UNAVAILABLE':'SIGN_IN_REQUIRED',message:'Fictional save could not be confirmed.'}});value=result||{saved:true,status:payload.status}; }
       else throw Error('Unexpected fixture request: ' + url.pathname);
@@ -30,7 +38,7 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     });
     const page = await context.newPage(); page.setDefaultTimeout(6000); page.on('pageerror', e => errors.push(e.message));
     await page.goto(origin + '/workspace'); await page.locator('#app').waitFor({ state: 'visible' });
-    return { page, context, writes, errors, release: (result,index) => (index===undefined?pendingMarks.find(Boolean):pendingMarks[index])?.(result) };
+    return { page, context, writes, rosterWrites, errors, release: (result,index) => (index===undefined?pendingMarks.find(Boolean):pendingMarks[index])?.(result) };
   }
   try {
     const f = await fixture(), page = f.page;
@@ -146,6 +154,35 @@ const { openSession, openView, leaveGroup } = require('./coach-fixture-navigatio
     await signedInAgain.page.waitForLoadState('networkidle');
     assert.equal(await signedInAgain.page.locator('#app').isVisible(),true,'An old unauthorized response must not sign out the fresh session');
     assert.deepEqual(signedInAgain.errors,[]);await signedInAgain.context.close();checks++;
+
+    const editableRows=[session(2,'2026-12-31')];
+    const editable=await fixture(editableRows,'owner',false,true);
+    await editable.page.setViewportSize({width:390,height:900});
+    await openSession(editable.page,editableRows,rid(2),'attendance');
+    const add=editable.page.locator('#session-add-player');
+    await add.locator('summary').click();
+    await editable.page.locator('#session-add-player-choice option[value="'+rid(101)+'"]').waitFor({state:'attached'});
+    assert.equal(await editable.page.locator('#session-add-player-rate').inputValue(),'30.00');
+    await editable.page.locator('#session-add-player-choice').selectOption(rid(101));
+    assert.equal(await editable.page.locator('#session-add-player-rate').inputValue(),'25.50','An existing agreed rate takes precedence over the group rate');
+    await editable.page.getByRole('radio',{name:'Upcoming sessions · permanent'}).check();
+    await editable.page.locator('#session-add-player-submit').click();
+    await editable.page.locator('#roster').getByText('Fictional Existing',{exact:true}).waitFor();
+    assert.equal(editable.rosterWrites[0].playerId,rid(101));
+    assert.equal(editable.rosterWrites[0].mode,'permanent');
+    assert.equal(editable.rosterWrites[0].rateCents,2550);
+    await editable.page.locator('#session-add-player-choice').selectOption('new');
+    await editable.page.locator('#session-add-player-name').fill('New Fictional Player');
+    await editable.page.locator('#session-add-player-rate').fill('25');
+    await editable.page.locator('#session-add-player-submit').click();
+    await editable.page.locator('#roster').getByText('New Fictional Player',{exact:true}).waitFor();
+    assert.equal(editable.rosterWrites[1].newName,'New Fictional Player');
+    assert.equal(editable.rosterWrites[1].mode,'dropin');
+    assert.equal(editable.rosterWrites[1].rateCents,2500);
+    await editable.page.locator('#logout').evaluate(button=>button.click());
+    await editable.page.locator('#login').waitFor();
+    assert(!(await editable.page.locator('body').textContent()).includes('New Fictional Player'),'Signing out clears the player picker');
+    assert.deepEqual(editable.errors,[]);await editable.context.close();checks++;
 
     console.log('Attendance group/history UI: ' + checks + ' isolated group, date, cancellation, role-scope, pending-save and mobile checks passed.');
   } finally { await browser.close(); }

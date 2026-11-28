@@ -92,8 +92,10 @@ test('a prepaid enrollment covers its dates while permanent attendance continues
  assert.equal(result.added,2);
  assert.equal(tables.bookings.length,0);
  assert(tables.attendance.every(item=>item.fields.Enrollment[0]===rid(40)));
- tables.enrollments[0].fields['Enrollment status']='Ended';
  tables.sessions.push(row(rid(4),{Session:'Friday',Date:'2026-12-18','Session status':'Planned','Weekly program':[rid(9)]}));
+ tables.enrollments[0].fields['Enrollment status']='Paused';
+ assert.equal((await roster.sync()).added,0,'A paused enrollment stops future additions');
+ tables.enrollments[0].fields['Enrollment status']='Ended';
  assert.equal((await roster.sync()).added,1);
  assert.equal(tables.bookings.length,1);
  assert.equal(tables.bookings[0].fields['Charge CAD'],30);

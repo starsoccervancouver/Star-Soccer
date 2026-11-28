@@ -253,6 +253,7 @@ export function createSessionRoster({db, store, today}) {
       const data=Object.fromEntries(await Promise.all(tablesToRead.map(async name=>[name,await db.list(name,fields[name])])));
       const work=memberships.some(member=>{
         const enrolled=data.enrollments.find(row=>row.id===member.enrollment_id)?.fields;
+        if(['Paused','Needs review'].includes(enrolled?.['Enrollment status']))return false;
         if(!member.independent&&(!enrolled||enrolled['Enrollment status']!=='Active'||
           !one(enrolled.Player,member.player_id)||!one(enrolled['Weekly program'],member.program_id)))return false;
         const first=[today(),member.start_date,member.independent?'':enrolled['Effective from']||''].sort().at(-1);
@@ -272,6 +273,7 @@ export function createSessionRoster({db, store, today}) {
       const issues=[];
       for (const member of memberships) {
         const enrolled = data.enrollments.find(row => row.id === member.enrollment_id)?.fields;
+        if(['Paused','Needs review'].includes(enrolled?.['Enrollment status']))continue;
         if (!member.independent && (!enrolled || enrolled['Enrollment status'] !== 'Active' || !one(enrolled.Player, member.player_id) || !one(enrolled['Weekly program'], member.program_id))) continue;
         const player = data.players.find(row => row.id === member.player_id);
         if (!player || player.fields['Player status'] === 'Inactive') continue;

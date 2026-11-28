@@ -11,7 +11,7 @@ export const fields={
 draftLog:['Email key','Email kind','Status','Review detail','Source record'],
 registrations:['Reference','Received at','Source Gmail ID','Status','Family','Player','Booking','Next session date','Visit ID','utm_source','Player history at registration','Confirmation Gmail ID'],
 bookings:['Booking status','Booking type','Family','Player','Start date','Agreed booked CAD','Due now CAD','Upcoming booked CAD','Charge review','Charge CAD','Attendance-adjusted charge CAD','Balance CAD'],
-payments:['Method','Family','Verification','Direction','Source payment ID','Evidence reference','Payment reference','Amount CAD','Training portion CAD','Thank-you gift CAD'],
+payments:['Method','Family','Players associated (not allocation)','Verification','Direction','Source payment ID','Evidence reference','Payment reference','Amount CAD','Training portion CAD','Thank-you gift CAD'],
 allocations:['Payment','Booking','Review status','Applied CAD'],
 intake:['Message ID','Review','Candidate amount CAD'],
 sessions:['Session','Source session ID','Date','Time','Venue','Coach','Calendar series ID','Session status','Expected headcount (owner reported)'],
@@ -37,7 +37,9 @@ export function ownerWorkflows(data,{now,notices,desk,calendar,calendarReason,dr
  for(const {fields:a} of data.allocations){
   const pid=single(a.Payment),bid=single(a.Booking),p=payments.get(pid),b=books.get(bid);
   if(!p||!b||p.Verification!=='Verified'||p.Direction!=='Incoming'||a['Review status']!=='Verified allocation')continue;
-  if(!['E-transfer','Cash'].includes(p.Method)||!single(p.Family)||single(p.Family)!==single(b.Family)||!Number.isFinite(a['Applied CAD'])){unknown.add(bid);continue;}
+  const familyMatch=single(p.Family)&&single(p.Family)===single(b.Family);
+  const playerCashMatch=p.Method==='Cash'&&!p.Family?.length&&!b.Family?.length&&single(b.Player)&&single(p['Players associated (not allocation)'])===single(b.Player);
+  if(!['E-transfer','Cash'].includes(p.Method)||!(familyMatch||playerCashMatch)||!Number.isFinite(a['Applied CAD'])){unknown.add(bid);continue;}
   applied.set(pid,(applied.get(pid)||0)+a['Applied CAD']);paid.set(bid,(paid.get(bid)||0)+a['Applied CAD']);
  }
  for(const {id,fields:r} of data.registrations){if(r.Status==='Declined')continue;const bid=single(r.Booking),b=books.get(bid);

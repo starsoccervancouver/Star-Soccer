@@ -179,7 +179,8 @@ export function createCoachHandler({coaches,auth,cookieKey,overview,familyLedger
    coaches.owner(actor);
    const {key,decision}=await body(request,['key','decision']);
    if(typeof key!=='string'||!/^([a-f0-9]{64})$/.test(key))deny('INVALID_REQUEST',400);
-   const report=await sessionBooks({});
+   // Review decisions apply only to this fingerprint, so a recent report is sufficient.
+   const report=await sessionBooks({unpaid:true});
    if(!report.rows.some(row=>bookReviewKey(row)===key))deny('BOOK_REVIEW_CHANGED',409);
    return json(200,coaches.decideBookReview(currentSession(raw,signed).actor,key,decision));
   }

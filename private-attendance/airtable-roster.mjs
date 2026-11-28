@@ -140,8 +140,7 @@ export function createRosterReader({baseId,token,tableMap,summaryStore,verifiedC
  async function collect(forOverview=false){
   const generation=rosterGeneration;
   const observedAt=clock().toISOString(),tables={};
-  tables.sessions=await read('sessions');
-  tables.attendance=await read('attendance');
+  [tables.sessions,tables.attendance]=await Promise.all([read('sessions'),read('attendance')]);
   if(forOverview){
    tables.players=await readLinked('players',readFields.players,tables.attendance,'Player');
    tables.families=await readLinked('families',readFields.families,tables.players,'Family');
@@ -152,7 +151,7 @@ export function createRosterReader({baseId,token,tableMap,summaryStore,verifiedC
    for(const name of ['players','families','bookings','enrollments','registrations'])tables[name]=await read(name);
   }
   // A second read rejects changes during collection, rather than blessing an incomplete roster.
-  const second=await read('attendance'),sessions=await read('sessions');if(digest(second)!==digest(tables.attendance)||digest(sessions)!==digest(tables.sessions))throw new Error('ROSTER_CHANGED_DURING_READ');
+  const [second,sessions]=await Promise.all([read('attendance'),read('sessions')]);if(digest(second)!==digest(tables.attendance)||digest(sessions)!==digest(tables.sessions))throw new Error('ROSTER_CHANGED_DURING_READ');
   const allIds=new Set(tables.attendance.map(r=>r.id));for(const s of tables.sessions)if(links(s.fields.Attendance).some(id=>!allIds.has(id)))throw new Error('INCOMPLETE_AIRTABLE_READ');
   if(forOverview&&generation===rosterGeneration)recentSessions={rows:sessions,expires:clock().getTime()+10000};
   return {tables,observedAt};

@@ -28,7 +28,7 @@ export function createCoachGoogleAuth({store,coaches,auth,clientId,clientSecret,
    store.run('DELETE FROM staff_google_flows WHERE expires_at<=?',clock());
    store.run('DELETE FROM staff_google_flows WHERE browser_hash=?',binding);
    store.run('INSERT INTO staff_google_flows VALUES(?,?,?,?,?)',hash(state),binding,hash(nonce),verifier,expires);
-   const url=new URL(authEndpoint);for(const [key,value]of Object.entries({client_id:clientId,response_type:'code',redirect_uri:redirect,scope:'openid email',state,nonce,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',access_type:'online',prompt:'select_account'}))url.searchParams.set(key,value);
+   const url=new URL(authEndpoint);for(const [key,value]of Object.entries({client_id:clientId,response_type:'code',redirect_uri:redirect,scope:'openid email',state,nonce,code_challenge:createHash('sha256').update(verifier).digest('base64url'),code_challenge_method:'S256',access_type:'online'}))url.searchParams.set(key,value);
    return {url:url.href,state};
   },
   async finish({code,state,browser}){

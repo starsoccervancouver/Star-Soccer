@@ -172,6 +172,25 @@ async function finishReadAfterExit({page,context}, exit) {
 
 module.exports = async function checkBooks(fixture) {
   const emptyHome = {homeQueues:true,roster:[],openInquiry:false};
+  const item={...review,reviewKey:'a'.repeat(64)};
+  const actions=await fixture({...emptyHome,hash:'#view=books',books:[item]});
+  try{
+    const {page,context}=actions,decisions=[];
+    await context.route('**/workspace/api/books-review',route=>{
+      decisions.push(route.request().postDataJSON().decision);
+      return route.fulfill({json:{saved:true}});
+    });
+    await page.locator('#books-filter').selectOption('review');
+    const count=reads(actions).length;
+    await page.getByRole('button',{name:'Already handled',exact:true}).click();
+    await page.locator('#books-status').filter({hasText:/Resolved.*Already handled/}).waitFor();
+    await page.locator('#books-filter').selectOption('resolved');
+    await page.locator('#books-list .books-group > details > summary').click();
+    await page.getByRole('button',{name:'Delete',exact:true}).click();
+    await page.getByRole('button',{name:'Undo',exact:true}).waitFor();
+    assert.deepEqual(decisions,['Already handled','Deleted']);
+    assert.equal(reads(actions).length,count);
+  }finally{await actions.context.close();}
   const multi = {...due,scope:'booking',attendanceBilled:true,attendanceId:null,sessionId:null,
     sessionLabel:'Attended sessions',coveredDates:['2026-10-23','2026-10-30']};
   const shared = await fixture({...emptyHome,books:[multi],paymentRecording:true});

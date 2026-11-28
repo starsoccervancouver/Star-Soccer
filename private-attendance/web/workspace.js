@@ -623,7 +623,7 @@
    action.type='button';action.title=completed?'Reopen':'Mark complete';action.setAttribute('aria-label',action.title+': '+item.title);
    action.disabled=!reportGroups.get(kind).finished||pendingReports.has(item.completionToken);action.addEventListener('click',()=>saveReport(kind,item));
    const info=node('div','','report-info'),category=node('span',categories[kind],'report-tag report-'+kind);
-   const link=node('a',item.title,'report-subject');link.href=item.href;link.target='_blank';link.rel='noopener noreferrer';
+   const link=node('a',item.title,'report-subject');link.href=item.href;if(new URL(link.href).hostname!=='mail.google.com')link.target='_blank';link.rel='noopener noreferrer';
    info.append(link,node('small',item.reopened?'Reopened for review':item.status));
    const date=node('time',item.date||'');
    if(/^\d{4}-\d{2}-\d{2}$/.test(item.date||'')){
@@ -771,7 +771,7 @@
    for(const row of result.results){
     const card=document.createElement('article'),heading=document.createElement('h3');heading.textContent=row.title;card.append(heading);
     for(const line of row.lines){const p=document.createElement('p');p.textContent=line;card.append(p);}
-    for(const link of row.links){const p=document.createElement('p'),a=document.createElement('a');a.textContent=link.label;a.href='https://mail.google.com/mail/u/?authuser=romeo%40starsoccer.ca#all/'+encodeURIComponent(link.id);a.target='_blank';a.rel='noopener noreferrer';p.append(a);card.append(p);}
+    for(const link of row.links){const p=document.createElement('p'),a=document.createElement('a');a.textContent=link.label;a.href='https://mail.google.com/mail/u/?authuser=romeo%40starsoccer.ca#all/'+encodeURIComponent(link.id);a.rel='noopener noreferrer';p.append(a);card.append(p);}
     out.append(card);
    }
   }catch{if(seq===historySearch&&identity===generation)out.textContent='Could not read automation history. Try again.';}
@@ -930,28 +930,36 @@
    if(groupMode!=='family')body.append(bookContact(row.contact));
    if(!body.childElementCount)body.append(node('span',bookStatuses[row.status]||'Needs review'));
    if(row.decision)body.append(node('span','Resolved · '+row.decision));
-   if(row.reviewKey&&profile?.role==='owner'){
-    const controls=node('div','','book-review-actions'),resolve=node('button','Resolve'),remove=node('button','Delete');
-    const choices=node('select'),save=node('button','Save decision'),message=node('span');
-    choices.setAttribute('aria-label','Resolution');
-    for(const label of ['Already handled','Duplicate entry','No further action'])choices.add(new Option(label,label));
-    choices.hidden=save.hidden=true;
-    message.setAttribute('role','status');
-    const submit=async decision=>{
-     for(const el of [save,resolve,remove,choices])el.disabled=true;
-     try{
-      await api('books-review',{key:row.reviewKey,decision});
-      if(tab==='books')await loadBooks();
-     }catch(error){message.textContent=error.message;for(const el of [save,resolve,remove,choices])el.disabled=false;}
-    };
-    resolve.onclick=()=>{choices.hidden=save.hidden=false;choices.focus();};
-    save.onclick=()=>submit(choices.value);
-    remove.onclick=()=>{if(confirm('Delete this review item from Books? Its underlying financial records are kept.'))submit('Deleted');};
-    if(row.status==='review')controls.append(resolve);
-    controls.append(remove,choices,save,message);body.append(controls);
-   }
    details.append(body);
   });
+  if(row.reviewKey&&profile?.role==='owner'){
+   const controls=node('div','','book-review-actions'),message=node('span');
+   message.setAttribute('role','status');
+   const submit=async decision=>{
+    const flow=generation;
+    for(const button of controls.querySelectorAll('button'))button.disabled=true;
+    message.textContent='Saving…';
+    try{
+     await api('books-review',{key:row.reviewKey,decision});
+     if(flow!==generation||tab!=='books'||!booksRows)return;
+     booksRows=decision==='Deleted'?booksRows.filter(item=>item.reviewKey!==row.reviewKey):
+      booksRows.map(item=>item.reviewKey===row.reviewKey?{...item,status:'resolved',decision}:item);
+     showBookTotals(booksRows);renderBooks();
+     const status=$('books-status');
+     status.textContent=decision==='Deleted'?'Review item deleted.':'Resolved · '+decision;
+     if(decision==='Deleted'){
+      const undo=node('button','Undo');
+      undo.onclick=async()=>{undo.disabled=true;try{await api('books-review',{key:row.reviewKey,decision:row.decision||'Reopen'});if(flow===generation&&tab==='books')await loadBooks();}catch(error){undo.disabled=false;status.prepend(error.message+' ');}};
+      status.append(' ',undo);
+     }
+    }catch(error){message.textContent=error.message;for(const button of controls.querySelectorAll('button'))button.disabled=false;}
+   };
+   if(row.status==='review')controls.append(node('span','Resolve as'));
+   for(const decision of [...(row.status==='review'?['Already handled','Duplicate entry','No further action']:[]),'Deleted']){
+    const button=node('button',decision==='Deleted'?'Delete':decision);button.onclick=()=>submit(decision);controls.append(button);
+   }
+   controls.append(message);li.append(controls);
+  }
   return li;
  }
  function groupBookRows(rows,mode){
@@ -975,6 +983,7 @@
  function bookGroup(group,mode){
   const li=node('li','','books-group'),details=node('details'),summary=node('summary'),label=node('span','','book-label');
   const {rows,totals}=group,count=rows.length+(rows.length===1?' record':' records');
+  if($('books-filter').value==='review')details.open=true;
   const players=[...new Set(rows.map(r=>r.playerName).filter(Boolean))];
   const preview=mode==='family'&&players.length?players.slice(0,2).join(', ')+(players.length>2?' +'+(players.length-2):'')+' · ':'';
   label.append(node('strong',group.label),node('small',preview+count));

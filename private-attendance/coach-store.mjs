@@ -189,9 +189,10 @@ export function createCoachStore({store,ownerEmail=OWNER_EMAIL,ownerName='Star S
   bookDecisions(){return new Map(store.all('SELECT * FROM books_review_decisions').map(r=>[r.review_key,r.decision]));},
   decideBookReview(actor,key,decision){
    api.owner(actor);
-   if(!['Already handled','Duplicate entry','No further action','Deleted'].includes(decision))deny('INVALID_REQUEST',400);
+   if(!['Already handled','Duplicate entry','No further action','Deleted','Reopen'].includes(decision))deny('INVALID_REQUEST',400);
    return store.transaction(()=>{
-    store.run('INSERT OR REPLACE INTO books_review_decisions VALUES(?,?)',key,decision);
+    if(decision==='Reopen')store.run('DELETE FROM books_review_decisions WHERE review_key=?',key);
+    else store.run('INSERT OR REPLACE INTO books_review_decisions VALUES(?,?)',key,decision);
     audit(actor,'books-review-decision',key,{decision});
     return {saved:true};
    });

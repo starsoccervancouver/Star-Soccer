@@ -23,6 +23,16 @@ OLD_URL = "https://www.uefa.com/news-media/video/02ab-222871ca3407-ab3f8f54d19d-
 NOW = datetime(2027, 2, 25, 12, tzinfo=UTC)
 
 
+class MatchdayCoverage(unittest.TestCase):
+    def test_refresh_keeps_all_18_games_in_a_champions_league_matchday(self):
+        kind, _, limit = refresh.SOURCES["champions-league"]
+        games = [{"date": refresh.TODAY.isoformat(), "home": f"Home {index}",
+                  "away": f"Away {index}", "goals": [1, 0]} for index in range(18)]
+        with patch.dict(refresh.SOURCES, {"champions-league": (kind, lambda: games, limit)}):
+            result = refresh.refresh("champions-league", "2027-02-25T12:00:00Z")
+        self.assertEqual(len(result["items"]), 18)
+
+
 def feed_match(**changes):
     return {"date": "2027-02-24", "home": "FC Arsenal", "away": "Borussia Dortmund",
             "goals": [1, 1], **changes}

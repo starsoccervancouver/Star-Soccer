@@ -176,7 +176,7 @@ SOURCES = {
         4332, "Italian Serie A", "Serie A", "https://en.legaseriea.it/"), 10),
     "ligue-1": ("results", lambda: sportsdb_league(
         4334, "French Ligue 1", "Ligue 1", "https://ligue1.com/en/competitions/ligue1mcdonalds?tab=fixtures"), 10),
-    "champions-league": ("results", lambda: european("ucl", "Champions League", "https://www.uefa.com/uefachampionsleague/fixtures-results/"), 12),
+    "champions-league": ("results", lambda: european("ucl", "Champions League", "https://www.uefa.com/uefachampionsleague/fixtures-results/"), 36),
     "bundesliga": ("results", lambda: european("bl1", "Bundesliga", "https://www.bundesliga.com/en/bundesliga/matchday"), 10),
     "whitecaps": ("results", whitecaps, 3),
     "international-men": ("results", lambda: international("international_results", "Men"), 3),

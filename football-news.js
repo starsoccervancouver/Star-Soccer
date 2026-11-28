@@ -124,7 +124,7 @@
       'barcelona': 'Barcelona', 'atletico madrid': 'Atlético Madrid',
       'manchester united': 'Manchester United', 'manchester city': 'Manchester City',
       'bayern munchen': 'Bayern Munich', 'borussia dortmund': 'Borussia Dortmund',
-      'paris saint germain': 'Paris Saint-Germain', 'roma': 'Roma', 'inter': 'Inter Milan',
+      'paris saint germain': 'Paris Saint-Germain', 'roma': 'Roma', 'inter': 'Inter Milan', 'napoli': 'Napoli',
       'milan': 'AC Milan', 'brugge': 'Club Brugge', 'bodo glimt': 'Bodø/Glimt'
     };
     return displayNames[teamKey(name)] ?? name;

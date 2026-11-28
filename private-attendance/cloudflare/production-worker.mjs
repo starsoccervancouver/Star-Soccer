@@ -177,7 +177,7 @@ export class AttendanceCoordinator{
       if(op==='status'||op==='owner-workflows'){
        const summary=await this.ctx.storage.get('weekly-rsvp-summary')||null;
        if(op==='status')value.weeklyRsvp=summary;
-       if(op==='owner-workflows'&&(summary?.error||summary?.needsReview))value.items.push({group:'Sessions',title:'Weekly RSVP reminders need review',action:summary.error||'Check upcoming session rosters, guardian email verification and weekly email preferences.',link:'https://starsoccer.ca/coachdesk#view=sessions'});
+       if(op==='owner-workflows'&&(summary?.error||summary?.needsReview))value.items.push({group:'Sessions',title:'Weekly RSVP reminders need review',action:summary.error||('Review the dated roster: '+(summary.issues||[]).map(i=>i.code).join(', ')),link:'https://starsoccer.ca/coachdesk#view=sessions'});
       }
       return value;
      }:null;
@@ -186,7 +186,7 @@ export class AttendanceCoordinator{
      const date=new Intl.DateTimeFormat('en-CA',{timeZone:clubConfig.timeZone}).format(new Date());
      const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:clubConfig.timeZone,hour:'2-digit',hourCycle:'h23'}).format(new Date()));
      const previous=await this.ctx.storage.get('weekly-rsvp-summary');
-     if(hour<9||previous?.date===date&&!previous.error)return;
+     if(hour<9||previous?.date===date&&previous.issues&&!previous.error)return;
      try{
       const report=await runWeeklyRsvp({db:billingDb,refresh:refreshRoster,service:this.service,store:this.store,contacts:config.verifiedContacts||{},writeDraft:mail=>gmailSync('weekly-rsvp-draft',mail)});
       await this.ctx.storage.put('weekly-rsvp-summary',{date,...report});

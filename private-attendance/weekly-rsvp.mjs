@@ -22,7 +22,12 @@ export function familyDraft({service,entry,sessionId,date,recipient,invitations}
 }
 
 export async function runWeeklyRsvp({db,refresh,service,store,contacts,writeDraft,now=new Date()}){
- const report={checkedAt:now.toISOString(),sessions:0,drafts:0,needsReview:0};
+ const report={checkedAt:now.toISOString(),sessions:0,drafts:0,needsReview:0,issues:[]};
+ function review(sessionId,reason){
+  report.needsReview++;
+  const code=/^[A-Z][A-Z0-9_]{2,60}$/.test(reason)?reason:'RSVP_REVIEW';
+  if(!report.issues.some(i=>i.sessionId===sessionId&&i.code===code))report.issues.push({sessionId,code});
+ }
  store.run('CREATE TABLE IF NOT EXISTS weekly_rsvp_drafts(key TEXT PRIMARY KEY, payload TEXT, draft_id TEXT)');
  const rows=await db.list('sessions',['Weekly program','Attendance','Session status','Date']);
  for(const {id,fields} of dueSessions(rows,now)){
@@ -33,7 +38,7 @@ export async function runWeeklyRsvp({db,refresh,service,store,contacts,writeDraf
    const families=new Map();
    for(const p of session.entries){
     if(p.kind!=='dropin'||!p.reserved||!p.eligible||p.reminderPreference==='disabled')continue;
-    if(!p.emailVerified||p.reminderPreference!=='enabled'){report.needsReview++;continue;}
+    if(!p.emailVerified||p.reminderPreference!=='enabled'){review(id,'CONTACT_OR_PREFERENCE_UNVERIFIED');continue;}
     if(!families.has(p.familyId))families.set(p.familyId,[]);
     families.get(p.familyId).push(p);
    }
@@ -51,14 +56,14 @@ export async function runWeeklyRsvp({db,refresh,service,store,contacts,writeDraf
       store.run('INSERT INTO weekly_rsvp_drafts(key,payload) VALUES(?,?)',key,JSON.stringify(packet));
       return packet;
      });
-     if(packet.ids!==ids||packet.start!==session.startAt||packet.mail.to!==recipient){report.needsReview++;continue;}
+     if(packet.ids!==ids||packet.start!==session.startAt||packet.mail.to!==recipient){review(id,'INVITATION_CHANGED');continue;}
      const draft=await writeDraft(packet.mail);
      if(!draft?.id)throw Error('GMAIL_DRAFT_UNCONFIRMED');
      store.run('UPDATE weekly_rsvp_drafts SET draft_id=?,payload=NULL WHERE key=?',draft.id,key);
      report.drafts++;
-    }catch{report.needsReview++;}
+    }catch(error){review(id,error.code||error.message);}
    }
-  }catch{report.needsReview++;}
+  }catch(error){review(id,error.code||error.message);}
  }
  return report;
 }

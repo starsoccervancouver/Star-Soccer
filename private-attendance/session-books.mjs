@@ -248,7 +248,10 @@ export function buildSessionBooks(tables, today, source = {}) {
         return record && single(record.Booking) === bookingId && (record['Coverage state'] === 'Void' ||
           sessions.get(single(record.Session))?.['Session status'] === 'Cancelled' || memberIds.has(id));
       });
-      const validMembers = members.every(m => m.valid && m.playerId === playerId && reverse.includes(m.attendanceId) && dates.includes(m.session.Date) &&
+      const historicalVisits=basis==='Historical' && !packageBooking && multiple && dates.length>1;
+      const historicalMatches=historicalVisits && dates.every(day=>members.filter(m=>m.session.Date===day && m.a['Attendance status']==='Present').length===1) &&
+        members.every(m=>dates.includes(m.session.Date)?m.a['Attendance status']==='Present':m.a['Attendance status']==='Absent');
+      const validMembers = members.every(m => m.valid && m.playerId === playerId && reverse.includes(m.attendanceId) && (dates.includes(m.session.Date) || historicalVisits && m.a['Attendance status']==='Absent') &&
         bySeat.get([m.playerId, m.sessionId].join('/')).length === 1);
       const familyAgrees = familyForBooking(bookingId, booking, playerId, player, families).consistent;
       const firstMatches = first.length === 0 || first.length === 1 && sessions.get(first[0])?.Date === starts && (multiple || first[0] === sessionId);
@@ -260,6 +263,10 @@ export function buildSessionBooks(tables, today, source = {}) {
         rows.push(review(row, booking, 'Verify the booking, player and dated roster links.'));
         continue;
       }
+      if(source.outcomes){
+        row.absenceOptions=members.filter(m=>m.session.Date<=today && m.a['Attendance status']!=='Absent').map(m=>({id:m.attendanceId,date:m.session.Date,time:m.session.Time}));
+        row.canCancel=starts>today && booking['Booking status']==='Accepted' && !links(booking['Payment Allocations']).length && !(booking['Verified applied CAD']||0);
+      }
       const upcoming = starts > today;
       if (members.some(m => m.session.Date >= sessionRateCutover && m.a['Billing review'] === 'Needs reconciliation')) {
         rows.push(review(row,booking,'Review the session rate and booking before collecting.'));
@@ -268,7 +275,9 @@ export function buildSessionBooks(tables, today, source = {}) {
       const {amounts, issue} = reconciledAmounts(booking, single(player?.Family), family, upcoming, receipts);
       if (amounts) {
         const attended = a['Attendance status'] === 'Present';
-        if (multiple && (packageBooking || basis !== 'Attendance')) Object.assign(row, amounts, {status: 'package'});
+        if(historicalMatches && amounts.amountDue>0) Object.assign(row,amounts,{status:'due',attendanceBilled:true,sessionLabel:'Attended sessions'});
+        else if(historicalVisits && members.some(m=>dates.includes(m.session.Date)&&m.a['Attendance status']==='Absent')) review(row,booking,'Review the historical charge after an absence.');
+        else if (multiple && (packageBooking || basis !== 'Attendance')) Object.assign(row, amounts, {status: 'package'});
         else if (multiple && basis === 'Attendance' && amounts.amountDue > 0 &&
           members.some(m => m.a['Attendance status'] === 'Present' && m.a['Attended billing session'] === m.sessionId))
           Object.assign(row,amounts,{status:'due',attendanceBilled:true,sessionLabel:'Attended sessions'});
@@ -332,6 +341,7 @@ export function buildSessionBooks(tables, today, source = {}) {
         row.status = isPackage(booking) ? 'package' : amounts.amountDue > 0 ? 'due' : amounts.amountUpcoming > 0 ? 'upcoming' : amounts.amountPaid > 0 ? 'paid' : 'no-charge';
       } else reason = issue || 'Confirm attendance and its booking link.';
     }
+    if(source.outcomes && identity && !linked.length && validDate(date) && date>today && !cancelled && booking['Booking status']==='Accepted' && !links(booking['Payment Allocations']).length && !(booking['Verified applied CAD']||0))row.canCancel=true;
     if (row.status === 'review') review(row, booking, reason);
     rows.push(row);
   }

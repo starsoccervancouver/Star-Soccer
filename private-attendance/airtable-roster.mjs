@@ -132,7 +132,7 @@ export function createRosterReader({baseId,token,tableMap,summaryStore,verifiedC
   const snapshot=unpaid&&recentSessions&&clock().getTime()<recentSessions.expires?recentSessions:null;
   const readForBooks=(name,fields)=>name==='sessions'&&snapshot&&fields.every(field=>readFields.sessions.includes(field))
    ?snapshot.rows:read(name,fields);
-  return readSessionBooks(readForBooks,clock(),timeZone,{baseId,bookings:tableMap.bookings});
+  return readSessionBooks(readForBooks,clock(),timeZone,{baseId,bookings:tableMap.bookings,outcomes:true});
  },()=>clock().getTime(),summaryStore);
  const sessionBooks=options=>booksReader(options);
  sessionBooks.lastUnpaid=booksReader.lastUnpaid;

@@ -9,7 +9,7 @@ async function setup(t,contactFixture){
  const one=coaches.actor('one@example.test'),two=coaches.actor('two@example.test'),admin=coaches.actor('admin@example.test');
  coaches.assign(owner,{email:one.email,sessionId:rid(1),assigned:true});
  const ledgerCalls=[],familyLedger={async directory(){ledgerCalls.push('directory');return [];},async detail(id){ledgerCalls.push(id);return {balance:50};}};
- const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,sessionBooks:contactFixture?.sessionBooks,bookingPayments:contactFixture?.bookingPayments,sessionRoster:contactFixture?.sessionRoster,attention:async({kind})=>({kind}),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
+ const auth=createCoachAuth({store,coaches}),handler=createCoachHandler({coaches,auth,familyLedger:contactFixture?.ledger||familyLedger,sessionBooks:contactFixture?.sessionBooks,bookingPayments:contactFixture?.bookingPayments,sessionRoster:contactFixture?.sessionRoster,bookOutcome:contactFixture?.bookOutcome,attention:async({kind})=>({kind}),familyFollowups:async preview=>({preview}),cookieKey:'k'.repeat(43),assets:{},overview:contactFixture?.overview|| (async()=>{throw Error('Team reads must not fetch roster');})});
  const request=(actor,path,payload)=>{const session=auth.createVerifiedSession(actor.email),origin='https://attendance.starsoccer.ca';return handler(new Request(origin+'/workspace/api/'+path,{method:payload===undefined?'GET':'POST',headers:{origin,'content-type':'application/json',cookie:'__Host-ss_staff='+session.token,'x-csrf-token':session.csrf},...(payload===undefined?{}:{body:JSON.stringify(payload)})}));};
  return {store,coaches,owner,one,two,admin,request,auth,handler,ledgerCalls};
 }
@@ -360,4 +360,16 @@ test('Books retains owner review decisions and resurfaces changed discrepancies'
  row.reviewBalance=35;
  assert.equal((await read())[0].status,'review');
  assert.equal((await decide(owner,'Deleted')).status,409);
+});
+test('Books outcome writes are owner-only and bound to the current eligible booking or visit',async t=>{
+ const calls=[],bid=rid(66),visit=rid(67),rows=[{bookingId:bid,absenceOptions:[{id:visit}]}];
+ const {owner,admin,request}=await setup(t,{sessionBooks:async()=>({rows}),bookOutcome:async(...args)=>calls.push(args)});
+ const mark={bookingId:bid,decision:'Did not attend',attendanceId:visit};
+ assert.equal((await request(admin,'books-outcome',mark)).status,403);
+ assert.equal((await request(owner,'books-outcome',{...mark,attendanceId:rid(99)})).status,409);
+ assert.equal((await request(owner,'books-outcome',{bookingId:bid,decision:'Cancelled'})).status,409);
+ assert.equal((await request(owner,'books-outcome',mark)).status,200);
+ rows[0]={bookingId:bid,canCancel:true};
+ assert.equal((await request(owner,'books-outcome',{bookingId:bid,decision:'Cancelled'})).status,200);
+ assert.deepEqual(calls,[['Did not attend',bid,visit],['Cancelled',bid,undefined]]);
 });

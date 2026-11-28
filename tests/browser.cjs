@@ -133,6 +133,9 @@ async function checkFootballNews(page, base) {
     'serie-a':{kind:'results',checkedAt,items:[
       {...game,home:'Atalanta',away:'Inter Milan',goals:[4,4],competition:'Serie A',...video},
     ]},
+    'ligue-1':{kind:'results',checkedAt,items:[
+      {...game,home:'Paris Saint-Germain',away:'Marseille',competition:'Ligue 1',youtubeId:'psgfixture1'},
+    ]},
     'international-men':{kind:'results',checkedAt,items:[
       {...game,home:'Canada',away:'Guatemala',date:'2026-11-16',...video},
     ]},
@@ -140,7 +143,10 @@ async function checkFootballNews(page, base) {
   let blockParisImage=false;
   const pixel='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"/>';
   await page.route('**/football-news.json', route=>route.fulfill({json:payload}));
-  await page.route('https://i.ytimg.com/**', route=>route.fulfill({contentType:'image/svg+xml',body:pixel}));
+  await page.route('https://i.ytimg.com/**', route=>
+    blockParisImage && route.request().url().includes('/psgfixture1/')
+      ? route.abort()
+      : route.fulfill({contentType:'image/svg+xml',body:pixel}));
   await page.route('https://espnmedia-cdn.akamaized.net/**', route=>route.fulfill({contentType:'image/svg+xml',body:pixel}));
   await page.route('https://editorial.uefa.com/**', route=>
     blockParisImage && route.request().url()===uefaThumbnail

@@ -87,6 +87,8 @@
     'internazionale milano': 'inter',
     'bayern munich': 'bayern munchen',
     'bayern': 'bayern munchen',
+    'bayer 04 leverkusen': 'bayer leverkusen',
+    'como 1907': 'como',
     'mailand': 'milan',
     'rasenballsport leipzig': 'leipzig',
     'athletic': 'athletic bilbao',
@@ -112,7 +114,7 @@
       .replace(/[^a-z0-9]+/g, ' ').trim();
     if (words === 'paris fc' || words === 'fc paris') return 'paris fc';
     const normalized = words.split(' ')
-      .filter(word => !['fc', 'cf', 'afc', 'ac', 'as', 'sc', 'sk', 'fk', 'vfb', 'ssc', 'osc', 'kv', 'club', 'sv', 'rb'].includes(word))
+      .filter(word => !['fc', 'cf', 'afc', 'ac', 'as', 'sc', 'sk', 'fk', 'vfb', 'ssc', 'osc', 'kv', 'club', 'sv', 'rb', 'rc'].includes(word))
       .join(' ');
     return teamAliases[normalized] ?? normalized;
   }

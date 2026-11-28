@@ -101,7 +101,7 @@ async function checkFootballNews(page, base) {
   const checkedAt='2026-11-23T00:00:00Z';
   const game={away:'Visitor',goals:[2,0],competition:'League',source:'Test feed',url};
   const supplementary=['premier-league','champions-league','bundesliga'];
-  const uefaHighlight=require('../scripts/uefa-highlight-links.json').find(match=>match.home==='Sabah').highlightUrl;
+  const uefaHighlight='https://www.uefa.com/uefachampionsleague/video/02ab-222871ca3407-ab3f8f54d19d-1000/';
   await page.route('**/football-news.json', route=>route.fulfill({json:{version:1,sources:{
     whitecaps:{kind:'results',checkedAt,items:[
       {...game,home:'Vancouver Whitecaps',away:'Real Salt Lake',date:'2026-11-22'},

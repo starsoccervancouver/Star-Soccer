@@ -91,7 +91,7 @@
       report: known?.report ?? game.url,
       youtubeId: /^[A-Za-z0-9_-]{11}$/.test(youtubeId ?? '') ? youtubeId : null,
       highlightUrl: key === 'champions-league' &&
-        /^https:\/\/www\.uefa\.com\/news-media\/video\/[a-z0-9-]+\/$/.test(game.highlightUrl ?? '')
+        /^https:\/\/www\.uefa\.com\/(?:news-media\/video|uefachampionsleague\/video(?:\/highlights)?)\/[a-z0-9-]+\/$/.test(game.highlightUrl ?? '')
         ? game.highlightUrl : null,
       eventPhoto: game.eventPhoto,
       lead: Boolean(known?.lead),

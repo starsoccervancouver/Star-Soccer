@@ -13,6 +13,8 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
+from uefa_highlights import UEFA_URL, discover_highlights, match_key
+
 TODAY = datetime.now(ZoneInfo("America/Vancouver")).date()
 FIRST_DAY = (TODAY - timedelta(days=6)).isoformat()
 AGENT = "StarSoccer.ca football news (https://starsoccer.ca/contact.html)"
@@ -211,19 +213,27 @@ def read_cache(get_text):
     return {}
 
 
-def match_key(match):
-    return (match["date"], match["home"].strip(), match["away"].strip(), tuple(match["goals"]))
-
-
-def add_champions_league_highlights(source):
-    # Verified UEFA video permalinks, keyed by final score as well as fixture.
+def add_champions_league_highlights(source, previous_items=()):
+    # Keep known links for unchanged scores if UEFA's catalogue is unavailable.
     manifest = Path(__file__).with_name("uefa-highlight-links.json")
     links = {match_key(row): row["highlightUrl"]
              for row in json.loads(manifest.read_text(encoding="utf-8"))}
+    for row in previous_items:
+        url = row.get("highlightUrl", "")
+        if isinstance(url, str) and UEFA_URL.fullmatch(url):
+            links[match_key(row)] = url
+    try:
+        found = discover_highlights(source["items"], download)
+        links.update(found)
+        print(f'UEFA highlights: {len(found)} fixtures matched automatically')
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+        print(f"UEFA highlights unavailable: {error}. Keeping known links.")
     for match in source["items"]:
         url = links.get(match_key(match))
         if url:
             match["highlightUrl"] = url
+        else:
+            match.pop("highlightUrl", None)
 
 
 def main():
@@ -238,6 +248,7 @@ def main():
         for key in SOURCES.keys() & live.keys():
             if live[key]["checkedAt"] > snapshot.get(key, {}).get("checkedAt", ""):
                 snapshot[key] = live[key]
+    previous_champions_league = list(snapshot.get("champions-league", {}).get("items", []))
     now = datetime.now(UTC).isoformat(timespec="seconds")
     failures = []
     with ThreadPoolExecutor(max_workers=6) as pool:
@@ -262,7 +273,7 @@ def main():
     for source in snapshot.values():
         source["items"] = [item for item in source["items"] if is_recent(item)]
     if "champions-league" in snapshot:
-        add_champions_league_highlights(snapshot["champions-league"])
+        add_champions_league_highlights(snapshot["champions-league"], previous_champions_league)
     args.output.write_text(json.dumps({"version": 1, "sources": snapshot}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
